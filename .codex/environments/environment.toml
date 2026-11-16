@@ -1,0 +1,15 @@
+version = 1
+name = "Korzina"
+
+[setup]
+script = "npm ci"
+
+[[actions]]
+name = "Открыть витрину локально"
+icon = "run"
+command = "npm run dev -- --host 127.0.0.1"
+
+[[actions]]
+name = "Проверить сборку Korzina"
+icon = "run"
+command = "npm run build"
