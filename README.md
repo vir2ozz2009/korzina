@@ -31,7 +31,7 @@ npm run dev
 
 ## Публикация demo
 
-Текущее окружение Korzina предназначено только для `https://demo.korzina.app`, Worker `korzina-demo`. Конфигурация — `cloudflare.config.ts`; автоматическая публикация должна следить за веткой `main` репозитория `vir2ozz2009/korzina`. У этого окружения нет связей с сервисами, базами и ботами Lavka.
+Текущее окружение Korzina предназначено только для `https://demo.korzina.app`, Worker `korzina-demo`. Конфигурация — `cloudflare.config.ts`; автоматическая публикация настроена для ветки `main` репозитория `vir2ozz2009/korzina`. У этого окружения нет связей с сервисами, базами и ботами Lavka.
 
 Проверка перед публикацией:
 
@@ -43,6 +43,6 @@ npx cf deploy --prebuilt --dry-run
 
 Сборка находится в `.cloudflare/output/v0/`, а не в `dist/`. Для ручной публикации после входа в Cloudflare используйте `npm run deploy`.
 
-Для включения автоматической публикации откройте Cloudflare → Workers & Pages → `korzina-demo` → Settings → Builds → Connect. Подключите GitHub, разрешите Cloudflare доступ только к репозиторию `vir2ozz2009/korzina`, выберите его и ветку `main`. Настройки: корень `/`, build command `npm run build`, deploy command `npx cf deploy --prebuilt`, переменная сборки `NODE_VERSION=24.22.1`. Выберите создание нового токена сборки средствами панели, без доступа к ресурсам Lavka. Запустите первую сборку. Автопубликация считается включённой только после успешной сборки из GitHub и проверки сайта. Наличие файлов конфигурации само по себе её не включает.
+Workers Builds уже подключён к `vir2ozz2009/korzina`, ветке `main`. Настройки: корень `/`, build command `npm run build`, deploy command `npx cf deploy --prebuilt`, переменная сборки `NODE_VERSION=24.22.1`. Используется отдельный токен `Workers Builds — korzina-demo`; previews других веток отключены. Настройки доступны в Cloudflare → Workers & Pages → `korzina-demo` → Settings → Builds. Первая публикация прошла; подтверждения и ограничения проверки сайта записаны в [прогрессе](docs/progress.md). `--force` был разрешён владельцем только для первой замены API-заглушки и удалён из команды после публикации.
 
 Изменения следует отправлять в `main` только после проверки: успешная сборка этой ветки обновит demo. Другие домены не входят в конфигурацию. Для отката выберите предыдущую версию в Cloudflare → `korzina-demo` → Deployments; откат кода не откатывает данные будущей базы.
