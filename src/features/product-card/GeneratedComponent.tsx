@@ -473,7 +473,7 @@ export const GeneratedComponent = () => {
               <button
                 className="kp-details"
                 onClick={async () => {
-                  const url = `https://designs.magicpath.ai/v1/fancily-river-7196`;
+                  const url = `${window.location.origin}/`;
                   try {
                     if (navigator.share)
                       await navigator.share({
@@ -498,7 +498,7 @@ export const GeneratedComponent = () => {
                 className="kp-share-link"
                 aria-label="Ссылка на тест"
                 readOnly
-                value="https://designs.magicpath.ai/v1/fancily-river-7196"
+                value={`${window.location.origin}/`}
                 onFocus={(e) => e.target.select()}
               />
               <p className="kp-demo">Ссылка ведёт на тестовый экран томатов.</p>

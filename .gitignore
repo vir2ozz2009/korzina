@@ -6,3 +6,6 @@ dist/
 !.dev.vars.example
 *.local
 .DS_Store
+
+.wrangler
+.cloudflare/
