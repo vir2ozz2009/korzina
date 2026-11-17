@@ -75,6 +75,10 @@ describe("F9: файлы, изоляция, повторы и хранение",
     const temp = await create();
     const attached = await create();
     const deleted = await create();
+    const sidecar = `korzina-demo-test2/${temp.id}/legacy-version.webp`;
+    const keep = `korzina-demo-test2/${attached.id}/legacy-version.webp`;
+    await env.MEDIA_PUBLIC.put(sidecar, "old file");
+    await env.MEDIA_PUBLIC.put(keep, "attached file");
     expect(
       (await postAuth(`/api/media/${attached.id}/state?shop=test2`, { action: "attach" }, { Cookie: cookie })).status,
     ).toBe(200);
@@ -93,6 +97,8 @@ describe("F9: файлы, изоляция, повторы и хранение",
       expect(ctx.storage.sql.exec("SELECT bytes FROM media_usage WHERE id=1").one()).toEqual({ bytes: actual });
     });
     expect(await env.MEDIA.head(`korzina-demo-test2/${temp.id}/original.pdf`)).toBeNull();
+    expect(await env.MEDIA_PUBLIC.head(sidecar)).toBeNull();
+    expect(await env.MEDIA_PUBLIC.head(keep)).not.toBeNull();
     expect(await env.MEDIA.head(`korzina-demo-test2/${attached.id}/original.pdf`)).not.toBeNull();
   });
   it("подпись короткоживущая, привязана к покупателю, магазину и файлу", async () => {
