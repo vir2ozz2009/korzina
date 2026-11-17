@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-09",
+  "block": 57,
+  "status": "Small-storefront visual direction accepted; VkusVill theme exploration declined",
+  "scope": "Visual direction only; newer 1–5 product mockups are raster explorations. Native block57 and its prior prototype have not yet been reconciled to the accepted later visual amendment.",
+  "rules": [
+    "Small storefront supports1–5 product families; packaging variants do not count as different products.",
+    "One product may use focus composition. Two tofive use consistent two-column mobile grid; odd lastcard stays left and never stretches.",
+    "Same card/photo/control dimensions; reserve two-line title area and align prices/actions.",
+    "Header, product selection, cart, checkout and other approved functional flows retain existing behaviour.",
+    "A new visual theme must not add VkusVill-specific features, navigation, claims or brand identity."
+  ],
+  "pendingThemeTrial": {
+    "style": "VkusVill-inspired white/green/flat surface/softer typography",
+    "example": "General large multi-category store homepage; user explicitly corrected previous small-storefront example",
+    "status": "Declined by user; keep existing accepted Korzina visual style. Do not propagate VkusVill samples.",
+    "references": [
+      "https://vkusvill.ru/",
+      "tiny-shop-research/vkusvill-mobile.png",
+      "tiny-shop-research/vkusvill-desktop.png"
+    ],
+    "preserveLogic": [
+      "Centered store logo and left delivery selector",
+      "Compact stories",
+      "Merchant-enabled favorite-product offer",
+      "Two-row horizontally scrollable category mosaic",
+      "Product grid and inline packaging flow",
+      "Plus/minus quantity controls",
+      "Floating neurosearch and cart",
+      "All previously accepted checkout, account and order flows"
+    ]
+  }
+}

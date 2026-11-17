@@ -1,0 +1,303 @@
+{
+  "date": "2026-11-07",
+  "fileKey": "Y8MsoSYwEr373vVvlvXAGJ",
+  "section": "165:10633",
+  "accepted": true,
+  "scope": "Native editable Figma amendment to basket step 1 and Receiving contact provenance. No production changes.",
+  "states": {
+    "guest": [
+      "165:10637",
+      "165:10682"
+    ],
+    "choices": [
+      "165:10791",
+      "165:10847"
+    ],
+    "telegram-wait": [
+      "165:10967",
+      "165:11024"
+    ],
+    "telegram-error": [
+      "165:11145",
+      "165:11200"
+    ],
+    "phone-empty": [
+      "165:11319",
+      "165:11380"
+    ],
+    "phone-invalid": [
+      "165:11505",
+      "165:11567"
+    ],
+    "phone-valid": [
+      "165:11693",
+      "165:11754"
+    ],
+    "telegram-phone": [
+      "165:11879",
+      "165:11938"
+    ],
+    "telegram-valid": [
+      "165:12061",
+      "165:12120"
+    ],
+    "phone-saved": [
+      "165:12243",
+      "165:12287"
+    ],
+    "telegram-saved": [
+      "165:12395",
+      "165:12439"
+    ]
+  },
+  "actions": {
+    "guest": [
+      {
+        "cta": "165:10674",
+        "telegram": "165:10678",
+        "phone": "165:10680"
+      },
+      {
+        "cta": "165:10761",
+        "telegram": "165:10786",
+        "phone": "165:10788"
+      }
+    ],
+    "choices": [
+      {
+        "cta": "165:10828",
+        "telegram": "165:10842",
+        "phone": "165:10844",
+        "close": "165:10838",
+        "panel": "165:10837"
+      },
+      {
+        "cta": "165:10926",
+        "telegram": "165:10961",
+        "phone": "165:10963",
+        "close": "165:10957",
+        "panel": "165:10956"
+      }
+    ],
+    "telegram-wait": [
+      {
+        "cta": "165:11004",
+        "telegram": "165:11008",
+        "close": "165:11014",
+        "panel": "165:11013"
+      },
+      {
+        "cta": "165:11103",
+        "telegram": "165:11128",
+        "close": "165:11134",
+        "panel": "165:11133"
+      }
+    ],
+    "telegram-error": [
+      {
+        "cta": "165:11182",
+        "telegram": "165:11186",
+        "phone": "165:11198",
+        "close": "165:11192",
+        "check": "165:11196",
+        "panel": "165:11191"
+      },
+      {
+        "cta": "165:11279",
+        "telegram": "165:11304",
+        "phone": "165:11316",
+        "close": "165:11310",
+        "check": "165:11314",
+        "panel": "165:11309"
+      }
+    ],
+    "phone-empty": [
+      {
+        "cta": "165:11356",
+        "telegram": "165:11378",
+        "phone": "165:11362",
+        "close": "165:11366",
+        "input": "165:11371",
+        "confirm": "165:11374",
+        "save": "165:11376",
+        "panel": "165:11365"
+      },
+      {
+        "cta": "165:11459",
+        "telegram": "165:11502",
+        "phone": "165:11486",
+        "close": "165:11490",
+        "input": "165:11495",
+        "confirm": "165:11498",
+        "save": "165:11500",
+        "panel": "165:11489"
+      }
+    ],
+    "phone-invalid": [
+      {
+        "cta": "165:11542",
+        "telegram": "165:11565",
+        "phone": "165:11548",
+        "close": "165:11552",
+        "input": "165:11557",
+        "confirm": "165:11561",
+        "save": "165:11563",
+        "panel": "165:11551"
+      },
+      {
+        "cta": "165:11646",
+        "telegram": "165:11690",
+        "phone": "165:11673",
+        "close": "165:11677",
+        "input": "165:11682",
+        "confirm": "165:11686",
+        "save": "165:11688",
+        "panel": "165:11676"
+      }
+    ],
+    "phone-valid": [
+      {
+        "cta": "165:11730",
+        "telegram": "165:11752",
+        "phone": "165:11736",
+        "close": "165:11740",
+        "input": "165:11745",
+        "confirm": "165:11748",
+        "save": "165:11750",
+        "panel": "165:11739"
+      },
+      {
+        "cta": "165:11833",
+        "telegram": "165:11876",
+        "phone": "165:11860",
+        "close": "165:11864",
+        "input": "165:11869",
+        "confirm": "165:11872",
+        "save": "165:11874",
+        "panel": "165:11863"
+      }
+    ],
+    "telegram-phone": [
+      {
+        "cta": "165:11916",
+        "telegram": "165:11920",
+        "phone": "165:11922",
+        "close": "165:11926",
+        "input": "165:11931",
+        "confirm": "165:11934",
+        "save": "165:11936",
+        "panel": "165:11925"
+      },
+      {
+        "cta": "165:12017",
+        "telegram": "165:12042",
+        "phone": "165:12044",
+        "close": "165:12048",
+        "input": "165:12053",
+        "confirm": "165:12056",
+        "save": "165:12058",
+        "panel": "165:12047"
+      }
+    ],
+    "telegram-valid": [
+      {
+        "cta": "165:12098",
+        "telegram": "165:12102",
+        "phone": "165:12104",
+        "close": "165:12108",
+        "input": "165:12113",
+        "confirm": "165:12116",
+        "save": "165:12118",
+        "panel": "165:12107"
+      },
+      {
+        "cta": "165:12199",
+        "telegram": "165:12224",
+        "phone": "165:12226",
+        "close": "165:12230",
+        "input": "165:12235",
+        "confirm": "165:12238",
+        "save": "165:12240",
+        "panel": "165:12229"
+      }
+    ],
+    "phone-saved": [
+      {
+        "cta": "165:12280",
+        "edit": "165:12285"
+      },
+      {
+        "cta": "165:12366",
+        "edit": "165:12392"
+      }
+    ],
+    "telegram-saved": [
+      {
+        "cta": "165:12432",
+        "edit": "165:12437"
+      },
+      {
+        "cta": "165:12518",
+        "edit": "165:12544"
+      }
+    ]
+  },
+  "rules": "165:12636",
+  "preview": "165:12648",
+  "dimensions": {
+    "mobile": [
+      390,
+      844
+    ],
+    "desktop": [
+      1440,
+      1000
+    ]
+  },
+  "logic": {
+    "guest": "Show invitation only when no Telegram identity and no usable saved phone. Editing basket remains available.",
+    "continue": "Resolve contact, then missing address via section 31, then current totals/stock via 35–36, then Receiving 37. Do not bypass contact on any Continue entry.",
+    "telegram": "Server creates one-use browser-bound start=login_<token> deep link. Telegram bot receives /start token; server confirms this session; shop detects status on polling/focus/pageshow and closes login automatically, then resumes saved intent. First-time Telegram users may need Start; no manual check button in shop.",
+    "phone": "Phone format validation and explicit ownership assertion; no SMS or call. Not verified ownership; never use arbitrary phone lookup to reveal another customer's profile, order history or balance.",
+    "knownContact": "Do not ask again. Show saved phone and allow editing. Preserve cart, address, selected favorite product, promo and cashback mode.",
+    "discountRefresh": "After login fetch eligible benefits and refresh basket. If totals change, show change before moving on.",
+    "receiving": "No phone block or phone editing on Receiving. Collect and edit number in basket; return there to change it.",
+    "cancel": "Close returns to previous basket; cart content preserved; Continue still gates absent contact.",
+    "retry": "Failed or cancelled Telegram login offers retry and phone fallback. Phone submit/network error keeps input and confirmation, supports retry, prevents duplicate in-flight submission.",
+    "mobile": "tel input/autofill; scrollable sheet above system keyboard; safe area respected.",
+    "prototype": "Fixed inputs; after-timeout simulates a successful server-confirmed result, not real login. Errors are separate condition states.",
+    "personalBenefits": "Both Telegram and phone login load account-bound favorite product, personal discounts, codes and cashback. Return to intended action automatically, without an additional Telegram gate."
+  },
+  "sourceEvidence": [
+    "lavka/storefront/web/buyer-login.js buyerLoginChoices, buyerLoginPhone, buyerLoginPhoneSubmit, buyerLoginFinish",
+    "lavka/storefront/web/shopper-pages.js cartTelegramLoginHTML currently only suppresses Telegram entry for Telegram identity; must also respect saved phone in implementation"
+  ],
+  "validation": {
+    "fontFamilies": [
+      "Inter"
+    ],
+    "nodeCounts": {
+      "TEXT": 925,
+      "FRAME": 1140,
+      "RECTANGLE": 44,
+      "INSTANCE": 33
+    },
+    "imageUse": "Product/category photos only; no flattened complete UI.",
+    "screenshots": [
+      "cart-login-account-overview.png",
+      "cart-login-account-desktop.png"
+    ]
+  },
+  "accountAmendment": {
+    "source": "cart-identity-account-amendment.json",
+    "preview": "177:9111"
+  },
+  "presentationPriority": {
+    "source": "telegram-priority-design.json",
+    "preview": "180:9155",
+    "primary": "Telegram first and visually dominant",
+    "fallback": "Phone, small neutral link substantially below primary",
+    "eligibility": "Phone still unlocks account personal discounts, favorite product, promo codes and cashback. Priority is visual, not an eligibility restriction."
+  },
+  "acceptanceDate": "2026-11-07"
+}

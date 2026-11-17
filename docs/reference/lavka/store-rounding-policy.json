@@ -1,0 +1,44 @@
+{
+  "scope": "Store-wide rule for all promotion-generated monetary amounts in current mobile and desktop designs, sections 30–34",
+  "currency": "RUB examples",
+  "discount": "Round each applicable discount up to whole RUB, limited by eligible remaining base and seller maximum discount",
+  "sequence": "Compute following discounts from the already rounded remaining price, then sum exact components for payable total",
+  "cashbackEarning": "If earning is selected, round credited earning up to whole RUB",
+  "cashbackSpending": "Floor permitted maximum to whole RUB, bounded by available balance and configured percentage; only integer RUB input",
+  "wallet": "Wallet payments are payment sources. Do not round away existing balances or refunds. They do not create an additional discount.",
+  "implementationStatus": "Figma and design handoff updated only. Production pricing requires a coordinated frontend/backend implementation, not a display formatter.",
+  "fixtures": {
+    "10percentOf189": {
+      "discount": 19,
+      "net": 170,
+      "delivery": 50,
+      "payable": 220
+    },
+    "20percentOf189": {
+      "discount": 38,
+      "net": 151,
+      "delivery": 50,
+      "payable": 201
+    },
+    "stack20Then10": {
+      "discounts": [
+        38,
+        16
+      ],
+      "goodsNet": 135,
+      "delivery": 0,
+      "cashbackSpend": 10,
+      "wallet": 20,
+      "externalDue": 105,
+      "cashbackSpendCap": 40
+    },
+    "cashback5percentOf239": {
+      "earn": 12
+    },
+    "cashback30percentOf189": {
+      "maxSpend": 56,
+      "payableAfterMaxSpend": 183
+    }
+  },
+  "figmaRemainingFractionalAmounts": 0
+}
