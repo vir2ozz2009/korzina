@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const permissions = [
+const permissions = [
   "orders",
   "assembly",
   "chat",

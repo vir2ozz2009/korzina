@@ -1,6 +1,7 @@
 import type { ShopContext } from "../src/shared/contracts/shop-context";
 import { ApiError } from "../src/shared/errors";
 import { DEFAULT_THEME, themeStyle } from "../src/shared/theme-presets";
+import { isDemoPath } from "./development";
 import { shopContexts } from "./platform/shop-context";
 
 export function themedHtml(response: Response, context: ShopContext, shopTheme: boolean): Response {
@@ -24,6 +25,9 @@ export function themedHtml(response: Response, context: ShopContext, shopTheme: 
 
 export async function serveHtml(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
+  if (env.APP_ENV === "production" && isDemoPath(url.pathname)) {
+    return new Response("Не найдено", { status: 404 });
+  }
   const response = await env.ASSETS.fetch(request);
   if (!response.headers.get("Content-Type")?.includes("text/html") || !response.ok) return response;
   try {

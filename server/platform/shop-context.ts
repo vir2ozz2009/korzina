@@ -3,7 +3,7 @@ import { ApiError } from "../../src/shared/errors";
 import { readFeatures } from "./features";
 import { resolveShop } from "./resolve-shop";
 
-export const CONTEXT_TTL = 30_000;
+const CONTEXT_TTL = 30_000;
 
 // Only completed public snapshots survive across requests. Never cache sessions or permissions.
 export class ShopContextCache {

@@ -1,4 +1,4 @@
-export interface ImageSource {
+interface ImageSource {
   src: string;
   srcSet?: string;
 }

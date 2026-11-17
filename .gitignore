@@ -9,3 +9,5 @@ dist/
 
 .wrangler
 .cloudflare/
+playwright-report/
+test-results/

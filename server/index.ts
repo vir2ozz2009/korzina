@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { AuthSecrets } from "./auth/config";
+import { isDevelopmentHost } from "./development";
 import { serveHtml } from "./html";
 import { handleError, notFound } from "./middleware/errors";
 import { apiMetrics } from "./middleware/metrics";
@@ -15,13 +16,13 @@ import { shopRoutes } from "./shop/routes";
 export { Shop } from "./shop/Shop";
 
 const forwarding = createMiddleware<{ Bindings: Env }>(async (c) => {
-  const shop = await shopContexts.read(c.req.raw, c.env);
   if (
     c.req.path.startsWith("/api/diagnostics") &&
-    !["demo.korzina.app", "localhost", "127.0.0.1", "[::1]"].includes(new URL(c.req.url).hostname)
+    (c.env.APP_ENV === "production" || !isDevelopmentHost(new URL(c.req.url).hostname))
   ) {
     return notFound(c);
   }
+  const shop = await shopContexts.read(c.req.raw, c.env);
   const headers = new Headers(c.req.raw.headers);
   headers.set("x-korzina-shop", encodeURIComponent(JSON.stringify(shop)));
   headers.set("x-korzina-client", c.req.header("CF-Connecting-IP") ?? "local");

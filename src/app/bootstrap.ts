@@ -1,7 +1,7 @@
 import { applyTheme } from "../shared/apply-theme";
 import { shopContextContract } from "../shared/contracts/shop-context";
 
-export function readBootstrap() {
+function readBootstrap() {
   try {
     const parsed = shopContextContract.safeParse(
       JSON.parse(document.getElementById("shop-context")?.textContent ?? "null"),
