@@ -1,4 +1,3 @@
-import { exports } from "cloudflare:workers";
 import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { AuthSecrets } from "./auth/config";
@@ -13,6 +12,7 @@ import { localPublicMedia } from "./modules/media/local-public";
 import { sellerAccess } from "./platform/auth/access-routes";
 import { platformAuth } from "./platform/auth/routes";
 import { shopContexts } from "./platform/shop-context";
+import { forwardToShop } from "./shop/forward";
 import { shopRoutes } from "./shop/routes";
 
 export { Shop } from "./shop/Shop";
@@ -25,14 +25,7 @@ const forwarding = createMiddleware<{ Bindings: Env }>(async (c) => {
     return notFound(c);
   }
   const shop = await shopContexts.read(c.req.raw, c.env);
-  const headers = new Headers(c.req.raw.headers);
-  headers.set("x-korzina-shop", encodeURIComponent(JSON.stringify(shop)));
-  headers.set("x-korzina-client", c.req.header("CF-Connecting-IP") ?? "local");
-  headers.set("x-request-id", c.res.headers.get("X-Request-Id") ?? crypto.randomUUID());
-  const upstream = await exports.Shop.get(exports.Shop.idFromName(shop.id)).fetch(new Request(c.req.raw, { headers }));
-  const response = new Response(upstream.body, upstream);
-  response.headers.set("Cache-Control", "no-store");
-  return response;
+  return forwardToShop(c, shop);
 });
 
 // Routing and validation types come from the SAME DO router; no manually duplicated RPC signatures.

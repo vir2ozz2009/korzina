@@ -1,0 +1,1 @@
+CREATE INDEX `seller_sessions_expiry_idx` ON `seller_sessions` (`expires_at`);

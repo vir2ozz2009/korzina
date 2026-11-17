@@ -1,4 +1,4 @@
-import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export { carts } from "../modules/cart/schema";
 export { brands, catalogState, categories, productPhotos, products, variants } from "../modules/catalog/schema";
@@ -18,12 +18,16 @@ export const idempotency = sqliteTable(
     response: text("response").notNull(),
     createdAt: integer("created_at").notNull(),
   },
-  (table) => [primaryKey({ columns: [table.scope, table.key] })],
+  (table) => [primaryKey({ columns: [table.scope, table.key] }), index("idempotency_created_idx").on(table.createdAt)],
 );
 
-export const sessions = sqliteTable("sessions", {
-  tokenHash: text("token_hash").primaryKey(),
-  subject: text("subject").notNull(),
-  kind: text("kind", { enum: ["guest", "telegram"] }).notNull(),
-  expiresAt: integer("expires_at").notNull(),
-});
+export const sessions = sqliteTable(
+  "sessions",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    subject: text("subject").notNull(),
+    kind: text("kind", { enum: ["guest", "telegram"] }).notNull(),
+    expiresAt: integer("expires_at").notNull(),
+  },
+  (t) => [index("sessions_expiry_idx").on(t.expiresAt), index("sessions_subject_idx").on(t.subject, t.expiresAt)],
+);

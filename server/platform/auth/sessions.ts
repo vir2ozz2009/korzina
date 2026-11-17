@@ -1,6 +1,7 @@
 import { ApiError } from "../../../src/shared/errors";
 import { credential, sellerCookie } from "../../auth/cookies";
 import { newToken, tokenHash } from "../../auth/tokens";
+import { scheduleSellerCleanup } from "../cleanup";
 
 export const sellerTtl = 7 * 86_400;
 export async function sellerAccount(database: D1Database, request: Request): Promise<string> {
@@ -26,6 +27,7 @@ export async function telegramSellerSession(database: D1Database, telegramId: st
       )
       .bind(await tokenHash(token), Date.now() + sellerTtl * 1000, telegramId),
   ]);
+  await scheduleSellerCleanup();
   return token;
 }
 export async function logoutSeller(database: D1Database, request: Request) {
