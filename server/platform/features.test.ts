@@ -66,10 +66,16 @@ describe("флаги в D1 → Worker → Shop", () => {
       .get("/", requireFeature("cashback"), () => {
         throw new ApiError("FORBIDDEN", "Нужны права");
       });
-    expect(
-      (await guarded.request("https://internal/", {}, { shop: { id: "korzina-demo-lavka" }, platform: env.PLATFORM }))
-        .status,
-    ).toBe(403);
+    const denied = await guarded.request(
+      "https://internal/",
+      {},
+      {
+        shop: { id: "korzina-demo-lavka" },
+        platform: env.PLATFORM,
+      },
+    );
+    expect(denied.status).toBe(403);
+    expect(await denied.json()).toMatchObject({ error: { code: "FORBIDDEN" } });
     await expect(readFeatures(env.PLATFORM, "missing")).resolves.toEqual({ cashback: false });
     const unavailable = vi.spyOn(env.PLATFORM, "withSession").mockImplementation(() => {
       throw new Error("unavailable");
