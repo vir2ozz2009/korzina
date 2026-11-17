@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
@@ -6,7 +7,25 @@ import { defineConfig } from "vite";
 import { bundleReport } from "./scripts/bundle-report.ts";
 
 export default defineConfig(({ mode }) => ({
-  plugins: [cloudflare(), react(), tailwindcss(), bundleReport()],
+  plugins: [
+    cloudflare(),
+    react(),
+    tailwindcss(),
+    bundleReport(),
+    {
+      name: "build-revision",
+      transformIndexHtml: () => [
+        {
+          tag: "meta",
+          attrs: {
+            name: "build-revision",
+            content: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
+          },
+          injectTo: "head",
+        },
+      ],
+    },
+  ],
   define: { "import.meta.env.DEV_SCREENS": mode !== "production" },
   build: {
     target: "es2022",

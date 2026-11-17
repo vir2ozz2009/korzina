@@ -15,10 +15,15 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
           cache: npm
+      - run: node scripts/check-pr-size.ts
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       - run: npm ci
       - run: npm run check
       - run: npx playwright install --with-deps chromium
