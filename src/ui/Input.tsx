@@ -4,7 +4,7 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   hint?: string;
 }
-export const inputClass =
+const inputClass =
   "min-h-(--control-md) w-full min-w-0 rounded-pill bg-input px-4 text-body focus:text-body-lg disabled:opacity-40 placeholder:text-placeholder aria-invalid:ring-1 aria-invalid:ring-status-danger-foreground";
 export function Input({ label, error, hint, id, className = "", ...props }: InputProps) {
   const autoId = useId();

@@ -1,6 +1,6 @@
 import type { TemplateName } from "../templates/types";
 
-export type TransitionKind = "push" | "sheet" | "tab" | "fade" | "none";
+type TransitionKind = "push" | "sheet" | "tab" | "fade" | "none";
 declare module "@tanstack/react-router" {
   interface StaticDataRouteOption {
     transition?: TransitionKind;

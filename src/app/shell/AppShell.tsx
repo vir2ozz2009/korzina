@@ -19,7 +19,7 @@ export function AppShell() {
   const path = useRouterState({ select: (state) => state.location.pathname });
   const isRoot = useRouterState({ select: (state) => state.matches.at(-1)?.staticData.root ?? false });
   const seller = path.startsWith("/seller");
-  const floating = path === "/" || /^\/p\//.test(path);
+  const floating = import.meta.env.DEV_SCREENS && (path === "/" || /^\/p\//.test(path));
   const start = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => {
     applyTheme(

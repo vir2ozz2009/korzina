@@ -19,5 +19,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "server", "scripts", "*.ts", ".cloudflare/types/index.d.ts"]
+  "include": ["src", "server", "scripts", "e2e", "*.ts", ".cloudflare/types/index.d.ts"]
 }

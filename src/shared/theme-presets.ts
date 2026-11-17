@@ -11,16 +11,7 @@
  *  - strong — затемнённый до контраста с белым ≥ 4.5:1; soft — 8% цвета на белом.
  */
 
-export type ThemePresetId =
-  | "raspberry"
-  | "tomato"
-  | "orange"
-  | "herb"
-  | "forest"
-  | "berry"
-  | "sea"
-  | "chocolate"
-  | "graphite";
+type ThemePresetId = "raspberry" | "tomato" | "orange" | "herb" | "forest" | "berry" | "sea" | "chocolate" | "graphite";
 
 /** Что хранится в settings магазина */
 export type ShopTheme = { preset: ThemePresetId } | { custom: string };
@@ -100,7 +91,7 @@ export function deriveTheme(primaryHex: string): ThemeVars {
 }
 
 /** Ниже — цвет почти белый: кнопка не отличается от белой карточки */
-export const MIN_ACCENT_CONTRAST = 1.3;
+const MIN_ACCENT_CONTRAST = 1.3;
 
 /** Проверка своего цвета перед сохранением (клиент и сервер) */
 export function validateCustomColor(hex: string): { ok: true } | { ok: false; reason: "format" | "too_light" } {

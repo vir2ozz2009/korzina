@@ -1,0 +1,23 @@
+name: Check
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+concurrency:
+  group: check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  check:
+    if: startsWith(github.head_ref, 'task/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npm run check

@@ -2,13 +2,16 @@ import { bindings, defineConfig, exports } from "cf/config";
 import * as entrypoint from "./server/index" with { type: "cf-worker" };
 import { platformDatabase } from "./server/platform/config.ts";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   accountId: "2dfac424ca4eaffa25ca82089bf82132",
   worker: {
     name: "korzina-demo",
+    workersDev: false,
+    previewUrls: true,
     entrypoint,
     exports: { Shop: exports.durableObject({ storage: "sqlite" }) },
     env: {
+      APP_ENV: bindings.text(mode === "production" ? "production" : "demo"),
       ASSETS: bindings.assets(),
       PLATFORM: bindings.d1(platformDatabase),
       MEDIA: bindings.r2({ name: "korzina-demo-media" }),
@@ -29,4 +32,4 @@ export default defineConfig({
       runWorkerFirst: ["/*", "!/assets/*", "!/brand/*"],
     },
   },
-});
+}));

@@ -17,7 +17,7 @@ export async function mediaActor(env: ShopEnv["Bindings"], request: Request): Pr
   if (!customer) throw new ApiError("UNAUTHORIZED", "Сначала войдите в магазин");
   return { id: customer.subject };
 }
-export function canManage(actor: MediaActor, purpose: MediaPurpose) {
+function canManage(actor: MediaActor, purpose: MediaPurpose) {
   if (purpose === "logo" || purpose === "cover") return actor.seller?.role === "owner";
   const permission: Permission =
     purpose === "chat"

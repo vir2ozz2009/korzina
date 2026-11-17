@@ -111,4 +111,3 @@ export function UiKit() {
     </div>
   );
 }
-export default UiKit;

@@ -6,7 +6,7 @@ import { Price } from "../../../ui/Price";
 import { ProductImage } from "../../../ui/ProductImage";
 
 export const demoImage = { src: "/seed/tomato-photo-400.webp" };
-export function DemoProductTile({ index = 0 }: { index?: number }) {
+function DemoProductTile({ index = 0 }: { index?: number }) {
   const [quantity, setQuantity] = useState(0);
   return (
     <Card className="overflow-hidden p-0">

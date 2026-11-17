@@ -20,7 +20,7 @@ const product = createRoute({
   staticData: { template: "product", transition: "push", title: "Томаты на ветке" },
   loaderDeps: ({ search }) => ({ simulate: search.simulate }),
   loader: ({ context, deps }) => context.qc.ensureQueryData(demoQuery("product", deps.simulate)).catch(() => undefined),
-  component: lazyRouteComponent(() => import("../features/demo/ui/ShopScreens"), "DemoProduct"),
+  component: lazyRouteComponent(() => import("../features/demo/ui/ProductScreen"), "DemoProduct"),
   pendingComponent: () => <TemplatePending template="product" />,
 });
 const details = createRoute({

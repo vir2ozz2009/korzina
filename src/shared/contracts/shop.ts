@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/mini";
 
 export const shopContract = z.object({
   id: z.string(),
@@ -6,6 +6,6 @@ export const shopContract = z.object({
   name: z.string(),
   status: z.string(),
   plan: z.string(),
-  createdAt: z.number().int(),
+  createdAt: z.int(),
 });
 export type ShopInfo = z.infer<typeof shopContract>;

@@ -12,7 +12,7 @@ export function demoSearch(search: Record<string, unknown>): { simulate?: Simula
     filter: typeof search.filter === "string" ? search.filter : undefined,
   };
 }
-export const demoKeys = {
+const demoKeys = {
   screen: (template: TemplateName, simulate?: Simulation) =>
     ["shop", bootstrap?.id ?? "demo", "demo", template, simulate ?? "ready"] as const,
 };

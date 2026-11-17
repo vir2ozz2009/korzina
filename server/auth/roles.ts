@@ -5,7 +5,7 @@ import { credential, sellerCookie } from "./cookies";
 import { sessionLimiter } from "./session-limit";
 import { tokenHash } from "./tokens";
 
-export const employeeDefaults: readonly Permission[] = ["orders", "assembly", "chat", "products", "stock"];
+const employeeDefaults: readonly Permission[] = ["orders", "assembly", "chat", "products", "stock"];
 export type Seller = { accountId: string; role: Role; permissions: Permission[] };
 export type SellerEnv = { Bindings: Env; Variables: { seller: Seller; shopId: string } };
 

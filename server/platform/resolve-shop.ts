@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
+import { isDevelopmentHost } from "../development";
 import { domains, type PlatformShop, shops } from "./schema";
 
 const ttl = 30_000;
@@ -9,11 +10,10 @@ function remember(key: string, entry: CachedShop) {
   if (memory.size >= 500) memory.delete(memory.keys().next().value as string);
   memory.set(key, entry);
 }
-const isPreview = (host: string) => ["localhost", "127.0.0.1", "[::1]", "demo.korzina.app"].includes(host);
 
 export async function resolveShop(request: Request, database: D1Database): Promise<PlatformShop | undefined> {
   const url = new URL(request.url);
-  const slug = isPreview(url.hostname) ? (url.searchParams.get("shop") ?? "lavka") : undefined;
+  const slug = isDevelopmentHost(url.hostname) ? (url.searchParams.get("shop") ?? "lavka") : undefined;
   const key = `https://shop-resolution.invalid/v2/${slug ? `slug/${encodeURIComponent(slug)}` : `host/${url.hostname}`}`;
   const hit = memory.get(key);
   if (hit && hit.expires > Date.now()) return hit.shop;
