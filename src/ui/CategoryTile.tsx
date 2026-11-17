@@ -18,13 +18,15 @@ export function CategoryTile({
       className={`relative block min-h-28 overflow-hidden rounded-lg bg-card p-3 ${wide ? "col-span-2" : ""}`}
     >
       <span className="relative z-10 text-small font-semibold">{name}</span>
-      <ProductImage
-        {...imageSource(image)}
-        alt={name}
-        sizes="80px"
-        fallback={<ShoppingBasket className="size-8" />}
-        className="absolute right-0 bottom-0 w-20"
-      />
+      <span className="absolute right-0 bottom-0 w-20">
+        <ProductImage
+          {...imageSource(image)}
+          alt={name}
+          sizes="80px"
+          fallback={<ShoppingBasket className="size-8" />}
+          className="w-full"
+        />
+      </span>
     </a>
   );
 }
