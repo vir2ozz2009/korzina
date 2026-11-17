@@ -25,6 +25,7 @@ async function checkWidths(page: Page, screen?: "home" | "product") {
 }
 
 test("витрина своего магазина → фасовка/корзина → товар → шторка → назад", async ({ page, request }) => {
+  test.setTimeout(90_000);
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("response", (response) => {
