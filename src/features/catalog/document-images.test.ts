@@ -16,3 +16,12 @@ it("один кешируемый документ разрешает все и�
   expect(second?.original.src).toBe("https://second.example/shop/photo.webp");
   expect(image.src).toBe("/shop/photo-800.webp");
 });
+
+it("внешние demo-фото сохраняются, даже когда origin превью другой", () => {
+  const image = {
+    src: "https://media.demo.korzina.app/photo.png",
+    srcSet: "https://media.demo.korzina.app/photo.png 1200w",
+    original: { src: "https://media.demo.korzina.app/photo.png" },
+  };
+  expect(resolveDocumentImage(image, "https://preview.r2.dev")).toEqual(image);
+});

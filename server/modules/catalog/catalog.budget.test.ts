@@ -18,6 +18,16 @@ describe("бюджеты каталога", () => {
     const first = await cachedDocument(request, input, "budget", "a", load);
     const etag = first.headers.get("ETag") as string;
     const version = Number(first.headers.get("X-Catalog-Version"));
+    const legacy = await cachedDocument(
+      new Request(request, { headers: { "If-None-Match": `"catalog-${version}-${encodeURIComponent("limit=50")}"` } }),
+      { ...input, version },
+      "budget",
+      "a",
+      load,
+    );
+    expect(legacy.status).toBe(200);
+    expect(legacy.headers.get("ETag")).not.toBe(`"catalog-${version}-${encodeURIComponent("limit=50")}"`);
+    await legacy.arrayBuffer();
     load.mockClear();
     const conditional = await cachedDocument(
       new Request(request, { headers: { "If-None-Match": `W/${etag}` } }),
