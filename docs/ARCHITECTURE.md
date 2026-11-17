@@ -106,7 +106,7 @@ docs/
 | Окружение | Адрес | Данные |
 |---|---|---|
 | local | `localhost:5173` | локальные D1, DO и R2 (Miniflare), сид двух магазинов: `lavka`, `test2` |
-| demo | `demo.korzina.app` (+ `*.demo.korzina.app` после покупки wildcard) | отдельные ресурсы `korzina-demo` |
+| demo — тестовый стенд приёмки Андрея (stage), не для продавцов | `demo.korzina.app` (+ `*.demo.korzina.app` после покупки wildcard) | отдельные ресурсы `korzina-demo` |
 | prod | `korzina.app`, `*.korzina.app` | отдельно, только по решению Андрея |
 
 Превью ветки: Worker Previews (отдельные Shop DO через `ctx.exports`, D1/R2 `korzina-preview-*`; demo изменяет только `main`). Version URLs для Worker с Durable Objects не выдаются. Привязки (D1, R2, DO, Queue) описываются в `cloudflare.config.ts`; если CLI `cf` ещё не поддерживает нужную привязку, переходим на `wrangler.jsonc` и правим README.
