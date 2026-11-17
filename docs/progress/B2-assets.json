@@ -7,32 +7,36 @@
     }
   },
   "milk": {
-    "src": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1-tile.png",
+    "src": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1.png",
     "hash": "f6e8105395b12b94c5b8a857ed93fb793ac9648f",
     "original": {
       "src": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1.png"
-    }
+    },
+    "previousPhotoZone": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1-tile.png"
   },
   "berry": {
-    "src": "https://media.demo.korzina.app/catalog/B2/figma45/berry-f85d5a7f83cc-tile.png",
+    "src": "https://media.demo.korzina.app/catalog/B2/figma45/berry-f85d5a7f83cc.png",
     "hash": "f85d5a7f83ccc9e6d2a7611cba8e887404708f34",
     "original": {
       "src": "https://media.demo.korzina.app/catalog/B2/figma45/berry-f85d5a7f83cc.png"
-    }
+    },
+    "previousPhotoZone": "https://media.demo.korzina.app/catalog/B2/figma45/berry-f85d5a7f83cc-tile.png"
   },
   "vegetables": {
-    "src": "https://media.demo.korzina.app/catalog/B2/figma45/vegetables-f8e4079fb84b-tile.png",
+    "src": "https://media.demo.korzina.app/catalog/B2/figma45/vegetables-f8e4079fb84b.png",
     "hash": "f8e4079fb84b12b3d039ed3f8c9104de33baf123",
     "original": {
       "src": "https://media.demo.korzina.app/catalog/B2/figma45/vegetables-f8e4079fb84b.png"
-    }
+    },
+    "previousPhotoZone": "https://media.demo.korzina.app/catalog/B2/figma45/vegetables-f8e4079fb84b-tile.png"
   },
   "chicken": {
-    "src": "https://media.demo.korzina.app/catalog/B2/figma45/chicken-d473e71ca338-tile.png",
+    "src": "https://media.demo.korzina.app/catalog/B2/figma45/chicken-d473e71ca338.png",
     "hash": "d473e71ca3387bcad6432aeebf9d78bb9ac25e1a",
     "original": {
       "src": "https://media.demo.korzina.app/catalog/B2/figma45/chicken-d473e71ca338.png"
-    }
+    },
+    "previousPhotoZone": "https://media.demo.korzina.app/catalog/B2/figma45/chicken-d473e71ca338-tile.png"
   },
   "tomato": {
     "src": "https://media.demo.korzina.app/catalog/B2/figma45/tomato-489662d1a54b.png",
