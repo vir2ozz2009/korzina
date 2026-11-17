@@ -11,9 +11,12 @@ export class ShopContextCache {
 
   constructor(private readonly now = () => Date.now()) {}
 
-  async read(request: Request, env: Pick<Env, "PLATFORM" | "SHOP">): Promise<ShopContext> {
+  async read(
+    request: Request,
+    env: Pick<Env, "PLATFORM" | "SHOP"> & Partial<Pick<Env, "APP_ENV">>,
+  ): Promise<ShopContext> {
     const started = this.now();
-    const shop = await resolveShop(request, env.PLATFORM);
+    const shop = await resolveShop(request, env.PLATFORM, env.APP_ENV);
     if (!shop) throw new ApiError("SHOP_NOT_FOUND", "Магазин не найден");
     const hit = this.entries.get(shop.id);
     if (hit && hit.expires > this.now()) return hit.value;

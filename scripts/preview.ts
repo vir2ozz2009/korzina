@@ -4,6 +4,7 @@ import { deploymentSmoke } from "./deployment-smoke.ts";
 const branch =
   process.env.WORKERS_CI_BRANCH || execFileSync("git", ["branch", "--show-current"], { encoding: "utf8" }).trim();
 if (!branch || branch === "main") throw new Error("Превью загружается только для именованной ветки задачи");
+execFileSync(process.execPath, ["scripts/platform-setup.ts", "--preview", "--seed"], { stdio: "inherit" });
 // cf builds with isPreview=true, then provisions the Preview's own Shop namespace.
 const output = execFileSync(
   "node_modules/.bin/cf",

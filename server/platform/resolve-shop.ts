@@ -11,10 +11,14 @@ function remember(key: string, entry: CachedShop) {
   memory.set(key, entry);
 }
 
-export async function resolveShop(request: Request, database: D1Database): Promise<PlatformShop | undefined> {
+export async function resolveShop(
+  request: Request,
+  database: D1Database,
+  namespace = "demo",
+): Promise<PlatformShop | undefined> {
   const url = new URL(request.url);
   const slug = isDevelopmentHost(url.hostname) ? (url.searchParams.get("shop") ?? "lavka") : undefined;
-  const key = `https://shop-resolution.invalid/v2/${slug ? `slug/${encodeURIComponent(slug)}` : `host/${url.hostname}`}`;
+  const key = `https://shop-resolution.invalid/v3/${namespace}/${slug ? `slug/${encodeURIComponent(slug)}` : `host/${url.hostname}`}`;
   const hit = memory.get(key);
   if (hit && hit.expires > Date.now()) return hit.shop;
   memory.delete(key);
