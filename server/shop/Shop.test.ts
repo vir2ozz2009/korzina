@@ -15,7 +15,7 @@ describe("Shop SQLite", () => {
     const b = stub("korzina-demo-test2");
     await runInDurableObject(a, (_instance, ctx) => {
       ctx.storage.sql.exec("INSERT INTO settings (key,value) VALUES (?,?)", "display_name", "Только магазин A");
-      expect(ctx.storage.sql.exec("SELECT count(*) AS count FROM __drizzle_migrations").one()).toEqual({ count: 1 });
+      expect(ctx.storage.sql.exec("SELECT count(*) AS count FROM __drizzle_migrations").one()).toEqual({ count: 2 });
     });
     expect(await info("lavka")).toMatchObject({ name: "Только магазин A" });
     expect(await info("test2")).toMatchObject({ name: "Второй магазин" });
@@ -25,7 +25,7 @@ describe("Shop SQLite", () => {
     await evictDurableObject(a);
     expect(await info("lavka")).toMatchObject({ name: "Только магазин A" });
     await runInDurableObject(a, (_instance, ctx) => {
-      expect(ctx.storage.sql.exec("SELECT count(*) AS count FROM __drizzle_migrations").one()).toEqual({ count: 1 });
+      expect(ctx.storage.sql.exec("SELECT count(*) AS count FROM __drizzle_migrations").one()).toEqual({ count: 2 });
     });
     expect(await info("test2")).toMatchObject({ name: "Второй магазин" });
   });
@@ -39,6 +39,7 @@ describe("Shop SQLite", () => {
       new Request("https://demo.korzina.app/api/shop?shop=test2", { method: "POST" }),
     );
     expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: { code: "NOT_FOUND", message: "Не найдено" } });
   });
 
   it("не принимает чужую идентичность даже при прямом внутреннем вызове", async () => {

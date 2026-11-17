@@ -47,7 +47,14 @@ export function inspectSource({ path, content }: SourceFile): string[] {
   const ownFeature = /^src\/features\/([^/]+)\//.exec(path)?.[1];
   for (const match of content.matchAll(imports)) {
     const target = resolveImport(path, match[1]);
-    if (path.startsWith("src/") && target.startsWith("server/")) {
+    // F3: Hono RPC needs exactly one erased AppType import; runtime server imports stay forbidden.
+    const rpcType =
+      path === "src/shared/api.ts" &&
+      target === "server/index" &&
+      /import\s+type\s*\{\s*AppType\s*\}\s*from\s*$/.test(
+        content.slice(0, match.index + match[0].indexOf(match[1]) - 1),
+      );
+    if (path.startsWith("src/") && target.startsWith("server/") && !rpcType) {
       report(`клиент импортирует сервер: ${match[1]}`);
     }
     if (path.startsWith("server/") && target.startsWith("src/features/")) {

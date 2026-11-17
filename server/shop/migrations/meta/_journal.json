@@ -8,6 +8,13 @@
       "when": 1794887883257,
       "tag": "0000_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1794889372205,
+      "tag": "0001_sticky_machine_man",
+      "breakpoints": true
     }
   ]
 }

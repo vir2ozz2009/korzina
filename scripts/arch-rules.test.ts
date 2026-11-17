@@ -6,6 +6,8 @@ const feature = "src/features/cart/ui/Cart.tsx";
 describe("архитектурные ограничения", () => {
   it.each([
     [feature, 'const color = "#fff";'],
+    ["src/shared/api.ts", "import { app } from '../../server/index'"],
+    ["src/shared/api.ts", "import type { Other } from '../../server/index'"],
     [feature, 'const color = "rgb(1 2 3)";'],
     ["src/ui/Button.tsx", '<button className="bg-primary text-white" />'],
     [feature, '<div className="w-[123px]" />'],
@@ -29,6 +31,7 @@ describe("архитектурные ограничения", () => {
 
   it.each([
     [feature, '<div className="bg-primary text-primary-foreground w-full" />'],
+    ["src/shared/api.ts", "import type { AppType } from '../../server/index'"],
     [feature, "import { X } from '@/features/catalog/index'"],
     [feature, "import { X } from '@/features/catalog'"],
     [feature, "import { X } from '../../catalog/index.ts'"],

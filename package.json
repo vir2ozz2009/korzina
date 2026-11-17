@@ -16,10 +16,12 @@
     "platform:setup": "node scripts/platform-setup.ts"
   },
   "dependencies": {
+    "@hono/zod-validator": "0.9.1",
     "drizzle-orm": "0.45.4",
     "hono": "4.13.19",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.8",

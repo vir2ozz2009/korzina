@@ -3,42 +3,58 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { Hono } from "hono";
-import type { PlatformShop } from "../platform/schema";
+import { shopContract } from "../../src/shared/contracts/shop";
+import { ApiError, errorBody, errorStatus } from "../../src/shared/errors";
+import { RequestMetrics } from "../metrics";
+import { handleError, notFound } from "../middleware/errors";
 import { migrations } from "./migrations";
+import { shopRoutes } from "./routes";
 import { settings } from "./schema";
 
 export class Shop extends DurableObject<Env> {
-  private readonly db;
-  private readonly router;
+  private readonly router = new Hono().onError(handleError).route("/api", shopRoutes()).notFound(notFound);
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
-    this.db = drizzle(ctx.storage);
-    ctx.blockConcurrencyWhile(() => migrate(this.db, migrations));
-    this.router = new Hono<{ Bindings: { shop: PlatformShop } }>()
-      .get("/api/shop", (c) => {
-        const shop = c.env.shop;
-        const displayName = this.db.select().from(settings).where(eq(settings.key, "display_name")).get();
-        return c.json({ ...shop, name: displayName?.value ?? shop.name });
-      })
-      .notFound((c) => c.json({ error: { code: "NOT_FOUND", message: "Не найдено" } }, 404));
+    ctx.blockConcurrencyWhile(() => migrate(drizzle(ctx.storage), migrations));
   }
 
-  fetch(request: Request): Promise<Response> {
-    // Only the platform router supplies this metadata after resolving the host in D1.
-    const metadata = request.headers.get("x-korzina-shop");
-    if (!metadata)
-      return Promise.resolve(Response.json({ error: { code: "FORBIDDEN", message: "Нет магазина" } }, { status: 403 }));
-    const shop: PlatformShop = JSON.parse(decodeURIComponent(metadata));
-    const identity = this.db.select().from(settings).where(eq(settings.key, "shop_id")).get();
-    if (!this.env.SHOP.idFromName(shop.id).equals(this.ctx.id) || (identity && identity.value !== shop.id)) {
-      return Promise.resolve(
-        Response.json({ error: { code: "FORBIDDEN", message: "Другой магазин" } }, { status: 403 }),
-      );
+  async fetch(request: Request): Promise<Response> {
+    const metrics = new RequestMetrics();
+    const storage = metrics.storage(this.ctx.storage);
+    const db = drizzle(storage);
+    let response: Response;
+    let shopId: string | undefined;
+    try {
+      const metadata = request.headers.get("x-korzina-shop");
+      if (!metadata) throw new ApiError("FORBIDDEN", "Нет магазина");
+      const parsed = shopContract.safeParse(JSON.parse(decodeURIComponent(metadata)));
+      if (!parsed.success) throw new ApiError("FORBIDDEN", "Нет магазина");
+      const shop = parsed.data;
+      shopId = shop.id;
+      if (!this.env.SHOP.idFromName(shop.id).equals(this.ctx.id)) throw new ApiError("FORBIDDEN", "Другой магазин");
+      const identity = db.select({ value: settings.value }).from(settings).where(eq(settings.key, "shop_id")).get();
+      if (identity && identity.value !== shop.id) throw new ApiError("FORBIDDEN", "Другой магазин");
+      if (!identity)
+        storage.transactionSync(() => db.insert(settings).values({ key: "shop_id", value: shop.id }).run());
+      response = await this.router.fetch(request, { shop, db, storage });
+    } catch (error) {
+      const known = error instanceof ApiError ? error : new ApiError("INTERNAL", "Внутренняя ошибка сервера");
+      response = Response.json(errorBody(known), { status: errorStatus[known.code] });
     }
-    this.ctx.storage.transactionSync(() => {
-      this.db.insert(settings).values({ key: "shop_id", value: shop.id }).onConflictDoNothing().run();
-    });
-    return Promise.resolve(this.router.fetch(request, { shop }));
+    const route =
+      this.router.routes.find(
+        (route) => route.path === new URL(request.url).pathname && route.method === request.method,
+      )?.path ?? "unmatched";
+    const metric = metrics.record(
+      route,
+      shopId,
+      request.headers.get("x-request-id") ?? "internal",
+      response.status,
+      false,
+    );
+    // Only the public Worker can see these; it strips them before returning to the client.
+    response.headers.set("x-korzina-sql", JSON.stringify(metric));
+    return response;
   }
 }
