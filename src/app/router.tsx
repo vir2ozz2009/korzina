@@ -1,4 +1,5 @@
 import { createRouter } from "@tanstack/react-router";
+import { devRoutes } from "../routes/dev-routes";
 import { rootRoute } from "../routes/root";
 import { shopRoutes } from "../routes/shop-routes";
 import { upcomingRoutes } from "../routes/upcoming-routes";
@@ -6,7 +7,7 @@ import { createQueryClient } from "./query-defaults";
 
 export const queryClient = createQueryClient();
 // Compile-time boundary: production never emits these screens or their imports.
-const routes = import.meta.env.DEV_SCREENS ? (await import("../routes/dev-routes")).devRoutes : [];
+const routes = import.meta.env.DEV_SCREENS ? devRoutes : [];
 export const router = createRouter({
   routeTree: rootRoute.addChildren([...shopRoutes, ...upcomingRoutes, ...routes]),
   context: { qc: queryClient },
