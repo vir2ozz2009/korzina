@@ -13,7 +13,7 @@
 Без неё каждая страница будет изобретать своё — это и тормозило Lavka.
 
 ### F1 · Чистый каркас
-- **Цель:** репозиторий пустой (код удалён 17.11.2026, сохранены `cloudflare.config.ts`, `.node-version`, `.codex/`, `public/brand/korzina.svg`). Создать `package.json` и каркас Vite + React + TS strict + Tailwind v4 + Biome + Vitest + Hono в том же Worker. Скрипты `dev`, `build`, `check`, `deploy`.
+- **Цель:** репозиторий пустой (код удалён 17.11.2026, сохранены `cloudflare.config.ts`, `.node-version`, `.codex/`, `public/brand/korzina.svg`). Создать `package.json` и каркас Vite + React + TS strict + Tailwind v4 + Biome + Vitest + Hono в том же Worker. Скрипты `dev`, `build`, `check`, `check:arch` (CONVENTIONS «Автоматическая проверка»), `deploy`.
 - **Читать:** ARCHITECTURE §2–3, CONVENTIONS.
 - **Готово, когда:** `npm run check` зелёный; на demo открывается пустая страница Korzina, `GET /api/health` → `{ok:true}`; Workers Builds проходит.
 
@@ -32,7 +32,7 @@
 - **Готово, когда:** тесты: поддельная или просроченная initData отклоняется; сотрудник без права получает `FORBIDDEN`; отозванный доступ гаснет сразу.
 
 ### F5 · Флаги функций
-- **Цель:** реестр `flags.ts`, `feature_overrides`, `requireFeature`, `useFeature`, скрипт `npm run flag`.
+- **Цель:** реестр `flags.ts` (`addon`, `rollout`), `feature_overrides`, `requireFeature`, `useFeature`, скрипт `npm run flag`.
 - **Готово, когда:** addon выключен по умолчанию, включается для одного магазина, второй его не видит; core без флага.
 
 ### F6 · Токены и тема MagicPath
@@ -173,7 +173,7 @@
 
 ## Фаза A — дополнения под флагами (волна 4+)
 
-Каждая — `addon` в `flags.ts`, включается магазину по запросу. Порядок выбирает Андрей.
+Каждая делается по `docs/NEW_FEATURE.md`: `addon` в `flags.ts`, включается магазину по запросу. Порядок выбирает Андрей. После каждых 10 задач — задача-аудит (там же).
 
 | ID | Функция | Figma |
 |---|---|---|
