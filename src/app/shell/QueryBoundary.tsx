@@ -8,6 +8,7 @@ import { useLoadingGate } from "./useLoadingGate";
 export interface QueryResult<T> {
   data: T | undefined;
   isPending: boolean;
+  isFetching?: boolean;
   isError: boolean;
   refetch: () => unknown;
 }
@@ -37,5 +38,5 @@ export function QueryBoundary<T>({
         onAction={emptyAction}
       />
     );
-  return <div className="content-reveal">{children(query.data)}</div>;
+  return <div className="content-reveal space-y-3">{children(query.data)}</div>;
 }

@@ -1,7 +1,6 @@
 import { Outlet, Link as RouteLink, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { bootstrap } from "../../../app/bootstrap";
-import { useToast } from "../../../app/shell/ToastProvider";
 import { HomeTemplate } from "../../../app/templates/HomeTemplate";
 import { ProductTemplate } from "../../../app/templates/ProductTemplate";
 import { AddToCart } from "../../../ui/AddToCart";
@@ -16,20 +15,11 @@ import { DemoProducts, demoImage } from "./DemoProducts";
 export function ShopHome() {
   const state = useDemoState("home");
   const navigate = useNavigate();
-  const toast = useToast();
   return (
     <HomeTemplate
       state={state}
       title="Магазин"
-      header={
-        <StoreHeader
-          name={bootstrap?.name ?? "Korzina"}
-          address="Выберите адрес доставки"
-          onAddress={() => toast("Выбор адреса появится в B7")}
-          onChat={() => toast("Чат появится в O8")}
-          onProfile={() => toast("Профиль появится в B9")}
-        />
-      }
+      header={<StoreHeader name={bootstrap?.name ?? "Korzina"} />}
       sections={[
         <Card key="intro">
           <h1 className="text-title-1">Свежее к вашему столу</h1>

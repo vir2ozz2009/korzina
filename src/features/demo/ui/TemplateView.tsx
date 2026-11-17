@@ -1,7 +1,6 @@
 import { Link as RouteLink, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 import { z } from "zod";
-import { useToast } from "../../../app/shell/ToastProvider";
 import { CatalogTemplate } from "../../../app/templates/CatalogTemplate";
 import { CheckoutTemplate } from "../../../app/templates/CheckoutTemplate";
 import { FeedbackTemplate } from "../../../app/templates/FeedbackTemplate";
@@ -11,6 +10,7 @@ import { ListTemplate } from "../../../app/templates/ListTemplate";
 import { OrderTemplate } from "../../../app/templates/OrderTemplate";
 import { ProductTemplate } from "../../../app/templates/ProductTemplate";
 import type { TemplateName } from "../../../app/templates/types";
+import { AddToCart } from "../../../ui/AddToCart";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { Gallery } from "../../../ui/Gallery";
@@ -22,16 +22,18 @@ import { StatusPill } from "../../../ui/StatusPill";
 import { TotalsBlock } from "../../../ui/TotalsBlock";
 import { useDemoState } from "../useDemoState";
 import { DemoProducts, demoImage } from "./DemoProducts";
+import { DemoUndo } from "./DemoUndo";
 
 export function TemplateView({ template }: { template: TemplateName }) {
   const state = useDemoState(template);
-  const toast = useToast();
   const navigate = useNavigate();
   const search = useSearch({ strict: false });
   const [name, setName] = useState("Korzina");
   const [savedName, setSavedName] = useState("Korzina");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [quantity, setQuantity] = useState(0);
+  const [saved, setSaved] = useState(false);
   const [count, setCount] = useState(8);
   const rows = Array.from({ length: count }, (_, i) => i + 1042).map((id) => (
     <ListItem
@@ -67,7 +69,8 @@ export function TemplateView({ template }: { template: TemplateName }) {
             </div>
           </>,
         ]}
-        onRefresh={() => toast("Демо-данные обновлены")}
+        onRefresh={() => void state.query.refetch()}
+        refreshing={state.query.isFetching}
       />
     );
   if (template === "catalog")
@@ -95,16 +98,12 @@ export function TemplateView({ template }: { template: TemplateName }) {
           <Card>
             <h1 className="text-title-1">Томаты на ветке</h1>
             <Price amountMinor={18900} />
-            <RouteLink to="/p/demo/details" className="text-primary-text">
+            <RouteLink to="/p/demo/details" className="block py-3 text-primary-text">
               Подробнее
             </RouteLink>
           </Card>
         }
-        buyBar={
-          <Button full size="lg" onClick={() => toast("Добавлено в демо-корзину")}>
-            Добавить · 189 ₽
-          </Button>
-        }
+        buyBar={<AddToCart value={quantity} max={10} onChange={setQuantity} size="lg" />}
       />
     );
   if (template === "checkout")
@@ -124,7 +123,7 @@ export function TemplateView({ template }: { template: TemplateName }) {
           setSubmitting(true);
           setTimeout(() => {
             setSubmitting(false);
-            toast("Демо-заказ подтверждён");
+            void navigate({ to: "/dev/templates/feedback", replace: true });
           }, 600);
         }}
       />
@@ -149,11 +148,6 @@ export function TemplateView({ template }: { template: TemplateName }) {
             <li>12:20 · Принят магазином</li>
           </>
         }
-        actions={
-          <Button full onClick={() => toast("Чат появится в O8")}>
-            Написать магазину
-          </Button>
-        }
       />
     );
   if (template === "form")
@@ -162,11 +156,19 @@ export function TemplateView({ template }: { template: TemplateName }) {
         state={state}
         title={title}
         dirty={name !== savedName}
+        submit={saved && name === savedName ? "Сохранено" : "Сохранить"}
         submitting={submitting}
         error={error}
         groups={[
           <Card key="details">
-            <Input label="Название магазина" value={name} onChange={(event) => setName(event.target.value)} />
+            <Input
+              label="Название магазина"
+              value={name}
+              onChange={(event) => {
+                setName(event.target.value);
+                setSaved(false);
+              }}
+            />
           </Card>,
         ]}
         onSubmit={() => {
@@ -180,7 +182,7 @@ export function TemplateView({ template }: { template: TemplateName }) {
           setTimeout(() => {
             setSavedName(name);
             setSubmitting(false);
-            toast("Демо-настройки сохранены");
+            setSaved(true);
           }, 600);
         }}
       />
@@ -214,10 +216,13 @@ export function TemplateView({ template }: { template: TemplateName }) {
       state={state}
       title={title}
       body={
-        <Card>
-          <h1 className="text-title-1">Всё готово</h1>
-          <p>Изменения сохранены. Можно продолжать работу.</p>
-        </Card>
+        <div className="space-y-3">
+          <Card>
+            <h1 className="text-title-1">Всё готово</h1>
+            <p>Изменения сохранены. Можно продолжать работу.</p>
+          </Card>
+          <DemoUndo />
+        </div>
       }
       actions={
         <Button full onClick={() => void navigate({ to: "/", replace: true })}>

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { PublicProductLink } from "../../../app/shell/RouteLink";
-import { useToast } from "../../../app/shell/ToastProvider";
 import { AddToCart } from "../../../ui/AddToCart";
 import { Card } from "../../../ui/Card";
 import { Price } from "../../../ui/Price";
@@ -9,7 +8,6 @@ import { ProductImage } from "../../../ui/ProductImage";
 export const demoImage = { src: "/seed/tomato-cutout-400.webp", display: "cutout" as const };
 export function DemoProductTile({ index = 0 }: { index?: number }) {
   const [quantity, setQuantity] = useState(0);
-  const toast = useToast();
   return (
     <Card className="overflow-hidden p-0">
       <PublicProductLink aria-label={`Томаты на ветке ${index + 1}`} className="block">
@@ -21,14 +19,7 @@ export function DemoProductTile({ index = 0 }: { index?: number }) {
         </div>
       </PublicProductLink>
       <div className="p-3 pt-0">
-        <AddToCart
-          value={quantity}
-          max={10}
-          onChange={(value) => {
-            setQuantity(value);
-            if (value > quantity) toast("Добавлено в демо-корзину");
-          }}
-        />
+        <AddToCart value={quantity} max={10} onChange={setQuantity} />
       </div>
     </Card>
   );
