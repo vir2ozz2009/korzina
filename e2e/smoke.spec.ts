@@ -44,7 +44,8 @@ test("витрина своего магазина → фасовка/корзи
   const first = page.locator("article").first();
   await first.getByRole("button", { name: "Выбрать фасовку" }).click();
   const variants = page.getByRole("dialog", { name: "Выберите фасовку" });
-  await expect(variants).toBeVisible();
+  // Remote preview can spend several seconds on the first deferred chunks.
+  await expect(variants).toBeVisible({ timeout: 10_000 });
   let releaseFirst = () => {};
   const held = new Promise<void>((resolve) => {
     releaseFirst = resolve;
