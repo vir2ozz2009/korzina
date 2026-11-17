@@ -11,17 +11,24 @@ export type SellerEnv = { Bindings: Env; Variables: { seller: Seller; shopId: st
 
 const limitSeller = sessionLimiter();
 export const authenticateSeller = createMiddleware<SellerEnv>(async (c, next) => {
-  const token = credential(c.req.raw, sellerCookie);
+  const seller = await readSeller(c.req.raw, c.env.PLATFORM, c.get("shopId"));
+  c.set("seller", seller);
+  limitSeller(c, `${c.get("shopId")}:${seller.accountId}`);
+  await next();
+});
+export async function readSeller(request: Request, platform: D1Database, shopId: string): Promise<Seller> {
+  const token = credential(request, sellerCookie);
   if (!token) throw new ApiError("UNAUTHORIZED", "Войдите в кабинет");
   // A fresh first-primary join for EVERY request: no cached rights or replica lag after revocation.
-  const row = await c.env.PLATFORM.withSession("first-primary")
+  const row = await platform
+    .withSession("first-primary")
     .prepare(`
     SELECT s.account_id AS accountId, m.role, m.permissions
     FROM seller_sessions s LEFT JOIN memberships m
     ON m.account_id = s.account_id AND m.shop_id = ? AND m.revoked_at IS NULL
     WHERE s.token_hash = ? AND s.expires_at > ?
   `)
-    .bind(c.get("shopId"), await tokenHash(token), Date.now())
+    .bind(shopId, await tokenHash(token), Date.now())
     .first<{ accountId: string; role: string | null; permissions: string | null }>();
   if (!row) throw new ApiError("UNAUTHORIZED", "Сессия недействительна");
   const role = roleSchema.safeParse(row.role);
@@ -32,14 +39,12 @@ export const authenticateSeller = createMiddleware<SellerEnv>(async (c, next) =>
   } catch {
     throw new ApiError("FORBIDDEN", "Нет доступа к магазину");
   }
-  c.set("seller", {
+  return {
     accountId: row.accountId,
     role: role.data,
     permissions: role.data === "employee" ? [...new Set([...employeeDefaults, ...granted])] : granted,
-  });
-  limitSeller(c, `${c.get("shopId")}:${row.accountId}`);
-  await next();
-});
+  };
+}
 export function requireRole(...roles: Role[]) {
   return createMiddleware<SellerEnv>(async (c, next) => {
     if (!roles.includes(c.get("seller").role)) throw new ApiError("FORBIDDEN", "Недостаточно прав");

@@ -12,6 +12,7 @@ export type ShopEnv = {
     storage: DurableObjectStorage;
     secrets: AuthSecrets;
     platform: D1Database;
+    media: Pick<Env, "MEDIA" | "MEDIA_PUBLIC" | "IMAGES" | "MEDIA_PUBLIC_URL">;
   };
   Variables: CommandVariables;
 };

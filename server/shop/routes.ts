@@ -4,6 +4,7 @@ import { requireFeature } from "../middleware/feature";
 import { RateLimiter, rateLimit } from "../middleware/rate-limit";
 import { customerAuth } from "../modules/auth/routes";
 import { diagnostics } from "../modules/diagnostics/routes";
+import { mediaRoutes } from "../modules/media/routes";
 import { revisionResponse } from "../revisions";
 import type { ShopEnv } from "./env";
 import { readPublicSettings } from "./public-settings";
@@ -26,6 +27,7 @@ export function shopRoutes() {
         });
       })
       .route("/auth", customerAuth)
+      .route("/media", mediaRoutes)
       // Demo/localhost-only availability probe, not the cashback product (A4).
       .get("/diagnostics/features/cashback", requireFeature("cashback"), (c) =>
         c.json({ feature: "cashback", enabled: true }),

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { BrandTile } from "../../ui/BrandTile";
 import { DiscountBadge } from "../../ui/DiscountBadge";
 import { Gallery } from "../../ui/Gallery";
+import { Img } from "../../ui/Img";
 import { KitSection } from "../../ui/KitSection";
 import { Price } from "../../ui/Price";
 import { ProductRow } from "../../ui/ProductRow";
@@ -14,6 +15,12 @@ export function ProductsKit({ notify }: { notify: (message: string) => void }) {
   const [quantity, setQuantity] = useState(0);
   return (
     <div className="space-y-3">
+      <KitSection title="Img · загрузка и ошибка">
+        <div className="grid grid-cols-2 gap-2">
+          <Img src="/seed/tomato-photo-800.webp" alt="Фото" className="aspect-square rounded-md" />
+          <Img src="/seed/missing.webp" alt="Нет фото" className="aspect-square rounded-md" />
+        </div>
+      </KitSection>
       <KitSection title="Цены">
         <div>
           <Price amountMinor={18900} />
