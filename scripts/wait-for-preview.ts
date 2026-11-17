@@ -1,7 +1,7 @@
 import { appendFileSync } from "node:fs";
 import { setTimeout } from "node:timers/promises";
 
-const { GITHUB_TOKEN, GITHUB_REPOSITORY, PR_NUMBER, PR_HEAD_SHA, GITHUB_ENV } = process.env;
+const { GITHUB_TOKEN, GITHUB_REPOSITORY, PR_NUMBER, PR_HEAD_SHA, GITHUB_ENV, GITHUB_HEAD_REF } = process.env;
 if (!GITHUB_TOKEN || !GITHUB_REPOSITORY || !PR_NUMBER || !PR_HEAD_SHA || !GITHUB_ENV)
   throw new Error("Нужен контекст PR");
 const deadline = Date.now() + 180_000;
@@ -14,9 +14,19 @@ while (true) {
   );
   if (!response.ok) throw new Error(`GitHub comments: ${response.status}`);
   const comments = (await response.json()) as { body: string; user: { login: string } }[];
-  for (const comment of comments.filter((c) => c.user.login === "cloudflare-workers-and-pages[bot]")) {
-    const url = /Preview URL: (https:\/\/[a-z0-9-]+\.vir2ozz2009\.workers\.dev)/.exec(comment.body)?.[1];
-    if (!url) continue;
+  const urls = comments
+    .filter((c) => c.user.login === "cloudflare-workers-and-pages[bot]")
+    .flatMap((comment) => {
+      const url = /Preview URL: (https:\/\/[a-z0-9-]+\.vir2ozz2009\.workers\.dev)/.exec(comment.body)?.[1];
+      return url ? [url] : [];
+    });
+  // Builds can finish before the PR opens, in which case no bot comment exists.
+  // The known branch alias is accepted only after its HTML matches the full SHA.
+  const slug = GITHUB_HEAD_REF?.toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (slug && slug.length <= 50) urls.push(`https://${slug}-korzina-demo.vir2ozz2009.workers.dev`);
+  for (const url of new Set(urls)) {
     try {
       const page = await fetch(`${url}/?shop=test2`, { signal: AbortSignal.timeout(10_000) });
       const html = await page.text();
