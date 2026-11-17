@@ -1,5 +1,7 @@
 import type { CatalogPageInput } from "../../../src/shared/contracts/catalog";
 
+const documentFormat = "R1-media-v2";
+
 function matches(request: Request, etag: string) {
   return request.headers
     .get("If-None-Match")
@@ -25,7 +27,7 @@ export async function cachedDocument(
   if (input.category) page.set("category", input.category);
   if (input.brand) page.set("brand", input.brand);
   const key = (version: string) =>
-    `https://catalog.invalid/R1/${encodeURIComponent(namespace)}/${encodeURIComponent(shopId)}/${version}?${page}`;
+    `https://catalog.invalid/${documentFormat}/${encodeURIComponent(namespace)}/${encodeURIComponent(shopId)}/${version}?${page}`;
   const hit = await cache.match(key(String(input.version ?? "current")));
   if (hit) {
     const headers = new Headers(hit.headers);
@@ -40,7 +42,7 @@ export async function cachedDocument(
   if (!response.ok) return response;
   const version = response.headers.get("X-Catalog-Version");
   if (!version) return response;
-  const etag = `"catalog-${version}-${encodeURIComponent(page.toString())}"`;
+  const etag = `"catalog-${documentFormat}-${version}-${encodeURIComponent(page.toString())}"`;
   const headers = new Headers({
     "Content-Type": "application/json; charset=UTF-8",
     ETag: etag,

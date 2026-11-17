@@ -53,5 +53,6 @@ export async function checkContent(page: Page, screen: "home" | "product") {
       { timeout: 5000, message: `Все фото первого экрана ${screen} загружены` },
     )
     .toEqual([]);
-  if (page.viewportSize()?.width === 390) await page.screenshot({ path: `test-results/${screen}-390.png` });
+  if (page.viewportSize()?.width === 390)
+    await page.screenshot({ path: `test-results/${screen}-390.png`, animations: "disabled" });
 }
