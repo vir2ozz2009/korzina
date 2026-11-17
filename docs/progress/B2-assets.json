@@ -4,7 +4,8 @@
     "hash": "7e8e89232116d4706e07e1a788399a9cebd9b4e9",
     "original": {
       "src": "https://media.demo.korzina.app/catalog/B2/figma45/croissant-7e8e89232116.png"
-    }
+    },
+    "edgeColor": "#ffffff"
   },
   "milk": {
     "src": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1.png",
@@ -12,7 +13,8 @@
     "original": {
       "src": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1.png"
     },
-    "previousPhotoZone": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1-tile.png"
+    "previousPhotoZone": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1-tile.png",
+    "edgeColor": "#ffffff"
   },
   "berry": {
     "src": "https://media.demo.korzina.app/catalog/B2/figma45/berry-f85d5a7f83cc.png",
@@ -20,7 +22,8 @@
     "original": {
       "src": "https://media.demo.korzina.app/catalog/B2/figma45/berry-f85d5a7f83cc.png"
     },
-    "previousPhotoZone": "https://media.demo.korzina.app/catalog/B2/figma45/berry-f85d5a7f83cc-tile.png"
+    "previousPhotoZone": "https://media.demo.korzina.app/catalog/B2/figma45/berry-f85d5a7f83cc-tile.png",
+    "edgeColor": "#ffffff"
   },
   "vegetables": {
     "src": "https://media.demo.korzina.app/catalog/B2/figma45/vegetables-f8e4079fb84b.png",
@@ -28,7 +31,8 @@
     "original": {
       "src": "https://media.demo.korzina.app/catalog/B2/figma45/vegetables-f8e4079fb84b.png"
     },
-    "previousPhotoZone": "https://media.demo.korzina.app/catalog/B2/figma45/vegetables-f8e4079fb84b-tile.png"
+    "previousPhotoZone": "https://media.demo.korzina.app/catalog/B2/figma45/vegetables-f8e4079fb84b-tile.png",
+    "edgeColor": "#ffffff"
   },
   "chicken": {
     "src": "https://media.demo.korzina.app/catalog/B2/figma45/chicken-d473e71ca338.png",
@@ -36,10 +40,12 @@
     "original": {
       "src": "https://media.demo.korzina.app/catalog/B2/figma45/chicken-d473e71ca338.png"
     },
-    "previousPhotoZone": "https://media.demo.korzina.app/catalog/B2/figma45/chicken-d473e71ca338-tile.png"
+    "previousPhotoZone": "https://media.demo.korzina.app/catalog/B2/figma45/chicken-d473e71ca338-tile.png",
+    "edgeColor": "#ffffff"
   },
   "tomato": {
     "src": "https://media.demo.korzina.app/catalog/B2/figma45/tomato-489662d1a54b.png",
-    "hash": "489662d1a54b46c741bff9716210fee07de915cc"
+    "hash": "489662d1a54b46c741bff9716210fee07de915cc",
+    "edgeColor": "#f3ebe0"
   }
 }
