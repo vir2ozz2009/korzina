@@ -85,7 +85,7 @@ npx cf deploy --prebuilt --dry-run
 
 Сборка находится в `.cloudflare/output/v1/`, а не в `dist/`. Для ручной публикации после входа в Cloudflare используйте `npm run deploy`.
 
-Workers Builds подключён к `vir2ozz2009/korzina`, ветке `main`. Настройки: корень `/`, build command `npm run build`, deploy command `npx cf deploy --prebuilt`, `NODE_VERSION=24.22.1`. Используется отдельный токен `Workers Builds — korzina-demo`; тесты здесь не повторяются. Настройки доступны в Cloudflare → Workers & Pages → `korzina-demo` → Settings → Builds.
+Workers Builds подключён к `vir2ozz2009/korzina`, ветке `main`. Настройки: корень `/`, build command `npm run build`, deploy command `npx cf deploy --prebuilt`, `NODE_VERSION=24.22.1`. После публикации запускается `npm run smoke:demo` — health, HTML, bootstrap и JS. Используется отдельный токен `Workers Builds — korzina-demo`; тесты здесь не повторяются. Настройки доступны в Cloudflare → Workers & Pages → `korzina-demo` → Settings → Builds.
 
 ### Проверки и превью (F10)
 
@@ -93,7 +93,7 @@ Workers Builds подключён к `vir2ozz2009/korzina`, ветке `main`. �
 - `npm run test:e2e` — один smoke на 390 px; перед первым запуском `npx playwright install chromium`. Уже установленный Chromium можно выбрать через `PLAYWRIGHT_EXECUTABLE_PATH`; удалённый адрес — через `E2E_BASE_URL`.
 - `npm run build` создаёт demo-сборку со служебными экранами. `npm run build:prod` исключает их из клиентского JS и закрывает `/dev/*`, демо-карточки и diagnostics на сервере. Это проверка будущей prod-сборки; настоящие ресурсы prod ещё не созданы.
 - В PR из `task/*` GitHub Actions показывает `Check`. Smoke запускается по метке `e2e` и ежедневно в 06:00 МСК. Подробности — `docs/TESTING.md`.
-- Ветки собираются Workers Builds (`npm run build` → `npm run preview:upload`): новая версия `korzina-demo` со стабильным алиасом ветки, без переключения трафика demo. Ссылка появляется в PR. Это публичные Version URLs на `workers.dev`, использующие **общие данные demo** (D1, R2 и Shop DO); реальных покупателей здесь нет. Привязки production не используются. Worker по основному `workers.dev` адресу выключен.
+- Для веток Workers Builds запускает `npm run preview:upload`: `cf previews deploy --mode demo` сам собирает и публикует Worker Preview, затем короткая HTTP-проверка проверяет API, UI-кит, bootstrap `test2` и JS. Стабильная ссылка появляется в PR; трафик demo не переключается. Превью публичное на `workers.dev`: **Shop DO изолированы по веткам**, D1/R2 — общие demo-ресурсы. Приватные подписанные ссылки требуют отдельного `MEDIA_SIGNING_KEY` превью; ключ demo не копируется. Настоящие ресурсы prod ещё не созданы. Основной `workers.dev` адрес выключен.
 - Для среды с ограничением записи в домашнюю папку задайте `XDG_CONFIG_HOME` в доступный каталог; это место локального реестра Miniflare.
 
 Изменения следует отправлять в `main` только после проверки: успешная сборка этой ветки обновит demo. Другие домены не входят в конфигурацию. Для отката выберите предыдущую версию в Cloudflare → `korzina-demo` → Deployments; откат кода не откатывает данные будущей базы.

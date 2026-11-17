@@ -109,7 +109,7 @@ docs/
 | demo | `demo.korzina.app` (+ `*.demo.korzina.app` после покупки wildcard) | отдельные ресурсы `korzina-demo` |
 | prod | `korzina.app`, `*.korzina.app` | отдельно, только по решению Андрея |
 
-Превью ветки: Workers versions preview URL. Привязки (D1, R2, DO, Queue) описываются в `cloudflare.config.ts`; если CLI `cf` ещё не поддерживает нужную привязку, переходим на `wrangler.jsonc` и правим README.
+Превью ветки: Worker Previews (отдельные Shop DO, общие demo D1/R2). Version URLs для Worker с Durable Objects не выдаются. Привязки (D1, R2, DO, Queue) описываются в `cloudflare.config.ts`; если CLI `cf` ещё не поддерживает нужную привязку, переходим на `wrangler.jsonc` и правим README.
 
 ## 9. Бюджеты производительности (проверяются в фазе L)
 
