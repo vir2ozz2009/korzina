@@ -34,7 +34,6 @@ export function CartScreen() {
           <ListItem title="Товары" value={formatMinor(cart.totalMinor, currency)} />
         ) : null
       }
-      cta="Оформление скоро появится"
     />
   );
 }
