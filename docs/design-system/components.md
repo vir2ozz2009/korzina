@@ -64,7 +64,7 @@
 | `Sheet` | vaul: bg-card, верх `rounded-xl`, ручка, заголовок `text-title-3`, кнопка закрытия; высота по содержимому до 90% | — |
 | `Dialog` | Подтверждение опасного действия: заголовок, текст, `primary`/`secondary` | 206:11196 |
 | `Toast` | Внизу над `StickyFooter`/`FloatingActions`, bg-inverse, белый `text-label`, 3 с; действие «Повторить» или «Отменить» опционально | — |
-| `Skeleton` | Блоки bg-input с пульсацией; у каждого шаблона свой скелетон по форме слотов | — |
+| `Skeleton` | Блоки bg-input с мягкой пульсацией (1,5 с; без пульсации при `prefers-reduced-motion`); примитивы `SkeletonText`, `SkeletonBlock`, `SkeletonTile`, `SkeletonRow` повторяют размеры настоящих компонентов. У каждого шаблона свой скелетон по форме слотов; правила появления — `templates.md` «Загрузка без «бац»» | — |
 | `EmptyState` | Иллюстрация или иконка 48, заголовок `text-title-3`, текст `text-meta` muted, одна кнопка | — |
 | `ErrorState` | Как `EmptyState`, текст ошибки по коду из `errors.ts`, кнопка «Повторить» | — |
 
