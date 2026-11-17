@@ -13,9 +13,21 @@ async function smoke() {
   assert(document.ok, `document: HTTP ${document.status}`);
   const data = (await document.json()) as {
     catalogVersion: number;
-    items: { id: string; variants: { id: string }[] }[];
+    items: {
+      id: string;
+      image: { edgeColor?: string; contentBox?: { w: number; h: number } } | null;
+      variants: { id: string }[];
+    }[];
   };
-  assert(data.items.length > 0, "Демо-каталог должен содержать товары");
+  assert.equal(data.items.length, 6, "Ждём сид B2: шесть товаров вместо отдельных наборов");
+  assert(
+    data.items.every((item) => item.image?.edgeColor && item.image.contentBox?.w && item.image.contentBox.h),
+    "Ждём метаданные фото B2",
+  );
+  assert.equal(
+    data.items.reduce((count, item) => count + item.variants.length, 0),
+    24,
+  );
   assert(!document.headers.has("set-cookie") && !document.headers.has("x-korzina-sql"));
   const etag = document.headers.get("ETag");
   assert(etag);
