@@ -17,26 +17,11 @@
 
 ## 2. Токены — единственный источник
 
-`src/styles/tokens.css` — Tailwind v4 `@theme`. Те же значения загружены в MagicPath как тема **Korzina** (`get-theme Korzina`). Меняем токен в обоих местах в одном коммите.
-
-Стартовые значения (уточнить по айдентике в задаче F6):
-
-| Токен | Значение | Где |
-|---|---|---|
-| `--primary` | `#FF335F` малиновый | CTA, цена в капсуле, активные элементы |
-| `--brand-gradient` | малиновый → оранжевый | иконка, промо, обложки |
-| `--foreground` | `#292929` | основной текст |
-| `--muted-foreground` | `#8A8A8A` | вторичный текст |
-| `--muted` | `#F3F3F3` | фон кнопок второго уровня, полей |
-| `--primary-soft` | `#FFF0F4` | подложки акцентов |
-| `--background` | `#FFFFFF` | |
-| `--radius-card` / `--radius-pill` | 24px / 999px | карточки / кнопки-капсулы |
-| шрифт | Inter Variable | 400/500/600/700 |
-| сетка | контейнер 390 (на десктопе мобильная колонка по центру, max-w 480) | |
+`src/styles/tokens.css` — значения (Tailwind v4, схема shadcn/MagicPath: `:root` + `@theme inline`). Те же значения загружены в MagicPath как тема **Korzina**. Меняем оба места одним коммитом. Откуда взяты значения и как сводить расхождения макетов — `docs/design-system/tokens.md`.
 
 ## 3. UI-кит (`src/ui`) — одинаковый в приложении и на холсте
 
-Минимальный стартовый набор (F7): `Button` (primary/secondary/ghost, size), `IconButton`, `Price`, `Stepper` (−/кол-во/+ с лимитом), `PriceCapsule` (цена с «+» → степпер), `ProductTile`, `ProductRow`, `Chip`/`ChipGroup`, `Input`, `TextArea`, `Select`, `Switch`, `Checkbox`, `Radio`, `Badge`, `Avatar`, `ImageCarousel` (точки, увеличение), `Skeleton`, `EmptyState`, `ErrorState`, `Toast`, `Sheet` (vaul), `Dialog`, `ListItem` (иконка/текст/шеврон), `SectionHeader`, `StatusPill`, `Divider`.
+Спецификация всех компонентов (варианты, состояния, размеры, эталонные узлы) — `docs/design-system/components.md`. Как из кита собираются экраны — `docs/design-system/reference-screens.md`.
 
 Каркас (`src/app/shell`, F8): `Screen`, `Header`, `QueryBoundary`, `Transition`, `SheetRoute`; оболочка витрины (шапка магазина + плавающие кнопки «Поиск» и «Корзина», без панели вкладок) и оболочка кабинета (5 вкладок: Главная · Заказы · Товары · Деньги · Ещё, у каждой свой стек).
 

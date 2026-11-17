@@ -35,19 +35,19 @@
 - **Цель:** реестр `flags.ts` (`addon`, `rollout`), `feature_overrides`, `requireFeature`, `useFeature`, скрипт `npm run flag`.
 - **Готово, когда:** addon выключен по умолчанию, включается для одного магазина, второй его не видит; core без флага.
 
-### F6 · Токены и тема MagicPath
-- **Цель:** снять палитру, типографику, радиусы и тени с айдентики и блока 47 → `src/styles/tokens.css`; создать или обновить тему **Korzina** в MagicPath; логотип SVG и иконка в `public/brand/`.
-- **Читать:** DESIGN §1–2. **Figma:** айдентика, логотип, блок 47.
-- **Готово, когда:** `get-theme Korzina` и `tokens.css` совпадают; таблица токенов в DESIGN.md обновлена.
+### F6 · Токены, шрифт, тема MagicPath
+- **Цель:** подключить готовый `src/styles/tokens.css` и Inter Variable; создать в MagicPath тему **Korzina** из тех же значений; знак и иконка приложения из `public/brand/korzina.svg`.
+- **Читать:** DESIGN §2, `design-system/tokens.md`.
+- **Готово, когда:** `get-theme Korzina` совпадает с `tokens.css`; классы `bg-primary`, `text-title-2`, `rounded-xl` работают; на demo видна страница с палитрой и типографикой.
 
 ### F7 · UI-кит + витрина кита
-- **Цель:** примитивы из DESIGN §3 в `src/ui`, страница `/dev/kit` со всеми вариантами и состояниями; тот же кит как компонент «Korzina UI Kit» на холсте MagicPath.
-- **Figma:** 45, 46, 47, 30 (кнопки, капсула цены, плитки, степпер).
-- **Готово, когда:** Андрей одобрил кит на холсте; `/dev/kit` на demo; в фичах нет ни одного hex.
+- **Цель:** все компоненты из `design-system/components.md` в `src/ui`, страница `/dev/kit` со всеми вариантами и состояниями; тот же кит компонентом «Korzina UI Kit» на холсте MagicPath.
+- **Читать:** DESIGN §3, §5, `design-system/components.md`. **Figma:** узлы из колонки «Эталон».
+- **Готово, когда:** Андрей одобрил кит на холсте; `/dev/kit` на demo; `check:arch` без исключений.
 
 ### F8 · Каркас приложения, шаблоны и переходы
 - **Цель:** TanStack Router, оболочки витрины и кабинета, 8 шаблонов экранов, `Screen`/`Header`/`QueryBoundary`/`SheetRoute`/`Transition` (push, sheet, tab), адаптер Telegram (viewport, safe-area, BackButton, тема, раскрытие на всю высоту), тосты, восстановление прокрутки, десктоп — колонка по центру.
-- **Читать:** DESIGN §3–4, `design-system/templates.md`, «Оболочки» в `design-system/navigation.md`, CONVENTIONS «Экраны».
+- **Читать:** DESIGN §3–4, `design-system/templates.md`, `design-system/reference-screens.md`, «Оболочки» в `design-system/navigation.md`, CONVENTIONS «Экраны».
 - **Готово, когда:** восемь шаблонов на демо-данных и три демо-маршрута показывают все виды переходов; «назад» работает жестом, кнопкой браузера и BackButton в Telegram; состояния загрузки, пусто и ошибки демонстрируются на флаге `?simulate=`.
 
 ### F9 · Медиа

@@ -15,7 +15,7 @@
 
 Кода приложения пока нет: разработка начинается с нуля с задачи F1 (`docs/PLAN.md`). После F1 здесь появятся команды `npm run dev` и `npm run check`. Node.js — версия из `.node-version`.
 
-В репозитории сохранены только инфраструктурные файлы: `cloudflare.config.ts` (Worker `korzina-demo`, домен demo), `.node-version`, `.codex/environments/` и знак `public/brand/korzina.svg`.
+Из кода в репозитории есть только `src/styles/tokens.css` — дизайн-токены (единственный источник значений). Остальное — инфраструктурные файлы: `cloudflare.config.ts` (Worker `korzina-demo`, домен demo), `.node-version`, `.codex/environments/` и знак `public/brand/korzina.svg`.
 
 ## Публикация demo
 

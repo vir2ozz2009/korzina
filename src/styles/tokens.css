@@ -1,0 +1,129 @@
+/*
+ * Korzina — дизайн-токены. ЕДИНСТВЕННЫЙ источник значений для приложения.
+ * Те же значения — в теме MagicPath «Korzina». Меняем оба места одним коммитом.
+ * Обоснование и соответствие макетам: docs/design-system/tokens.md
+ *
+ * Схема как в шаблоне MagicPath / shadcn: значения в :root, связь с Tailwind v4 через @theme inline.
+ * Поэтому любой токен можно переопределить во время выполнения (например, акцент магазина).
+ */
+
+:root {
+  /* Бренд */
+  --brand-from: #ff004d;
+  --brand-to: #ff7a1a;
+
+  /* Основа */
+  --background: #f3f3f3;          /* фон экранов */
+  --card: #ffffff;                /* карточки, шапки, шторки */
+  --foreground: #292929;          /* основной текст */
+  --foreground-body: #515151;     /* длинные описания */
+  --muted-foreground: #77777f;    /* вторичный текст, подписи, фасовка */
+  --subtle-foreground: #8a8a8a;   /* третичный: зачёркнутая цена, «доступно N шт.» */
+
+  /* Действия */
+  --primary: #ff335f;             /* CTA, капсула количества, цена со скидкой, бейдж скидки */
+  --primary-foreground: #ffffff;
+  --primary-soft: #fff0f4;        /* капсула «+» до добавления, мягкие акценты */
+  --primary-strong: #d8245b;      /* текстовые ссылки-акценты на белом */
+  --secondary: #f1f1f1;           /* кнопка второго уровня («Подробнее», «Чат по заказу») */
+  --secondary-foreground: #292929;
+  --inverse: #383838;             /* тёмная плавающая кнопка (поиск) */
+  --inverse-foreground: #ffffff;
+
+  /* Поля и линии */
+  --input: #f3f3f3;               /* фон полей ввода и малого степпера */
+  --placeholder: #87878c;
+  --border: #e7e7e9;              /* разделители */
+  --ring: #ff335f;
+
+  /* Статусы (пилюли) */
+  --status-neutral: #f1f1f3;
+  --status-neutral-foreground: #65656e;
+  --status-warning: #fff1d6;
+  --status-warning-foreground: #784a0a;
+  --status-danger: #ffe8ee;
+  --status-danger-foreground: #ab0e36;
+  --status-success: #e8f6ed;              /* уточнить по кадру 846:55167 */
+  --status-success-foreground: #1d6b3d;
+
+  /* Радиусы */
+  --radius-xs: 9px;     /* бейдж скидки */
+  --radius-sm: 10px;    /* тег, поле-строка с копированием */
+  --radius-md: 16px;    /* фото товара, миниатюры */
+  --radius-lg: 20px;    /* плитки категорий и брендов, карточка статуса */
+  --radius-xl: 24px;    /* карточки секций, шапки, шторки */
+  --radius-pill: 999px; /* кнопки, капсулы, степперы */
+
+  /* Тени: интерфейс плоский, тень только у плавающих элементов */
+  --shadow-float: 0 6px 20px rgb(0 0 0 / 0.12);
+  --shadow-sheet: 0 -8px 24px rgb(0 0 0 / 0.08);
+
+  /* Размеры */
+  --control-sm: 36px;   /* малый степпер в корзине */
+  --control-md: 44px;   /* кнопки, иконки-кнопки, капсула цены */
+  --control-lg: 48px;   /* закреплённая покупка, плавающие кнопки */
+  --control-xl: 60px;   /* CTA с подзаголовком («Продолжить · 239 ₽») */
+  --icon: 22px;
+  --page-x: 12px;       /* боковой отступ экрана */
+  --content-max: 480px; /* колонка на десктопе */
+
+  /* Движение */
+  --duration-push: 280ms;
+  --duration-fade: 120ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-foreground-body: var(--foreground-body);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle-foreground: var(--subtle-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-strong: var(--primary-strong);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-inverse: var(--inverse);
+  --color-inverse-foreground: var(--inverse-foreground);
+  --color-input: var(--input);
+  --color-placeholder: var(--placeholder);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-status-neutral: var(--status-neutral);
+  --color-status-neutral-foreground: var(--status-neutral-foreground);
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-foreground: var(--status-warning-foreground);
+  --color-status-danger: var(--status-danger);
+  --color-status-danger-foreground: var(--status-danger-foreground);
+  --color-status-success: var(--status-success);
+  --color-status-success-foreground: var(--status-success-foreground);
+
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-pill: var(--radius-pill);
+
+  --shadow-float: var(--shadow-float);
+  --shadow-sheet: var(--shadow-sheet);
+
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, sans-serif;
+
+  /* Типографика: размер / межстрочный / насыщенность */
+  --text-display: 28px;   --text-display--line-height: 36px;   --text-display--font-weight: 700; /* цена в карточке товара */
+  --text-title-1: 24px;   --text-title-1--line-height: 32px;   --text-title-1--font-weight: 700; /* название товара, «Корзина» */
+  --text-title-2: 22px;   --text-title-2--line-height: 29px;   --text-title-2--font-weight: 700; /* заголовок секции */
+  --text-price: 20px;     --text-price--line-height: 26px;     --text-price--font-weight: 700;   /* цена на плитке */
+  --text-title-3: 18px;   --text-title-3--line-height: 23px;   --text-title-3--font-weight: 600; /* заголовок шапки, карточки */
+  --text-body-lg: 16px;   --text-body-lg--line-height: 22px;   --text-body-lg--font-weight: 600; /* название в строке заказа */
+  --text-body: 15px;      --text-body--line-height: 20px;      --text-body--font-weight: 400;    /* описание */
+  --text-label: 14px;     --text-label--line-height: 19px;     --text-label--font-weight: 600;   /* кнопка, строка списка */
+  --text-meta: 14px;      --text-meta--line-height: 18px;      --text-meta--font-weight: 400;    /* фасовка, телефон */
+  --text-caption: 13px;   --text-caption--line-height: 17px;   --text-caption--font-weight: 500; /* название на плитке, «Все ›» */
+  --text-small: 12px;     --text-small--line-height: 16px;     --text-small--font-weight: 400;   /* подписи плиток */
+  --text-micro: 11px;     --text-micro--line-height: 15px;     --text-micro--font-weight: 600;   /* пилюли статусов, подписи шапки */
+}
