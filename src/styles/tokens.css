@@ -24,7 +24,8 @@
   --primary: #ff335f;             /* CTA, капсула количества, цена со скидкой, бейдж скидки */
   --primary-foreground: #ffffff;
   --primary-soft: #fff0f4;        /* капсула «+» до добавления, мягкие акценты */
-  --primary-strong: #d8245b;      /* текстовые ссылки-акценты на белом */
+  --primary-strong: #d8245b;      /* тёмный оттенок акцента: ссылки-акценты, нажатие */
+  --primary-text: #ff335f;        /* акцентный ТЕКСТ на белом/мягком фоне: цена со скидкой, «+» в капсуле */
   --secondary: #f1f1f1;           /* кнопка второго уровня («Подробнее», «Чат по заказу») */
   --secondary-foreground: #292929;
   --inverse: #383838;             /* тёмная плавающая кнопка (поиск) */
@@ -84,6 +85,7 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-soft: var(--primary-soft);
   --color-primary-strong: var(--primary-strong);
+  --color-primary-text: var(--primary-text);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-inverse: var(--inverse);

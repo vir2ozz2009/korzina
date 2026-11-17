@@ -59,7 +59,7 @@ function ProductScreen() {
 ## Автоматическая проверка архитектуры (`npm run check:arch`)
 
 Скрипт `scripts/check-arch.ts` (создаётся в F1, дополняется по мере появления папок) падает, если:
-- в `src/features/**`, `src/routes/**` или `src/ui/**` есть hex/rgb-цвет (цвета — только в `tokens.css` и `theme-presets.ts`), `px` в произвольных классах Tailwind (`w-[123px]`) или inline `style` с цветом;
+- в `src/features/**`, `src/routes/**` или `src/ui/**` есть hex/rgb-цвет (цвета — только в `tokens.css` и `theme-presets.ts`), а также `text-white` на `bg-primary` (нужен `text-primary-foreground`), `px` в произвольных классах Tailwind (`w-[123px]`) или inline `style` с цветом;
 - фича импортирует внутренности другой фичи (`features/a/...` → `features/b/ui/...`); общее — только через `src/ui`, `src/shared`, `features/<x>/index.ts`;
 - клиентский код импортирует `server/**`, а сервер — `src/features/**`;
 - файл длиннее 250 строк (исключения — список в скрипте с причиной);

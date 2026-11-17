@@ -1,10 +1,14 @@
 /**
- * Пресеты оформления витрины магазина. Единственный источник.
- * Продавец выбирает пресет в кабинете (Настройки → Оформление витрины), значение хранится в settings магазина.
- * Пресет меняет ТОЛЬКО акцентные токены витрины. Нейтральные цвета, шрифт, радиусы и кабинет продавца не меняются.
- * Правила и применение: docs/design-system/tokens.md «Оформление магазина».
+ * Оформление витрины магазина: пресеты и свой цвет. Единственный источник.
+ * Продавец выбирает в кабинете (Настройки → Оформление витрины); значение хранится в settings магазина как ShopTheme.
+ * Меняются ТОЛЬКО акцентные токены витрины. Нейтральные цвета, шрифт, радиусы и кабинет продавца не меняются.
+ * Правила: docs/design-system/tokens.md «Оформление магазина».
  *
- * Новый пресет: добавить сюда, проверить тест контраста (белый текст на primary ≥ 3:1), показать в /dev/kit.
+ * Свой цвет: продавец задаёт только primary, остальные токены вычисляются так, чтобы текст всегда читался:
+ *  - цвет текста на кнопке — белый, если контраст ≥ 3:1 (как у пресетов), иначе тёмный (тогда ≥ 4.5:1);
+ *  - почти белые цвета (контраст с белым < MIN_ACCENT_CONTRAST) не принимаются: кнопки сольются с карточками;
+ *  - акцентный текст на белом — primary, если контраст ≥ 3:1, иначе затемнённый до ≥ 4.5:1;
+ *  - strong — затемнённый до контраста с белым ≥ 4.5:1; soft — 8% цвета на белом.
  */
 
 export type ThemePresetId =
@@ -18,32 +22,99 @@ export type ThemePresetId =
   | "chocolate"
   | "graphite";
 
+/** Что хранится в settings магазина */
+export type ShopTheme = { preset: ThemePresetId } | { custom: string };
+
+export type ThemeVars = {
+  "--primary": string;
+  "--primary-foreground": string;
+  "--primary-soft": string;
+  "--primary-strong": string;
+  "--primary-text": string;
+  "--ring": string;
+};
+
 export interface ThemePreset {
   id: ThemePresetId;
   name: string;
-  /** Значения CSS-переменных из src/styles/tokens.css, которые переопределяет пресет */
-  vars: {
-    "--primary": string;
-    "--primary-foreground": string;
-    "--primary-soft": string;
-    "--primary-strong": string;
-    "--ring": string;
+  vars: ThemeVars;
+}
+
+const WHITE = "#ffffff";
+const DARK = "#1a1a1a";
+export const HEX_RE = /^#[0-9a-f]{6}$/i;
+
+// ---------- цветовая математика (sRGB, WCAG 2.x) ----------
+const toRgb = (hex: string): [number, number, number] => {
+  const h = hex.replace("#", "");
+  return [0, 2, 4].map((i) => Number.parseInt(h.slice(i, i + 2), 16) / 255) as [number, number, number];
+};
+const toHex = (rgb: number[]): string =>
+  `#${rgb.map((c) => Math.round(Math.min(1, Math.max(0, c)) * 255).toString(16).padStart(2, "0")).join("")}`;
+const luminance = (hex: string): number => {
+  const [r, g, b] = toRgb(hex).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)) as [number, number, number];
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+export const contrast = (a: string, b: string): number => {
+  const [x, y] = [luminance(a), luminance(b)].sort((p, q) => q - p) as [number, number];
+  return (x + 0.05) / (y + 0.05);
+};
+/** t = 0 → a, t = 1 → b */
+const mix = (a: string, b: string, t: number): string => {
+  const A = toRgb(a);
+  const B = toRgb(b);
+  return toHex(A.map((c, i) => c * (1 - t) + (B[i] as number) * t));
+};
+/** Затемнять, пока контраст с белым не станет ≥ target */
+const darkenUntil = (hex: string, target: number, minStep = 0): string => {
+  for (let t = minStep; t <= 1; t += 0.02) {
+    const c = mix(hex, "#000000", t);
+    if (contrast(c, WHITE) >= target) return c;
+  }
+  return DARK;
+};
+
+/** Токены из одного цвета продавца. Для любого hex текст остаётся читаемым. */
+export function deriveTheme(primaryHex: string): ThemeVars {
+  const primary = primaryHex.toLowerCase();
+  return {
+    "--primary": primary,
+    "--primary-foreground": contrast(primary, WHITE) >= 3 ? WHITE : DARK,
+    "--primary-soft": mix(primary, WHITE, 0.92),
+    "--primary-strong": darkenUntil(primary, 4.5, 0.15),
+    "--primary-text": contrast(primary, WHITE) >= 3 ? primary : darkenUntil(primary, 4.5),
+    "--ring": primary,
   };
 }
 
+/** Ниже — цвет почти белый: кнопка не отличается от белой карточки */
+export const MIN_ACCENT_CONTRAST = 1.3;
+
+/** Проверка своего цвета перед сохранением (клиент и сервер) */
+export function validateCustomColor(hex: string): { ok: true } | { ok: false; reason: "format" | "too_light" } {
+  if (!HEX_RE.test(hex)) return { ok: false, reason: "format" };
+  if (contrast(hex, WHITE) < MIN_ACCENT_CONTRAST) return { ok: false, reason: "too_light" };
+  return { ok: true };
+}
+
+/** Подсказка в кабинете: при светлом цвете кнопки будут с тёмным текстом */
+export const isLightAccent = (hex: string): boolean => deriveTheme(hex)["--primary-foreground"] === DARK;
+
+// ---------- пресеты ----------
 const preset = (id: ThemePresetId, name: string, primary: string, soft: string, strong: string): ThemePreset => ({
   id,
   name,
   vars: {
     "--primary": primary,
-    "--primary-foreground": "#ffffff",
+    "--primary-foreground": WHITE,
     "--primary-soft": soft,
     "--primary-strong": strong,
+    "--primary-text": primary,
     "--ring": primary,
   },
 });
 
-export const DEFAULT_THEME_PRESET: ThemePresetId = "raspberry";
+export const DEFAULT_THEME: ShopTheme = { preset: "raspberry" };
 
 /** Контраст белого текста на primary указан в комментарии (WCAG). */
 export const THEME_PRESETS: readonly ThemePreset[] = [
@@ -58,13 +129,18 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
   preset("graphite", "Графит", "#2b2b2b", "#eeeeee", "#232323"), // 14.16
 ];
 
-export function getThemePreset(id: string | null | undefined): ThemePreset {
-  return THEME_PRESETS.find((p) => p.id === id) ?? (THEME_PRESETS[0] as ThemePreset);
+const DEFAULT_PRESET = THEME_PRESETS[0] as ThemePreset;
+
+/** Итоговые токены для темы магазина; неизвестное или битое значение → пресет по умолчанию */
+export function resolveTheme(theme: ShopTheme | null | undefined): ThemeVars {
+  if (theme && "custom" in theme && validateCustomColor(theme.custom).ok) return deriveTheme(theme.custom);
+  if (theme && "preset" in theme) return (THEME_PRESETS.find((p) => p.id === theme.preset) ?? DEFAULT_PRESET).vars;
+  return DEFAULT_PRESET.vars;
 }
 
-/** Строка для атрибута style корневого элемента витрины (используется Worker при отдаче HTML и клиентом). */
-export function themeStyle(id: string | null | undefined): string {
-  return Object.entries(getThemePreset(id).vars)
+/** Строка для атрибута style корневого элемента витрины (Worker при отдаче HTML и клиент). */
+export function themeStyle(theme: ShopTheme | null | undefined): string {
+  return Object.entries(resolveTheme(theme))
     .map(([k, v]) => `${k}:${v}`)
     .join(";");
 }

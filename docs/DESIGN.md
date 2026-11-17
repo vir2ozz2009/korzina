@@ -17,7 +17,7 @@
 
 ## 2. Токены — единственный источник
 
-`src/styles/tokens.css` — значения (Tailwind v4, схема shadcn/MagicPath: `:root` + `@theme inline`). Те же значения загружены в MagicPath как тема **Korzina**. Меняем оба места одним коммитом. Цвет витрины магазина продавец выбирает из пресетов (`src/shared/theme-presets.ts`) — поэтому акцент в компонентах только через токены `primary*`. Откуда взяты значения и как сводить расхождения макетов — `docs/design-system/tokens.md`.
+`src/styles/tokens.css` — значения (Tailwind v4, схема shadcn/MagicPath: `:root` + `@theme inline`). Те же значения загружены в MagicPath как тема **Korzina**. Меняем оба места одним коммитом. Цвет витрины продавец выбирает из пресетов или задаёт свой (`src/shared/theme-presets.ts`) — поэтому акцент в компонентах только через токены `primary*`: заливка `bg-primary` + `text-primary-foreground`, акцентный текст `text-primary-text`. Откуда взяты значения и как сводить расхождения макетов — `docs/design-system/tokens.md`.
 
 ## 3. UI-кит (`src/ui`) — одинаковый в приложении и на холсте
 
