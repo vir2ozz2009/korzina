@@ -25,7 +25,7 @@ export async function cachedDocument(
   if (input.category) page.set("category", input.category);
   if (input.brand) page.set("brand", input.brand);
   const key = (version: string) =>
-    `https://catalog.invalid/B1/${encodeURIComponent(namespace)}/${encodeURIComponent(shopId)}/${version}?${page}`;
+    `https://catalog.invalid/R1/${encodeURIComponent(namespace)}/${encodeURIComponent(shopId)}/${version}?${page}`;
   const hit = await cache.match(key(String(input.version ?? "current")));
   if (hit) {
     const headers = new Headers(hit.headers);

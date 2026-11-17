@@ -3,6 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { assertSqlBudget } from "../../metrics";
 import { setupPlatform } from "../../testing/platform";
 import { cachedDocument } from "./cache";
+import { brandsSql, categoriesSql } from "./navigation";
 import { documentQuery, liveQuery, photosSql, productSql } from "./queries";
 import { catalogRequest, catalogSql, catalogStub, resetCatalog } from "./testing";
 
@@ -87,6 +88,8 @@ describe("бюджеты каталога", () => {
       );
       const statements = [
         ...pages,
+        { sql: categoriesSql, params: [] },
+        { sql: brandsSql, params: [] },
         liveQuery(["sku-01", "sku-02"]),
         { sql: productSql, params: ["product-01"] },
         { sql: photosSql, params: ["product-01"] },

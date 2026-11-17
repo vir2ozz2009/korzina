@@ -64,6 +64,13 @@
       "when": 1794932746306,
       "tag": "0008_smart_metal_master",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1794937784850,
+      "tag": "0009_pale_iron_man",
+      "breakpoints": true
     }
   ]
 }

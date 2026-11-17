@@ -12,7 +12,10 @@ export class ShopContextCache {
 
   constructor(private readonly now = () => Date.now()) {}
 
-  async read(request: Request, env: Pick<Env, "PLATFORM"> & Partial<Pick<Env, "APP_ENV">>): Promise<ShopContext> {
+  async read(
+    request: Request,
+    env: Pick<Env, "PLATFORM"> & Partial<Pick<Env, "APP_ENV" | "MEDIA_PUBLIC_URL">>,
+  ): Promise<ShopContext> {
     const started = this.now();
     const shop = await resolveShop(request, env.PLATFORM, env.APP_ENV);
     if (!shop) throw new ApiError("SHOP_NOT_FOUND", "Магазин не найден");
@@ -29,7 +32,13 @@ export class ShopContextCache {
     ]);
     if (!response.ok) throw new ApiError("INTERNAL", "Не удалось загрузить оформление магазина");
     const settings = shopContextContract.parse(await response.json());
-    const value = shopContextContract.parse({ ...shop, name: settings.name, theme: settings.theme, features });
+    const value = shopContextContract.parse({
+      ...shop,
+      name: settings.name,
+      theme: settings.theme,
+      features,
+      mediaOrigin: env.MEDIA_PUBLIC_URL,
+    });
     if (this.entries.size >= 500) this.entries.delete(this.entries.keys().next().value as string);
     this.entries.set(shop.id, { value, expires: started + CONTEXT_TTL });
     return value;

@@ -25,6 +25,7 @@ export const catalogSpec = z.object({
         key: key.describe("Стабильный ключ бренда"),
         name: z.string().min(1).describe("Название бренда"),
         visible: z.boolean().describe("Показывать бренд в навигации"),
+        photoKey: key.nullable().describe("Ключ фото бренда из media; null — первое фото товара"),
       }),
     )
     .describe("Бренды магазина в порядке показа"),

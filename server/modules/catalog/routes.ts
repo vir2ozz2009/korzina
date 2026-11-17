@@ -16,7 +16,7 @@ export const catalogRoutes = new Hono<ShopEnv>()
       if (!result.success) throw new ApiError("VALIDATION", "Некорректные параметры каталога");
     }),
     (c) => {
-      const data = readDocument(c.env.storage, c.req.valid("query"), c.env.shop.id, c.env.media.MEDIA_PUBLIC_URL);
+      const data = readDocument(c.env.storage, c.req.valid("query"), c.env.shop.id);
       c.header("ETag", `"catalog-${data.catalogVersion}"`);
       c.header("X-Catalog-Version", String(data.catalogVersion));
       return c.json(data);
