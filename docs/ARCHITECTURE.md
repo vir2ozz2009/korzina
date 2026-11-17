@@ -22,7 +22,7 @@
 | API | Hono + `@hono/zod-validator` + Hono RPC | Минимальный, быстрый, родной для Workers |
 | Данные магазина | Durable Object `Shop` со встроенным SQLite + Drizzle ORM (`drizzle-orm/durable-sqlite`) | Транзакции ACID для заказов, остатков и денег; один экземпляр на магазин; масштабируется без настройки |
 | Данные платформы | D1 `platform` + Drizzle | Реестр магазинов, домены, аккаунты продавцов, флаги |
-| Файлы | R2 + Cloudflare Images (`/cdn-cgi/image/`) | Фото товаров с ресайзом на лету |
+| Файлы | R2 + Cloudflare Images (`/cdn-cgi/image/`) | Фото и вложения: сжатие на клиенте, очистка EXIF, ресайз на лету, публичные и приватные файлы, уборка, лимит на магазин (PLAN F9) |
 | Фоновые задачи | Cloudflare Queues + алармы DO | Уведомления Telegram, истечение резервов, расписания |
 | Telegram | `grammY` (webhook), тонкий адаптер `window.Telegram.WebApp` | Бот магазина и Mini App |
 | Качество | Biome (линтер и форматтер), Vitest, `@cloudflare/vitest-pool-workers`, Playwright (только сквозные smoke-тесты) | Быстро и одной командой |
@@ -77,7 +77,7 @@ docs/
 
 **Platform D1:** `shops(id, slug, name, status, plan, created_at)`, `domains(host, shop_id)`, `accounts(id, telegram_id, email)`, `memberships(shop_id, account_id, role, permissions)`, `feature_overrides(shop_id, key, enabled)`, `audit`.
 
-**Shop DO (SQLite):** `settings`, `categories`, `brands`, `products`, `variants(sku, price_minor, stock, visible)`, `media`, `customers`, `sessions`, `carts`, `cart_lines`, `orders`, `order_lines`, `order_events`, `payments`, `refunds`, `delivery_zones`, `slots`, `reservations`, `idempotency`, `outbox`. Подробно правила — `docs/DOMAIN.md`. Таблицы добавляются задачами по мере надобности, а не все сразу.
+**Shop DO (SQLite):** `media` (назначение, статус `temp`/`attached`, размер — для лимита и уборки), `settings`, `categories`, `brands`, `products`, `variants(sku, price_minor, stock, visible)`, `customers`, `sessions`, `carts`, `cart_lines`, `orders`, `order_lines`, `order_events`, `payments`, `refunds`, `delivery_zones`, `slots`, `reservations`, `idempotency`, `outbox`. Подробно правила — `docs/DOMAIN.md`. Таблицы добавляются задачами по мере надобности, а не все сразу.
 
 Миграции Drizzle собираются в бандл. DO применяет их при первом запросе после деплоя (`blockConcurrencyWhile`), поэтому выпуск сам «раскатывается» на все магазины.
 
