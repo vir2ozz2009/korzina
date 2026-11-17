@@ -71,6 +71,7 @@
   /* Движение */
   --duration-push: 280ms;
   --duration-fade: 120ms;
+  --duration-skeleton: 1.5s;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 

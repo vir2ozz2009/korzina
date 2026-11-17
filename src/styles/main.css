@@ -22,3 +22,13 @@
     @apply outline-2 outline-ring;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-vaul-drawer],
+  [data-vaul-overlay] {
+    /* biome-ignore lint/complexity/noImportantStyles: Vaul injects unlayered animations; reduced motion must override them. */
+    animation: none !important;
+    /* biome-ignore lint/complexity/noImportantStyles: Also override Vaul inline drag transitions for reduced motion. */
+    transition: none !important;
+  }
+}

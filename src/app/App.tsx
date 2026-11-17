@@ -1,13 +1,13 @@
 import { lazy, Suspense } from "react";
 import { bootstrap } from "./bootstrap";
 
-const ThemeKit = lazy(() => import("./dev/ThemeKit"));
+const UiKit = lazy(() => import("./dev/UiKit"));
 
 export function App() {
   if (location.pathname === "/dev/kit")
     return (
-      <Suspense fallback={<p className="p-6 text-body">Загружаем палитру…</p>}>
-        <ThemeKit />
+      <Suspense fallback={<p className="p-6 text-body">Загружаем UI-кит…</p>}>
+        <UiKit />
       </Suspense>
     );
   return (
@@ -20,7 +20,7 @@ export function App() {
           href={`/dev/kit${location.search}`}
           className="block rounded-pill bg-primary px-5 py-3 text-center text-label text-primary-foreground"
         >
-          Палитра и типографика
+          UI-кит Korzina
         </a>
       </div>
     </main>

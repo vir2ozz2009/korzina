@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { addMinor, allocateMinor, multiplyMinor, percentageMinor, roundMinor, subtractMinor } from "./money";
+import {
+  addMinor,
+  allocateMinor,
+  discountPercent,
+  formatMinor,
+  multiplyMinor,
+  percentageMinor,
+  roundMinor,
+  subtractMinor,
+} from "./money";
 
 describe("деньги: целые минимальные единицы", () => {
   it("сохраняет контрольные суммы доставки, доплаты и возврата", () => {
@@ -51,5 +60,22 @@ describe("деньги: целые минимальные единицы", () =>
     expect(() => roundMinor(100, 0, "ceil")).toThrow();
     expect(() => percentageMinor(1, 10_001)).toThrow();
     expect(() => allocateMinor(1, [0, 0])).toThrow();
+  });
+});
+
+describe("денежные значения в UI", () => {
+  it("сохраняет минимальные единицы при форматировании, включая большие суммы", () => {
+    const normalize = (value: string) => value.replace(/\s/g, " ");
+    expect(normalize(formatMinor(18950))).toBe("189,50 ₽");
+    expect(normalize(formatMinor(18900))).toBe("189 ₽");
+    expect(normalize(formatMinor(Number.MAX_SAFE_INTEGER))).toBe("90 071 992 547 409,91 ₽");
+    expect(normalize(formatMinor(0))).toBe("0 ₽");
+    expect(() => formatMinor(-1)).toThrow(RangeError);
+  });
+  it("процент скидки не завышает выгоду, без скидки равен нулю", () => {
+    expect(discountPercent(18900, 23900)).toBe(20);
+    expect(discountPercent(23900, 18900)).toBe(0);
+    expect(discountPercent(0, 0)).toBe(0);
+    expect(discountPercent(0, Number.MAX_SAFE_INTEGER)).toBe(100);
   });
 });

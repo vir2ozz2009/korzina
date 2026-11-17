@@ -51,3 +51,23 @@ export function allocateMinor(total: number, weights: readonly number[]): number
   for (let i = 0; i < Number(remaining); i++) shares[order[i].index] += 1n;
   return shares.map(safe);
 }
+
+export function formatMinor(amount: number, currency = "RUB"): string {
+  const minor = integer(amount);
+  const formatter = new Intl.NumberFormat("ru-RU", { style: "currency", currency });
+  const digits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
+  const scale = 10n ** BigInt(digits);
+  const fraction = minor % scale;
+  // Format the whole part as BigInt so even MAX_SAFE_INTEGER keeps its last kopeck.
+  const whole = new Intl.NumberFormat("ru-RU", { style: "currency", currency, maximumFractionDigits: 0 });
+  const suffix = fraction ? `,${fraction.toString().padStart(digits, "0")}` : "";
+  const parts = whole.formatToParts(minor / scale);
+  const lastInteger = parts.findLastIndex((part) => part.type === "integer");
+  return parts.map((part, index) => part.value + (index === lastInteger ? suffix : "")).join("");
+}
+
+export function discountPercent(amount: number, oldAmount: number): number {
+  const current = integer(amount);
+  const old = integer(oldAmount);
+  return old > current ? Number(((old - current) * 100n) / old) : 0;
+}

@@ -6,10 +6,10 @@ import { ThemePicker } from "../../ui/ThemePicker";
 import { bootstrap } from "../bootstrap";
 import { Typography } from "./Typography";
 
-export default function ThemeKit() {
+export default function ThemeKit({ embedded = false }: { embedded?: boolean }) {
   const [theme, setTheme] = useState(bootstrap?.theme ?? DEFAULT_THEME);
   return (
-    <main className="mx-auto max-w-(--content-max) space-y-3 px-(--page-x) py-4">
+    <div className={embedded ? "space-y-3" : "mx-auto max-w-(--content-max) space-y-3 px-(--page-x) py-4"}>
       <header className="flex items-center justify-between px-2 pb-3">
         <a href={`/${location.search}`} aria-label="Korzina — главная" className="flex items-center gap-2 text-title-3">
           <img src="/brand/korzina.svg" alt="" className="size-9" />
@@ -59,6 +59,6 @@ export default function ThemeKit() {
       </KitSection>
       <Typography />
       <footer className="px-2 py-4 text-small text-muted-foreground">Korzina · Токены и оформление · F6</footer>
-    </main>
+    </div>
   );
 }
