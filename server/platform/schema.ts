@@ -26,6 +26,18 @@ export const invitations = sqliteTable("invitations", {
 
 export type PlatformShop = typeof shops.$inferSelect;
 
+export const featureOverrides = sqliteTable(
+  "feature_overrides",
+  {
+    shopId: text("shop_id")
+      .notNull()
+      .references(() => shops.id),
+    key: text("key").notNull(),
+    enabled: integer("enabled", { mode: "boolean" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.shopId, table.key] })],
+);
+
 export const accounts = sqliteTable("accounts", {
   id: text("id").primaryKey(),
   telegramId: text("telegram_id").unique(),

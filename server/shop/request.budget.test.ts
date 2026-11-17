@@ -1,6 +1,9 @@
 import { env } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { assertSqlBudget } from "../metrics";
+import { setupPlatform } from "../testing/platform";
+
+beforeAll(setupPlatform);
 
 // Warmed requests include the Shop identity lookup. Migrations are initialization work.
 describe("бюджет полного запроса Shop", () => {

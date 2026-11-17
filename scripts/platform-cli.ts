@@ -5,10 +5,10 @@ import { join } from "node:path";
 import { platformDatabase } from "../server/platform/config.ts";
 import type { SqlStatement } from "../server/platform/create-shop.ts";
 
-export function cf(args: string[], local: boolean): void {
-  execFileSync("node_modules/.bin/cf", [...args, ...(local ? ["--local"] : [])], {
+export function cf(args: string[], local: boolean): string {
+  return execFileSync("node_modules/.bin/cf", [...args, ...(local ? ["--local"] : [])], {
     stdio: ["ignore", "pipe", "inherit"],
-  });
+  }).toString();
 }
 
 export function query(statements: SqlStatement[], local: boolean): void {

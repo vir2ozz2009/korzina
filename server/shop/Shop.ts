@@ -38,7 +38,13 @@ export class Shop extends DurableObject<Env> {
       if (identity && identity.value !== shop.id) throw new ApiError("FORBIDDEN", "Другой магазин");
       if (!identity)
         storage.transactionSync(() => db.insert(settings).values({ key: "shop_id", value: shop.id }).run());
-      response = await this.router.fetch(request, { shop, db, storage, secrets: this.env as Env & AuthSecrets });
+      response = await this.router.fetch(request, {
+        shop,
+        db,
+        storage,
+        secrets: this.env as Env & AuthSecrets,
+        platform: this.env.PLATFORM,
+      });
     } catch (error) {
       const known = error instanceof ApiError ? error : new ApiError("INTERNAL", "Внутренняя ошибка сервера");
       response = Response.json(errorBody(known), { status: errorStatus[known.code] });

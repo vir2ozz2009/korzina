@@ -4,6 +4,12 @@ import type { AuthSecrets } from "../auth/config";
 import type { CommandVariables } from "../middleware/idempotency";
 
 export type ShopEnv = {
-  Bindings: { shop: ShopInfo; db: DrizzleSqliteDODatabase; storage: DurableObjectStorage; secrets: AuthSecrets };
+  Bindings: {
+    shop: ShopInfo;
+    db: DrizzleSqliteDODatabase;
+    storage: DurableObjectStorage;
+    secrets: AuthSecrets;
+    platform: D1Database;
+  };
   Variables: CommandVariables;
 };

@@ -13,6 +13,7 @@
     "check:arch": "node scripts/check-arch.ts",
     "deploy": "npm run check && npm run build && npm run platform:setup && cf deploy --prebuilt",
     "shop:create": "node scripts/shop-create.ts",
+    "flag": "node scripts/flag.ts",
     "platform:setup": "node scripts/platform-setup.ts"
   },
   "dependencies": {
