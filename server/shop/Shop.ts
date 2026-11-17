@@ -5,6 +5,7 @@ import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { Hono } from "hono";
 import { shopContract } from "../../src/shared/contracts/shop";
 import { ApiError, errorBody, errorStatus } from "../../src/shared/errors";
+import type { AuthSecrets } from "../auth/config";
 import { RequestMetrics } from "../metrics";
 import { handleError, notFound } from "../middleware/errors";
 import { migrations } from "./migrations";
@@ -37,7 +38,7 @@ export class Shop extends DurableObject<Env> {
       if (identity && identity.value !== shop.id) throw new ApiError("FORBIDDEN", "Другой магазин");
       if (!identity)
         storage.transactionSync(() => db.insert(settings).values({ key: "shop_id", value: shop.id }).run());
-      response = await this.router.fetch(request, { shop, db, storage });
+      response = await this.router.fetch(request, { shop, db, storage, secrets: this.env as Env & AuthSecrets });
     } catch (error) {
       const known = error instanceof ApiError ? error : new ApiError("INTERNAL", "Внутренняя ошибка сервера");
       response = Response.json(errorBody(known), { status: errorStatus[known.code] });

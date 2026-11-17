@@ -1,10 +1,13 @@
 import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import { ApiError, errorBody } from "../src/shared/errors";
+import type { AuthSecrets } from "./auth/config";
 import { handleError, notFound } from "./middleware/errors";
 import { apiMetrics } from "./middleware/metrics";
 import { RateLimiter, rateLimit } from "./middleware/rate-limit";
 import { requestId } from "./middleware/request-id";
+import { sellerAccess } from "./platform/auth/access-routes";
+import { platformAuth } from "./platform/auth/routes";
 import { resolveShop } from "./platform/resolve-shop";
 import { shopRoutes } from "./shop/routes";
 
@@ -30,7 +33,7 @@ const forwarding = createMiddleware<{ Bindings: Env }>(async (c) => {
 });
 
 // Routing and validation types come from the SAME DO router; no manually duplicated RPC signatures.
-export const app = new Hono<{ Bindings: Env }>()
+export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
   .basePath("/api")
   .onError(handleError)
   .use("*", requestId)
@@ -40,6 +43,9 @@ export const app = new Hono<{ Bindings: Env }>()
     rateLimit(new RateLimiter(), (request) => request.headers.get("CF-Connecting-IP") ?? "local"),
   )
   .get("/health", (c) => c.json({ ok: true }))
+  .route("/platform/auth", platformAuth)
+  .route("/seller/access", sellerAccess)
+  .use("/auth/*", forwarding)
   .use("/shop", forwarding)
   .use("/diagnostics/*", forwarding)
   .route("/", shopRoutes())

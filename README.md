@@ -13,9 +13,24 @@
 
 ## Запуск
 
-Кода приложения пока нет: разработка начинается с нуля с задачи F1 (`docs/PLAN.md`). После F1 здесь появятся команды `npm run dev` и `npm run check`. Node.js — версия из `.node-version`.
+Node.js — версия из `.node-version`. После установки зависимостей:
 
-Из кода в репозитории есть только `src/styles/tokens.css` — дизайн-токены (единственный источник значений). Остальное — инфраструктурные файлы: `cloudflare.config.ts` (Worker `korzina-demo`, домен demo), `.node-version`, `.codex/environments/` и знак `public/brand/korzina.svg`.
+```sh
+npm ci
+npm run dev
+npm run check
+```
+
+`dev` применяет локальные миграции D1 и сид двух магазинов. В браузере пока отображается каркас Korzina; продуктовые экраны идут после фазы F.
+
+### Сессии и вход (F4)
+
+- Покупатель: `POST /api/auth/guest?shop=test2`, затем `GET /api/auth/session?shop=test2`; logout — `POST /api/auth/logout`. Cookie разделены по магазину, `HttpOnly`, `SameSite=Lax`, `Secure` вне localhost. Telegram-вход: `POST /api/auth/telegram`, JSON `{initData, bearer?: true}`; bearer нужен для Mini App.
+- Продавец: `/api/platform/auth/email/start` с `{email}`, затем `/email/verify` с `{challengeId, code}`; `/api/platform/auth/telegram` — вход через бот платформы; `/session` и `/logout` — проверка и выход. Все POST требуют JSON и `Idempotency-Key`, запрос с чужого Origin отклоняется. Вход не выдаёт роль: она берётся из `memberships` выбранного магазина.
+- Email-доставка в F4 — **только локальная заглушка**: `email/start` возвращает `devCode` на localhost. На demo код не возвращается и отправка пока недоступна (`AUTH_UNAVAILABLE`). Одноразовый код живёт 10 минут, допускает 5 попыток; повторное погашение — `UNAUTHORIZED`. В базе только хеши кодов и токенов. Auth-ответы с новыми credentials не сохраняются в таблицу идемпотентных бизнес-команд; одноразовый вход повторно не воспроизводится.
+- Необязательные секреты: `PLATFORM_BOT_TOKEN` — собственный бот Korzina; `ENCRYPTION_KEY` — 32 байта в hex для AES-GCM; токен бота магазина хранится в его `settings.telegram_bot_token` как `v1.<iv hex>.<cipher base64>` с привязкой ciphertext к shop ID. Устанавливать только через Cloudflare secrets или локальную `.dev.vars`; значения в Git не добавлять. Без секретов Telegram-вход закрыт. Управление ботом из кабинета относится к S7.
+- Проверка доступа: `GET /api/seller/access?shop=test2`, подпути `/orders`, `/payments`, `/team`. Требуется сессия продавца и действующая запись `memberships`; права каждый раз читаются с primary D1. Управление приглашениями/сотрудниками и экран кабинета относятся к S1/S8.
+
 
 ## Публикация demo
 
@@ -29,7 +44,7 @@ npm run build
 npx cf deploy --prebuilt --dry-run
 ```
 
-Сборка находится в `.cloudflare/output/v0/`, а не в `dist/`. Для ручной публикации после входа в Cloudflare используйте `npm run deploy`.
+Сборка находится в `.cloudflare/output/v1/`, а не в `dist/`. Для ручной публикации после входа в Cloudflare используйте `npm run deploy`.
 
 Workers Builds уже подключён к `vir2ozz2009/korzina`, ветке `main`. Настройки: корень `/`, build command `npm run build`, deploy command `npx cf deploy --prebuilt`, переменная сборки `NODE_VERSION=24.22.1`. Используется отдельный токен `Workers Builds — korzina-demo`; previews других веток отключены. Настройки доступны в Cloudflare → Workers & Pages → `korzina-demo` → Settings → Builds. Первая публикация прошла; подтверждения и ограничения проверки сайта были записаны в прежнем прогрессе (история Git, коммит `6a11833`). `--force` был разрешён владельцем только для первой замены API-заглушки и удалён из команды после публикации.
 

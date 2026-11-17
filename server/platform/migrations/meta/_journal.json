@@ -8,6 +8,13 @@
       "when": 1794887881636,
       "tag": "0000_platform",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1794890514261,
+      "tag": "0001_awesome_hedge_knight",
+      "breakpoints": true
     }
   ]
 }

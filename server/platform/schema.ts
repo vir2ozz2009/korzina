@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const shops = sqliteTable("shops", {
   id: text("id").primaryKey(),
@@ -25,3 +25,40 @@ export const invitations = sqliteTable("invitations", {
 });
 
 export type PlatformShop = typeof shops.$inferSelect;
+
+export const accounts = sqliteTable("accounts", {
+  id: text("id").primaryKey(),
+  telegramId: text("telegram_id").unique(),
+  email: text("email").unique(),
+});
+export const memberships = sqliteTable(
+  "memberships",
+  {
+    shopId: text("shop_id")
+      .notNull()
+      .references(() => shops.id),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    role: text("role").notNull(),
+    permissions: text("permissions").notNull().default("[]"),
+    revokedAt: integer("revoked_at"),
+  },
+  (table) => [primaryKey({ columns: [table.shopId, table.accountId] })],
+);
+export const sellerSessions = sqliteTable("seller_sessions", {
+  tokenHash: text("token_hash").primaryKey(),
+  accountId: text("account_id")
+    .notNull()
+    .references(() => accounts.id),
+  expiresAt: integer("expires_at").notNull(),
+});
+export const emailChallenges = sqliteTable("email_challenges", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull(),
+  codeHash: text("code_hash").notNull(),
+  expiresAt: integer("expires_at").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  usedAt: integer("used_at"),
+  attemptId: text("attempt_id"),
+});

@@ -16,3 +16,10 @@ export const idempotency = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.scope, table.key] })],
 );
+
+export const sessions = sqliteTable("sessions", {
+  tokenHash: text("token_hash").primaryKey(),
+  subject: text("subject").notNull(),
+  kind: text("kind", { enum: ["guest", "telegram"] }).notNull(),
+  expiresAt: integer("expires_at").notNull(),
+});

@@ -15,6 +15,13 @@
       "when": 1794889372205,
       "tag": "0001_sticky_machine_man",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1794890349481,
+      "tag": "0002_hard_azazel",
+      "breakpoints": true
     }
   ]
 }

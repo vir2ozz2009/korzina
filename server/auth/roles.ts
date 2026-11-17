@@ -1,0 +1,56 @@
+import { createMiddleware } from "hono/factory";
+import { type Permission, permissionSchema, type Role, roleSchema } from "../../src/shared/contracts/auth";
+import { ApiError } from "../../src/shared/errors";
+import { credential, sellerCookie } from "./cookies";
+import { sessionLimiter } from "./session-limit";
+import { tokenHash } from "./tokens";
+
+export const employeeDefaults: readonly Permission[] = ["orders", "assembly", "chat", "products", "stock"];
+export type Seller = { accountId: string; role: Role; permissions: Permission[] };
+export type SellerEnv = { Bindings: Env; Variables: { seller: Seller; shopId: string } };
+
+const limitSeller = sessionLimiter();
+export const authenticateSeller = createMiddleware<SellerEnv>(async (c, next) => {
+  const token = credential(c.req.raw, sellerCookie);
+  if (!token) throw new ApiError("UNAUTHORIZED", "Войдите в кабинет");
+  // A fresh first-primary join for EVERY request: no cached rights or replica lag after revocation.
+  const row = await c.env.PLATFORM.withSession("first-primary")
+    .prepare(`
+    SELECT s.account_id AS accountId, m.role, m.permissions
+    FROM seller_sessions s LEFT JOIN memberships m
+    ON m.account_id = s.account_id AND m.shop_id = ? AND m.revoked_at IS NULL
+    WHERE s.token_hash = ? AND s.expires_at > ?
+  `)
+    .bind(c.get("shopId"), await tokenHash(token), Date.now())
+    .first<{ accountId: string; role: string | null; permissions: string | null }>();
+  if (!row) throw new ApiError("UNAUTHORIZED", "Сессия недействительна");
+  const role = roleSchema.safeParse(row.role);
+  if (!role.success) throw new ApiError("FORBIDDEN", "Нет доступа к магазину");
+  let granted: Permission[];
+  try {
+    granted = permissionSchema.array().parse(JSON.parse(row.permissions ?? "[]"));
+  } catch {
+    throw new ApiError("FORBIDDEN", "Нет доступа к магазину");
+  }
+  c.set("seller", {
+    accountId: row.accountId,
+    role: role.data,
+    permissions: role.data === "employee" ? [...new Set([...employeeDefaults, ...granted])] : granted,
+  });
+  limitSeller(c, `${c.get("shopId")}:${row.accountId}`);
+  await next();
+});
+export function requireRole(...roles: Role[]) {
+  return createMiddleware<SellerEnv>(async (c, next) => {
+    if (!roles.includes(c.get("seller").role)) throw new ApiError("FORBIDDEN", "Недостаточно прав");
+    await next();
+  });
+}
+export function requirePermission(permission: Permission) {
+  return createMiddleware<SellerEnv>(async (c, next) => {
+    const seller = c.get("seller");
+    if (seller.role !== "owner" && !seller.permissions.includes(permission))
+      throw new ApiError("FORBIDDEN", "Недостаточно прав");
+    await next();
+  });
+}
