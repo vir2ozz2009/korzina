@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { BrandTile } from "../../ui/BrandTile";
-import { CategoryTile } from "../../ui/CategoryTile";
 import { DiscountBadge } from "../../ui/DiscountBadge";
 import { Gallery } from "../../ui/Gallery";
 import { KitSection } from "../../ui/KitSection";
@@ -8,6 +7,7 @@ import { Price } from "../../ui/Price";
 import { ProductRow } from "../../ui/ProductRow";
 import { ProductTile } from "../../ui/ProductTile";
 import { CartPhotosKit } from "./CartPhotosKit";
+import { CategoriesKit } from "./CategoriesKit";
 import { demoProduct, photoModes } from "./kit-mock";
 
 export function ProductsKit({ notify }: { notify: (message: string) => void }) {
@@ -76,19 +76,7 @@ export function ProductsKit({ notify }: { notify: (message: string) => void }) {
           </div>
         </KitSection>
       </section>
-      <section id="kit-product-categories" aria-label="Категории: фото, вырезка и иконка" className="space-y-3">
-        <h2 className="px-2 text-title-2">Категории</h2>
-        <div className="grid grid-cols-2 gap-2">
-          {photoModes.map(({ label, image }) => (
-            <div key={label} className="space-y-2">
-              <p className="px-2 text-label">{label}</p>
-              <CategoryTile name="Овощи" image={image} href="#product-example" />
-            </div>
-          ))}
-          <CategoryTile name="Фрукты" href="#product-example" />
-          <CategoryTile name="На каждый день" href="#product-example" />
-        </div>
-      </section>
+      <CategoriesKit />
       <CartPhotosKit />
       <section aria-label="Состояния плитки" className="grid grid-cols-2 gap-2">
         <ProductTile
