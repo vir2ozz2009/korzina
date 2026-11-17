@@ -6,13 +6,11 @@ export function compressedSize(width: number, height: number) {
 export async function prepareUpload(file: File): Promise<Blob> {
   const header = new TextDecoder().decode(await file.slice(0, 16).arrayBuffer());
   if (header.startsWith("%PDF-")) return file;
-  let input: Blob = file;
-  if (header.slice(4, 8) === "ftyp") {
-    // The HEIC decoder stays out of the storefront's initial bundle.
-    const { heicTo } = await import("heic-to");
-    input = await heicTo({ blob: file, type: "image/jpeg", quality: 0.85 });
-  }
-  const bitmap = await createImageBitmap(input, { imageOrientation: "from-image" });
+  // WASM is a separate asset and loads only when a HEIC is actually selected.
+  const bitmap =
+    header.slice(4, 8) === "ftyp"
+      ? await (await import("./heic")).decodeHeic(file)
+      : await createImageBitmap(file, { imageOrientation: "from-image" });
   try {
     const size = compressedSize(bitmap.width, bitmap.height);
     const canvas = document.createElement("canvas");
