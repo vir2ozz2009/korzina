@@ -6,6 +6,7 @@ import { handleError, notFound } from "./middleware/errors";
 import { apiMetrics } from "./middleware/metrics";
 import { RateLimiter, rateLimit } from "./middleware/rate-limit";
 import { requestId } from "./middleware/request-id";
+import { localPublicMedia } from "./modules/media/local-public";
 import { sellerAccess } from "./platform/auth/access-routes";
 import { platformAuth } from "./platform/auth/routes";
 import { shopContexts } from "./platform/shop-context";
@@ -42,6 +43,9 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
     rateLimit(new RateLimiter(), (request) => request.headers.get("CF-Connecting-IP") ?? "local"),
   )
   .get("/health", (c) => c.json({ ok: true }))
+  .get("/media-public/:shop/:id/:name", (c) =>
+    localPublicMedia(c.req.raw, c.env, c.req.param("shop"), c.req.param("id"), c.req.param("name")),
+  )
   .route("/platform/auth", platformAuth)
   .route("/seller/access", sellerAccess)
   .get("/shop", async (c) => {
@@ -49,6 +53,7 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
     return c.json(await shopContexts.read(c.req.raw, c.env));
   })
   .use("/auth/*", forwarding)
+  .use("/media/*", forwarding)
   .use("/shop", forwarding)
   .use("/diagnostics/*", forwarding)
   .route("/", shopRoutes())

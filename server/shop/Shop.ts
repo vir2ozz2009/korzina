@@ -10,6 +10,7 @@ import { resolveFeatures } from "../../src/shared/flags";
 import type { AuthSecrets } from "../auth/config";
 import { RequestMetrics } from "../metrics";
 import { handleError, notFound } from "../middleware/errors";
+import { cleanupMedia } from "../modules/media/cleanup";
 import { migrations } from "./migrations";
 import { shopRoutes } from "./routes";
 import { settings } from "./schema";
@@ -48,6 +49,7 @@ export class Shop extends DurableObject<Env> {
         storage,
         secrets: this.env as Env & AuthSecrets,
         platform: this.env.PLATFORM,
+        media: this.env,
       });
     } catch (error) {
       const known = error instanceof ApiError ? error : new ApiError("INTERNAL", "Внутренняя ошибка сервера");
@@ -67,5 +69,9 @@ export class Shop extends DurableObject<Env> {
     // Only the public Worker can see these; it strips them before returning to the client.
     response.headers.set("x-korzina-sql", JSON.stringify(metric));
     return response;
+  }
+
+  async alarm() {
+    await cleanupMedia(this.ctx.storage, this.env);
   }
 }

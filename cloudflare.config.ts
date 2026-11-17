@@ -11,6 +11,11 @@ export default defineConfig({
     env: {
       ASSETS: bindings.assets(),
       PLATFORM: bindings.d1(platformDatabase),
+      MEDIA: bindings.r2({ name: "korzina-demo-media" }),
+      MEDIA_PUBLIC: bindings.r2({ name: "korzina-demo-media-public" }),
+      IMAGES: bindings.images(),
+      MEDIA_PUBLIC_URL: bindings.text("https://media.demo.korzina.app"),
+      MEDIA_SIGNING_KEY: bindings.secret(),
       SHOP: bindings.durableObject({ worker: "korzina-demo", exportName: "Shop" }),
     },
     compatibilityDate: "2026-11-16",

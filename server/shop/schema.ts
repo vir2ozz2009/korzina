@@ -1,5 +1,7 @@
 import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
+export { media, mediaUsage } from "../modules/media/schema";
+
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
