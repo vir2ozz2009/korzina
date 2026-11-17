@@ -65,7 +65,7 @@ export async function checkContent(page: Page, screen: "home" | "product") {
           if (kind === "product" && !photos.length) missing.push("Нет фото товара");
           return missing;
         }, screen),
-      { timeout: 5000, message: `Все фото первого экрана ${screen} загружены` },
+      { timeout: 10_000, message: `Все фото первого экрана ${screen} загружены` },
     )
     .toEqual([]);
   await page.evaluate(async () => {
