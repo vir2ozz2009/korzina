@@ -17,6 +17,7 @@
     "test:related": "node scripts/test-related.ts",
     "test:e2e": "playwright test",
     "preview:upload": "node scripts/preview.ts",
+    "smoke:demo": "node scripts/deployment-smoke.ts",
     "theme:export": "node scripts/export-theme.ts",
     "schema:shop": "node scripts/shop-schema.ts",
     "deploy": "npm run check && npm run platform:setup && cf deploy --prebuilt",
