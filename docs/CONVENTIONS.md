@@ -54,7 +54,7 @@ function ProductScreen() {
 - `model.ts` и `service.ts` — юнит-тесты Vitest на каждое правило из карточки задачи.
 - API — тесты с настоящим DO и D1 (`@cloudflare/vitest-pool-workers`), включая изоляцию двух магазинов, когда это затрагивает задача.
 - UI — не тестируем снимками. Сквозные Playwright-сценарии добавляются только в задачах с пометкой `e2e`.
-- `npm run check` = `tsc --noEmit && biome check && vitest run`. Должен проходить быстрее 60 с.
+- `npm run check` = типы, Biome, `check:arch`, `vitest run` — не дольше 90 с. Уровни проверки, что тестировать и чего не тестировать — `docs/TESTING.md`.
 
 ## Автоматическая проверка архитектуры (`npm run check:arch`)
 
