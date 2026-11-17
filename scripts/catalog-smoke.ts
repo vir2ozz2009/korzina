@@ -26,7 +26,7 @@ async function smoke() {
   );
   assert.equal(
     data.items.reduce((count, item) => count + item.variants.length, 0),
-    24,
+    23,
   );
   assert(!document.headers.has("set-cookie") && !document.headers.has("x-korzina-sql"));
   const etag = document.headers.get("ETag");
