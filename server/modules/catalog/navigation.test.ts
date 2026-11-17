@@ -10,8 +10,10 @@ type Document = {
   items: { id: string; image: { src: string; srcSet: string; original: { src: string } } }[];
 };
 it("непустые категории/бренды и их фото не зависят от страницы товаров; своё фото имеет приоритет", async () => {
+  const before = await (await catalogRequest("document?limit=1")).json<Document>();
+  expect(before.categories.find((c) => c.id === "milk")?.image?.src).toContain("milk-");
   await catalogSql("UPDATE categories SET photo_id='demo-curd' WHERE id='milk'");
-  await catalogSql("UPDATE brands SET photo_id='demo-curd' WHERE id='brand-1'");
+  await catalogSql("UPDATE brands SET photo_id='demo-milk' WHERE id='brand-1'");
   const page = await (await catalogRequest("document?limit=1")).json<Document>();
   const full = await (await catalogRequest("document")).json<Document>();
   expect(page.categories).toEqual(full.categories);
@@ -22,7 +24,7 @@ it("непустые категории/бренды и их фото не за�
   });
   expect(page.brands.find((b) => b.id === "brand-1")).toMatchObject({
     hasProducts: true,
-    image: { src: expect.stringContaining("tomato-") },
+    image: { src: expect.stringContaining("milk-") },
   });
   await catalogSql("UPDATE products SET visible=0 WHERE category_id='milk'");
   const hidden = await (await catalogRequest("document?limit=1")).json<Document>();
