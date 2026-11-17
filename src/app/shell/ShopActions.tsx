@@ -2,13 +2,11 @@ import { useRouter } from "@tanstack/react-router";
 import { useCart } from "../../features/cart";
 import { FloatingActions } from "../../ui/FloatingActions";
 
-export function ShopActions({ product }: { product: boolean }) {
+export function ShopActions() {
   const router = useRouter();
   const { query } = useCart();
   return (
-    <div
-      className={`pointer-events-none fixed inset-x-3 z-20 mx-auto max-w-(--content-max) ${product ? "bottom-[calc(var(--control-lg)+2rem+var(--safe-bottom))]" : "bottom-(--floating-bottom)"}`}
-    >
+    <div className="pointer-events-none fixed inset-x-3 bottom-(--floating-bottom) z-20 mx-auto max-w-(--content-max)">
       <div className="pointer-events-auto">
         <FloatingActions
           count={query.data?.count ?? 0}

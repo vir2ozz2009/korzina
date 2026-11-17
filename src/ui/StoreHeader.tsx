@@ -1,8 +1,7 @@
-import { MessageSquare } from "lucide-react";
-import { Avatar } from "./Avatar";
-import { Button } from "./Button";
-import { IconButton } from "./IconButton";
+import { lazy, Suspense } from "react";
 import { StoreLogo } from "./StoreLogo";
+
+const Actions = lazy(() => import("./StoreHeaderActions").then((module) => ({ default: module.StoreHeaderActions })));
 
 export interface StoreHeaderProps {
   name: string;
@@ -45,21 +44,11 @@ export function StoreHeader({ name, logo, address, profile, onAddress, onAbout, 
         </span>
       </button>
       <div className="flex items-center justify-end gap-1">
-        {onChat && (
-          <IconButton aria-label="Чат с магазином" background="card" onClick={onChat}>
-            <MessageSquare size={22} />
-          </IconButton>
+        {(onChat || onProfile) && (
+          <Suspense fallback={null}>
+            <Actions profile={profile} onChat={onChat} onProfile={onProfile} />
+          </Suspense>
         )}
-        {onProfile &&
-          (profile ? (
-            <IconButton aria-label="Профиль" background="card" onClick={onProfile}>
-              <Avatar {...profile} />
-            </IconButton>
-          ) : (
-            <Button variant="secondary" className="px-3" onClick={onProfile}>
-              Войти
-            </Button>
-          ))}
       </div>
     </header>
   );

@@ -32,8 +32,8 @@ export function toTiles({
       cart: {
         value,
         max: variant.available ? (variant.stock ?? 999) : 0,
-        loading: cart.mutation.isPending && cart.mutation.variables?.line.productId === product.id,
-        disabled: cart.mutation.isPending || !cart.query.data,
+        loading: cart.pendingProducts.has(product.id),
+        disabled: !cart.query.data,
         onChooseVariant: multiple ? () => choose(product.id) : undefined,
         onChange: (quantity) =>
           cart.change(
@@ -48,6 +48,7 @@ export function toTiles({
               available: variant.available,
             },
             quantity,
+            currency,
           ),
       },
     };

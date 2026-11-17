@@ -4,13 +4,13 @@ import { Button } from "./Button";
 export function FloatingActions({
   totalMinor,
   count,
-  currency = "VND",
+  currency,
   onSearch,
   onCart,
 }: {
   totalMinor: number;
   count: number;
-  currency?: string;
+  currency?: string | null;
   onSearch?: () => void;
   onCart: () => void;
 }) {
@@ -32,7 +32,7 @@ export function FloatingActions({
       <Button
         size="lg"
         className="w-full px-3 shadow-float"
-        subtitle={count ? formatMinor(totalMinor, currency) : "Пока пусто"}
+        subtitle={count && currency ? formatMinor(totalMinor, currency) : "Пока пусто"}
         onClick={onCart}
       >
         Корзина

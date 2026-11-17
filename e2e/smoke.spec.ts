@@ -45,10 +45,34 @@ test("витрина своего магазина → фасовка/корзи
   await first.getByRole("button", { name: "Выбрать фасовку" }).click();
   const variants = page.getByRole("dialog", { name: "Выберите фасовку" });
   await expect(variants).toBeVisible();
+  let releaseFirst = () => {};
+  const held = new Promise<void>((resolve) => {
+    releaseFirst = resolve;
+  });
+  const revisions: number[] = [];
+  await page.route("**/api/cart?**", async (route) => {
+    if (route.request().method() === "POST") {
+      revisions.push(route.request().postDataJSON().expectedRevision);
+      if (revisions.length === 1) await held;
+    }
+    await route.continue();
+  });
   await variants.getByRole("button", { name: "Добавить в корзину" }).first().click();
-  await expect(variants.getByLabel("В корзине", { exact: true })).toHaveText("1");
+  await expect.poll(() => revisions.length).toBe(1);
   await page.goBack();
   await expect(variants).toHaveCount(0);
+  const second = page.locator("article").nth(1);
+  // A slow change of the first product must not disable another tile.
+  await second.getByRole("button", { name: "Выбрать фасовку" }).click();
+  await variants.getByRole("button", { name: "Добавить в корзину" }).first().click();
+  await expect(variants.locator('[aria-busy="true"]')).toHaveCount(1);
+  expect(revisions).toEqual([0]);
+  releaseFirst();
+  await expect(variants.getByLabel("В корзине", { exact: true })).toHaveText("1");
+  expect(revisions).toEqual([0, 1]);
+  await page.goBack();
+  await expect(variants).toHaveCount(0);
+  await expect(second.getByLabel("В корзине", { exact: true })).toHaveText("1");
   await expect(page.getByRole("button", { name: /^Корзина/ })).toBeVisible();
   await expect(first.getByLabel("В корзине", { exact: true })).toHaveText("1");
   const link = page.locator('a[href^="/p/"]').nth(6);

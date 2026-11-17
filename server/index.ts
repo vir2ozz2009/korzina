@@ -7,6 +7,7 @@ import { handleError, notFound } from "./middleware/errors";
 import { apiMetrics } from "./middleware/metrics";
 import { RateLimiter, rateLimit } from "./middleware/rate-limit";
 import { requestId } from "./middleware/request-id";
+import { guestCart } from "./modules/cart/guest";
 import { catalogGateway } from "./modules/catalog/gateway";
 import { localPublicMedia } from "./modules/media/local-public";
 import { sellerAccess } from "./platform/auth/access-routes";
@@ -49,6 +50,7 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
     return c.json(await shopContexts.read(c.req.raw, c.env));
   })
   .use("/auth/*", forwarding)
+  .use("/cart", guestCart)
   .use("/cart", forwarding)
   .use("/media/*", forwarding)
   .use("/catalog/*", catalogGateway)

@@ -1,5 +1,6 @@
-import { createContext, type ReactNode, useCallback, useContext, useState } from "react";
-import { Toast } from "../../ui/Toast";
+import { createContext, lazy, type ReactNode, Suspense, useCallback, useContext, useState } from "react";
+
+const Toast = lazy(() => import("../../ui/Toast").then((module) => ({ default: module.Toast })));
 
 const ToastContext = createContext<(message: string) => void>(() => {});
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -8,7 +9,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext value={setMessage}>
       {children}
-      {message && <Toast key={message} message={message} onClose={close} />}
+      {message && (
+        <Suspense
+          fallback={
+            <span role="status" className="sr-only">
+              {message}
+            </span>
+          }
+        >
+          <Toast key={message} message={message} onClose={close} />
+        </Suspense>
+      )}
     </ToastContext>
   );
 }
