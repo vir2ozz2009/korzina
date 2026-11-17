@@ -2,7 +2,7 @@ version = 1
 name = "Korzina"
 
 [setup]
-script = "npm ci"
+script = "if [ -f package-lock.json ]; then npm ci; fi"
 
 [[actions]]
 name = "Открыть витрину локально"

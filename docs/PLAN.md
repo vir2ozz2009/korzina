@@ -12,7 +12,7 @@
 Без неё каждая страница будет изобретать своё — это и тормозило Lavka.
 
 ### F1 · Чистый каркас
-- **Цель:** удалить прототип (`src/features/product-card`, демо-ассеты перенести в `seed/`). Каркас Vite + React + TS strict + Tailwind v4 + Biome + Vitest + Hono в том же Worker. Скрипты `dev`, `build`, `check`, `deploy`.
+- **Цель:** репозиторий пустой (код удалён 17.11.2026, сохранены `cloudflare.config.ts`, `.node-version`, `.codex/`, `public/brand/korzina.svg`). Создать `package.json` и каркас Vite + React + TS strict + Tailwind v4 + Biome + Vitest + Hono в том же Worker. Скрипты `dev`, `build`, `check`, `deploy`.
 - **Читать:** ARCHITECTURE §2–3, CONVENTIONS.
 - **Готово, когда:** `npm run check` зелёный; на demo открывается пустая страница Korzina, `GET /api/health` → `{ok:true}`; Workers Builds проходит.
 
