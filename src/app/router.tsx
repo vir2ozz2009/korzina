@@ -1,13 +1,13 @@
-import { createRouter } from "@tanstack/react-router";
-import { devRoutes } from "../routes/dev-routes";
+import { createRoute, createRouter, lazyRouteComponent } from "@tanstack/react-router";
 import { rootRoute } from "../routes/root";
 import { shopRoutes } from "../routes/shop-routes";
 import { upcomingRoutes } from "../routes/upcoming-routes";
 import { createQueryClient } from "./query-defaults";
+import { TemplatePending } from "./templates/TemplatePending";
 
 export const queryClient = createQueryClient();
 // Compile-time boundary: production never emits these screens or their imports.
-const routes = import.meta.env.DEV_SCREENS ? devRoutes : [];
+const routes = import.meta.env.DEV_SCREENS ? createDevRoutes() : [];
 export const router = createRouter({
   routeTree: rootRoute.addChildren([...shopRoutes, ...upcomingRoutes, ...routes]),
   context: { qc: queryClient },
@@ -22,4 +22,22 @@ declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;
   }
+}
+
+function createDevRoutes() {
+  const kit = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/dev/kit",
+    staticData: { transition: "push", title: "UI-кит", template: "list" },
+    component: lazyRouteComponent(() => import("./dev/UiKit"), "UiKit"),
+    pendingComponent: () => <TemplatePending template="list" />,
+  });
+  const media = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/dev/media",
+    staticData: { transition: "push", title: "Фото и файлы", template: "form" },
+    component: lazyRouteComponent(() => import("../features/media/ui/MediaScreen"), "MediaScreen"),
+    pendingComponent: () => <TemplatePending template="form" />,
+  });
+  return [kit, media];
 }
