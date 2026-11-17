@@ -1,5 +1,5 @@
 import { Palette, ShoppingBasket } from "lucide-react";
-import { useCallback, useState } from "react";
+import { lazy, Suspense, useCallback, useState } from "react";
 import { Button } from "../../ui/Button";
 import { ChipGroup } from "../../ui/ChipGroup";
 import { Sheet } from "../../ui/Sheet";
@@ -11,6 +11,8 @@ import { InputsKit } from "./InputsKit";
 import { ProductsKit } from "./ProductsKit";
 import ThemeKit from "./ThemeKit";
 
+const TemplatesKit = lazy(() => import("./TemplatesKit").then((module) => ({ default: module.TemplatesKit })));
+
 const sections = [
   { value: "actions", label: "Действия" },
   { value: "products", label: "Товары" },
@@ -18,6 +20,7 @@ const sections = [
   { value: "data", label: "Структура" },
   { value: "feedback", label: "Состояния" },
   { value: "theme", label: "Тема" },
+  { value: "templates", label: "Шаблоны" },
 ];
 export function UiKit() {
   const [section, setSection] = useState("actions");
@@ -70,6 +73,11 @@ export function UiKit() {
         {section === "data" && <DataKit notify={notify} />}
         {section === "feedback" && <FeedbackKit notify={notify} />}
         {section === "theme" && <ThemeKit embedded />}
+        {section === "templates" && (
+          <Suspense fallback={null}>
+            <TemplatesKit />
+          </Suspense>
+        )}
       </main>
       <footer className="mt-7 flex items-center gap-2 px-2 text-small text-muted-foreground">
         <ShoppingBasket size={16} />

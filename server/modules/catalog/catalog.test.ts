@@ -1,7 +1,8 @@
-import { evictDurableObject } from "cloudflare:test";
+import { evictDurableObject, runInDurableObject } from "cloudflare:test";
 import { exports } from "cloudflare:workers";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { setupPlatform } from "../../testing/platform";
+import { seedCatalog } from "./seed";
 import { catalogRequest, catalogSql, catalogStub, resetCatalog } from "./testing";
 
 beforeAll(setupPlatform);
@@ -26,10 +27,11 @@ describe("правила каталога", () => {
     expect(product.variants).toMatchObject([
       { id: "sku-01", priceMinor: 45000 },
       { id: "sku-02", priceMinor: 79000 },
+      { id: "sku-03", priceMinor: 149000 },
       { id: "sku-04", priceMinor: 69000 },
     ]);
-    expect(product.images[0].src).toMatch(/^\/assets\/catalog\/curd-[a-f0-9]+-800.webp$/);
-    expect(product.images).toHaveLength(2);
+    expect(product.images[0].src).toContain("/catalog/B2/figma45/tomato-");
+    expect(product.images).toHaveLength(1);
     expect((await live()).items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: "sku-08", stock: 0, visible: true, available: false }),
@@ -43,7 +45,7 @@ describe("правила каталога", () => {
     const other = await (await catalogRequest("live?ids=sku-01", "korzina-demo-test2")).json<{
       items: { stock: number }[];
     }>();
-    expect(other.items[0].stock).toBe(20);
+    expect(other.items[0].stock).toBe(2);
   });
 
   it("скрытие и снятие с публикации действуют сразу на фасовки и прямую ссылку; скрытые категории и бренды отсутствуют в навигации", async () => {
@@ -115,5 +117,25 @@ describe("правила каталога", () => {
     expect(liveResponse.headers.get("Cache-Control")).toBe("no-store");
     const invalid = await exports.default.fetch(new Request("https://demo.korzina.app/api/catalog/live?ids="));
     expect(await invalid.json()).toMatchObject({ error: { code: "VALIDATION" } });
+  });
+});
+
+it("обновление демо B1 объединяет наборы без смены SKU и потери корзин", async () => {
+  await catalogRequest("live?ids=sku-01").then((r) => r.arrayBuffer());
+  await runInDurableObject(catalogStub(), (_instance, ctx) => {
+    ctx.storage.sql.exec("UPDATE settings SET value='B1' WHERE key='catalog_seed'");
+    ctx.storage.sql.exec(
+      "INSERT INTO products(id,name,category_id,published) VALUES('product-03','Томаты — набор','home',1)",
+    );
+    ctx.storage.sql.exec("UPDATE variants SET product_id='product-03' WHERE id='sku-03'");
+    const lines = JSON.stringify([{ variantId: "sku-03", quantity: 2 }]);
+    ctx.storage.sql.exec("INSERT INTO carts(customer,revision,lines) VALUES('seed-upgrade',1,?)", lines);
+    seedCatalog(ctx.storage);
+    expect(ctx.storage.sql.exec("SELECT count(*) AS n FROM products").one()).toEqual({ n: 6 });
+    expect(ctx.storage.sql.exec("SELECT count(*) AS n FROM variants").one()).toEqual({ n: 24 });
+    expect(ctx.storage.sql.exec("SELECT product_id FROM variants WHERE id='sku-03'").one()).toEqual({
+      product_id: "product-01",
+    });
+    expect(ctx.storage.sql.exec("SELECT lines FROM carts WHERE customer='seed-upgrade'").one()).toEqual({ lines });
   });
 });

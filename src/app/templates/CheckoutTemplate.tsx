@@ -19,7 +19,7 @@ export function CheckoutTemplate({
   summary: ReactNode;
   cta: string;
   submitting?: boolean;
-  onSubmit: () => void;
+  onSubmit?: () => void;
   quoteChanged?: ReactNode;
 }) {
   return (
@@ -30,7 +30,7 @@ export function CheckoutTemplate({
       footer={
         <div className="space-y-3">
           {summary}
-          <Button full size="xl" loading={submitting} onClick={onSubmit}>
+          <Button full size="xl" loading={submitting} disabled={!onSubmit} onClick={onSubmit}>
             {cta}
           </Button>
         </div>

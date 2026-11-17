@@ -6,6 +6,7 @@ import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { ErrorState } from "../../../ui/ErrorState";
 import { PhotoPicker } from "../../../ui/PhotoPicker";
+import { ProductImage } from "../../../ui/ProductImage";
 import { changeMediaState, mediaLink } from "../api";
 import { useMediaUploads } from "../useMediaUploads";
 
@@ -35,6 +36,7 @@ export function MediaUploads({ seller, purpose }: { seller: boolean; purpose: Me
                 <p role="status" className="text-small">
                   {name} · загружено {(result.bytes / 1024).toLocaleString("ru", { maximumFractionDigits: 0 })} КБ
                 </p>
+                {result.image && <ProductImage {...result.image} alt={name} shape="tile" className="w-full" />}
                 <div className="flex flex-wrap gap-2">
                   <Button
                     variant="secondary"

@@ -21,10 +21,12 @@ function include(file: string) {
   for (const dependency of chunk.imports) include(dependency);
 }
 for (const chunk of chunks) {
-  // The demo home is the storefront until B2 replaces it with the real catalog.
+  // Include the route table and the real storefront in both deployment modes.
   if (
     chunk.entry ||
-    chunk.modules.some((path) => /src\/(routes\/dev-routes\.tsx|features\/demo\/ui\/ShopScreens\.tsx)$/.test(path))
+    chunk.modules.some((path) =>
+      /src\/(routes\/(?:dev|shop|upcoming)-routes\.tsx|features\/catalog\/ui\/HomeScreen\.tsx)$/.test(path),
+    )
   ) {
     include(chunk.file);
   }
@@ -44,7 +46,7 @@ for (const chunk of chunks) {
   if (
     production &&
     chunk.modules.some((path) =>
-      /src\/(?:app\/dev\/|features\/demo\/|routes\/(?:dev|demo|shop|seller)-routes\.tsx|features\/media\/ui\/MediaScreen\.tsx)/.test(
+      /src\/(?:app\/dev\/|features\/demo\/|routes\/(?:dev|demo|seller)-routes\.tsx|features\/media\/ui\/MediaScreen\.tsx)/.test(
         path,
       ),
     )

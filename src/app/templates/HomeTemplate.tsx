@@ -12,14 +12,16 @@ export function HomeTemplate({
   onRefresh,
   refreshing,
   footer,
+  after,
 }: Omit<TemplateProps, "children"> & {
   sections: readonly ReactNode[];
   onRefresh?: () => void;
   refreshing?: boolean;
+  after?: ReactNode;
 }) {
   const touchY = useRef<number | null>(null);
   return (
-    <Screen state={state} template="home" header={header ?? <Header title={title} />} footer={footer}>
+    <Screen state={state} template="home" header={header ?? <Header title={title} />} footer={footer} after={after}>
       <div
         onTouchStart={(event) => {
           touchY.current = window.scrollY === 0 ? (event.touches[0]?.clientY ?? null) : null;

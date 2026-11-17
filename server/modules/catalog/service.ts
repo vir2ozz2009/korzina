@@ -1,7 +1,7 @@
 import type { CatalogOffer, CatalogPageInput, CatalogTile } from "../../../src/shared/contracts/catalog";
 import { ApiError } from "../../../src/shared/errors";
-import { catalogImage } from "./images";
-import { documentQuery, liveQuery, photosSql, productSql } from "./queries";
+import { catalogImage, documentImage } from "./images";
+import { documentQuery, liveQuery, mediaJsonSql, photosSql, productSql } from "./queries";
 
 type Row = Record<string, SqlStorageValue>;
 type TileRow = Row & {
@@ -9,7 +9,7 @@ type TileRow = Row & {
   name: string;
   categoryId: string;
   brandId: string | null;
-  photoId: string | null;
+  photo: string | null;
   variants: string;
 };
 type Variant = {
@@ -32,28 +32,28 @@ export function readDocument(storage: DurableObjectStorage, input: CatalogPageIn
   const state = storage.sql.exec<{ version: number }>("SELECT version FROM catalog_state WHERE id=1").one();
   const query = documentQuery(input);
   const rows = storage.sql.exec<TileRow>(query.sql, ...query.params).toArray();
-  const items: CatalogTile[] = rows.slice(0, input.limit).map(({ photoId, variants, ...row }) => ({
+  const items: CatalogTile[] = rows.slice(0, input.limit).map(({ photo, variants, ...row }) => ({
     id: row.id,
     name: row.name,
     categoryId: row.categoryId,
     brandId: row.brandId,
-    image: catalogImage(photoId, shopId, origin),
+    image: documentImage(photo, shopId, origin),
     variants: JSON.parse(variants),
   }));
   const categories = storage.sql
-    .exec<{ id: string; name: string; parentId: string | null; photoId: string | null }>(
+    .exec<{ id: string; name: string; parentId: string | null; photo: string | null }>(
       `WITH RECURSIVE navigation AS (
       SELECT id,name,parent_id AS parentId,photo_id AS photoId,position FROM categories WHERE visible=1 AND parent_id IS NULL
       UNION ALL SELECT c.id,c.name,c.parent_id,c.photo_id,c.position FROM categories c JOIN navigation n ON c.parent_id=n.id WHERE c.visible=1)
-    SELECT n.id,n.name,n.parentId,COALESCE(n.photoId,
-      (SELECT pp.media_id FROM products p JOIN product_photos pp ON pp.product_id=p.id
+    SELECT n.id,n.name,n.parentId,COALESCE((SELECT ${mediaJsonSql} FROM media m WHERE m.id=n.photoId AND m.ready=1 AND m.status='attached'),
+      (SELECT ${mediaJsonSql} FROM products p JOIN product_photos pp ON pp.product_id=p.id
         JOIN media m ON m.id=pp.media_id
-        WHERE p.published=1 AND p.visible=1 AND p.category_id=n.id AND m.status='attached' AND m.ready=1
-        ORDER BY p.id,pp.position LIMIT 1)) AS photoId
+        WHERE p.published=1 AND p.visible=1 AND p.category_id=n.id AND EXISTS(SELECT 1 FROM variants v WHERE v.product_id=p.id AND v.visible=1) AND m.status='attached' AND m.ready=1
+        ORDER BY p.id,pp.position LIMIT 1)) AS photo
     FROM navigation n ORDER BY n.position,n.id`,
     )
     .toArray()
-    .map(({ photoId, ...row }) => ({ ...row, image: catalogImage(photoId, shopId, origin) }));
+    .map(({ photo, ...row }) => ({ ...row, image: documentImage(photo, shopId, origin) }));
   const brands = storage.sql
     .exec<{ id: string; name: string }>("SELECT id,name FROM brands WHERE visible=1 ORDER BY position,id")
     .toArray();
@@ -129,7 +129,15 @@ export function readProduct(storage: DurableObjectStorage, id: string, shopId: s
   }));
   if (!variants.length || (row.hideOutOfStock && variants.every((v) => !v.available)))
     throw new ApiError("NOT_FOUND", "Товар больше недоступен");
-  const photos = storage.sql.exec<{ id: string }>(photosSql, id).toArray();
+  const photos = storage.sql
+    .exec<{
+      id: string;
+      edgeColor: string | null;
+      contentBox: string | null;
+      width: number | null;
+      height: number | null;
+    }>(photosSql, id)
+    .toArray();
   return {
     id: row.id,
     name: row.name,
@@ -139,6 +147,14 @@ export function readProduct(storage: DurableObjectStorage, id: string, shopId: s
     catalogVersion: row.catalogVersion,
     currency: row.currency,
     variants: row.hideOutOfStock ? variants.filter((v) => v.available) : variants,
-    images: photos.map((p) => ({ id: p.id, ...catalogImage(p.id, shopId, origin) })),
+    images: photos.map((p) => ({
+      id: p.id,
+      ...catalogImage(p.id, shopId, origin, {
+        edgeColor: p.edgeColor ?? undefined,
+        contentBox: p.contentBox ? JSON.parse(p.contentBox) : undefined,
+        width: p.width ?? undefined,
+        height: p.height ?? undefined,
+      }),
+    })),
   };
 }

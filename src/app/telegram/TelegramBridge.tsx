@@ -5,7 +5,9 @@ import { connectTelegram, loadTelegram } from "./adapter";
 
 export function TelegramBridge() {
   const router = useRouter();
-  const root = useRouterState({ select: (state) => state.matches.at(-1)?.staticData.root ?? false });
+  const root = useRouterState({
+    select: (state) => !state.location.search.variants && (state.matches.at(-1)?.staticData.root ?? false),
+  });
   const back = useBack();
   const [app, setApp] = useState<Awaited<ReturnType<typeof loadTelegram>>>();
   useEffect(() => {

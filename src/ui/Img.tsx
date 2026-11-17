@@ -8,7 +8,7 @@ export function Img({
   alt,
   priority = false,
   className = "",
-  imageClassName = "object-cover",
+  imageClassName = "object-contain object-center",
   fallback,
 }: {
   src?: string;
@@ -21,8 +21,12 @@ export function Img({
   fallback?: ReactNode;
 }) {
   const [failed, setFailed] = useState<string>();
+  const [loaded, setLoaded] = useState<string>();
   return (
-    <span className={`relative flex items-center justify-center overflow-hidden bg-input ${className}`}>
+    <span
+      data-loaded={loaded === src}
+      className={`image-surface relative flex items-center justify-center overflow-hidden ${className}`}
+    >
       {src && failed !== src ? (
         <img
           src={src}
@@ -32,8 +36,9 @@ export function Img({
           loading={priority ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : "auto"}
           decoding="async"
+          onLoad={() => setLoaded(src)}
           onError={() => setFailed(src)}
-          className={`size-full ${imageClassName}`}
+          className={`h-auto w-auto max-h-full max-w-full ${imageClassName}`}
         />
       ) : (
         <span role="img" aria-label={`${alt}: без фото`} className="text-subtle-foreground">

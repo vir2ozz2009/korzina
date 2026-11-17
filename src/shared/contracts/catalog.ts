@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { PhotoMetadata } from "./media";
 
 const id = z.string().min(1).max(120);
 export const catalogPageInput = z.object({
@@ -16,7 +17,7 @@ export const catalogLiveInput = z.object({
 });
 export type CatalogPageInput = z.infer<typeof catalogPageInput>;
 
-export type CatalogImage = { src: string; srcSet: string; original: { src: string } };
+export type CatalogImage = PhotoMetadata & { src: string; srcSet: string; original: { src: string } };
 export type CatalogTile = {
   id: string;
   name: string;

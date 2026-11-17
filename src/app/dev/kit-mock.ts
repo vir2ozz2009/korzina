@@ -1,10 +1,10 @@
+import demoImages from "../../shared/demo-images.json";
 import type { ProductImageSource } from "../../ui/product-image";
 
-export const tomatoPhoto: ProductImageSource = {
-  src: "/seed/tomato-photo-400.webp",
-  srcSet: [160, 400, 800, 1200].map((width) => `/seed/tomato-photo-${width}.webp ${width}w`).join(", "),
-  original: { src: "/seed/tomato-original.png", srcSet: "/seed/tomato-original.png 1200w" },
-};
+export const tomatoPhoto: ProductImageSource = demoImages["demo-curd"];
+export const croissantPhoto: ProductImageSource = demoImages["demo-croissant"];
+export const milkPhoto: ProductImageSource = demoImages["demo-milk"];
+export const berryPhoto: ProductImageSource = demoImages["demo-berry"];
 export const demoProduct = {
   name: "Томаты на ветке",
   unit: "500 г",

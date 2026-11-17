@@ -2,7 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-import { mediaPurpose } from "../../../src/shared/contracts/media";
+import { mediaPurpose, photoMetadataContract } from "../../../src/shared/contracts/media";
 import { ApiError } from "../../../src/shared/errors";
 import { isLocal } from "../../auth/cookies";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
@@ -44,10 +44,25 @@ export const mediaRoutes = new Hono<MediaRouterEnv>()
       c.req.header("Sec-Fetch-Site") === "cross-site"
     )
       throw new ApiError("FORBIDDEN", "Запрос с другого сайта запрещён");
+    const rawMetadata = c.req.header("X-Photo-Metadata");
+    let metadata = {};
+    try {
+      metadata = photoMetadataContract.parse(rawMetadata ? JSON.parse(rawMetadata) : {});
+    } catch {
+      throw new ApiError("VALIDATION", "Неверные метаданные фото");
+    }
     const bytes = await readUpload(c.req.raw);
     const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
-    const fingerprint = await digest(`${parsed.data}:${Array.from(hash).join(",")}`);
-    const record = await uploadMedia(c.env, c.get("actor"), parsed.data, bytes, await digest(key), fingerprint);
+    const fingerprint = await digest(`${parsed.data}:${Array.from(hash).join(",")}:${JSON.stringify(metadata)}`);
+    const record = await uploadMedia(
+      c.env,
+      c.get("actor"),
+      parsed.data,
+      bytes,
+      await digest(key),
+      fingerprint,
+      metadata,
+    );
     return c.json(presentMedia(record, c.env.shop.id, publicOrigin(c.req.raw, c.env.media.MEDIA_PUBLIC_URL)), 201);
   })
   .get("/:id/link", async (c) => {

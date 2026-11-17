@@ -1,38 +1,32 @@
-import { Search, ShoppingBasket } from "lucide-react";
+import { Search } from "lucide-react";
 import { formatMinor } from "../shared/money";
 import { Button } from "./Button";
 export function FloatingActions({
   totalMinor,
   count,
-  currency = "RUB",
+  currency = "VND",
   onSearch,
   onCart,
-  inputActive = false,
 }: {
   totalMinor: number;
   count: number;
   currency?: string;
   onSearch: () => void;
   onCart: () => void;
-  inputActive?: boolean;
 }) {
-  if (inputActive) return null;
   return (
-    <div className="flex justify-between gap-3">
-      <Button size="lg" variant="inverse" className="shadow-float" icon={<Search size={22} />} onClick={onSearch}>
+    <div className="floating-actions">
+      <Button size="lg" variant="inverse" icon={<Search size={22} />} className="shadow-float" onClick={onSearch}>
         Поиск
       </Button>
-      {count > 0 && (
-        <Button
-          size="lg"
-          className="shadow-float"
-          icon={<ShoppingBasket size={22} />}
-          subtitle={formatMinor(totalMinor, currency)}
-          onClick={onCart}
-        >
-          Корзина · {count}
-        </Button>
-      )}
+      <Button
+        size="lg"
+        className="cart-action shadow-float"
+        subtitle={count ? formatMinor(totalMinor, currency) : "Пока пусто"}
+        onClick={onCart}
+      >
+        Корзина
+      </Button>
     </div>
   );
 }

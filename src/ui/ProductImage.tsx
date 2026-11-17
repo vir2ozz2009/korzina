@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Img } from "./Img";
 import type { ProductImageSource } from "./product-image";
 
@@ -13,6 +13,7 @@ export interface ProductImageProps extends Partial<ProductImageSource> {
 export function ProductImage({
   src,
   srcSet,
+  edgeColor,
   alt,
   sizes,
   shape = "square",
@@ -22,7 +23,8 @@ export function ProductImage({
 }: ProductImageProps) {
   return (
     <span
-      className={`relative flex self-start items-center justify-center overflow-hidden bg-input ${shape === "tile" ? "aspect-[179/142]" : "aspect-square"} ${radius === "xl" ? "rounded-xl" : "rounded-md"} ${className}`}
+      style={{ "--photo-edge": edgeColor } as CSSProperties}
+      className={`relative flex self-start items-center justify-center overflow-hidden product-image-frame ${shape === "tile" ? "aspect-[179/142]" : "aspect-square"} ${radius === "xl" ? "rounded-xl" : "rounded-md"} ${className}`}
     >
       <Img
         src={src}
@@ -31,7 +33,7 @@ export function ProductImage({
         alt={alt}
         fallback={fallback}
         className="absolute inset-0 size-full"
-        imageClassName="object-cover object-center"
+        imageClassName="product-image-pixels object-contain object-center"
       />
     </span>
   );

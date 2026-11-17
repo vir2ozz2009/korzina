@@ -2,9 +2,11 @@ import { SkeletonBlock } from "../../ui/SkeletonBlock";
 import { SkeletonRow } from "../../ui/SkeletonRow";
 import { SkeletonText } from "../../ui/SkeletonText";
 import { SkeletonTile } from "../../ui/SkeletonTile";
+import { StorefrontState } from "../../ui/StorefrontState";
 import type { TemplateName } from "./types";
 
 export function TemplateSkeleton({ template }: { template: TemplateName }) {
+  if (template === "home") return <StorefrontState state="loading" />;
   return (
     <div aria-hidden="true" data-skeleton={template} className="space-y-3">
       {template === "product" ? (
@@ -14,9 +16,8 @@ export function TemplateSkeleton({ template }: { template: TemplateName }) {
           <SkeletonText short />
           <SkeletonBlock className="h-24" />
         </>
-      ) : template === "home" || template === "catalog" ? (
+      ) : template === "catalog" ? (
         <>
-          {template === "home" && <SkeletonBlock className="h-28" />}
           <SkeletonText size="title" />
           <div className="grid grid-cols-2 gap-2">
             {[0, 1, 2, 3].map((key) => (

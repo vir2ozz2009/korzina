@@ -2,7 +2,7 @@ import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query
 import type { InferResponseType } from "hono/client";
 import { useRef } from "react";
 import { type api, apiForShop } from "../../shared/api";
-import type { MediaPurpose } from "../../shared/contracts/media";
+import type { MediaPurpose, PhotoMetadata } from "../../shared/contracts/media";
 import { checkResponse, HttpError } from "../../shared/http-error";
 
 export type UploadedMedia = InferResponseType<typeof api.api.media.upload.$post, 201>;
@@ -25,7 +25,7 @@ export interface UploadInput {
   onProgress: (progress: number) => void;
   onPrepared: (blob: Blob) => void;
 }
-function sendFile(url: URL, body: Blob, input: UploadInput): Promise<UploadedMedia> {
+function sendFile(url: URL, body: Blob, input: UploadInput, metadata: PhotoMetadata): Promise<UploadedMedia> {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
     const abort = () => {
@@ -40,6 +40,7 @@ function sendFile(url: URL, body: Blob, input: UploadInput): Promise<UploadedMed
     request.open("POST", url);
     request.responseType = "json";
     request.setRequestHeader("Idempotency-Key", input.key);
+    request.setRequestHeader("X-Photo-Metadata", JSON.stringify(metadata));
     request.upload.onprogress = (event) => {
       if (event.lengthComputable) input.onProgress((95 * event.loaded) / event.total);
     };
@@ -66,6 +67,7 @@ function sendFile(url: URL, body: Blob, input: UploadInput): Promise<UploadedMed
 }
 export function useUpload(seller: boolean) {
   const qc = useQueryClient();
+  const prepared = useRef(new WeakMap<File, Promise<{ body: Blob; metadata: PhotoMetadata }>>());
   const guest = useRef<Promise<void> | undefined>(undefined);
   return useMutation({
     mutationFn: async (input: UploadInput) => {
@@ -82,14 +84,30 @@ export function useUpload(seller: boolean) {
         });
         await guest.current;
       }
-      let body: Blob;
+      let cached = prepared.current.get(input.file);
+      if (!cached) {
+        cached = (async () => {
+          const body = await (await import("./prepare")).prepareUpload(input.file);
+          const metadata =
+            body.type === "application/pdf"
+              ? {}
+              : await (await import("../../shared/photo-analysis")).analyzePhoto(body);
+          return { body, metadata };
+        })().catch((error: unknown) => {
+          prepared.current.delete(input.file);
+          throw error;
+        });
+        prepared.current.set(input.file, cached);
+      }
+      let result: Awaited<typeof cached>;
       try {
-        body = await (await import("./prepare")).prepareUpload(input.file);
+        result = await cached;
       } catch (error) {
         if (error instanceof DOMException && ["InvalidStateError", "EncodingError"].includes(error.name))
           throw new HttpError(400, "Не удалось открыть фото. Выберите другой файл", "VALIDATION");
         throw error;
       }
+      const { body, metadata } = result;
       if (input.signal.aborted) throw new DOMException("Загрузка отменена", "AbortError");
       input.onPrepared(body);
       return sendFile(
@@ -98,6 +116,7 @@ export function useUpload(seller: boolean) {
         }),
         body,
         input,
+        metadata,
       );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["media", shop(), "usage"] }),

@@ -1,5 +1,5 @@
 import { and, eq, sql } from "drizzle-orm";
-import { type MediaPurpose, publicPurposes } from "../../../src/shared/contracts/media";
+import { type MediaPurpose, type PhotoMetadata, publicPurposes } from "../../../src/shared/contracts/media";
 import { ApiError } from "../../../src/shared/errors";
 import type { ShopEnv } from "../../shop/env";
 import { assertUpload, type MediaActor } from "./access";
@@ -32,6 +32,7 @@ export async function uploadMedia(
   bytes: Uint8Array,
   key: string,
   fingerprint: string,
+  metadata: PhotoMetadata = {},
 ): Promise<MediaRecord> {
   const mime = detectContent(bytes);
   assertUpload(actor, purpose, mime);
@@ -54,6 +55,10 @@ export async function uploadMedia(
       throw new ApiError("STORAGE_LIMIT", "В хранилище магазина нет места. Удалите ненужные файлы или увеличьте лимит");
     const reserved: MediaRecord = {
       id: crypto.randomUUID(),
+      edgeColor: metadata.edgeColor ?? null,
+      contentBox: metadata.contentBox ?? null,
+      width: metadata.width ?? null,
+      height: metadata.height ?? null,
       owner: actor.id,
       purpose,
       status: "temp",

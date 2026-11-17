@@ -1,45 +1,50 @@
-import { MessageCircle, UserRound } from "lucide-react";
+import { MessageSquare } from "lucide-react";
+import { Avatar } from "./Avatar";
+import { Button } from "./Button";
 import { IconButton } from "./IconButton";
 import { StoreLogo } from "./StoreLogo";
-export function StoreHeader({
-  name,
-  logo,
-  address,
-  onAddress,
-  onChat,
-  onProfile,
-}: {
+
+export interface StoreHeaderProps {
   name: string;
   logo?: string;
   address?: string;
+  profile?: { name: string; src?: string };
   onAddress?: () => void;
+  onAbout?: () => void;
   onChat?: () => void;
   onProfile?: () => void;
-}) {
+}
+export function StoreHeader({ name, logo, address, profile, onAddress, onAbout, onChat, onProfile }: StoreHeaderProps) {
   return (
-    <header className="flex items-center gap-2 bg-card p-3">
-      {onAddress && address && (
-        <button type="button" onClick={onAddress} className="min-h-11 min-w-0 flex-1 text-left">
-          <span className="block text-micro text-muted-foreground">Доставим сюда</span>
-          <span className="line-clamp-2 text-caption font-semibold">{address} ›</span>
-        </button>
-      )}
-      <div
-        className={onAddress ? "flex max-w-24 flex-col items-center gap-1" : "mr-auto flex min-w-0 items-center gap-3"}
-      >
+    <header className="store-header">
+      <button type="button" className="store-address" onClick={onAddress}>
+        <span className="text-micro font-normal text-muted-foreground">Доставим сюда</span>
+        <span
+          className={`store-address-value text-caption font-semibold ${address ? "text-muted-foreground" : "text-primary-text"}`}
+        >
+          {address || "Выбрать адрес"} ›
+        </span>
+      </button>
+      <button type="button" className="store-identity" onClick={onAbout} aria-label={`О магазине ${name}`}>
         <StoreLogo name={name} src={logo} />
-        <span className="line-clamp-1 text-micro">{name}</span>
+        <span className="store-name text-micro font-medium" title={name}>
+          {name}
+        </span>
+      </button>
+      <div className="store-account">
+        <IconButton aria-label="Чат с магазином" background="card" onClick={onChat}>
+          <MessageSquare size={22} />
+        </IconButton>
+        {profile ? (
+          <IconButton aria-label="Профиль" background="card" onClick={onProfile}>
+            <Avatar {...profile} />
+          </IconButton>
+        ) : (
+          <Button variant="secondary" className="px-3" onClick={onProfile}>
+            Войти
+          </Button>
+        )}
       </div>
-      {onChat && (
-        <IconButton aria-label="Чат с магазином" onClick={onChat}>
-          <MessageCircle size={22} />
-        </IconButton>
-      )}
-      {onProfile && (
-        <IconButton aria-label="Профиль" onClick={onProfile}>
-          <UserRound size={22} />
-        </IconButton>
-      )}
     </header>
   );
 }

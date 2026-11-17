@@ -7,6 +7,9 @@ import { EmptyState } from "../ui/EmptyState";
 import { ErrorState } from "../ui/ErrorState";
 
 export const rootRoute = createRootRouteWithContext<{ qc: QueryClient }>()({
+  validateSearch: (search: Record<string, unknown>): { shop?: string } => ({
+    shop: typeof search.shop === "string" ? search.shop : undefined,
+  }),
   component: AppShell,
   notFoundComponent: () => (
     <Screen header={<Header title="Страница не найдена" />}>

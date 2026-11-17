@@ -19,7 +19,7 @@ export function FormTemplateContent({
 }: Omit<TemplateProps, "children"> & {
   groups: readonly ReactNode[];
   submit?: string;
-  onSubmit: () => void;
+  onSubmit?: () => void;
   dirty?: boolean;
   submitting?: boolean;
   error?: string;
@@ -32,9 +32,11 @@ export function FormTemplateContent({
         template="form"
         header={header ?? <Header title={title} />}
         footer={
-          <Button type="submit" form="screen-form" full size="lg" loading={submitting}>
-            {submit}
-          </Button>
+          onSubmit && (
+            <Button type="submit" form="screen-form" full size="lg" loading={submitting}>
+              {submit}
+            </Button>
+          )
         }
       >
         <form
@@ -42,7 +44,7 @@ export function FormTemplateContent({
           className="space-y-3"
           onSubmit={(event) => {
             event.preventDefault();
-            onSubmit();
+            onSubmit?.();
           }}
         >
           {Children.map([...groups], (child) => (
