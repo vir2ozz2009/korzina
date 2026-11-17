@@ -7,19 +7,20 @@ import { useCart } from "../CartProvider";
 export function CartScreen() {
   const { query } = useCart();
   const cart = query.data;
+  const currency = cart?.currency;
   return (
     <CheckoutTemplate
       title="Корзина"
       state={{ query }}
       sections={[
-        cart?.lines.length ? (
+        cart?.lines.length && currency ? (
           <div key="lines" className="space-y-2">
             {cart.lines.map((line) => (
               <ListItem
                 key={line.variantId}
                 title={line.name}
                 subtitle={`${line.unit} · ${line.quantity} шт.`}
-                value={formatMinor(line.priceMinor, cart.currency)}
+                value={formatMinor(line.priceMinor, currency)}
                 href={`/p/${line.productId}`}
               />
             ))}
@@ -29,7 +30,9 @@ export function CartScreen() {
         ),
       ]}
       summary={
-        cart && cart.count > 0 ? <ListItem title="Товары" value={formatMinor(cart.totalMinor, cart.currency)} /> : null
+        cart && currency && cart.count > 0 ? (
+          <ListItem title="Товары" value={formatMinor(cart.totalMinor, currency)} />
+        ) : null
       }
       cta="Оформление скоро появится"
     />

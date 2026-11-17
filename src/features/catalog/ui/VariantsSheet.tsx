@@ -44,8 +44,8 @@ export function VariantsSheet({ id }: { id: string }) {
                     <AddToCart
                       value={value}
                       max={variant.stock ?? 999}
-                      disabled={cart.mutation.isPending || !cart.query.data}
-                      loading={cart.mutation.isPending && cart.mutation.variables?.line.variantId === variant.id}
+                      disabled={cart.pendingProducts.has(data.id) || !cart.query.data}
+                      loading={cart.pendingProducts.get(data.id) === variant.id}
                       onChange={(quantity) =>
                         cart.change(
                           {
@@ -59,6 +59,7 @@ export function VariantsSheet({ id }: { id: string }) {
                             available: variant.available,
                           },
                           quantity,
+                          data.currency,
                         )
                       }
                     />

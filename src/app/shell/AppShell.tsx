@@ -76,7 +76,7 @@ export function AppShell() {
                   <SellerTabs />
                 </Suspense>
               )}
-              {floating && bootstrap?.status === "active" && <ShopActions product={path !== "/"} />}
+              {floating && bootstrap?.status === "active" && <ShopActions />}
             </div>
           </ShopNavigation>
         </CartProvider>

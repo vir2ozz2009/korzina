@@ -60,8 +60,8 @@ export function ProductScreen() {
               size="lg"
               value={value}
               max={variant.stock ?? 999}
-              disabled={cart.mutation.isPending || !cart.query.data}
-              loading={cart.mutation.isPending}
+              disabled={cart.pendingProducts.has(id) || !cart.query.data}
+              loading={cart.pendingProducts.has(id)}
               onChooseVariant={multiple ? choose : undefined}
               onChange={(quantity) =>
                 cart.change(
@@ -76,6 +76,7 @@ export function ProductScreen() {
                     available: variant.available,
                   },
                   quantity,
+                  data.currency,
                 )
               }
             />

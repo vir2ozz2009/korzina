@@ -16,4 +16,4 @@ export type CartLine = {
   stock: number | null;
   available: boolean;
 };
-export type Cart = { revision: number; currency: string; lines: CartLine[]; count: number; totalMinor: number };
+export type Cart = { revision: number; currency: string | null; lines: CartLine[]; count: number; totalMinor: number };
