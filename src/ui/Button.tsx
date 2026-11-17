@@ -40,7 +40,7 @@ export function Button({
       type={props.type ?? "button"}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={`${interactive} relative inline-flex shrink-0 items-center justify-center gap-2 rounded-pill px-5 ${variants[variant]} ${sizes[size]} ${full ? "w-full" : ""} ${className}`}
+      className={`${interactive} whitespace-nowrap relative inline-flex shrink-0 items-center justify-center gap-2 rounded-pill px-5 ${variants[variant]} ${sizes[size]} ${full ? "w-full" : ""} ${className}`}
     >
       <span className={`flex items-center justify-center gap-2 ${loading ? "invisible" : ""}`}>
         {icon}

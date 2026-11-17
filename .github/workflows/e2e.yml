@@ -6,6 +6,12 @@ on:
   schedule:
     - cron: '0 3 * * *'
   workflow_dispatch:
+    inputs:
+      target:
+        description: Проверяемая среда
+        type: choice
+        options: [local, demo]
+        default: local
 permissions:
   contents: read
 concurrency:
@@ -28,9 +34,11 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+        env:
+          E2E_BASE_URL: ${{ inputs.target == 'demo' && 'https://demo.korzina.app' || '' }}
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
-          name: playwright-failure
+          name: playwright-result
           path: test-results/
           retention-days: 7

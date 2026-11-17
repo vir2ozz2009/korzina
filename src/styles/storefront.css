@@ -224,3 +224,8 @@
 .image-surface[data-loaded="true"] {
   background: var(--photo-edge, var(--card));
 }
+
+.price-value.price-compact {
+  font-size: var(--text-title-3);
+  line-height: var(--text-title-3--line-height);
+}

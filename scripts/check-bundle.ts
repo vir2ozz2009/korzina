@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
+import { bundleBudget } from "./bundle-budget.ts";
 
 type Chunk = {
   file: string;
@@ -42,7 +43,8 @@ for (const chunk of chunks) {
   if (initial.has(chunk.file) && chunk.modules.some((path) => deferred.test(path))) {
     errors.push(`Тяжёлый модуль должен загружаться лениво: ${chunk.file}`);
   }
-  if (!chunk.entry && bytes > 60 * 1024) errors.push(`${chunk.file}: ${size} КБ gzip > 60 КБ`);
+  if (!chunk.entry && bytes > bundleBudget.chunkKiB * 1024)
+    errors.push(`${chunk.file}: ${size} КБ gzip > ${bundleBudget.chunkKiB} КБ`);
   if (
     production &&
     chunk.modules.some((path) =>
@@ -55,7 +57,7 @@ for (const chunk of chunks) {
   }
 }
 console.log(
-  `Первый экран (${production ? "prod" : "demo"}): ${(firstScreen / 1024).toFixed(2)} / 120 КБ gzip; чанков: ${chunks.length}`,
+  `Первый экран (${production ? "prod" : "demo"}): ${(firstScreen / 1024).toFixed(2)} / ${bundleBudget.targetKiB} КБ gzip; чанков: ${chunks.length}`,
 );
 if (process.argv.includes("--details")) {
   for (const chunk of chunks.filter((chunk) => chunk.entry)) {
@@ -63,5 +65,8 @@ if (process.argv.includes("--details")) {
     console.table(chunk.moduleSizes.sort((a, b) => b.bytes - a.bytes).slice(0, 8));
   }
 }
-if (firstScreen > 120 * 1024) errors.push("JS первого экрана превышает 120 КБ gzip");
+if (firstScreen > bundleBudget.ceilingKiB * 1024)
+  errors.push(`JS первого экрана превышает ${bundleBudget.ceilingKiB} КБ gzip`);
+else if (firstScreen > bundleBudget.targetKiB * 1024)
+  console.warn(`Предупреждение: первый экран выше цели ${bundleBudget.targetKiB} КБ; объясните рост в отчёте задачи.`);
 if (errors.length) throw new Error(errors.join("\n"));

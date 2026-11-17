@@ -1,4 +1,25 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
+
+async function checkWidths(page: Page) {
+  for (const width of [360, 412]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.evaluate(() => document.fonts.ready);
+    const overflow = await page.evaluate(() => ({
+      page: document.documentElement.scrollWidth > innerWidth,
+      text: Array.from(document.querySelectorAll<HTMLElement>("body *"))
+        .filter((el) =>
+          Array.from(el.childNodes).some((node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim()),
+        )
+        .filter(
+          (el) =>
+            el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).overflowX === "visible",
+        )
+        .map((el) => el.textContent?.trim().slice(0, 80)),
+    }));
+    expect(overflow, `${width}px`).toEqual({ page: false, text: [] });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+}
 
 test("витрина своего магазина → фасовка/корзина → товар → шторка → назад", async ({ page, request }) => {
   const errors: string[] = [];
@@ -9,6 +30,9 @@ test("витрина своего магазина → фасовка/корзи
   expect(shop.slug).toBe("test2");
   await page.goto("/?shop=test2");
   expect(JSON.parse((await page.locator("#shop-context").textContent()) ?? "null").id).toBe(shop.id);
+  await page.locator("article").first().waitFor();
+  if (process.env.E2E_BASE_URL) await page.screenshot({ path: "test-results/demo-home.png" });
+  await checkWidths(page);
   const first = page.locator("article").first();
   await first.getByRole("button", { name: "Выбрать фасовку" }).click();
   const variants = page.getByRole("dialog", { name: "Выберите фасовку" });
@@ -25,6 +49,7 @@ test("витрина своего магазина → фасовка/корзи
   const href = await link.getAttribute("href");
   await link.click();
   await expect(page).toHaveURL(new RegExp(`${href}\\?shop=test2$`));
+  await checkWidths(page);
   await page.getByRole("button", { name: /Открыть фото 1:/ }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button", { name: "Увеличить фото" }).click();
@@ -42,6 +67,8 @@ test("витрина своего магазина → фасовка/корзи
   await page.reload();
   await expect(page.getByText("250 г · 1 шт.")).toBeVisible();
   await page.goto("/dev/kit?shop=test2");
+  await page.getByRole("button", { name: "Товары", exact: true }).click();
+  await checkWidths(page);
   await page.getByRole("button", { name: "Шаблоны", exact: true }).click();
   await page.getByRole("button", { name: "form", exact: true }).click();
   await page.getByLabel("Название магазина").fill("Изменённое название");
