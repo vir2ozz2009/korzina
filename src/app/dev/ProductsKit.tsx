@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { BrandTile } from "../../ui/BrandTile";
-import { Button } from "../../ui/Button";
 import { CategoryTile } from "../../ui/CategoryTile";
 import { DiscountBadge } from "../../ui/DiscountBadge";
 import { Gallery } from "../../ui/Gallery";
@@ -8,11 +7,11 @@ import { KitSection } from "../../ui/KitSection";
 import { Price } from "../../ui/Price";
 import { ProductRow } from "../../ui/ProductRow";
 import { ProductTile } from "../../ui/ProductTile";
-import { demoProduct } from "./kit-mock";
+import { CartPhotosKit } from "./CartPhotosKit";
+import { demoProduct, photoModes } from "./kit-mock";
+
 export function ProductsKit({ notify }: { notify: (message: string) => void }) {
   const [quantity, setQuantity] = useState(0);
-  const [row, setRow] = useState(1);
-  const [removed, setRemoved] = useState(false);
   return (
     <div className="space-y-3">
       <KitSection title="Цены">
@@ -30,16 +29,71 @@ export function ProductsKit({ notify }: { notify: (message: string) => void }) {
           <span className="text-small text-muted-foreground">Бейдж появляется при скидке</span>
         </div>
       </KitSection>
-      <section aria-label="Плитки товаров" className="grid grid-cols-2 gap-2">
+      <section id="kit-product-tiles" aria-label="Плитки: фото и вырезка" className="space-y-3">
+        <h2 className="px-2 text-title-2">Два режима фото</h2>
+        <div className="grid grid-cols-2 gap-2">
+          {photoModes.map(({ label, image }) => (
+            <div key={label} className="space-y-2">
+              <p className="px-2 text-label">{label}</p>
+              <ProductTile
+                {...demoProduct}
+                image={image}
+                cart={{ value: quantity, max: 3, onChange: setQuantity }}
+                href="#product-example"
+              />
+            </div>
+          ))}
+        </div>
+      </section>
+      <section id="kit-product-rows" aria-label="Строки: фото и вырезка">
+        <KitSection title="Строки товара">
+          {photoModes.map(({ label, image }) => (
+            <div key={label} className="space-y-3">
+              <p className="text-micro text-muted-foreground">{label} · одна и две цены</p>
+              <ProductRow {...demoProduct} image={image} oldMinor={undefined} quantity={1} variant="order" />
+              <ProductRow {...demoProduct} image={image} quantity={2} variant="order" />
+            </div>
+          ))}
+          <ProductRow {...demoProduct} quantity={1} variant="change" previous="1 кг · 378 ₽" />
+        </KitSection>
+      </section>
+      <section id="kit-product-gallery" aria-label="Галереи: фото и вырезка">
+        <KitSection title="Галерея">
+          <p className="text-meta text-muted-foreground">
+            Нажмите на фото: откроется оригинал. Разведите пальцы, чтобы увеличить.
+          </p>
+          <div id="product-example" className="grid grid-cols-2 gap-2">
+            {photoModes.map(({ label, image }) => (
+              <div key={label} className="min-w-0 space-y-2">
+                <p className="text-label">{label}</p>
+                <Gallery
+                  name={`Томаты · ${label}`}
+                  images={[image, { ...image, src: `${image.src}?view=2` }]}
+                  sizes="(max-width: 480px) calc((100vw - 72px) / 2), 204px"
+                />
+              </div>
+            ))}
+          </div>
+        </KitSection>
+      </section>
+      <section id="kit-product-categories" aria-label="Категории: фото, вырезка и иконка" className="space-y-3">
+        <h2 className="px-2 text-title-2">Категории</h2>
+        <div className="grid grid-cols-2 gap-2">
+          {photoModes.map(({ label, image }) => (
+            <div key={label} className="space-y-2">
+              <p className="px-2 text-label">{label}</p>
+              <CategoryTile name="Овощи" image={image} href="#product-example" />
+            </div>
+          ))}
+          <CategoryTile name="Фрукты" href="#product-example" />
+          <CategoryTile name="На каждый день" href="#product-example" />
+        </div>
+      </section>
+      <CartPhotosKit />
+      <section aria-label="Состояния плитки" className="grid grid-cols-2 gap-2">
         <ProductTile
           {...demoProduct}
-          cart={{ value: quantity, max: 3, onChange: setQuantity }}
-          href="#product-example"
-        />
-        <ProductTile
-          {...demoProduct}
-          name="Томаты · нет в наличии"
-          oldMinor={undefined}
+          name="Нет в наличии"
           cart={{ value: 0, max: 0, onChange: setQuantity }}
           href="#product-example"
         />
@@ -62,35 +116,6 @@ export function ProductsKit({ notify }: { notify: (message: string) => void }) {
           cart={{ value: 1, max: 3, onChange: setQuantity, loading: true }}
           href="#product-example"
         />
-      </section>
-      <KitSection title="Строки товара">
-        {removed ? (
-          <Button variant="secondary" onClick={() => setRemoved(false)}>
-            Вернуть товар
-          </Button>
-        ) : (
-          <ProductRow
-            {...demoProduct}
-            quantity={row}
-            max={3}
-            variant="cart"
-            onChange={setRow}
-            onRemove={() => setRemoved(true)}
-          />
-        )}
-        <ProductRow {...demoProduct} quantity={2} variant="order" />
-        <ProductRow {...demoProduct} quantity={1} variant="change" previous="1 кг · 378 ₽" />
-      </KitSection>
-      <div id="product-example">
-        <KitSection title="Галерея">
-          <p className="text-meta text-muted-foreground">Свайпайте. Нажмите, чтобы открыть фото целиком.</p>
-          <Gallery name="Томаты на ветке" images={[demoProduct.image, `${demoProduct.image}?view=2`]} />
-        </KitSection>
-      </div>
-      <section aria-label="Категории" className="grid grid-cols-3 gap-2">
-        <CategoryTile name="Овощи" image={demoProduct.image} href="#product-example" wide />
-        <CategoryTile name="Фрукты" href="#product-example" />
-        <CategoryTile name="На каждый день" href="#product-example" />
       </section>
       <div className="flex gap-2 overflow-x-auto">
         <BrandTile name="Korzina" logo="/brand/korzina.svg" href="#product-example" />

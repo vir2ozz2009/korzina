@@ -1,16 +1,46 @@
 import { ImageOff } from "lucide-react";
-import { useState } from "react";
-export const productPhotoClass = "h-auto w-auto max-h-full max-w-full rounded-md object-contain";
+import { type ReactNode, useState } from "react";
+import type { ProductImageSource } from "./product-image";
 
-export function ProductImage({ src, alt, className = "" }: { src?: string; alt: string; className?: string }) {
+export interface ProductImageProps extends Partial<ProductImageSource> {
+  alt: string;
+  sizes?: string;
+  shape?: "square" | "tile";
+  radius?: "md" | "xl";
+  className?: string;
+  fallback?: ReactNode;
+}
+export function ProductImage({
+  src,
+  srcSet,
+  alt,
+  sizes,
+  display = "photo",
+  shape = "square",
+  radius = "md",
+  className = "",
+  fallback,
+}: ProductImageProps) {
   const [failed, setFailed] = useState<string>();
   return (
-    <span className={`flex items-center justify-center overflow-hidden rounded-md bg-input ${className}`}>
+    <span
+      data-image-display={display}
+      className={`relative flex self-start items-center justify-center overflow-hidden bg-input ${shape === "tile" ? "aspect-[179/142]" : "aspect-square"} ${radius === "xl" ? "rounded-xl" : "rounded-md"} ${className}`}
+    >
       {src && failed !== src ? (
-        <img src={src} alt={alt} loading="lazy" onError={() => setFailed(src)} className={productPhotoClass} />
+        <img
+          src={src}
+          srcSet={srcSet}
+          sizes={sizes}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(src)}
+          className={`absolute inset-0 size-full object-center ${display === "cutout" ? "object-contain p-[8%]" : "object-cover"}`}
+        />
       ) : (
-        <span role="img" aria-label={`${alt}: без фото`}>
-          <ImageOff className="size-8 text-subtle-foreground" />
+        <span role="img" aria-label={`${alt}: без фото`} className="text-subtle-foreground">
+          {fallback ?? <ImageOff className="size-8" />}
         </span>
       )}
     </span>

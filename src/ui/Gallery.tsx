@@ -1,18 +1,20 @@
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
-import { IconButton } from "./IconButton";
-import { ProductImage, productPhotoClass } from "./ProductImage";
-export function Gallery({ images, name }: { images: readonly string[]; name: string }) {
+import { useRef, useState } from "react";
+import { ImageViewer } from "./ImageViewer";
+import { ProductImage } from "./ProductImage";
+import { imageSource, type ProductImageValue } from "./product-image";
+
+export function Gallery({
+  images,
+  name,
+  sizes = "(max-width: 480px) calc(100vw - 64px), 416px",
+}: {
+  images: readonly ProductImageValue[];
+  name: string;
+  sizes?: string;
+}) {
   const [index, setIndex] = useState(0);
   const [expanded, setExpanded] = useState(false);
-  const dialog = useRef<HTMLDialogElement>(null);
   const rail = useRef<HTMLDivElement>(null);
-  const id = useId();
-  useEffect(() => {
-    const element = dialog.current;
-    if (expanded) element?.showModal();
-    else element?.close();
-  }, [expanded]);
   function move(next: number) {
     const bounded = Math.max(0, Math.min(images.length - 1, next));
     setIndex(bounded);
@@ -21,78 +23,66 @@ export function Gallery({ images, name }: { images: readonly string[]; name: str
       behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
     });
   }
-  if (!images.length) return <ProductImage alt={name} className="aspect-square w-full" />;
+  if (!images.length) return <ProductImage alt={name} radius="xl" className="w-full" />;
   return (
     <div className="relative">
       <div
         ref={rail}
         className="flex snap-x snap-mandatory overflow-x-auto rounded-xl"
-        onScroll={(event) => setIndex(Math.round(event.currentTarget.scrollLeft / event.currentTarget.clientWidth))}
+        onScroll={(event) =>
+          setIndex(
+            Math.min(images.length - 1, Math.round(event.currentTarget.scrollLeft / event.currentTarget.clientWidth)),
+          )
+        }
       >
         {images.map((image, i) => (
           <button
             type="button"
-            key={image}
-            className="aspect-square w-full shrink-0 snap-center overflow-hidden"
+            key={imageSource(image).src}
+            className="aspect-square w-full shrink-0 snap-center overflow-hidden rounded-xl"
             aria-label={`Открыть фото ${i + 1}: ${name}`}
             onClick={() => setExpanded(true)}
           >
-            <ProductImage src={image} alt={`${name}, фото ${i + 1}`} className="size-full" />
+            <ProductImage
+              {...imageSource(image)}
+              alt={`${name}, фото ${i + 1}`}
+              sizes={sizes}
+              radius="xl"
+              className="size-full"
+            />
           </button>
         ))}
       </div>
-      <div className="absolute inset-x-0 bottom-2 flex justify-center">
-        <fieldset
-          aria-label={`Фото ${index + 1} из ${images.length}`}
-          className="flex min-h-6 gap-1 rounded-pill bg-card px-3"
-        >
-          {images.map((image, i) => (
-            <button
-              key={image}
-              type="button"
-              aria-label={`Фото ${i + 1}`}
-              aria-current={index === i ? "true" : undefined}
-              onClick={() => move(i)}
-              className="flex min-h-11 min-w-6 items-center justify-center"
-            >
-              <span className={`size-1.5 rounded-pill ${index === i ? "bg-primary" : "bg-border"}`} />
-            </button>
-          ))}
-        </fieldset>
-      </div>
-      <dialog
-        ref={dialog}
-        aria-labelledby={id}
-        onCancel={(event) => {
-          event.preventDefault();
-          setExpanded(false);
-        }}
-        className="fixed inset-0 m-auto h-dvh max-h-dvh w-screen max-w-none bg-inverse p-3 text-inverse-foreground backdrop:bg-inverse"
-      >
-        <div className="flex items-center justify-between">
-          <h3 id={id} className="text-label">
-            {name} · {index + 1}/{images.length}
-          </h3>
-          <IconButton aria-label="Закрыть фото" onClick={() => setExpanded(false)}>
-            <X />
-          </IconButton>
-        </div>
-        <div className="flex h-[75dvh] items-center justify-center">
-          <img src={images[index]} alt={name} className={productPhotoClass} />
-        </div>
-        <div className="flex justify-center gap-4">
-          <IconButton aria-label="Предыдущее фото" disabled={index === 0} onClick={() => move(index - 1)}>
-            <ChevronLeft />
-          </IconButton>
-          <IconButton
-            aria-label="Следующее фото"
-            disabled={index === images.length - 1}
-            onClick={() => move(index + 1)}
+      {images.length > 1 && (
+        <div className="absolute inset-x-0 bottom-2 flex justify-center">
+          <fieldset
+            aria-label={`Фото ${index + 1} из ${images.length}`}
+            className="flex min-h-6 gap-1 rounded-pill bg-card px-3"
           >
-            <ChevronRight />
-          </IconButton>
+            {images.map((image, i) => (
+              <button
+                key={imageSource(image).src}
+                type="button"
+                aria-label={`Фото ${i + 1}`}
+                aria-current={index === i ? "true" : undefined}
+                onClick={() => move(i)}
+                className="flex min-h-11 min-w-6 items-center justify-center"
+              >
+                <span className={`size-1.5 rounded-pill ${index === i ? "bg-primary" : "bg-border"}`} />
+              </button>
+            ))}
+          </fieldset>
         </div>
-      </dialog>
+      )}
+      {expanded && (
+        <ImageViewer
+          images={images}
+          index={index}
+          name={name}
+          onIndexChange={move}
+          onClose={() => setExpanded(false)}
+        />
+      )}
     </div>
   );
 }

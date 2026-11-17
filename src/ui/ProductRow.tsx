@@ -2,11 +2,12 @@ import { X } from "lucide-react";
 import { IconButton } from "./IconButton";
 import { Price, type PriceProps } from "./Price";
 import { ProductImage } from "./ProductImage";
+import { imageSource, type ProductImageValue } from "./product-image";
 import { Stepper } from "./Stepper";
 export interface ProductRowProps extends PriceProps {
   name: string;
   unit: string;
-  image?: string;
+  image?: ProductImageValue;
   quantity: number;
   max?: number;
   variant?: "cart" | "order" | "change";
@@ -28,7 +29,7 @@ export function ProductRow({
 }: ProductRowProps) {
   return (
     <div className="flex gap-3">
-      <ProductImage src={image} alt={name} className="size-20 shrink-0" />
+      <ProductImage {...imageSource(image)} alt={name} sizes="80px" className="w-20 shrink-0" />
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-start justify-between gap-1">
           <p className="text-label">{name}</p>

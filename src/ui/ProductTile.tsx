@@ -2,10 +2,11 @@ import { AddToCart, type AddToCartProps } from "./AddToCart";
 import { DiscountBadge } from "./DiscountBadge";
 import { Price, type PriceProps } from "./Price";
 import { ProductImage } from "./ProductImage";
+import { imageSource, type ProductImageValue } from "./product-image";
 export interface ProductTileProps extends PriceProps {
   name: string;
   unit: string;
-  image?: string;
+  image?: ProductImageValue;
   href: string;
   cart: AddToCartProps;
 }
@@ -13,7 +14,13 @@ export function ProductTile({ name, unit, image, href, cart, ...price }: Product
   return (
     <article className="min-w-0 overflow-hidden rounded-xl bg-card">
       <a href={href} className={`relative block ${cart.max <= 0 ? "opacity-50" : ""}`} aria-label={name}>
-        <ProductImage src={image} alt={name} className="aspect-[179/142] w-full" />
+        <ProductImage
+          {...imageSource(image)}
+          alt={name}
+          shape="tile"
+          sizes="(max-width: 480px) calc((100vw - 32px) / 2), 224px"
+          className="w-full"
+        />
         <span className="absolute top-2 left-2">
           <DiscountBadge {...price} />
         </span>
