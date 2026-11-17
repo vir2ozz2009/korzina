@@ -1,9 +1,12 @@
 import { expect, type Page, test } from "@playwright/test";
+import { checkContent } from "./content";
 
-async function checkWidths(page: Page) {
+async function checkWidths(page: Page, screen?: "home" | "product") {
+  if (screen) await checkContent(page, screen);
   for (const width of [360, 412]) {
     await page.setViewportSize({ width, height: 844 });
     await page.evaluate(() => document.fonts.ready);
+    if (screen) await checkContent(page, screen);
     const overflow = await page.evaluate(() => ({
       page: document.documentElement.scrollWidth > innerWidth,
       text: Array.from(document.querySelectorAll<HTMLElement>("body *"))
@@ -24,6 +27,10 @@ async function checkWidths(page: Page) {
 test("витрина своего магазина → фасовка/корзина → товар → шторка → назад", async ({ page, request }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
+  page.on("response", (response) => {
+    if (new URL(response.url()).pathname.startsWith("/api/") && response.status() >= 400)
+      errors.push(`API ${response.status()}: ${response.url()}`);
+  });
   const response = await request.get("/api/shop?shop=test2");
   expect(response.ok()).toBe(true);
   const shop = await response.json();
@@ -32,7 +39,7 @@ test("витрина своего магазина → фасовка/корзи
   expect(JSON.parse((await page.locator("#shop-context").textContent()) ?? "null").id).toBe(shop.id);
   await page.locator("article").first().waitFor();
   if (process.env.E2E_BASE_URL) await page.screenshot({ path: "test-results/demo-home.png" });
-  await checkWidths(page);
+  await checkWidths(page, "home");
   const first = page.locator("article").first();
   await first.getByRole("button", { name: "Выбрать фасовку" }).click();
   const variants = page.getByRole("dialog", { name: "Выберите фасовку" });
@@ -49,7 +56,7 @@ test("витрина своего магазина → фасовка/корзи
   const href = await link.getAttribute("href");
   await link.click();
   await expect(page).toHaveURL(new RegExp(`${href}\\?shop=test2$`));
-  await checkWidths(page);
+  await checkWidths(page, "product");
   await page.getByRole("button", { name: /Открыть фото 1:/ }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button", { name: "Увеличить фото" }).click();

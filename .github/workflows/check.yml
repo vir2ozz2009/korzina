@@ -5,6 +5,7 @@ on:
     types: [opened, synchronize, reopened]
 permissions:
   contents: read
+  issues: read
 concurrency:
   group: check-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -29,3 +30,15 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run platform:setup -- --local --seed
       - run: node scripts/built-demo-smoke.ts
+      - run: node scripts/wait-for-preview.ts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-browser-result
+          path: test-results/
+          retention-days: 7
