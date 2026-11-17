@@ -1,5 +1,5 @@
 import { evictDurableObject, runInDurableObject } from "cloudflare:test";
-import { env } from "cloudflare:workers";
+import { exports } from "cloudflare:workers";
 import { beforeAll, describe, expect, it } from "vitest";
 import { cookieFrom, getAuth, postAuth } from "../../testing/auth";
 import { setupPlatform } from "../../testing/platform";
@@ -16,7 +16,7 @@ describe("гостевые сессии покупателя", () => {
     expect(JSON.stringify(session)).not.toContain(cookie.split("=")[1]);
     const headers = { Cookie: cookie };
     expect(await (await getAuth("/api/auth/session?shop=test2", headers)).json()).toEqual(session);
-    await evictDurableObject(env.SHOP.get(env.SHOP.idFromName("korzina-demo-test2")));
+    await evictDurableObject(exports.Shop.get(exports.Shop.idFromName("korzina-demo-test2")));
     expect(await (await getAuth("/api/auth/session?shop=test2", headers)).json()).toEqual(session);
     expect((await postAuth("/api/auth/guest?shop=test2", {}, headers)).status).toBe(200);
     const logout = await postAuth("/api/auth/logout?shop=test2", {}, headers);
@@ -45,7 +45,7 @@ describe("гостевые сессии покупателя", () => {
     const response = await postAuth("/api/auth/guest?shop=lavka");
     const cookie = cookieFrom(response);
     const token = cookie.split("=")[1];
-    await runInDurableObject(env.SHOP.get(env.SHOP.idFromName("korzina-demo-lavka")), (_instance, ctx) => {
+    await runInDurableObject(exports.Shop.get(exports.Shop.idFromName("korzina-demo-lavka")), (_instance, ctx) => {
       expect(JSON.stringify(ctx.storage.sql.exec("SELECT token_hash FROM sessions").toArray())).not.toContain(token);
       ctx.storage.sql.exec("UPDATE sessions SET expires_at = 0");
     });

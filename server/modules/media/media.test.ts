@@ -8,7 +8,7 @@ import { signMedia, verifyMedia } from "./signing";
 
 beforeAll(setupPlatform);
 const pdf = new TextEncoder().encode("%PDF-1.7\nsynthetic test attachment");
-const stub = () => env.SHOP.get(env.SHOP.idFromName("korzina-demo-test2"));
+const stub = () => exports.Shop.get(exports.Shop.idFromName("korzina-demo-test2"));
 const guest = async () => cookieFrom(await postAuth("/api/auth/guest?shop=test2"));
 const upload = (cookie: string, key = crypto.randomUUID(), body = pdf, purpose = "receipt") =>
   exports.default.fetch(

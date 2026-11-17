@@ -1,5 +1,5 @@
 import { runInDurableObject } from "cloudflare:test";
-import { env } from "cloudflare:workers";
+import { env, exports } from "cloudflare:workers";
 import { drizzle } from "drizzle-orm/durable-sqlite";
 import { beforeAll, expect, it } from "vitest";
 import { resolveFeatures } from "../../../src/shared/flags";
@@ -25,7 +25,7 @@ it("приватная ссылка требует актуальных прав
       Date.now() + 100_000,
     ),
   ]);
-  await runInDurableObject(env.SHOP.get(env.SHOP.idFromName(shopId)), async (_instance, ctx) => {
+  await runInDurableObject(exports.Shop.get(exports.Shop.idFromName(shopId)), async (_instance, ctx) => {
     const db = drizzle(ctx.storage);
     const bindings = {
       shop: { id: shopId, slug: shopId, name: "Test", status: "active", plan: "base", createdAt: 0 },

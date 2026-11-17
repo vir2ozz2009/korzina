@@ -1,6 +1,6 @@
 import { Link as RouteLink, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
-import { z } from "zod";
+import { z } from "zod/mini";
 import { CatalogTemplate } from "../../../app/templates/CatalogTemplate";
 import { CheckoutTemplate } from "../../../app/templates/CheckoutTemplate";
 import { FeedbackTemplate } from "../../../app/templates/FeedbackTemplate";
@@ -172,7 +172,7 @@ export function TemplateView({ template }: { template: TemplateName }) {
           </Card>,
         ]}
         onSubmit={() => {
-          const result = z.string().trim().min(2).safeParse(name);
+          const result = z.string().check(z.trim(), z.minLength(2)).safeParse(name);
           if (!result.success) {
             setError("Введите название длиной от 2 символов");
             return;

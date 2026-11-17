@@ -1,5 +1,5 @@
 import { evictDurableObject, runInDurableObject } from "cloudflare:test";
-import { env, exports } from "cloudflare:workers";
+import { exports } from "cloudflare:workers";
 import { beforeAll, describe, expect, it } from "vitest";
 import { setupPlatform } from "../../testing/platform";
 
@@ -20,7 +20,7 @@ describe("контракты и идемпотентность через Worker
     expect(responses.every((r) => r.status === 201)).toBe(true);
     const bodies = await Promise.all(responses.map((r) => r.json()));
     expect(bodies.every((body) => JSON.stringify(body) === JSON.stringify(bodies[0]))).toBe(true);
-    const stub = env.SHOP.get(env.SHOP.idFromName("korzina-demo-test2"));
+    const stub = exports.Shop.get(exports.Shop.idFromName("korzina-demo-test2"));
     await evictDurableObject(stub);
     expect(await (await command(key)).json()).toEqual(bodies[0]);
     expect(responses[0].headers.get("X-Request-Id")).not.toBe(responses[1].headers.get("X-Request-Id"));
@@ -68,7 +68,7 @@ describe("контракты и идемпотентность через Worker
   });
   it("миграция создаёт индекс для точечного поиска ключа", async () => {
     await command(crypto.randomUUID());
-    await runInDurableObject(env.SHOP.get(env.SHOP.idFromName("korzina-demo-test2")), (_instance, ctx) => {
+    await runInDurableObject(exports.Shop.get(exports.Shop.idFromName("korzina-demo-test2")), (_instance, ctx) => {
       const plan = ctx.storage.sql
         .exec("EXPLAIN QUERY PLAN SELECT response FROM idempotency WHERE scope = ? AND key = ?", "diagnostics", "key")
         .toArray();

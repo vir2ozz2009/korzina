@@ -1,5 +1,5 @@
 import { runInDurableObject } from "cloudflare:test";
-import { env } from "cloudflare:workers";
+import { env, exports } from "cloudflare:workers";
 import { drizzle } from "drizzle-orm/durable-sqlite";
 import { beforeAll, describe, expect, it } from "vitest";
 import { app } from "../index";
@@ -41,32 +41,42 @@ describe("Telegram → сессия", () => {
   it("покупатель проверяется ботом именно своего магазина и получает bearer-сессию", async () => {
     const initData = await signedInitData(token);
     const forged = await signedInitData("other-store-test-token");
-    await runInDurableObject(env.SHOP.get(env.SHOP.idFromName("f4-telegram-customer")), async (_instance, ctx) => {
-      const encryptionKey = "a1".repeat(32); // Synthetic fixture, never a deployed key.
-      drizzle(ctx.storage)
-        .insert(settings)
-        .values({
-          key: "telegram_bot_token",
-          value: await encryptBotToken(token, "f4-telegram-customer", encryptionKey),
-        })
-        .run();
-      const bindings = {
-        shop: { id: "f4-telegram-customer", slug: "test", name: "Test", status: "active", plan: "base", createdAt: 0 },
-        db: drizzle(ctx.storage),
-        storage: ctx.storage,
-        secrets: { ENCRYPTION_KEY: encryptionKey },
-      };
-      expect((await customerAuth.fetch(post("/telegram", forged), bindings)).status).toBe(401);
-      const response = await customerAuth.fetch(post("/telegram", initData), bindings);
-      expect(response.status).toBe(201);
-      const body = await response.json<{ subject: string; kind: string; token: string }>();
-      expect(body).toMatchObject({ subject: "telegram:12345", kind: "telegram" });
-      const session = await customerAuth.fetch(
-        new Request("https://demo.korzina.app/session", { headers: { Authorization: `Bearer ${body.token}` } }),
-        bindings,
-      );
-      expect(session.status).toBe(200);
-      expect(await session.json()).toMatchObject({ subject: body.subject });
-    });
+    await runInDurableObject(
+      exports.Shop.get(exports.Shop.idFromName("f4-telegram-customer")),
+      async (_instance, ctx) => {
+        const encryptionKey = "a1".repeat(32); // Synthetic fixture, never a deployed key.
+        drizzle(ctx.storage)
+          .insert(settings)
+          .values({
+            key: "telegram_bot_token",
+            value: await encryptBotToken(token, "f4-telegram-customer", encryptionKey),
+          })
+          .run();
+        const bindings = {
+          shop: {
+            id: "f4-telegram-customer",
+            slug: "test",
+            name: "Test",
+            status: "active",
+            plan: "base",
+            createdAt: 0,
+          },
+          db: drizzle(ctx.storage),
+          storage: ctx.storage,
+          secrets: { ENCRYPTION_KEY: encryptionKey },
+        };
+        expect((await customerAuth.fetch(post("/telegram", forged), bindings)).status).toBe(401);
+        const response = await customerAuth.fetch(post("/telegram", initData), bindings);
+        expect(response.status).toBe(201);
+        const body = await response.json<{ subject: string; kind: string; token: string }>();
+        expect(body).toMatchObject({ subject: "telegram:12345", kind: "telegram" });
+        const session = await customerAuth.fetch(
+          new Request("https://demo.korzina.app/session", { headers: { Authorization: `Bearer ${body.token}` } }),
+          bindings,
+        );
+        expect(session.status).toBe(200);
+        expect(await session.json()).toMatchObject({ subject: body.subject });
+      },
+    );
   });
 });

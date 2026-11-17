@@ -1,5 +1,5 @@
 import { runInDurableObject } from "cloudflare:test";
-import { env } from "cloudflare:workers";
+import { exports } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/durable-sqlite";
 import { describe, expect, it, vi } from "vitest";
@@ -8,7 +8,7 @@ import { executeCommand } from "./shop/commands";
 import { settings } from "./shop/schema";
 
 const run = (name: string, test: (ctx: DurableObjectState) => void) =>
-  runInDurableObject(env.SHOP.get(env.SHOP.idFromName(name)), (_instance, ctx) => test(ctx));
+  runInDurableObject(exports.Shop.get(exports.Shop.idFromName(name)), (_instance, ctx) => test(ctx));
 
 describe("SQL бюджеты: шаблон для горячих путей", () => {
   it("считает SQL и реальные строки Drizzle; бюджет падает при лишнем запросе", async () => {

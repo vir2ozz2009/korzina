@@ -1,16 +1,15 @@
 import { Outlet, useRouter, useRouterState } from "@tanstack/react-router";
-import { type TouchEvent, useEffect, useRef } from "react";
-import { applyTheme } from "../../shared/apply-theme";
-import { normalizeTheme } from "../../shared/theme-presets";
+import { lazy, Suspense, type TouchEvent, useEffect, useRef } from "react";
 import { FeatureProvider } from "../../shared/useFeature";
 import { FloatingActions } from "../../ui/FloatingActions";
 import { bootstrap } from "../bootstrap";
 import { TelegramBridge } from "../telegram/TelegramBridge";
-import { SellerTabs } from "./SellerTabs";
 import { ToastProvider } from "./ToastProvider";
 import { Transition } from "./Transition";
 import { useBack } from "./useBack";
 import { useViewport } from "./useViewport";
+
+const SellerTabs = lazy(() => import("./SellerTabs").then((module) => ({ default: module.SellerTabs })));
 
 export function AppShell() {
   useViewport();
@@ -21,10 +20,20 @@ export function AppShell() {
   const seller = path.startsWith("/seller");
   const floating = import.meta.env.DEV_SCREENS && (path === "/" || /^\/p\//.test(path));
   const start = useRef<{ x: number; y: number } | null>(null);
+  const previousPath = useRef(path);
   useEffect(() => {
-    applyTheme(
-      seller || path.startsWith("/admin") ? normalizeTheme(undefined) : (bootstrap?.theme ?? normalizeTheme(undefined)),
+    // Initial theme is already in the server HTML. Load theme editing only on navigation.
+    if (previousPath.current === path) return;
+    previousPath.current = path;
+    let active = true;
+    void Promise.all([import("../../shared/apply-theme"), import("../../shared/theme-presets")]).then(
+      ([{ applyTheme }, { normalizeTheme }]) => {
+        if (active) applyTheme(normalizeTheme(seller || path.startsWith("/admin") ? undefined : bootstrap?.theme));
+      },
     );
+    return () => {
+      active = false;
+    };
   }, [seller, path]);
   const endSwipe = (event: TouchEvent) => {
     const touch = event.changedTouches[0];
@@ -54,7 +63,11 @@ export function AppShell() {
           <Transition>
             <Outlet />
           </Transition>
-          {seller && <SellerTabs />}
+          {seller && (
+            <Suspense fallback={<div className="min-h-16" />}>
+              <SellerTabs />
+            </Suspense>
+          )}
           {floating && (
             <div
               className={`pointer-events-none fixed inset-x-3 z-20 mx-auto max-w-(--content-max) ${path === "/" ? "bottom-[calc(1rem+var(--safe-bottom))]" : "bottom-[calc(var(--control-lg)+2rem+var(--safe-bottom))]"}`}

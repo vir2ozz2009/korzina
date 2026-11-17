@@ -4,7 +4,6 @@ import { useRef } from "react";
 import { type api, apiForShop } from "../../shared/api";
 import type { MediaPurpose } from "../../shared/contracts/media";
 import { checkResponse, HttpError } from "../../shared/http-error";
-import { prepareUpload } from "./prepare";
 
 export type UploadedMedia = InferResponseType<typeof api.api.media.upload.$post, 201>;
 const shop = () => new URLSearchParams(location.search).get("shop") ?? "lavka";
@@ -85,7 +84,7 @@ export function useUpload(seller: boolean) {
       }
       let body: Blob;
       try {
-        body = await prepareUpload(input.file);
+        body = await (await import("./prepare")).prepareUpload(input.file);
       } catch (error) {
         if (error instanceof DOMException && ["InvalidStateError", "EncodingError"].includes(error.name))
           throw new HttpError(400, "Не удалось открыть фото. Выберите другой файл", "VALIDATION");

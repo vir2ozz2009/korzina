@@ -1,11 +1,12 @@
 import { createRoute, lazyRouteComponent } from "@tanstack/react-router";
-import { TemplateNav } from "../app/dev/TemplateNav";
+import { lazy, Suspense } from "react";
 import { TemplatePending } from "../app/templates/TemplatePending";
 import { templateNames } from "../app/templates/types";
 import { demoQuery, demoSearch } from "../features/demo/api";
 import { rootRoute } from "./root";
 
 const gallery = lazyRouteComponent(() => import("../features/demo/ui/TemplateGallery"), "TemplateGallery");
+const TemplateNav = lazy(() => import("../app/dev/TemplateNav").then((module) => ({ default: module.TemplateNav })));
 export const demoRoutes = templateNames.map((template) =>
   createRoute({
     getParentRoute: () => rootRoute,
@@ -18,7 +19,9 @@ export const demoRoutes = templateNames.map((template) =>
     component: gallery,
     pendingComponent: () => (
       <>
-        <TemplateNav template={template} />
+        <Suspense fallback={null}>
+          <TemplateNav template={template} />
+        </Suspense>
         <TemplatePending template={template} />
       </>
     ),

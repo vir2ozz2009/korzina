@@ -17,6 +17,10 @@ export function bundleReport(): Plugin {
               entry: chunk.isEntry,
               imports: chunk.imports,
               modules: Object.keys(chunk.modules).map((path) => path.replace(`${process.cwd()}/`, "")),
+              moduleSizes: Object.entries(chunk.modules).map(([path, module]) => ({
+                path: path.replace(`${process.cwd()}/`, ""),
+                bytes: module.renderedLength,
+              })),
             })),
         ),
       });

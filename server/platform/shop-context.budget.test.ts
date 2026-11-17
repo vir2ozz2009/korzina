@@ -1,5 +1,5 @@
 import { runInDurableObject } from "cloudflare:test";
-import { env } from "cloudflare:workers";
+import { env, exports } from "cloudflare:workers";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { setupPlatform } from "../testing/platform";
 import { featureStatement } from "./features";
@@ -29,7 +29,7 @@ describe("контекст магазина, изоляция и бюджет п
     await env.PLATFORM.prepare(set.sql)
       .bind(...set.params)
       .run();
-    await runInDurableObject(env.SHOP.get(env.SHOP.idFromName(initial.id)), (_instance, ctx) => {
+    await runInDurableObject(exports.Shop.get(exports.Shop.idFromName(initial.id)), (_instance, ctx) => {
       ctx.storage.sql.exec(
         "INSERT INTO settings(key,value) VALUES ('theme',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
         JSON.stringify({ custom: "#f8c537" }),

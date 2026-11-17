@@ -1,3 +1,4 @@
+import { exports } from "cloudflare:workers";
 import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { AuthSecrets } from "./auth/config";
@@ -27,7 +28,7 @@ const forwarding = createMiddleware<{ Bindings: Env }>(async (c) => {
   headers.set("x-korzina-shop", encodeURIComponent(JSON.stringify(shop)));
   headers.set("x-korzina-client", c.req.header("CF-Connecting-IP") ?? "local");
   headers.set("x-request-id", c.res.headers.get("X-Request-Id") ?? crypto.randomUUID());
-  const upstream = await c.env.SHOP.get(c.env.SHOP.idFromName(shop.id)).fetch(new Request(c.req.raw, { headers }));
+  const upstream = await exports.Shop.get(exports.Shop.idFromName(shop.id)).fetch(new Request(c.req.raw, { headers }));
   const response = new Response(upstream.body, upstream);
   response.headers.set("Cache-Control", "no-store");
   return response;

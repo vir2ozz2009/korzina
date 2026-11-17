@@ -1,3 +1,4 @@
+import { exports } from "cloudflare:workers";
 import { type ShopContext, shopContextContract } from "../../src/shared/contracts/shop-context";
 import { ApiError } from "../../src/shared/errors";
 import { readFeatures } from "./features";
@@ -11,16 +12,16 @@ export class ShopContextCache {
 
   constructor(private readonly now = () => Date.now()) {}
 
-  async read(request: Request, env: Pick<Env, "PLATFORM" | "SHOP">): Promise<ShopContext> {
+  async read(request: Request, env: Pick<Env, "PLATFORM"> & Partial<Pick<Env, "APP_ENV">>): Promise<ShopContext> {
     const started = this.now();
-    const shop = await resolveShop(request, env.PLATFORM);
+    const shop = await resolveShop(request, env.PLATFORM, env.APP_ENV);
     if (!shop) throw new ApiError("SHOP_NOT_FOUND", "Магазин не найден");
     const hit = this.entries.get(shop.id);
     if (hit && hit.expires > this.now()) return hit.value;
     this.entries.delete(shop.id);
     const [features, response] = await Promise.all([
       readFeatures(env.PLATFORM, shop.id),
-      env.SHOP.get(env.SHOP.idFromName(shop.id)).fetch(
+      exports.Shop.get(exports.Shop.idFromName(shop.id)).fetch(
         new Request("https://internal/api/shop", {
           headers: { "x-korzina-shop": encodeURIComponent(JSON.stringify(shop)) },
         }),

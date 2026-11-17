@@ -8,7 +8,7 @@ beforeAll(setupPlatform);
 // A fresh Worker isolate must read durable settings, including after DO eviction.
 const info = (slug: string) =>
   new ShopContextCache().read(new Request(`https://demo.korzina.app/api/shop?shop=${slug}`), env);
-const stub = (id: string) => env.SHOP.get(env.SHOP.idFromName(id));
+const stub = (id: string) => exports.Shop.get(exports.Shop.idFromName(id));
 
 describe("Shop SQLite", () => {
   it("автоматически мигрирует два магазина; запись в A не видна в B даже после перезапуска", async () => {
