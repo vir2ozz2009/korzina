@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { errorKind } from "../../shared/http-error";
+import { ErrorState } from "../../ui/AsyncErrorState";
 import { EmptyState } from "../../ui/EmptyState";
-import { ErrorState } from "../../ui/ErrorState";
 import { StorefrontState } from "../../ui/StorefrontState";
 import { TemplateSkeleton } from "../templates/TemplateSkeleton";
 import type { TemplateName } from "../templates/types";
@@ -52,5 +52,5 @@ export function QueryBoundary<T>({
         onAction={emptyAction}
       />
     );
-  return <div className="content-reveal space-y-3">{children(query.data)}</div>;
+  return <div className="animate-content-reveal space-y-3 motion-reduce:animate-none">{children(query.data)}</div>;
 }

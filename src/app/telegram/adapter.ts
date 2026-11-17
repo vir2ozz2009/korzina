@@ -26,7 +26,7 @@ declare global {
     Telegram?: { WebApp?: TelegramApp };
   }
 }
-export const telegramApp = () => window.Telegram?.WebApp;
+const telegramApp = () => window.Telegram?.WebApp;
 
 // The SDK is loaded only for a Telegram launch. Normal web visits download nothing.
 export async function loadTelegram() {
@@ -49,6 +49,7 @@ export function connectTelegram(app: TelegramApp) {
     for (const edge of ["top", "bottom", "left", "right"] as const) {
       const safe = (app.safeAreaInset?.[edge] ?? 0) + (app.contentSafeAreaInset?.[edge] ?? 0);
       root.style.setProperty(`--safe-${edge}`, `${safe}px`);
+      if (edge === "bottom") root.style.setProperty("--floating-bottom", `max(12px, ${safe}px)`);
     }
     focusManager.setFocused(document.visibilityState === "visible" && app.isActive !== false);
   };

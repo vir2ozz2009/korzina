@@ -24,7 +24,7 @@ export function ProductImage({
   return (
     <span
       style={{ "--photo-edge": edgeColor } as CSSProperties}
-      className={`relative flex self-start items-center justify-center overflow-hidden product-image-frame ${shape === "tile" ? "aspect-[179/142]" : "aspect-square"} ${radius === "xl" ? "rounded-xl" : "rounded-md"} ${className}`}
+      className={`relative flex self-start items-center justify-center overflow-hidden bg-[var(--photo-edge,var(--card))] ${shape === "tile" ? "aspect-[179/142]" : "aspect-square"} ${radius === "xl" ? "rounded-xl" : "rounded-md"} ${className}`}
     >
       <Img
         src={src}
@@ -33,7 +33,7 @@ export function ProductImage({
         alt={alt}
         fallback={fallback}
         className="absolute inset-0 size-full"
-        imageClassName="product-image-pixels object-contain object-center"
+        imageClassName="object-contain object-center [mask-image:var(--product-mask)] [mask-composite:intersect] [mask-repeat:no-repeat]"
       />
     </span>
   );

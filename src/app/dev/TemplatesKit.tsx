@@ -38,10 +38,22 @@ export function TemplatesKit() {
           </CatalogTemplate>
         );
       case "product":
-        return <ProductTemplate title={title} gallery={body} info={body} buyBar={<Price amountMinor={18900} />} />;
+        return (
+          <ProductTemplate
+            title={title}
+            gallery={body}
+            info={body}
+            buyBar={<Price currency="RUB" amountMinor={18900} />}
+          />
+        );
       case "checkout":
         return (
-          <CheckoutTemplate title={title} sections={[body]} summary={<Price amountMinor={18900} />} cta="Продолжить" />
+          <CheckoutTemplate
+            title={title}
+            sections={[body]}
+            summary={<Price currency="RUB" amountMinor={18900} />}
+            cta="Продолжить"
+          />
         );
       case "order":
         return <OrderTemplate title={title} status={body} sections={[body]} />;

@@ -3,8 +3,8 @@ import { createRootRouteWithContext } from "@tanstack/react-router";
 import { AppShell } from "../app/shell/AppShell";
 import { Header } from "../app/shell/Header";
 import { Screen } from "../app/shell/Screen";
+import { ErrorState } from "../ui/AsyncErrorState";
 import { EmptyState } from "../ui/EmptyState";
-import { ErrorState } from "../ui/ErrorState";
 
 export const rootRoute = createRootRouteWithContext<{ qc: QueryClient }>()({
   validateSearch: (search: Record<string, unknown>): { shop?: string } => ({

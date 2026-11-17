@@ -6,6 +6,7 @@ export const croissantPhoto: ProductImageSource = demoImages["demo-croissant"];
 export const milkPhoto: ProductImageSource = demoImages["demo-milk"];
 export const berryPhoto: ProductImageSource = demoImages["demo-berry"];
 export const demoProduct = {
+  currency: "RUB",
   name: "Томаты на ветке",
   unit: "500 г",
   amountMinor: 18900,

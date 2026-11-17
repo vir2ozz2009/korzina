@@ -24,7 +24,7 @@ export function Transition({ children }: { children: ReactNode }) {
   return (
     <div
       key={state.key}
-      className="route-transition"
+      className={`motion-reduce:animate-none ${state.kind === "sheet" ? "" : previous.current.kind === "push" ? (previous.current.back ? "animate-route-back" : "animate-route-push") : ["tab", "fade"].includes(previous.current.kind) ? "animate-content-fade" : ""}`}
       data-transition={state.kind === "sheet" ? "none" : previous.current.kind}
       data-back={previous.current.back}
     >

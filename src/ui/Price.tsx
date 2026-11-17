@@ -4,11 +4,11 @@ export interface PriceProps {
   amountMinor: number;
   from?: boolean;
   oldMinor?: number;
-  currency?: string;
+  currency: string;
   size?: "price" | "display" | "title-3";
 }
 const sizes = { price: "text-price", display: "text-display", "title-3": "text-title-3" };
-export function Price({ amountMinor, oldMinor, from, currency = "RUB", size = "price" }: PriceProps) {
+export function Price({ amountMinor, oldMinor, from, currency, size = "price" }: PriceProps) {
   const label = `${from ? "от " : ""}${formatMinor(amountMinor, currency)}`;
   const valueRef = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
@@ -16,8 +16,9 @@ export function Price({ amountMinor, oldMinor, from, currency = "RUB", size = "p
     const frame = value?.parentElement;
     if (!value || !frame || !label || size !== "price") return;
     const resizePrice = () => {
-      value.classList.remove("price-compact");
-      value.classList.toggle("price-compact", value.scrollWidth > frame.clientWidth);
+      value.classList.remove("text-title-3");
+      value.classList.add("text-price");
+      if (value.scrollWidth > frame.clientWidth) value.classList.replace("text-price", "text-title-3");
     };
     const observer = new ResizeObserver(resizePrice);
     observer.observe(frame);
@@ -29,7 +30,7 @@ export function Price({ amountMinor, oldMinor, from, currency = "RUB", size = "p
     <span className="inline-flex min-w-0 max-w-full flex-wrap items-baseline gap-x-2 gap-y-0">
       <span
         ref={valueRef}
-        className={`price-value shrink-0 whitespace-nowrap ${sizes[size]} ${discount ? "text-primary-text" : ""}`}
+        className={`shrink-0 whitespace-nowrap ${sizes[size]} ${discount ? "text-primary-text" : ""}`}
       >
         {label}
       </span>

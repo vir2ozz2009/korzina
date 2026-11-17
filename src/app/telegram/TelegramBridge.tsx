@@ -1,34 +1,20 @@
-import { useRouter, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { useBack } from "../shell/useBack";
-import { connectTelegram, loadTelegram } from "./adapter";
+import { useRouter } from "@tanstack/react-router";
+import { lazy, Suspense, useEffect } from "react";
 
+const Content = lazy(() => import("./TelegramContent").then((module) => ({ default: module.TelegramContent })));
 export function TelegramBridge() {
   const router = useRouter();
-  const root = useRouterState({
-    select: (state) => !state.location.search.variants && (state.matches.at(-1)?.staticData.root ?? false),
-  });
-  const back = useBack();
-  const [app, setApp] = useState<Awaited<ReturnType<typeof loadTelegram>>>();
-  useEffect(() => {
-    void loadTelegram()
-      .then(setApp)
-      .catch(() => {});
-  }, []);
-  useEffect(() => (app ? connectTelegram(app) : undefined), [app]);
-  useEffect(() => {
-    if (!app) return;
-    if (root) app.BackButton.hide();
-    else app.BackButton.show();
-    const handler = () => back();
-    app.BackButton.onClick(handler);
-    return () => app.BackButton.offClick(handler);
-  }, [app, root, back]);
-  useEffect(() => {
-    const sync = () => {
-      document.title = router.state.matches.at(-1)?.staticData.title ?? "Korzina";
-    };
-    return router.subscribe("onResolved", sync);
-  }, [router]);
-  return null;
+  useEffect(
+    () =>
+      router.subscribe("onResolved", () => {
+        document.title = router.state.matches.at(-1)?.staticData.title ?? "Korzina";
+      }),
+    [router],
+  );
+  const launched = window.Telegram?.WebApp || /(?:^|[?#&])tgWebAppData=/.test(location.hash + location.search);
+  return launched ? (
+    <Suspense fallback={null}>
+      <Content />
+    </Suspense>
+  ) : null;
 }

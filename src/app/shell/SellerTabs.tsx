@@ -19,7 +19,10 @@ export function SellerTabs() {
     sellerHistory.visit(location.href);
   }, [location.href]);
   return (
-    <nav aria-label="Кабинет" className="seller-tabs grid grid-cols-5 border-t border-border bg-card">
+    <nav
+      aria-label="Кабинет"
+      className="fixed bottom-0 left-1/2 z-30 w-full max-w-(--content-max) -translate-x-1/2 pb-(--safe-bottom) grid grid-cols-5 border-t border-border bg-card"
+    >
       {tabs.map(({ path, title, Icon }) => (
         <button
           key={path}

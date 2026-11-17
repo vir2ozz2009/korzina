@@ -27,6 +27,7 @@ export function CartPhotosKit() {
           </Button>
         )}
         <TotalsBlock
+          currency="RUB"
           rows={[
             { label: "Товары", amountMinor: productsMinor },
             { label: "Доставка", amountMinor: 5000 },

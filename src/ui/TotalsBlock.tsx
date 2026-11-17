@@ -3,11 +3,11 @@ import { Divider } from "./Divider";
 export function TotalsBlock({
   rows,
   totalMinor,
-  currency = "RUB",
+  currency,
 }: {
   rows: readonly { label: string; amountMinor: number }[];
   totalMinor: number;
-  currency?: string;
+  currency: string;
 }) {
   return (
     <div className="space-y-3">

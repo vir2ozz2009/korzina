@@ -56,7 +56,7 @@ export function AppShell() {
           <ShopNavigation>
             <TelegramBridge />
             <div
-              className="app-shell"
+              className={`mx-auto min-h-(--app-height) max-w-(--content-max) overflow-x-clip pt-(--safe-top) pl-(--safe-left) pr-(--safe-right) pb-[calc(var(--tab-height)+var(--safe-bottom))] ${seller ? "[--tab-height:var(--seller-tab-height)]" : ""}`}
               data-seller={seller}
               onTouchStart={(event) => {
                 const touch = event.touches[0];

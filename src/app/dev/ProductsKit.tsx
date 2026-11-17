@@ -24,13 +24,13 @@ export function ProductsKit({ notify }: { notify: (message: string) => void }) {
       </KitSection>
       <KitSection title="Цены">
         <div>
-          <Price amountMinor={18900} />
+          <Price currency="RUB" amountMinor={18900} />
         </div>
         <div>
-          <Price amountMinor={18900} oldMinor={23900} size="display" />
+          <Price currency="RUB" amountMinor={18900} oldMinor={23900} size="display" />
         </div>
         <div>
-          <Price amountMinor={18950} size="title-3" />
+          <Price currency="RUB" amountMinor={18950} size="title-3" />
         </div>
         <div className="flex gap-2">
           <DiscountBadge amountMinor={18900} oldMinor={23900} />

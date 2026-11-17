@@ -6,6 +6,7 @@ const feature = "src/features/cart/ui/Cart.tsx";
 describe("архитектурные ограничения", () => {
   it.each([
     [feature, 'const color = "#fff";'],
+    ["src/styles/storefront.css", ".tile { display: flex; }"],
     ["src/shared/api.ts", "import { app } from '../../server/index'"],
     ["src/shared/api.ts", "import type { Other } from '../../server/index'"],
     [feature, 'const color = "rgb(1 2 3)";'],
@@ -39,6 +40,7 @@ describe("архитектурные ограничения", () => {
     [feature, "import { x } from '@/shared/money'"],
     ["src/shared/money.ts", "const minor = value * 100;"],
     ["src/shared/theme-presets.ts", 'const color = "#ffffff";'],
+    ["src/styles/main.css", "@import 'tailwindcss';"],
     ["src/styles/tokens.css", ":root { --primary: #ff335f; }"],
     ["server/index.ts", "const x = 1;\n".repeat(250)],
   ])("разрешает корректный код в %s", (path, content) => {
