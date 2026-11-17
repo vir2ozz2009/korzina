@@ -17,7 +17,7 @@ describe("Shop SQLite", () => {
     const b = stub("korzina-demo-test2");
     await runInDurableObject(a, (_instance, ctx) => {
       ctx.storage.sql.exec("INSERT INTO settings (key,value) VALUES (?,?)", "display_name", "Только магазин A");
-      expect(ctx.storage.sql.exec("SELECT count(*) AS count FROM __drizzle_migrations").one()).toEqual({ count: 6 });
+      expect(ctx.storage.sql.exec("SELECT count(*) AS count FROM __drizzle_migrations").one()).toEqual({ count: 7 });
     });
     expect(await info("lavka")).toMatchObject({ name: "Только магазин A" });
     expect(await info("test2")).toMatchObject({ name: "Второй магазин" });
@@ -27,7 +27,7 @@ describe("Shop SQLite", () => {
     await evictDurableObject(a);
     expect(await info("lavka")).toMatchObject({ name: "Только магазин A" });
     await runInDurableObject(a, (_instance, ctx) => {
-      expect(ctx.storage.sql.exec("SELECT count(*) AS count FROM __drizzle_migrations").one()).toEqual({ count: 6 });
+      expect(ctx.storage.sql.exec("SELECT count(*) AS count FROM __drizzle_migrations").one()).toEqual({ count: 7 });
     });
     expect(await info("test2")).toMatchObject({ name: "Второй магазин" });
   });

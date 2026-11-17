@@ -5,7 +5,7 @@ import { setupPlatform } from "../testing/platform";
 
 beforeAll(setupPlatform);
 
-// Warmed requests include the Shop identity lookup. Migrations are initialization work.
+// B1: the immutable Shop identity is checked once; namespace/id is checked on every request.
 describe("бюджет полного запроса Shop", () => {
   it("включает служебные чтения, не пишет при повторном GET и разделяет параллельные метрики", async () => {
     const id = "f3-request-budget";
@@ -30,10 +30,10 @@ describe("бюджет полного запроса Shop", () => {
         route: "/api/shop",
         shopId: id,
         requestId: index === 0 ? "one" : "two",
-        sql: 2,
+        sql: 1,
         rowsWritten: 0,
       });
-      assertSqlBudget(metric, { sql: 2, rowsRead: 3, rowsWritten: 0 });
+      assertSqlBudget(metric, { sql: 1, rowsRead: 2, rowsWritten: 0 });
     }
   });
 });

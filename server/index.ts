@@ -8,6 +8,7 @@ import { handleError, notFound } from "./middleware/errors";
 import { apiMetrics } from "./middleware/metrics";
 import { RateLimiter, rateLimit } from "./middleware/rate-limit";
 import { requestId } from "./middleware/request-id";
+import { catalogGateway } from "./modules/catalog/gateway";
 import { localPublicMedia } from "./modules/media/local-public";
 import { sellerAccess } from "./platform/auth/access-routes";
 import { platformAuth } from "./platform/auth/routes";
@@ -56,6 +57,7 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
   })
   .use("/auth/*", forwarding)
   .use("/media/*", forwarding)
+  .use("/catalog/*", catalogGateway)
   .use("/shop", forwarding)
   .use("/diagnostics/*", forwarding)
   .route("/", shopRoutes())

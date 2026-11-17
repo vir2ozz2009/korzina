@@ -1,0 +1,86 @@
+{
+  "demo-curd": {
+    "src": "/assets/catalog/curd-712a7cd13044-800.webp",
+    "srcSet": "/assets/catalog/curd-712a7cd13044-160.webp 160w, /assets/catalog/curd-712a7cd13044-400.webp 400w, /assets/catalog/curd-712a7cd13044-800.webp 800w, /assets/catalog/curd-712a7cd13044-1600.webp 1600w",
+    "original": {
+      "src": "/assets/catalog/curd-712a7cd13044-1600.webp"
+    }
+  },
+  "demo-berry": {
+    "src": "/assets/catalog/berry-84b15dd4f80f-800.webp",
+    "srcSet": "/assets/catalog/berry-84b15dd4f80f-160.webp 160w, /assets/catalog/berry-84b15dd4f80f-400.webp 400w, /assets/catalog/berry-84b15dd4f80f-800.webp 800w, /assets/catalog/berry-84b15dd4f80f-1600.webp 1600w",
+    "original": {
+      "src": "/assets/catalog/berry-84b15dd4f80f-1600.webp"
+    }
+  },
+  "demo-pancake": {
+    "src": "/assets/catalog/pancake-2665f31d3c1c-800.webp",
+    "srcSet": "/assets/catalog/pancake-2665f31d3c1c-160.webp 160w, /assets/catalog/pancake-2665f31d3c1c-400.webp 400w, /assets/catalog/pancake-2665f31d3c1c-800.webp 800w, /assets/catalog/pancake-2665f31d3c1c-1600.webp 1600w",
+    "original": {
+      "src": "/assets/catalog/pancake-2665f31d3c1c-1600.webp"
+    }
+  },
+  "demo-milk": {
+    "src": "/assets/catalog/milk-17d18e5d1f46-800.webp",
+    "srcSet": "/assets/catalog/milk-17d18e5d1f46-160.webp 160w, /assets/catalog/milk-17d18e5d1f46-400.webp 400w, /assets/catalog/milk-17d18e5d1f46-800.webp 800w, /assets/catalog/milk-17d18e5d1f46-1600.webp 1600w",
+    "original": {
+      "src": "/assets/catalog/milk-17d18e5d1f46-1600.webp"
+    }
+  },
+  "demo-strawberry": {
+    "src": "/assets/catalog/strawberry-10480feba4be-800.webp",
+    "srcSet": "/assets/catalog/strawberry-10480feba4be-160.webp 160w, /assets/catalog/strawberry-10480feba4be-400.webp 400w, /assets/catalog/strawberry-10480feba4be-800.webp 800w, /assets/catalog/strawberry-10480feba4be-1600.webp 1600w",
+    "original": {
+      "src": "/assets/catalog/strawberry-10480feba4be-1600.webp"
+    }
+  },
+  "demo-croissant": {
+    "src": "/assets/catalog/croissant-dff64e026710-800.webp",
+    "srcSet": "/assets/catalog/croissant-dff64e026710-160.webp 160w, /assets/catalog/croissant-dff64e026710-400.webp 400w, /assets/catalog/croissant-dff64e026710-800.webp 800w, /assets/catalog/croissant-dff64e026710-1600.webp 1600w",
+    "original": {
+      "src": "/assets/catalog/croissant-dff64e026710-1600.webp"
+    }
+  },
+  "demo-curd-info": {
+    "src": "/assets/catalog/curd-info-0fa98cb51a3c.svg",
+    "srcSet": "",
+    "original": {
+      "src": "/assets/catalog/curd-info-0fa98cb51a3c.svg"
+    }
+  },
+  "demo-berry-info": {
+    "src": "/assets/catalog/berry-info-9a76fa2784f3.svg",
+    "srcSet": "",
+    "original": {
+      "src": "/assets/catalog/berry-info-9a76fa2784f3.svg"
+    }
+  },
+  "demo-pancake-info": {
+    "src": "/assets/catalog/pancake-info-432eb89beebe.svg",
+    "srcSet": "",
+    "original": {
+      "src": "/assets/catalog/pancake-info-432eb89beebe.svg"
+    }
+  },
+  "demo-milk-info": {
+    "src": "/assets/catalog/milk-info-579b9d38248c.svg",
+    "srcSet": "",
+    "original": {
+      "src": "/assets/catalog/milk-info-579b9d38248c.svg"
+    }
+  },
+  "demo-strawberry-info": {
+    "src": "/assets/catalog/strawberry-info-eaa6dae1a578.svg",
+    "srcSet": "",
+    "original": {
+      "src": "/assets/catalog/strawberry-info-eaa6dae1a578.svg"
+    }
+  },
+  "demo-croissant-info": {
+    "src": "/assets/catalog/croissant-info-82e564b9394a.svg",
+    "srcSet": "",
+    "original": {
+      "src": "/assets/catalog/croissant-info-82e564b9394a.svg"
+    }
+  }
+}
