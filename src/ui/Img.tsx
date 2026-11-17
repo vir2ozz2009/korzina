@@ -25,7 +25,7 @@ export function Img({
   return (
     <span
       data-loaded={loaded === src}
-      className={`image-surface relative flex items-center justify-center overflow-hidden ${className}`}
+      className={`${loaded === src ? "bg-[var(--photo-edge,var(--card))]" : "bg-input"} relative flex items-center justify-center overflow-hidden ${className}`}
     >
       {src && failed !== src ? (
         <img

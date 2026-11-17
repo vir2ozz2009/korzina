@@ -28,7 +28,7 @@ export function DataKit({ notify }: { notify: (message: string) => void }) {
       </Card>
       <Card size="lg">
         <h3 className="text-title-2">Карточка · 20</h3>
-        <TotalsBlock rows={demoTotals} totalMinor={23900} />
+        <TotalsBlock currency="RUB" rows={demoTotals} totalMinor={23900} />
       </Card>
       <ListItem
         title="Доставка"

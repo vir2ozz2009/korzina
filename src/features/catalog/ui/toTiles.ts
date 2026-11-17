@@ -3,7 +3,7 @@ import type { StorefrontProduct } from "../model";
 import { selectOffer } from "../offer";
 import type { HomeViewProps } from "./HomeView";
 
-export function ProductTiles({
+export function toTiles({
   products,
   currency,
   cart,

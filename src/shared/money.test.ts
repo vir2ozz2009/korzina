@@ -66,11 +66,11 @@ describe("деньги: целые минимальные единицы", () =>
 describe("денежные значения в UI", () => {
   it("сохраняет минимальные единицы при форматировании, включая большие суммы", () => {
     const normalize = (value: string) => value.replace(/\s/g, " ");
-    expect(normalize(formatMinor(18950))).toBe("189,50 ₽");
-    expect(normalize(formatMinor(18900))).toBe("189 ₽");
-    expect(normalize(formatMinor(Number.MAX_SAFE_INTEGER))).toBe("90 071 992 547 409,91 ₽");
-    expect(normalize(formatMinor(0))).toBe("0 ₽");
-    expect(() => formatMinor(-1)).toThrow(RangeError);
+    expect(normalize(formatMinor(18950, "RUB"))).toBe("189,50 ₽");
+    expect(normalize(formatMinor(18900, "RUB"))).toBe("189 ₽");
+    expect(normalize(formatMinor(Number.MAX_SAFE_INTEGER, "RUB"))).toBe("90 071 992 547 409,91 ₽");
+    expect(normalize(formatMinor(0, "RUB"))).toBe("0 ₽");
+    expect(() => formatMinor(-1, "RUB")).toThrow(RangeError);
   });
   it("процент скидки не завышает выгоду, без скидки равен нулю", () => {
     expect(discountPercent(18900, 23900)).toBe(20);

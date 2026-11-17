@@ -16,13 +16,12 @@ export function HomeView({ categories, products, brands }: HomeViewProps) {
     <div className="space-y-3">
       {categories.length > 0 && (
         <section className="space-y-2">
-          <SectionHeader title="Категории" href="/all" />
+          <SectionHeader title="Категории" />
           <CategoryRail>
             {categories.map((category, index) => (
               <CategoryTile
                 key={category.id}
                 {...category}
-                href={`/c/${category.id}`}
                 size={index % 4 === 0 || index % 4 === 3 ? "2x1" : "1x1"}
                 column={[1, 3, 1, 2][index % 4] + Math.floor(index / 4) * 3}
                 row={[1, 1, 2, 2][index % 4]}
@@ -41,14 +40,13 @@ export function HomeView({ categories, products, brands }: HomeViewProps) {
       </section>
       {brands.length > 0 && (
         <section className="space-y-2">
-          <SectionHeader title="Бренды" href="/brands" />
+          <SectionHeader title="Бренды" />
           <div className="flex gap-2 overflow-x-auto">
             {brands.map((brand) => (
               <BrandTile
                 key={brand.id}
                 name={brand.name}
                 logo={typeof brand.image === "string" ? brand.image : brand.image?.src}
-                href={`/b/${brand.id}`}
               />
             ))}
           </div>

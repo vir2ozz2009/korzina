@@ -22,6 +22,12 @@ function resolveImport(file: string, specifier: string): string {
 export function inspectSource({ path, content }: SourceFile): string[] {
   if (!sourceExtension.test(path)) return [];
   const errors: string[] = [];
+  if (
+    path.startsWith("src/") &&
+    path.endsWith(".css") &&
+    !["src/styles/tokens.css", "src/styles/main.css"].includes(path)
+  )
+    errors.push(`${path}: стили должны быть Tailwind-классами на токенах`);
   const report = (message: string) => errors.push(`${path}: ${message}`);
   const lines = content.trimEnd().split("\n").length;
   if (lines > 250 && !lineExceptions[path]) report(`длина ${lines} строк, максимум 250`);

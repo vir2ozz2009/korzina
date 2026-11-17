@@ -1,6 +1,7 @@
-export function BrandTile({ name, logo, href }: { name: string; logo?: string; href: string }) {
+export function BrandTile({ name, logo, href }: { name: string; logo?: string; href?: string }) {
+  const Tile = href ? "a" : "div";
   return (
-    <a
+    <Tile
       href={href}
       className="flex h-28 w-32 shrink-0 flex-col items-center justify-center gap-2 rounded-lg bg-card p-3"
     >
@@ -10,6 +11,6 @@ export function BrandTile({ name, logo, href }: { name: string; logo?: string; h
         <span className="flex h-11 items-center text-title-2 text-muted-foreground">{name.slice(0, 1)}</span>
       )}
       <span className="text-center text-small font-medium">{name}</span>
-    </a>
+    </Tile>
   );
 }

@@ -25,8 +25,8 @@ export function Screen({
       !(state.query.isError && (state.query.data === undefined || errorKind(state.query.error) === "access")) &&
       !state.empty);
   return (
-    <section className="screen">
-      <div className="screen-header">{header}</div>
+    <section className="flex min-h-[calc(var(--app-height)_-_var(--safe-top)_-_var(--tab-height)_-_var(--safe-bottom))] flex-col">
+      <div className="sticky top-(--safe-top) z-20">{header}</div>
       <main
         id="screen-content"
         className={`min-h-0 flex-1 space-y-3 px-(--page-x) ${template === "home" ? "pt-0 pb-24" : "py-3"}`}

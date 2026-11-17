@@ -37,11 +37,11 @@ export function ProductScreen() {
         info={
           <Card>
             <h1 className="text-title-1">{data?.name}</h1>
-            {variant && (
+            {variant && data && (
               <>
                 <p className="text-meta text-muted-foreground">{offer?.unit}</p>
                 <Price
-                  currency={data?.currency}
+                  currency={data.currency}
                   amountMinor={variant.priceMinor}
                   oldMinor={variant.oldPriceMinor ?? undefined}
                   from={offer?.from}

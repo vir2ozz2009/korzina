@@ -10,7 +10,7 @@ export function CategoryPhoto({ source, onError }: { source: ProductImageSource;
   if (valid && width && height)
     return (
       <svg
-        className="category-photo"
+        className="pointer-events-none block h-auto w-auto max-h-full max-w-full object-contain object-bottom [mask-image:var(--category-mask)] [mask-composite:intersect] [mask-repeat:no-repeat]"
         data-category-photo
         data-content-box="true"
         data-photo-src={source.src}
@@ -25,7 +25,7 @@ export function CategoryPhoto({ source, onError }: { source: ProductImageSource;
     );
   return (
     <img
-      className="category-photo"
+      className="pointer-events-none block h-auto w-auto max-h-full max-w-full object-contain object-bottom [mask-image:var(--category-mask)] [mask-composite:intersect] [mask-repeat:no-repeat]"
       data-category-photo
       data-photo-src={source.src}
       src={source.src}

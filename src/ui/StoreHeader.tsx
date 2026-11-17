@@ -16,34 +16,50 @@ export interface StoreHeaderProps {
 }
 export function StoreHeader({ name, logo, address, profile, onAddress, onAbout, onChat, onProfile }: StoreHeaderProps) {
   return (
-    <header className="store-header">
-      <button type="button" className="store-address" onClick={onAddress}>
-        <span className="text-micro font-normal text-muted-foreground">Доставим сюда</span>
-        <span
-          className={`store-address-value text-caption font-semibold ${address ? "text-muted-foreground" : "text-primary-text"}`}
+    <header className="grid h-(--store-header-height) grid-cols-[minmax(0,1fr)_var(--store-mark-width)_minmax(0,1fr)] items-center bg-background p-(--page-x)">
+      {onAddress ? (
+        <button
+          type="button"
+          className="flex min-h-(--control-md) min-w-0 flex-col justify-center gap-0.5 text-left"
+          onClick={onAddress}
         >
-          {address || "Выбрать адрес"} ›
-        </span>
-      </button>
-      <button type="button" className="store-identity" onClick={onAbout} aria-label={`О магазине ${name}`}>
+          <span className="text-micro font-normal text-muted-foreground">Доставим сюда</span>
+          <span
+            className={`max-w-full truncate text-caption font-semibold ${address ? "text-muted-foreground" : "text-primary-text"}`}
+          >
+            {address || "Выбрать адрес"} ›
+          </span>
+        </button>
+      ) : (
+        <span aria-hidden />
+      )}
+      <button
+        type="button"
+        className="flex h-(--store-identity-height) min-w-0 flex-col items-center justify-center gap-0.5"
+        onClick={onAbout}
+        aria-label={`О магазине ${name}`}
+      >
         <StoreLogo name={name} src={logo} />
-        <span className="store-name text-micro font-medium" title={name}>
+        <span className="w-full truncate text-micro font-medium" title={name}>
           {name}
         </span>
       </button>
-      <div className="store-account">
-        <IconButton aria-label="Чат с магазином" background="card" onClick={onChat}>
-          <MessageSquare size={22} />
-        </IconButton>
-        {profile ? (
-          <IconButton aria-label="Профиль" background="card" onClick={onProfile}>
-            <Avatar {...profile} />
+      <div className="flex items-center justify-end gap-1">
+        {onChat && (
+          <IconButton aria-label="Чат с магазином" background="card" onClick={onChat}>
+            <MessageSquare size={22} />
           </IconButton>
-        ) : (
-          <Button variant="secondary" className="px-3" onClick={onProfile}>
-            Войти
-          </Button>
         )}
+        {onProfile &&
+          (profile ? (
+            <IconButton aria-label="Профиль" background="card" onClick={onProfile}>
+              <Avatar {...profile} />
+            </IconButton>
+          ) : (
+            <Button variant="secondary" className="px-3" onClick={onProfile}>
+              Войти
+            </Button>
+          ))}
       </div>
     </header>
   );

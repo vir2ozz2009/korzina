@@ -1,7 +1,5 @@
 @import "tailwindcss";
 @import "./tokens.css";
-@import "./shell.css";
-@import "./storefront.css";
 @import "@fontsource-variable/inter";
 
 @layer base {

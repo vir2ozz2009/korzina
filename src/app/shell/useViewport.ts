@@ -1,11 +1,10 @@
 import { useEffect } from "react";
-import { telegramApp } from "../telegram/adapter";
 
 export function useViewport() {
   useEffect(() => {
     const viewport = window.visualViewport;
     const resize = () => {
-      if (!telegramApp())
+      if (!window.Telegram?.WebApp)
         document.documentElement.style.setProperty("--app-height", `${viewport?.height ?? innerHeight}px`);
     };
     resize();

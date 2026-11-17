@@ -3,14 +3,14 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { bootstrap } from "../../../app/bootstrap";
 import { HomeTemplate } from "../../../app/templates/HomeTemplate";
 import { AboutStore } from "../../../ui/AboutStore";
+import { ErrorState } from "../../../ui/AsyncErrorState";
 import { Button } from "../../../ui/Button";
-import { ErrorState } from "../../../ui/ErrorState";
 import { StoreHeader } from "../../../ui/StoreHeader";
 import { useCart } from "../../cart";
 import { useCatalog, useOffers } from "../api";
 import { storefrontProducts } from "../model";
 import { HomeView } from "./HomeView";
-import { ProductTiles } from "./ProductTiles";
+import { toTiles } from "./toTiles";
 
 const VariantsSheet = lazy(() => import("./VariantsSheet").then((module) => ({ default: module.VariantsSheet })));
 
@@ -43,15 +43,7 @@ export function HomeScreen() {
     <>
       <HomeTemplate
         title={bootstrap?.name ?? "Магазин"}
-        header={
-          <StoreHeader
-            name={bootstrap?.name ?? "Магазин"}
-            onAbout={() => void navigate({ to: "/about" })}
-            onAddress={() => void navigate({ to: "/addresses" })}
-            onChat={() => void navigate({ to: "/chat" })}
-            onProfile={() => void navigate({ to: "/login" })}
-          />
-        }
+        header={<StoreHeader name={bootstrap?.name ?? "Магазин"} onAbout={() => void navigate({ to: "/about" })} />}
         after={<AboutStore onClick={() => void navigate({ to: "/about" })} />}
         state={{
           query,
@@ -65,13 +57,21 @@ export function HomeScreen() {
             categories={(document?.categories ?? [])
               .filter((category) => !category.parentId && category.hasProducts)
               .map((category) => ({ ...category, image: category.image ?? undefined }))}
-            products={ProductTiles({
-              products,
-              currency: offers.data?.currency ?? "RUB",
-              cart,
-              choose: (id) =>
-                void navigate({ to: "/", search: (previous) => ({ ...previous, variants: id }), resetScroll: false }),
-            })}
+            products={
+              offers.data
+                ? toTiles({
+                    products,
+                    currency: offers.data.currency,
+                    cart,
+                    choose: (id) =>
+                      void navigate({
+                        to: "/",
+                        search: (previous) => ({ ...previous, variants: id }),
+                        resetScroll: false,
+                      }),
+                  })
+                : []
+            }
             brands={(document?.brands ?? []).filter((brand) => brand.hasProducts)}
           />,
           cart.query.isError && (

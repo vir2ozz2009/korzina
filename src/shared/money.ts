@@ -52,7 +52,7 @@ export function allocateMinor(total: number, weights: readonly number[]): number
   return shares.map(safe);
 }
 
-export function formatMinor(amount: number, currency = "RUB"): string {
+export function formatMinor(amount: number, currency: string): string {
   const minor = integer(amount);
   const formatter = new Intl.NumberFormat("ru-RU", { style: "currency", currency });
   const digits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
