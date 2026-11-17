@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { deploymentSmoke } from "./deployment-smoke.ts";
+import { previewMediaSmoke } from "./preview-media-smoke.ts";
 
 const branch =
   process.env.WORKERS_CI_BRANCH || execFileSync("git", ["branch", "--show-current"], { encoding: "utf8" }).trim();
@@ -19,3 +20,4 @@ const result: { preview_urls?: string[]; deployment_urls?: string[] } = JSON.par
 const url = result.preview_urls?.[0] ?? result.deployment_urls?.[0];
 if (!url) throw new Error("Cloudflare не вернул URL превью");
 await deploymentSmoke(url);
+await previewMediaSmoke(url);

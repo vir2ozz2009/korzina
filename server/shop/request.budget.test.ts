@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { exports } from "cloudflare:workers";
 import { beforeAll, describe, expect, it } from "vitest";
 import { assertSqlBudget } from "../metrics";
 import { setupPlatform } from "../testing/platform";
@@ -9,7 +9,7 @@ beforeAll(setupPlatform);
 describe("бюджет полного запроса Shop", () => {
   it("включает служебные чтения, не пишет при повторном GET и разделяет параллельные метрики", async () => {
     const id = "f3-request-budget";
-    const stub = env.SHOP.get(env.SHOP.idFromName(id));
+    const stub = exports.Shop.get(exports.Shop.idFromName(id));
     const get = (requestId: string) =>
       stub.fetch(
         new Request("https://internal/api/shop", {

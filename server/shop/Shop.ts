@@ -37,7 +37,8 @@ export class Shop extends DurableObject<Env> {
       const shop = parsed.data;
       const context = shopContextContract.safeParse(JSON.parse(decodeURIComponent(metadata)));
       shopId = shop.id;
-      if (!this.env.SHOP.idFromName(shop.id).equals(this.ctx.id)) throw new ApiError("FORBIDDEN", "Другой магазин");
+      if (!this.ctx.exports.Shop.idFromName(shop.id).equals(this.ctx.id))
+        throw new ApiError("FORBIDDEN", "Другой магазин");
       const identity = db.select({ value: settings.value }).from(settings).where(eq(settings.key, "shop_id")).get();
       if (identity && identity.value !== shop.id) throw new ApiError("FORBIDDEN", "Другой магазин");
       if (!identity)

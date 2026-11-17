@@ -19,7 +19,6 @@ export default defineConfig(({ mode, isPreview }) => ({
       IMAGES: bindings.images(),
       MEDIA_PUBLIC_URL: bindings.text(environmentResources(isPreview).publicOrigin),
       MEDIA_SIGNING_KEY: isPreview ? undefined : bindings.secret(),
-      SHOP: bindings.durableObject({ worker: "korzina-demo", exportName: "Shop" }),
     },
     compatibilityDate: "2026-11-16",
     domains: isPreview ? [] : ["demo.korzina.app"],

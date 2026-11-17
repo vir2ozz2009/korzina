@@ -109,12 +109,12 @@ docs/
 | demo | `demo.korzina.app` (+ `*.demo.korzina.app` после покупки wildcard) | отдельные ресурсы `korzina-demo` |
 | prod | `korzina.app`, `*.korzina.app` | отдельно, только по решению Андрея |
 
-Превью ветки: Worker Previews (отдельные Shop DO, общие demo D1/R2). Version URLs для Worker с Durable Objects не выдаются. Привязки (D1, R2, DO, Queue) описываются в `cloudflare.config.ts`; если CLI `cf` ещё не поддерживает нужную привязку, переходим на `wrangler.jsonc` и правим README.
+Превью ветки: Worker Previews (отдельные Shop DO через `ctx.exports`, D1/R2 `korzina-preview-*`; demo изменяет только `main`). Version URLs для Worker с Durable Objects не выдаются. Привязки (D1, R2, DO, Queue) описываются в `cloudflare.config.ts`; если CLI `cf` ещё не поддерживает нужную привязку, переходим на `wrangler.jsonc` и правим README.
 
 ## 9. Бюджеты производительности (проверяются в фазе L)
 
 Бюджеты запросов к базе по сценариям и правила экономии — `docs/PERFORMANCE.md`.
 
-- JS витрины ≤ 150 КБ gzip на первом экране; кабинет загружается отдельным чанком.
+- JS витрины ≤ 120 КБ gzip на первом экране; кабинет загружается отдельным чанком.
 - API чтения каталога p95 ≤ 150 мс; команда оформления p95 ≤ 400 мс.
 - LCP главной на 4G ≤ 2,0 с; изображения: AVIF/WebP, `srcset`, ленивая загрузка ниже первого экрана.
