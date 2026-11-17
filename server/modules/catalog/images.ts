@@ -23,13 +23,21 @@ export function catalogImage(
   };
 }
 
-export function documentImage(value: string | null, shopId: string, origin: string) {
+export function documentImage(value: string | null, shopId: string) {
   if (!value) return null;
   const { id, ...metadata } = JSON.parse(value) as PhotoMetadata & { id: string };
-  return catalogImage(
+  const image = catalogImage(
     id,
     shopId,
-    origin,
+    "",
     Object.fromEntries(Object.entries(metadata).filter(([, value]) => value !== null)),
   );
+  if (!image) return null;
+  const relative = (url: string) => url.replace(/^https?:\/\/[^/]+/, "");
+  return {
+    ...image,
+    src: relative(image.src),
+    srcSet: image.srcSet.split(", ").map(relative).join(", "),
+    original: { src: relative(image.original.src) },
+  };
 }

@@ -8,7 +8,7 @@ import { SectionHeader } from "../../../ui/SectionHeader";
 export interface HomeViewProps {
   categories: { id: string; name: string; image?: ProductImageValue }[];
   products: (ProductTileProps & { id: string })[];
-  brands: { id: string; name: string }[];
+  brands: { id: string; name: string; image?: ProductImageValue | null }[];
 }
 
 export function HomeView({ categories, products, brands }: HomeViewProps) {
@@ -44,7 +44,12 @@ export function HomeView({ categories, products, brands }: HomeViewProps) {
           <SectionHeader title="Бренды" href="/brands" />
           <div className="flex gap-2 overflow-x-auto">
             {brands.map((brand) => (
-              <BrandTile key={brand.id} name={brand.name} href={`/b/${brand.id}`} />
+              <BrandTile
+                key={brand.id}
+                name={brand.name}
+                logo={typeof brand.image === "string" ? brand.image : brand.image?.src}
+                href={`/b/${brand.id}`}
+              />
             ))}
           </div>
         </section>

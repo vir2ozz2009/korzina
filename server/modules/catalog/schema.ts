@@ -29,6 +29,7 @@ export const brands = sqliteTable(
     name: text("name").notNull(),
     visible: integer("visible", { mode: "boolean" }).notNull().default(true),
     position: integer("position").notNull().default(0),
+    photoId: text("photo_id").references(() => media.id),
   },
   (t) => [index("brands_navigation_idx").on(t.visible, t.id)],
 );

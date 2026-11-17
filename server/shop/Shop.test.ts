@@ -3,6 +3,7 @@ import { env, exports } from "cloudflare:workers";
 import { beforeAll, describe, expect, it } from "vitest";
 import { ShopContextCache } from "../platform/shop-context";
 import { setupPlatform } from "../testing/platform";
+import { migrations } from "./migrations";
 
 beforeAll(setupPlatform);
 // A fresh Worker isolate must read durable settings, including after DO eviction.
@@ -17,7 +18,9 @@ describe("Shop SQLite", () => {
     const b = stub("korzina-demo-test2");
     await runInDurableObject(a, (_instance, ctx) => {
       ctx.storage.sql.exec("INSERT INTO settings (key,value) VALUES (?,?)", "display_name", "Только магазин A");
-      expect(ctx.storage.sql.exec("SELECT count(*) AS count FROM __drizzle_migrations").one()).toEqual({ count: 9 });
+      expect(ctx.storage.sql.exec("SELECT count(*) AS count FROM __drizzle_migrations").one()).toEqual({
+        count: migrations.journal.entries.length,
+      });
     });
     expect(await info("lavka")).toMatchObject({ name: "Только магазин A" });
     expect(await info("test2")).toMatchObject({ name: "Второй магазин" });
@@ -27,7 +30,9 @@ describe("Shop SQLite", () => {
     await evictDurableObject(a);
     expect(await info("lavka")).toMatchObject({ name: "Только магазин A" });
     await runInDurableObject(a, (_instance, ctx) => {
-      expect(ctx.storage.sql.exec("SELECT count(*) AS count FROM __drizzle_migrations").one()).toEqual({ count: 9 });
+      expect(ctx.storage.sql.exec("SELECT count(*) AS count FROM __drizzle_migrations").one()).toEqual({
+        count: migrations.journal.entries.length,
+      });
     });
     expect(await info("test2")).toMatchObject({ name: "Второй магазин" });
   });

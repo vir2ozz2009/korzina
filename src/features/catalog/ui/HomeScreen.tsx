@@ -1,5 +1,5 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { bootstrap } from "../../../app/bootstrap";
 import { HomeTemplate } from "../../../app/templates/HomeTemplate";
 import { AboutStore } from "../../../ui/AboutStore";
@@ -19,19 +19,13 @@ export function HomeScreen() {
   const catalog = useCatalog(version);
   const document = catalog.data?.pages[0];
   const items = catalog.data?.pages.flatMap((page) => page.items) ?? [];
-  const offers = useOffers(items.flatMap((product) => product.variants.map((v) => v.id)));
+  const offers = useOffers(catalog.data?.pages ?? []);
   const cart = useCart();
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as { variants?: string };
   const products = storefrontProducts(items, offers.data?.items ?? []);
-  const availableCategories = new Set(
-    products.filter((p) => p.variants.some((v) => v.available)).map((p) => p.categoryId),
-  );
-  const photos = new Map<string, (typeof products)[number]["image"]>();
-  for (const product of products) if (!photos.has(product.categoryId)) photos.set(product.categoryId, product.image);
-  const availableBrands = new Set(products.filter((p) => p.variants.some((v) => v.available)).map((p) => p.brandId));
   const error = catalog.error ?? offers.error;
-  const pending = catalog.isPending || (items.length > 0 && offers.isPending);
+  const pending = catalog.isPending || (items.length > 0 && offers.isPending && !products.length);
   const query = {
     data: pending || ((catalog.isError || offers.isError) && !products.length) ? undefined : products,
     isPending: pending,
@@ -39,9 +33,12 @@ export function HomeScreen() {
     error,
     refetch: () => Promise.all([catalog.refetch(), offers.refetch()]),
   };
-  const mismatch = offers.data && document && offers.data.catalogVersion !== document.catalogVersion;
+  const mismatch = offers.data && document && offers.data.catalogVersion > document.catalogVersion;
   // Switch to the exact public version supplied by live rather than the discovery alias.
-  if (mismatch && version !== offers.data.catalogVersion) setVersion(offers.data.catalogVersion);
+  const liveVersion = offers.data?.catalogVersion;
+  useEffect(() => {
+    if (mismatch && liveVersion !== version) setVersion(liveVersion);
+  }, [mismatch, liveVersion, version]);
   return (
     <>
       <HomeTemplate
@@ -66,8 +63,8 @@ export function HomeScreen() {
           <HomeView
             key="catalog"
             categories={(document?.categories ?? [])
-              .filter((category) => !category.parentId && availableCategories.has(category.id))
-              .map((category) => ({ ...category, image: photos.get(category.id) ?? category.image ?? undefined }))}
+              .filter((category) => !category.parentId && category.hasProducts)
+              .map((category) => ({ ...category, image: category.image ?? undefined }))}
             products={ProductTiles({
               products,
               currency: offers.data?.currency ?? "RUB",
@@ -75,7 +72,7 @@ export function HomeScreen() {
               choose: (id) =>
                 void navigate({ to: "/", search: (previous) => ({ ...previous, variants: id }), resetScroll: false }),
             })}
-            brands={(document?.brands ?? []).filter((brand) => availableBrands.has(brand.id))}
+            brands={(document?.brands ?? []).filter((brand) => brand.hasProducts)}
           />,
           cart.query.isError && (
             <ErrorState key="cart-error" error={cart.query.error} onRetry={() => void cart.query.refetch()} />

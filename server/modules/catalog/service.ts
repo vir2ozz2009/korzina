@@ -1,7 +1,8 @@
 import type { CatalogOffer, CatalogPageInput, CatalogTile } from "../../../src/shared/contracts/catalog";
 import { ApiError } from "../../../src/shared/errors";
 import { catalogImage, documentImage } from "./images";
-import { documentQuery, liveQuery, mediaJsonSql, photosSql, productSql } from "./queries";
+import { readNavigation } from "./navigation";
+import { documentQuery, liveQuery, photosSql, productSql } from "./queries";
 
 type Row = Record<string, SqlStorageValue>;
 type TileRow = Row & {
@@ -28,7 +29,7 @@ type LiveRow = Row &
     productAvailable: number;
   };
 
-export function readDocument(storage: DurableObjectStorage, input: CatalogPageInput, shopId: string, origin: string) {
+export function readDocument(storage: DurableObjectStorage, input: CatalogPageInput, shopId: string) {
   const state = storage.sql.exec<{ version: number }>("SELECT version FROM catalog_state WHERE id=1").one();
   const query = documentQuery(input);
   const rows = storage.sql.exec<TileRow>(query.sql, ...query.params).toArray();
@@ -37,26 +38,10 @@ export function readDocument(storage: DurableObjectStorage, input: CatalogPageIn
     name: row.name,
     categoryId: row.categoryId,
     brandId: row.brandId,
-    image: documentImage(photo, shopId, origin),
+    image: documentImage(photo, shopId),
     variants: JSON.parse(variants),
   }));
-  const categories = storage.sql
-    .exec<{ id: string; name: string; parentId: string | null; photo: string | null }>(
-      `WITH RECURSIVE navigation AS (
-      SELECT id,name,parent_id AS parentId,photo_id AS photoId,position FROM categories WHERE visible=1 AND parent_id IS NULL
-      UNION ALL SELECT c.id,c.name,c.parent_id,c.photo_id,c.position FROM categories c JOIN navigation n ON c.parent_id=n.id WHERE c.visible=1)
-    SELECT n.id,n.name,n.parentId,COALESCE((SELECT ${mediaJsonSql} FROM media m WHERE m.id=n.photoId AND m.ready=1 AND m.status='attached'),
-      (SELECT ${mediaJsonSql} FROM products p JOIN product_photos pp ON pp.product_id=p.id
-        JOIN media m ON m.id=pp.media_id
-        WHERE p.published=1 AND p.visible=1 AND p.category_id=n.id AND EXISTS(SELECT 1 FROM variants v WHERE v.product_id=p.id AND v.visible=1) AND m.status='attached' AND m.ready=1
-        ORDER BY p.id,pp.position LIMIT 1)) AS photo
-    FROM navigation n ORDER BY n.position,n.id`,
-    )
-    .toArray()
-    .map(({ photo, ...row }) => ({ ...row, image: documentImage(photo, shopId, origin) }));
-  const brands = storage.sql
-    .exec<{ id: string; name: string }>("SELECT id,name FROM brands WHERE visible=1 ORDER BY position,id")
-    .toArray();
+  const { categories, brands } = readNavigation(storage, shopId);
   return {
     catalogVersion: state.version,
     categories,

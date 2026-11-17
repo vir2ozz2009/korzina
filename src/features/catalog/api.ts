@@ -1,13 +1,14 @@
-import { infiniteQueryOptions, useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { infiniteQueryOptions, useInfiniteQuery, useQueries } from "@tanstack/react-query";
 import type { InferResponseType } from "hono/client";
 import { bootstrap } from "../../app/bootstrap";
 import { queryPolicy } from "../../app/query-defaults";
 import { checkResponse } from "../../shared/http-error";
 import { shopApi, shopKey } from "../../shared/shop-api";
+import { resolveDocumentImage } from "./document-images";
+import { offerPages, offersQuery } from "./offers";
 
 const catalogKeys = {
   document: (version?: number) => ["shop", shopKey, "catalog", version ?? "current"] as const,
-  live: (ids: string[]) => ["shop", shopKey, "offers", ids] as const,
 };
 type CatalogDocument = InferResponseType<typeof shopApi.api.catalog.document.$get>;
 function catalogQuery(version?: number) {
@@ -29,28 +30,35 @@ function catalogQuery(version?: number) {
         { init: { signal } },
       );
       await checkResponse(response);
-      return response.json();
+      const data = await response.json();
+      const image = (value: Parameters<typeof resolveDocumentImage>[0]) =>
+        resolveDocumentImage(value, bootstrap?.mediaOrigin ?? "");
+      return {
+        ...data,
+        items: data.items.map((item) => ({ ...item, image: image(item.image) })),
+        categories: data.categories.map((item) => ({ ...item, image: image(item.image) })),
+        brands: data.brands.map((item) => ({ ...item, image: image(item.image) })),
+      };
     },
   });
 }
 export const useCatalog = (version?: number) => useInfiniteQuery(catalogQuery(version));
-export function useOffers(ids: string[]) {
-  return useQuery({
-    queryKey: catalogKeys.live(ids),
-    ...queryPolicy.stock,
-    enabled: ids.length > 0 && bootstrap?.status === "active",
-    queryFn: async ({ signal }) => {
-      const pages = await Promise.all(
-        Array.from({ length: Math.ceil(ids.length / 50) }, async (_, i) => {
-          const response = await shopApi.api.catalog.live.$get(
-            { query: { ids: ids.slice(i * 50, (i + 1) * 50).join(",") } },
-            { init: { signal } },
-          );
-          await checkResponse(response);
-          return response.json();
-        }),
-      );
-      return { ...pages[0], items: pages.flatMap((page) => page.items) };
-    },
+export function useOffers(pages: CatalogDocument[]) {
+  const queries = useQueries({
+    queries: offerPages(pages).map((ids) => ({ ...offersQuery(ids), enabled: bootstrap?.status === "active" })),
   });
+  const data = queries.flatMap((query) => (query.data ? [query.data] : []));
+  return {
+    data: data.length
+      ? {
+          ...data[0],
+          catalogVersion: Math.max(...data.map((page) => page.catalogVersion)),
+          items: data.flatMap((page) => page.items),
+        }
+      : undefined,
+    isPending: queries.some((query) => query.isPending),
+    isError: queries.some((query) => query.isError),
+    error: queries.find((query) => query.error)?.error ?? null,
+    refetch: () => Promise.all(queries.map((query) => query.refetch())),
+  };
 }
