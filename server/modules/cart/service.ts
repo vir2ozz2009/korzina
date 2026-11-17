@@ -91,11 +91,12 @@ function applyChange(
   if (lines.length > 50) throw new ApiError("VALIDATION", "В корзине может быть до 50 разных фасовок");
   const stored: StoredLine[] = lines.map(({ variantId, quantity }) => ({ variantId, quantity }));
   storage.sql.exec(
-    `INSERT INTO carts(customer,revision,lines) VALUES(?,?,?)
-      ON CONFLICT(customer) DO UPDATE SET revision=excluded.revision,lines=excluded.lines`,
+    `INSERT INTO carts(customer,revision,lines,updated_at) VALUES(?,?,?,?)
+      ON CONFLICT(customer) DO UPDATE SET revision=excluded.revision,lines=excluded.lines,updated_at=excluded.updated_at`,
     customer,
     cart.revision + 1,
     JSON.stringify(stored),
+    Date.now(),
   );
   return { ...cart, revision: cart.revision + 1, lines, ...cartTotals(lines) };
 }

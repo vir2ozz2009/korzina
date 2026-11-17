@@ -1,6 +1,6 @@
-import { exports } from "cloudflare:workers";
 import { type ShopContext, shopContextContract } from "../../src/shared/contracts/shop-context";
 import { ApiError } from "../../src/shared/errors";
+import { forwardToShop } from "../shop/forward";
 import { readFeatures } from "./features";
 import { resolveShop } from "./resolve-shop";
 
@@ -22,14 +22,11 @@ export class ShopContextCache {
     const hit = this.entries.get(shop.id);
     if (hit && hit.expires > this.now()) return hit.value;
     this.entries.delete(shop.id);
-    const [features, response] = await Promise.all([
-      readFeatures(env.PLATFORM, shop.id),
-      exports.Shop.get(exports.Shop.idFromName(shop.id)).fetch(
-        new Request("https://internal/api/shop", {
-          headers: { "x-korzina-shop": encodeURIComponent(JSON.stringify(shop)) },
-        }),
-      ),
-    ]);
+    const features = await readFeatures(env.PLATFORM, shop.id);
+    const response = await forwardToShop(
+      { req: { raw: new Request("https://internal/api/shop") } },
+      { ...shop, features },
+    );
     if (!response.ok) throw new ApiError("INTERNAL", "Не удалось загрузить оформление магазина");
     const settings = shopContextContract.parse(await response.json());
     const value = shopContextContract.parse({

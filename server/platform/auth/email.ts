@@ -1,5 +1,6 @@
 import { ApiError } from "../../../src/shared/errors";
 import { digest, newToken, tokenHash } from "../../auth/tokens";
+import { scheduleSellerCleanup } from "../cleanup";
 import { sellerTtl } from "./sessions";
 
 function code() {
@@ -47,5 +48,6 @@ export async function verifyEmail(database: D1Database, challengeId: string, cod
       .bind(now, challengeId, nonce, hash),
   ]);
   if (result[2].meta.changes !== 1) throw new ApiError("UNAUTHORIZED", "Код неверен или устарел");
+  await scheduleSellerCleanup();
   return token;
 }

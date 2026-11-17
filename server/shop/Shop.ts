@@ -11,7 +11,9 @@ import type { AuthSecrets } from "../auth/config";
 import { RequestMetrics } from "../metrics";
 import { handleError, notFound } from "../middleware/errors";
 import { seedCatalog } from "../modules/catalog/seed";
-import { cleanupMedia } from "../modules/media/cleanup";
+import { cleanupSellers, platformCleanupId } from "../platform/cleanup";
+import { rescheduleCleanup, scheduleCleanup } from "./cleanup";
+import { cleanupShop } from "./maintenance";
 import { migrations } from "./migrations";
 import { shopRoutes } from "./routes";
 import { settings } from "./schema";
@@ -24,6 +26,10 @@ export class Shop extends DurableObject<Env> {
     super(ctx, env);
     ctx.blockConcurrencyWhile(async () => {
       await migrate(drizzle(ctx.storage), migrations);
+      if (!ctx.storage.sql.exec("SELECT value FROM settings WHERE key='cleanup_revision'").toArray().length) {
+        await rescheduleCleanup(ctx.storage, false);
+        ctx.storage.sql.exec("INSERT INTO settings(key,value) VALUES('cleanup_revision','R1')");
+      }
       if (
         env.APP_ENV !== "production" &&
         ["korzina-demo-lavka", "korzina-demo-test2"].some((id) => this.ctx.exports.Shop.idFromName(id).equals(ctx.id))
@@ -41,10 +47,11 @@ export class Shop extends DurableObject<Env> {
     try {
       const metadata = request.headers.get("x-korzina-shop");
       if (!metadata) throw new ApiError("FORBIDDEN", "Нет магазина");
-      const parsed = shopContract.safeParse(JSON.parse(decodeURIComponent(metadata)));
+      const data = JSON.parse(decodeURIComponent(metadata));
+      const parsed = shopContract.safeParse(data);
       if (!parsed.success) throw new ApiError("FORBIDDEN", "Нет магазина");
       const shop = parsed.data;
-      const context = shopContextContract.safeParse(JSON.parse(decodeURIComponent(metadata)));
+      const context = shopContextContract.shape.features.safeParse(data.features);
       shopId = shop.id;
       if (!this.ctx.exports.Shop.idFromName(shop.id).equals(this.ctx.id))
         throw new ApiError("FORBIDDEN", "Другой магазин");
@@ -58,7 +65,7 @@ export class Shop extends DurableObject<Env> {
       }
       response = await this.router.fetch(request, {
         shop,
-        features: context.success ? context.data.features : resolveFeatures([]),
+        features: context.success ? context.data : resolveFeatures([]),
         db,
         storage,
         secrets: this.env as Env & AuthSecrets,
@@ -80,12 +87,22 @@ export class Shop extends DurableObject<Env> {
       response.status,
       false,
     );
+    if (request.method === "POST" && response.ok && metric.rowsWritten > 0) await scheduleCleanup(this.ctx.storage);
     // Only the public Worker can see these; it strips them before returning to the client.
     response.headers.set("x-korzina-sql", JSON.stringify(metric));
     return response;
   }
 
+  async schedulePlatformCleanup() {
+    if (!this.ctx.id.equals(this.ctx.exports.Shop.idFromName(platformCleanupId))) throw new Error("Wrong coordinator");
+    await scheduleCleanup(this.ctx.storage);
+  }
+
   async alarm() {
-    await cleanupMedia(this.ctx.storage, this.env);
+    if (this.ctx.id.equals(this.ctx.exports.Shop.idFromName(platformCleanupId))) {
+      await cleanupSellers(this.env.PLATFORM, this.ctx.storage);
+      return;
+    }
+    await cleanupShop(this.ctx.storage, this.env);
   }
 }

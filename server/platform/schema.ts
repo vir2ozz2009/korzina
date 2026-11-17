@@ -1,4 +1,4 @@
-import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const platformSettings = sqliteTable("platform_settings", {
   key: text("key").primaryKey(),
@@ -63,13 +63,17 @@ export const memberships = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.shopId, table.accountId] })],
 );
-export const sellerSessions = sqliteTable("seller_sessions", {
-  tokenHash: text("token_hash").primaryKey(),
-  accountId: text("account_id")
-    .notNull()
-    .references(() => accounts.id),
-  expiresAt: integer("expires_at").notNull(),
-});
+export const sellerSessions = sqliteTable(
+  "seller_sessions",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    expiresAt: integer("expires_at").notNull(),
+  },
+  (t) => [index("seller_sessions_expiry_idx").on(t.expiresAt)],
+);
 export const emailChallenges = sqliteTable("email_challenges", {
   id: text("id").primaryKey(),
   email: text("email").notNull(),
