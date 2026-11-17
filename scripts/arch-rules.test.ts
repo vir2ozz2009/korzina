@@ -1,0 +1,44 @@
+import { describe, expect, it } from "vitest";
+import { inspectSource } from "./arch-rules";
+
+const feature = "src/features/cart/ui/Cart.tsx";
+
+describe("архитектурные ограничения", () => {
+  it.each([
+    [feature, 'const color = "#fff";'],
+    [feature, 'const color = "rgb(1 2 3)";'],
+    ["src/ui/Button.tsx", '<button className="bg-primary text-white" />'],
+    [feature, '<div className="w-[123px]" />'],
+    [feature, "<div style={{ color: accent }} />"],
+    [feature, "<div style={{ backgroundColor: accent }} />"],
+    [feature, "import { X } from '../../catalog/ui/X'"],
+    [feature, "export { X } from '@/features/catalog/model'"],
+    [feature, "const x = import('@/features/catalog/ui/X')"],
+    ["src/app/App.tsx", "import { app } from '../../server/index'"],
+    ["server/index.ts", "import { x } from '../src/features/cart/model'"],
+    ["src/routes/index.tsx", "fetch('/api/catalog')"],
+    ["src/routes/index.tsx", "api.catalog.$get()"],
+    [feature, "const minor = value * 100;"],
+    [feature, "const major = value / 100;"],
+    [feature, "const minor = 100 * value;"],
+    [feature, "const formatted = value.toFixed(2);"],
+    ["server/long.ts", "const x = 1;\n".repeat(251)],
+  ])("отклоняет нарушение в %s: %s", (path, content) => {
+    expect(inspectSource({ path, content })).not.toHaveLength(0);
+  });
+
+  it.each([
+    [feature, '<div className="bg-primary text-primary-foreground w-full" />'],
+    [feature, "import { X } from '@/features/catalog/index'"],
+    [feature, "import { X } from '@/features/catalog'"],
+    [feature, "import { X } from '../../catalog/index.ts'"],
+    [feature, "import { x } from '../model'"],
+    [feature, "import { x } from '@/shared/money'"],
+    ["src/shared/money.ts", "const minor = value * 100;"],
+    ["src/shared/theme-presets.ts", 'const color = "#ffffff";'],
+    ["src/styles/tokens.css", ":root { --primary: #ff335f; }"],
+    ["server/index.ts", "const x = 1;\n".repeat(250)],
+  ])("разрешает корректный код в %s", (path, content) => {
+    expect(inspectSource({ path, content })).toEqual([]);
+  });
+});

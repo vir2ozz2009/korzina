@@ -50,9 +50,19 @@ const toRgb = (hex: string): [number, number, number] => {
   return [0, 2, 4].map((i) => Number.parseInt(h.slice(i, i + 2), 16) / 255) as [number, number, number];
 };
 const toHex = (rgb: number[]): string =>
-  `#${rgb.map((c) => Math.round(Math.min(1, Math.max(0, c)) * 255).toString(16).padStart(2, "0")).join("")}`;
+  `#${rgb
+    .map((c) =>
+      Math.round(Math.min(1, Math.max(0, c)) * 255)
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`;
 const luminance = (hex: string): number => {
-  const [r, g, b] = toRgb(hex).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)) as [number, number, number];
+  const [r, g, b] = toRgb(hex).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)) as [
+    number,
+    number,
+    number,
+  ];
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };
 export const contrast = (a: string, b: string): number => {
