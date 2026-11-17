@@ -36,7 +36,7 @@
 - **Готово, когда:** addon выключен по умолчанию, включается для одного магазина, второй его не видит; core без флага.
 
 ### F6 · Токены, шрифт, тема MagicPath
-- **Цель:** подключить готовый `src/styles/tokens.css` и Inter Variable; механизм оформления витрины (`src/shared/theme-presets.ts`: стиль на `<html>` от Worker; тесты: контраст пресетов, `deriveTheme` для светлых, тёмных и ярких цветов, отклонение почти белых; в `/dev/kit` переключатель пресетов и поле своего цвета); создать в MagicPath тему **Korzina** из тех же значений; знак и иконка приложения из `public/brand/korzina.svg`.
+- **Цель:** подключить готовый `src/styles/tokens.css` и Inter Variable; механизм оформления витрины (`src/shared/theme-presets.ts`: стиль на `<html>` от Worker; тесты: контраст пресетов, `deriveTheme` для светлых, тёмных и ярких цветов, отклонение почти белых; в `/dev/kit` переключатель пресетов и поле своего цвета); создать в MagicPath отдельный проект **«Korzina»** (ID записать в DESIGN.md §5) и тему **Korzina** из тех же значений; знак и иконка приложения из `public/brand/korzina.svg`.
 - **Читать:** DESIGN §2, `design-system/tokens.md`.
 - **Готово, когда:** `get-theme Korzina` совпадает с `tokens.css`; классы `bg-primary`, `text-title-2`, `rounded-xl` работают; на demo видна страница с палитрой и типографикой.
 
