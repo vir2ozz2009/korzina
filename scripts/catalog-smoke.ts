@@ -28,6 +28,10 @@ async function smoke() {
     data.items.reduce((count, item) => count + item.variants.length, 0),
     23,
   );
+  assert(
+    !data.items.some((item) => item.variants.some((variant) => variant.id === "sku-12")),
+    "Скрытый SKU не должен попадать в публичный документ",
+  );
   assert(!document.headers.has("set-cookie") && !document.headers.has("x-korzina-sql"));
   const etag = document.headers.get("ETag");
   assert(etag);
