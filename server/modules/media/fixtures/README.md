@@ -4,5 +4,4 @@ https://github.com/strukturag/libheif (MIT, см. LICENSE), сохранён к�
 
 Локальный Images в Miniflare распознаёт контейнер, но его libvips собран без
 HEVC-декодера. Unit-тест проверяет передачу HEIC в декодер и обязательное
-перекодирование результата; декодирование в Cloudflare и segment=foreground
-проверяются отдельно на demo. Клиентский libheif WASM проверяется в Chromium.
+перекодирование результата; декодирование в Cloudflare проверяется продавцом в S2. Клиентский libheif WASM проверяется в Chromium.

@@ -89,11 +89,7 @@ export const mediaRoutes = new Hono<MediaRouterEnv>()
     "/:id/state",
     authBodyLimit,
     authCommand,
-    zValidator(
-      "json",
-      z.strictObject({ action: z.enum(["attach", "delete"]), display: z.enum(["cutout", "photo"]).optional() }),
-      validationFailure,
-    ),
+    zValidator("json", z.strictObject({ action: z.enum(["attach", "delete"]) }), validationFailure),
     async (c) => {
       const actor = c.get("actor");
       const input = c.req.valid("json");
@@ -101,13 +97,10 @@ export const mediaRoutes = new Hono<MediaRouterEnv>()
         const record = findMedia(c.env, c.req.param("id"));
         assertRead(actor, record);
         if (actor.id !== record.owner) throw new ApiError("FORBIDDEN", "Изменять файл может только его владелец");
-        if (input.display === "cutout" && !record.cutout)
-          throw new ApiError("VALIDATION", "Для этого фото вырезка недоступна");
         c.env.db
           .update(media)
           .set({
             status: input.action === "attach" ? "attached" : "deleted",
-            display: input.display ?? record.display,
             expiresAt: input.action === "delete" ? Date.now() + 30 * 86_400_000 : null,
           })
           .where(eq(media.id, record.id))

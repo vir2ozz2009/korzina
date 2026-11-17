@@ -60,8 +60,6 @@ export async function uploadMedia(
       ready: false,
       bytes: bytes.length,
       mime,
-      display: "photo",
-      cutout: false,
       requestKey: key,
       fingerprint,
       createdAt: Date.now(),
@@ -85,7 +83,6 @@ export async function uploadMedia(
     for (const rendition of renditions)
       if (rendition.mime === "image/webp") rendition.bytes = stripWebpMetadata(rendition.bytes);
     const size = renditions.reduce((total, file) => total + file.bytes.length, 0);
-    const cutout = renditions.some((file) => file.name === "cutout.webp");
     for (const file of renditions) {
       const target = publicPurposes.includes(purpose) ? env.media.MEDIA_PUBLIC : env.media.MEDIA;
       await target.put(mediaPrefix(env.shop.id, record.id) + file.name, file.bytes, {
@@ -106,7 +103,7 @@ export async function uploadMedia(
         .run();
       env.db
         .update(media)
-        .set({ ready: true, bytes: size, mime: renditions[0].mime, cutout, display: cutout ? "cutout" : "photo" })
+        .set({ ready: true, bytes: size, mime: renditions[0].mime })
         .where(eq(media.id, record.id))
         .run();
       return findMedia(env, record.id);

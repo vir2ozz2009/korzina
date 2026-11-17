@@ -36,6 +36,13 @@
       "when": 1794905278326,
       "tag": "0004_perfect_edwin_jarvis",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1794909765929,
+      "tag": "0005_huge_the_stranger",
+      "breakpoints": true
     }
   ]
 }

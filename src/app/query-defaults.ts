@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
+import { errorKind } from "../shared/http-error";
 
 export const queryPolicy = {
   catalog: { staleTime: 5 * 60_000 },
@@ -16,7 +17,7 @@ export function createQueryClient() {
         staleTime: 30_000,
         refetchOnWindowFocus: false,
         refetchIntervalInBackground: false,
-        retry: 1,
+        retry: (count, error) => count < 1 && errorKind(error) === "retry",
       },
     },
   });

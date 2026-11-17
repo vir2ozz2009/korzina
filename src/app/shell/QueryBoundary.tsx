@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { errorKind } from "../../shared/http-error";
 import { EmptyState } from "../../ui/EmptyState";
 import { ErrorState } from "../../ui/ErrorState";
 import { TemplateSkeleton } from "../templates/TemplateSkeleton";
@@ -10,6 +11,7 @@ export interface QueryResult<T> {
   isPending: boolean;
   isFetching?: boolean;
   isError: boolean;
+  error?: unknown;
   refetch: () => unknown;
 }
 export function QueryBoundary<T>({
@@ -28,7 +30,8 @@ export function QueryBoundary<T>({
   const pending = query.isPending && query.data === undefined;
   const gate = useLoadingGate(pending);
   if (gate.waiting) return <div aria-busy="true">{gate.visible ? <TemplateSkeleton template={template} /> : null}</div>;
-  if (query.isError && query.data === undefined) return <ErrorState onRetry={() => void query.refetch()} />;
+  if (query.isError && (query.data === undefined || errorKind(query.error) === "access"))
+    return <ErrorState error={query.error} onRetry={() => void query.refetch()} />;
   if (query.data === undefined || isEmpty?.(query.data))
     return (
       <EmptyState
