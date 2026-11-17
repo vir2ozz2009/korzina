@@ -15,7 +15,6 @@ export function ProductImage({
   srcSet,
   alt,
   sizes,
-  display = "photo",
   shape = "square",
   radius = "md",
   className = "",
@@ -23,7 +22,6 @@ export function ProductImage({
 }: ProductImageProps) {
   return (
     <span
-      data-image-display={display}
       className={`relative flex self-start items-center justify-center overflow-hidden bg-input ${shape === "tile" ? "aspect-[179/142]" : "aspect-square"} ${radius === "xl" ? "rounded-xl" : "rounded-md"} ${className}`}
     >
       <Img
@@ -33,7 +31,7 @@ export function ProductImage({
         alt={alt}
         fallback={fallback}
         className="absolute inset-0 size-full"
-        imageClassName={`object-center ${display === "cutout" ? "object-contain p-[8%]" : "object-cover"}`}
+        imageClassName="object-cover object-center"
       />
     </span>
   );

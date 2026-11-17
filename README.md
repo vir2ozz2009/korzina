@@ -57,16 +57,16 @@ npm run flag -- lavka cashback off --local
 ## Фото и файлы (F9)
 
 Проверочный экран — `/dev/media?shop=test2` (покупатель) и `&as=seller` (нужна сессия сотрудника).
-Перед отправкой фото сжимаются до 2048 px/WebP 85%; HEIC-декодер загружается отдельно.
+Выбор в PhotoPicker сразу запускает загрузку, поддерживаются несколько файлов, прогресс, повтор и порядок. Перед отправкой фото сжимаются до 2048 px/WebP 85%; HEIC-декодер загружается отдельно.
 Для локальных подписанных ссылок задайте случайный `MEDIA_SIGNING_KEY` в игнорируемом `.dev.vars`.
 
 - `POST /api/media/upload?purpose=receipt` — бинарное тело, `Idempotency-Key`; назначения и права проверяет сервер.
-- `POST /api/media/:id/state` — JSON `{action:"attach"|"delete", display?:"cutout"|"photo"}` и `Idempotency-Key`.
+- `POST /api/media/:id/state` — JSON `{action:"attach"|"delete"}` и `Idempotency-Key`.
 - `GET /api/media/:id/link` — ссылка на 5 минут; при открытии всё равно требуются сессия и актуальные права.
 - `GET /api/media/usage?as=seller` — занято/лимит. По умолчанию 2 ГБ; настройка D1 `platform_settings.media_limit_bytes` — для админки AD3.
 
 R2 demo: `korzina-demo-media` — приватный; `korzina-demo-media-public` — только перекодированные фото с доменом `media.demo.korzina.app`.
-Размеры 160/400/800/1600 и вырезка создаются один раз через Images; публичные файлы идут из R2/CDN без Worker и БД.
+Размеры 160/400/800/1600 создаются один раз через Images; публичные файлы идут из R2/CDN без Worker и БД.
 На localhost публичный R2 заменяет отдельный адаптер `/api/media-public/*`; на demo/prod он всегда возвращает 404.
 Уборка temp после 24 часов и удалённых после 30 дней — alarm, только при наличии работы, порциями по 50.
 Prod не создавался: при его запуске нужны отдельные `korzina-prod-media`/`korzina-prod-media-public`, домен и новый секрет.

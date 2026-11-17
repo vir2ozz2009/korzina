@@ -1,10 +1,8 @@
-export type ProductImageDisplay = "cutout" | "photo";
 export interface ImageSource {
   src: string;
   srcSet?: string;
 }
 export interface ProductImageSource extends ImageSource {
-  display?: ProductImageDisplay;
   original?: ImageSource;
 }
 export type ProductImageValue = string | ProductImageSource;

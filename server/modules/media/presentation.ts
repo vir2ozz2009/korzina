@@ -13,12 +13,9 @@ export function presentMedia(record: MediaRecord, shopId: string, origin: string
     purpose: record.purpose,
     status: record.status,
     bytes: record.bytes,
-    display: record.display,
-    cutout: record.cutout,
     image: publicPurposes.includes(record.purpose)
       ? {
-          ...source(record.display === "cutout" ? "cutout" : "original"),
-          display: record.display,
+          ...source("original"),
           original: { src: `${prefix}original.webp` },
         }
       : null,

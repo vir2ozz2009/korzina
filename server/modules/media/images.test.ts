@@ -1,16 +1,17 @@
 import { env } from "cloudflare:workers";
-import { encode } from "fast-png";
 import { describe, expect, it } from "vitest";
 import { detectContent } from "./content";
-import { goodCutout } from "./cutout";
 import heicBase64 from "./fixtures/libheif-example.base64?raw";
 import { processImage } from "./images";
 import { stripWebpMetadata } from "./metadata";
 
-function photo() {
-  const data = new Uint8Array(32 * 32 * 4).fill(255);
-  return encode({ width: 32, height: 32, data, channels: 4 });
-}
+const photo = () =>
+  Uint8Array.from(
+    atob(
+      "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAL0lEQVR4nO3OMQEAAAjDsIF/z0MGT2qgmbbNY/s5BwAAAAAAAAAAAAAAAAAASJIDTYgEPEq9nRUAAAAASUVORK5CYII=",
+    ),
+    (character) => character.charCodeAt(0),
+  );
 describe("F9: безопасная обработка фото", () => {
   it("HEIC передаётся декодеру Images и результат сохраняется только после перекодирования", async () => {
     const input = Uint8Array.from(atob(heicBase64.trim()), (character) => character.charCodeAt(0));
@@ -48,25 +49,10 @@ describe("F9: безопасная обработка фото", () => {
       expect(info).toMatchObject({ format: "image/webp", width: 32, height: 32 });
     }
   });
-  it("плохая или недоступная вырезка не ломает загрузку", async () => {
-    expect((await processImage(env.IMAGES, photo(), "product")).some((file) => file.name === "original.webp")).toBe(
-      true,
-    );
+  it("не сохраняет повреждённое фото", async () => {
     await expect(processImage(env.IMAGES, new Uint8Array([255, 216, 255, 0]), "logo")).rejects.toMatchObject({
       code: "MEDIA_UNAVAILABLE",
     });
-  });
-  it("принимает цельный объект с полями, отклоняет пустую, обрезанную и рваную вырезку", () => {
-    const make = (opaque: (x: number, y: number) => boolean) => {
-      const data = new Uint8Array(64 * 64 * 4);
-      for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) if (opaque(x, y)) data[(y * 64 + x) * 4 + 3] = 255;
-      return encode({ width: 64, height: 64, data, channels: 4 });
-    };
-    expect(goodCutout(make((x, y) => x > 10 && x < 54 && y > 10 && y < 54))).toBe(true);
-    expect(goodCutout(make(() => false))).toBe(false);
-    expect(goodCutout(make(() => true))).toBe(false);
-    expect(goodCutout(make((x, y) => x < 30 && y > 10 && y < 54))).toBe(false);
-    expect(goodCutout(make((x, y) => x % 2 === 0 && y % 2 === 0))).toBe(false);
   });
   it("удаляет EXIF GPS даже если преобразователь начал отдавать EXIF/XMP", () => {
     const chunk = (name: string, text: string) => {

@@ -11,6 +11,7 @@ import { Select } from "../../ui/Select";
 import { Switch } from "../../ui/Switch";
 import { TextArea } from "../../ui/TextArea";
 import { demoOptions } from "./kit-mock";
+import { PhotoPickerKit } from "./PhotoPickerKit";
 export function InputsKit({ notify }: { notify: (message: string) => void }) {
   const [search, setSearch] = useState("");
   const [value, setValue] = useState("");
@@ -19,6 +20,7 @@ export function InputsKit({ notify }: { notify: (message: string) => void }) {
   const [checked, setChecked] = useState(true);
   return (
     <div className="space-y-3">
+      <PhotoPickerKit />
       <KitSection title="Поля ввода">
         <Input
           label="Ваше имя"

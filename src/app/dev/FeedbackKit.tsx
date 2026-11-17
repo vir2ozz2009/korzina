@@ -36,6 +36,7 @@ export function FeedbackKit({ notify }: { notify: (message: string) => void }) {
             { value: "loading", label: "Загрузка" },
             { value: "empty", label: "Пусто" },
             { value: "error", label: "Ошибка" },
+            { value: "access", label: "Нужен вход" },
             { value: "ready", label: "Готово" },
           ]}
         />
@@ -56,6 +57,7 @@ export function FeedbackKit({ notify }: { notify: (message: string) => void }) {
           />
         )}
         {state === "error" && <ErrorState onRetry={reload} />}
+        {state === "access" && <ErrorState code="FORBIDDEN" onRetry={reload} />}
         {state === "ready" && (
           <EmptyState
             title="Всё готово"

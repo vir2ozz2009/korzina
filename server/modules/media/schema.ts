@@ -11,10 +11,6 @@ export const media = sqliteTable(
     ready: integer("ready", { mode: "boolean" }).notNull().default(false),
     bytes: integer("bytes").notNull(),
     mime: text("mime").notNull(),
-    display: text("display", { enum: ["cutout", "photo"] })
-      .notNull()
-      .default("photo"),
-    cutout: integer("cutout", { mode: "boolean" }).notNull().default(false),
     requestKey: text("request_key").notNull(),
     fingerprint: text("fingerprint").notNull(),
     createdAt: integer("created_at").notNull(),
