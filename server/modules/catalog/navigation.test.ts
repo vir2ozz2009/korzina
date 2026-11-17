@@ -30,13 +30,13 @@ it("непустые категории/бренды и их фото не за�
   const hidden = await (await catalogRequest("document?limit=1")).json<Document>();
   expect(hidden.categories.find((c) => c.id === "milk")?.hasProducts).toBe(false);
 });
-it("кешируемые изображения — пути; удалённые и скрытые SKU не делают раздел непустым", async () => {
+it("внешние demo-фото сохраняют URL; удалённые и скрытые SKU не делают раздел непустым", async () => {
   await catalogSql("UPDATE variants SET visible=0 WHERE product_id='product-01'");
   const page = await (await catalogRequest("document")).json<Document>();
   for (const item of page.items) {
-    expect(item.image.src).toMatch(/^\//);
-    expect(item.image.srcSet).not.toContain("https://");
-    expect(item.image.original.src).toMatch(/^\//);
+    expect(item.image.src).toMatch(/^https:\/\/media\.demo\.korzina\.app\//);
+    expect(item.image.srcSet).toContain("https://media.demo.korzina.app/");
+    expect(item.image.original.src).toMatch(/^https:\/\/media\.demo\.korzina\.app\//);
   }
   await catalogSql(
     "UPDATE variants SET visible=0 WHERE product_id IN (SELECT id FROM products WHERE category_id='home')",
