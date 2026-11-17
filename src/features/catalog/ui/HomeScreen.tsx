@@ -25,7 +25,7 @@ export function HomeScreen() {
   const search = useSearch({ strict: false }) as { variants?: string };
   const products = storefrontProducts(items, offers.data?.items ?? []);
   const error = catalog.error ?? offers.error;
-  const pending = catalog.isPending || (items.length > 0 && offers.isPending);
+  const pending = catalog.isPending || (items.length > 0 && offers.isPending && !products.length);
   const query = {
     data: pending || ((catalog.isError || offers.isError) && !products.length) ? undefined : products,
     isPending: pending,
@@ -33,7 +33,7 @@ export function HomeScreen() {
     error,
     refetch: () => Promise.all([catalog.refetch(), offers.refetch()]),
   };
-  const mismatch = offers.data && document && offers.data.catalogVersion !== document.catalogVersion;
+  const mismatch = offers.data && document && offers.data.catalogVersion > document.catalogVersion;
   // Switch to the exact public version supplied by live rather than the discovery alias.
   const liveVersion = offers.data?.catalogVersion;
   useEffect(() => {
