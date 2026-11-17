@@ -10,17 +10,26 @@ import { resolveFeatures } from "../../src/shared/flags";
 import type { AuthSecrets } from "../auth/config";
 import { RequestMetrics } from "../metrics";
 import { handleError, notFound } from "../middleware/errors";
+import { seedCatalog } from "../modules/catalog/seed";
 import { cleanupMedia } from "../modules/media/cleanup";
 import { migrations } from "./migrations";
 import { shopRoutes } from "./routes";
 import { settings } from "./schema";
 
 export class Shop extends DurableObject<Env> {
+  private identity: string | undefined;
   private readonly router = new Hono().onError(handleError).route("/api", shopRoutes()).notFound(notFound);
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
-    ctx.blockConcurrencyWhile(() => migrate(drizzle(ctx.storage), migrations));
+    ctx.blockConcurrencyWhile(async () => {
+      await migrate(drizzle(ctx.storage), migrations);
+      if (
+        env.APP_ENV !== "production" &&
+        ["korzina-demo-lavka", "korzina-demo-test2"].some((id) => this.ctx.exports.Shop.idFromName(id).equals(ctx.id))
+      )
+        seedCatalog(ctx.storage);
+    });
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -39,10 +48,14 @@ export class Shop extends DurableObject<Env> {
       shopId = shop.id;
       if (!this.ctx.exports.Shop.idFromName(shop.id).equals(this.ctx.id))
         throw new ApiError("FORBIDDEN", "Другой магазин");
-      const identity = db.select({ value: settings.value }).from(settings).where(eq(settings.key, "shop_id")).get();
-      if (identity && identity.value !== shop.id) throw new ApiError("FORBIDDEN", "Другой магазин");
-      if (!identity)
-        storage.transactionSync(() => db.insert(settings).values({ key: "shop_id", value: shop.id }).run());
+      // The namespace/id check above runs on EVERY request. The persisted identity is immutable.
+      if (!this.identity) {
+        const identity = db.select({ value: settings.value }).from(settings).where(eq(settings.key, "shop_id")).get();
+        if (identity && identity.value !== shop.id) throw new ApiError("FORBIDDEN", "Другой магазин");
+        if (!identity)
+          storage.transactionSync(() => db.insert(settings).values({ key: "shop_id", value: shop.id }).run());
+        this.identity = shop.id;
+      }
       response = await this.router.fetch(request, {
         shop,
         features: context.success ? context.data.features : resolveFeatures([]),

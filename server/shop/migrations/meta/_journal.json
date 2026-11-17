@@ -43,6 +43,13 @@
       "when": 1794909765929,
       "tag": "0005_huge_the_stranger",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794919048258,
+      "tag": "0006_catalog",
+      "breakpoints": true
     }
   ]
 }
