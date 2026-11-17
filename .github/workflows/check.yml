@@ -21,3 +21,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: npx playwright install --with-deps chromium
+      - run: npm run platform:setup -- --local --seed
+      - run: node scripts/built-demo-smoke.ts
