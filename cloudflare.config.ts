@@ -9,6 +9,7 @@ export default defineConfig({
     entrypoint,
     exports: { Shop: exports.durableObject({ storage: "sqlite" }) },
     env: {
+      ASSETS: bindings.assets(),
       PLATFORM: bindings.d1(platformDatabase),
       SHOP: bindings.durableObject({ worker: "korzina-demo", exportName: "Shop" }),
     },
@@ -20,7 +21,7 @@ export default defineConfig({
     },
     assets: {
       notFoundHandling: "single-page-application",
-      runWorkerFirst: ["/api/*"],
+      runWorkerFirst: ["/*", "!/assets/*", "!/brand/*"],
     },
   },
 });

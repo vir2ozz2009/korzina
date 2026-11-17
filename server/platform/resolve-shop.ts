@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { domains, type PlatformShop, shops } from "./schema";
 
-const ttl = 60_000;
+const ttl = 30_000;
 type CachedShop = { shop: PlatformShop; expires: number };
 const memory = new Map<string, CachedShop>();
 function remember(key: string, entry: CachedShop) {
@@ -14,7 +14,7 @@ const isPreview = (host: string) => ["localhost", "127.0.0.1", "[::1]", "demo.ko
 export async function resolveShop(request: Request, database: D1Database): Promise<PlatformShop | undefined> {
   const url = new URL(request.url);
   const slug = isPreview(url.hostname) ? (url.searchParams.get("shop") ?? "lavka") : undefined;
-  const key = `https://shop-resolution.invalid/${slug ? `slug/${encodeURIComponent(slug)}` : `host/${url.hostname}`}`;
+  const key = `https://shop-resolution.invalid/v2/${slug ? `slug/${encodeURIComponent(slug)}` : `host/${url.hostname}`}`;
   const hit = memory.get(key);
   if (hit && hit.expires > Date.now()) return hit.shop;
   memory.delete(key);
@@ -46,7 +46,7 @@ export async function resolveShop(request: Request, database: D1Database): Promi
   if (shop) {
     const entry = { shop, expires: Date.now() + ttl };
     remember(key, entry);
-    await cache.put(key, Response.json(entry, { headers: { "Cache-Control": "max-age=60" } }));
+    await cache.put(key, Response.json(entry, { headers: { "Cache-Control": "max-age=30" } }));
   }
   return shop;
 }

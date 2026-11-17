@@ -1,7 +1,28 @@
+import { lazy, Suspense } from "react";
+import { bootstrap } from "./bootstrap";
+
+const ThemeKit = lazy(() => import("./dev/ThemeKit"));
+
 export function App() {
+  if (location.pathname === "/dev/kit")
+    return (
+      <Suspense fallback={<p className="p-6 text-body">Загружаем палитру…</p>}>
+        <ThemeKit />
+      </Suspense>
+    );
   return (
-    <main className="min-h-dvh bg-background p-6 text-foreground">
-      <h1 className="text-xl font-semibold">Korzina</h1>
+    <main className="mx-auto min-h-dvh max-w-(--content-max) space-y-4 px-(--page-x) py-6">
+      <div className="space-y-4 rounded-xl bg-card p-5">
+        <img src="/brand/korzina.svg" alt="" className="size-12" />
+        <h1 className="text-title-2">Korzina</h1>
+        <p className="text-body text-foreground-body">{bootstrap?.name ?? "Платформа для ваших магазинов"}</p>
+        <a
+          href={`/dev/kit${location.search}`}
+          className="block rounded-pill bg-primary px-5 py-3 text-center text-label text-primary-foreground"
+        >
+          Палитра и типографика
+        </a>
+      </div>
     </main>
   );
 }

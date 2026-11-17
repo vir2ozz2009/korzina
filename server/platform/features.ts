@@ -4,7 +4,7 @@ import type { SqlStatement } from "./create-shop.ts";
 export const featureQuery = "SELECT key, enabled FROM feature_overrides WHERE shop_id = ?";
 
 export async function readFeatures(database: D1Database, shopId: string): Promise<FeatureState> {
-  // No isolate/DO/cache snapshot: an off switch takes effect on the next request, including replicas.
+  // F6: only the Worker context caches this public snapshot, for at most 30 seconds.
   const rows = await database
     .withSession("first-primary")
     .prepare(featureQuery)

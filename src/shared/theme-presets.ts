@@ -43,6 +43,7 @@ export interface ThemePreset {
 const WHITE = "#ffffff";
 const DARK = "#1a1a1a";
 export const HEX_RE = /^#[0-9a-f]{6}$/i;
+export const CUSTOM_PREVIEW_COLOR = "#f8c537";
 
 // ---------- цветовая математика (sRGB, WCAG 2.x) ----------
 const toRgb = (hex: string): [number, number, number] => {
@@ -86,6 +87,7 @@ const darkenUntil = (hex: string, target: number, minStep = 0): string => {
 
 /** Токены из одного цвета продавца. Для любого hex текст остаётся читаемым. */
 export function deriveTheme(primaryHex: string): ThemeVars {
+  if (!validateCustomColor(primaryHex).ok) throw new Error("Недопустимый цвет витрины");
   const primary = primaryHex.toLowerCase();
   return {
     "--primary": primary,
@@ -142,9 +144,20 @@ export const THEME_PRESETS: readonly ThemePreset[] = [
 const DEFAULT_PRESET = THEME_PRESETS[0] as ThemePreset;
 
 /** Итоговые токены для темы магазина; неизвестное или битое значение → пресет по умолчанию */
-export function resolveTheme(theme: ShopTheme | null | undefined): ThemeVars {
-  if (theme && "custom" in theme && validateCustomColor(theme.custom).ok) return deriveTheme(theme.custom);
-  if (theme && "preset" in theme) return (THEME_PRESETS.find((p) => p.id === theme.preset) ?? DEFAULT_PRESET).vars;
+export function normalizeTheme(theme: unknown): ShopTheme {
+  if (theme && typeof theme === "object") {
+    if ("custom" in theme && typeof theme.custom === "string" && validateCustomColor(theme.custom).ok)
+      return { custom: theme.custom.toLowerCase() };
+    if ("preset" in theme && THEME_PRESETS.some((p) => p.id === theme.preset))
+      return { preset: theme.preset as ThemePresetId };
+  }
+  return DEFAULT_THEME;
+}
+
+export function resolveTheme(input: unknown): ThemeVars {
+  const theme = normalizeTheme(input);
+  if ("custom" in theme) return deriveTheme(theme.custom);
+  if ("preset" in theme) return (THEME_PRESETS.find((p) => p.id === theme.preset) ?? DEFAULT_PRESET).vars;
   return DEFAULT_PRESET.vars;
 }
 

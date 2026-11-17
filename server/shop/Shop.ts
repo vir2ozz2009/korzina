@@ -4,7 +4,9 @@ import { drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { Hono } from "hono";
 import { shopContract } from "../../src/shared/contracts/shop";
+import { shopContextContract } from "../../src/shared/contracts/shop-context";
 import { ApiError, errorBody, errorStatus } from "../../src/shared/errors";
+import { resolveFeatures } from "../../src/shared/flags";
 import type { AuthSecrets } from "../auth/config";
 import { RequestMetrics } from "../metrics";
 import { handleError, notFound } from "../middleware/errors";
@@ -32,6 +34,7 @@ export class Shop extends DurableObject<Env> {
       const parsed = shopContract.safeParse(JSON.parse(decodeURIComponent(metadata)));
       if (!parsed.success) throw new ApiError("FORBIDDEN", "Нет магазина");
       const shop = parsed.data;
+      const context = shopContextContract.safeParse(JSON.parse(decodeURIComponent(metadata)));
       shopId = shop.id;
       if (!this.env.SHOP.idFromName(shop.id).equals(this.ctx.id)) throw new ApiError("FORBIDDEN", "Другой магазин");
       const identity = db.select({ value: settings.value }).from(settings).where(eq(settings.key, "shop_id")).get();
@@ -40,6 +43,7 @@ export class Shop extends DurableObject<Env> {
         storage.transactionSync(() => db.insert(settings).values({ key: "shop_id", value: shop.id }).run());
       response = await this.router.fetch(request, {
         shop,
+        features: context.success ? context.data.features : resolveFeatures([]),
         db,
         storage,
         secrets: this.env as Env & AuthSecrets,

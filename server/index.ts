@@ -1,21 +1,20 @@
 import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
-import { ApiError, errorBody } from "../src/shared/errors";
 import type { AuthSecrets } from "./auth/config";
+import { serveHtml } from "./html";
 import { handleError, notFound } from "./middleware/errors";
 import { apiMetrics } from "./middleware/metrics";
 import { RateLimiter, rateLimit } from "./middleware/rate-limit";
 import { requestId } from "./middleware/request-id";
 import { sellerAccess } from "./platform/auth/access-routes";
 import { platformAuth } from "./platform/auth/routes";
-import { resolveShop } from "./platform/resolve-shop";
+import { shopContexts } from "./platform/shop-context";
 import { shopRoutes } from "./shop/routes";
 
 export { Shop } from "./shop/Shop";
 
 const forwarding = createMiddleware<{ Bindings: Env }>(async (c) => {
-  const shop = await resolveShop(c.req.raw, c.env.PLATFORM);
-  if (!shop) return c.json(errorBody(new ApiError("SHOP_NOT_FOUND", "Магазин не найден")), 404);
+  const shop = await shopContexts.read(c.req.raw, c.env);
   if (
     c.req.path.startsWith("/api/diagnostics") &&
     !["demo.korzina.app", "localhost", "127.0.0.1", "[::1]"].includes(new URL(c.req.url).hostname)
@@ -45,6 +44,10 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
   .get("/health", (c) => c.json({ ok: true }))
   .route("/platform/auth", platformAuth)
   .route("/seller/access", sellerAccess)
+  .get("/shop", async (c) => {
+    c.header("Cache-Control", "no-store");
+    return c.json(await shopContexts.read(c.req.raw, c.env));
+  })
   .use("/auth/*", forwarding)
   .use("/shop", forwarding)
   .use("/diagnostics/*", forwarding)
@@ -52,4 +55,10 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
   .notFound(notFound);
 
 export type AppType = typeof app;
-export default app;
+export default {
+  fetch(request: Request, env: Env & AuthSecrets, ctx: ExecutionContext) {
+    return new URL(request.url).pathname.startsWith("/api/") || new URL(request.url).pathname === "/api"
+      ? app.fetch(request, env, ctx)
+      : serveHtml(request, env);
+  },
+};

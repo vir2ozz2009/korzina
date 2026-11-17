@@ -1,14 +1,12 @@
-import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { handleError, notFound } from "../middleware/errors";
 import { requireFeature } from "../middleware/feature";
 import { RateLimiter, rateLimit } from "../middleware/rate-limit";
 import { customerAuth } from "../modules/auth/routes";
 import { diagnostics } from "../modules/diagnostics/routes";
-import { readFeatures } from "../platform/features";
 import { revisionResponse } from "../revisions";
 import type { ShopEnv } from "./env";
-import { settings } from "./schema";
+import { readPublicSettings } from "./public-settings";
 
 export function shopRoutes() {
   return (
@@ -19,15 +17,12 @@ export function shopRoutes() {
         rateLimit(new RateLimiter(), (request) => request.headers.get("x-korzina-client") ?? "local"),
       )
       .get("/shop", async (c) => {
-        const displayName = c.env.db
-          .select({ value: settings.value })
-          .from(settings)
-          .where(eq(settings.key, "display_name"))
-          .get();
+        const settings = readPublicSettings(c.env.db);
         return c.json({
           ...c.env.shop,
-          name: displayName?.value ?? c.env.shop.name,
-          features: await readFeatures(c.env.platform, c.env.shop.id),
+          name: settings.name ?? c.env.shop.name,
+          theme: settings.theme,
+          features: c.env.features,
         });
       })
       .route("/auth", customerAuth)

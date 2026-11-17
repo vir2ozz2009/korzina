@@ -1,11 +1,13 @@
 import { evictDurableObject, runInDurableObject } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
 import { beforeAll, describe, expect, it } from "vitest";
+import { ShopContextCache } from "../platform/shop-context";
 import { setupPlatform } from "../testing/platform";
 
 beforeAll(setupPlatform);
-const info = async (slug: string) =>
-  (await exports.default.fetch(new Request(`https://demo.korzina.app/api/shop?shop=${slug}`))).json();
+// A fresh Worker isolate must read durable settings, including after DO eviction.
+const info = (slug: string) =>
+  new ShopContextCache().read(new Request(`https://demo.korzina.app/api/shop?shop=${slug}`), env);
 const stub = (id: string) => env.SHOP.get(env.SHOP.idFromName(id));
 
 describe("Shop SQLite", () => {

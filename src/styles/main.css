@@ -1,2 +1,24 @@
 @import "tailwindcss";
 @import "./tokens.css";
+@import "@fontsource-variable/inter";
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  body {
+    @apply m-0 bg-background font-sans text-body text-foreground antialiased;
+  }
+  button,
+  input {
+    font: inherit;
+  }
+  button,
+  a,
+  input {
+    @apply outline-offset-4;
+  }
+  :focus-visible {
+    @apply outline-2 outline-ring;
+  }
+}
