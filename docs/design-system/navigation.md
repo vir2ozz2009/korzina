@@ -153,6 +153,7 @@
 | Тип оплаты | `…/payments/new` | form | sheet | [729:54184](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=729-54184) | S5 |
 | Реквизиты способа | `…/payments/$id` | form | push | [729:54192](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=729-54192) | S5 |
 | Проверка и применение | `…/payments/review` | checkout | push | [729:54216](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=729-54216) | S5 |
+| Оформление витрины (пресеты цвета) | `/seller/settings/appearance` | form | push | [1110:64305](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=1110-64305) | S6 |
 | Данные магазина | `/seller/settings/store` | form | push | [903:59118](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=903-59118) | S6 |
 | Контакты | `…/store/contacts` | form | push | [903:60541](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=903-60541) | S6 |
 | Регион, валюта, время | `…/store/region` | form | push | [903:60934](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=903-60934) | S6 |
