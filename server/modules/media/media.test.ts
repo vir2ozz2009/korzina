@@ -116,3 +116,39 @@ describe("F9: файлы, изоляция, повторы и хранение",
       });
   });
 });
+
+it("сохраняет вычисленные браузером границы и цвет один раз; метаданные входят в идемпотентность", async () => {
+  const cookie = await guest(),
+    key = crypto.randomUUID();
+  const bytes = Uint8Array.from(
+    atob(
+      "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAL0lEQVR4nO3OMQEAAAjDsIF/z0MGT2qgmbbNY/s5BwAAAAAAAAAAAAAAAAAASJIDTYgEPEq9nRUAAAAASUVORK5CYII=",
+    ),
+    (c) => c.charCodeAt(0),
+  );
+  const metadata = { edgeColor: "#ffffff", contentBox: { x: 0.1, y: 0.2, w: 0.8, h: 0.7 }, width: 32, height: 32 };
+  const send = (value: unknown) =>
+    exports.default.fetch(
+      new Request("https://demo.korzina.app/api/media/upload?shop=test2&purpose=review", {
+        method: "POST",
+        headers: { Cookie: cookie, "Idempotency-Key": key, "X-Photo-Metadata": JSON.stringify(value) },
+        body: bytes,
+      }),
+    );
+  const first = await send(metadata);
+  expect(first.status).toBe(201);
+  const record = await first.json<{ id: string }>();
+  expect(await (await send(metadata)).json()).toEqual(record);
+  expect((await send({ ...metadata, edgeColor: "#eeeeee" })).status).toBe(409);
+  expect((await send({ ...metadata, contentBox: { x: 0.5, y: 0, w: 1, h: 1 } })).status).toBe(400);
+  await runInDurableObject(stub(), (_instance, ctx) => {
+    const saved = ctx.storage.sql
+      .exec<{ edge_color: string; content_box: string }>(
+        "SELECT edge_color,content_box FROM media WHERE id=?",
+        record.id,
+      )
+      .one();
+    expect(saved.edge_color).toBe(metadata.edgeColor);
+    expect(JSON.parse(saved.content_box)).toEqual(metadata.contentBox);
+  });
+});

@@ -5,6 +5,7 @@ export class HttpError extends Error {
     public readonly status: number,
     message: string,
     public readonly code?: ErrorCode,
+    public readonly details?: unknown,
   ) {
     super(message);
   }
@@ -14,17 +15,19 @@ export async function checkResponse(response: { ok: boolean; status: number; jso
   if (response.ok) return;
   let message = "Не удалось выполнить запрос";
   let code: ErrorCode | undefined;
+  let details: unknown;
   try {
     const body = await response.json();
     if (body && typeof body === "object" && "error" in body && body.error && typeof body.error === "object") {
       if ("message" in body.error && typeof body.error.message === "string") message = body.error.message;
       if ("code" in body.error && typeof body.error.code === "string" && Object.hasOwn(errorStatus, body.error.code))
         code = body.error.code as ErrorCode;
+      if ("details" in body.error) details = body.error.details;
     }
   } catch {
     /* Status still distinguishes an access denial from a failed gateway. */
   }
-  throw new HttpError(response.status, message, code);
+  throw new HttpError(response.status, message, code, details);
 }
 
 export function errorKind(error: unknown): "access" | "retry" | "message" {

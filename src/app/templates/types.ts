@@ -7,6 +7,8 @@ export interface TemplateState {
   query: QueryResult<unknown>;
   empty?: boolean;
   onEmpty?: () => void;
+  emptyTitle?: string;
+  emptyDescription?: string;
 }
 export interface TemplateProps {
   state?: TemplateState;

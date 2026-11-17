@@ -9,7 +9,8 @@ import { ProductRow } from "../../ui/ProductRow";
 import { ProductTile } from "../../ui/ProductTile";
 import { CartPhotosKit } from "./CartPhotosKit";
 import { CategoriesKit } from "./CategoriesKit";
-import { demoProduct, tomatoPhoto } from "./kit-mock";
+import { croissantPhoto, demoProduct, tomatoPhoto } from "./kit-mock";
+import { PhotoAnalysisKit } from "./PhotoAnalysisKit";
 
 export function ProductsKit({ notify }: { notify: (message: string) => void }) {
   const [quantity, setQuantity] = useState(0);
@@ -46,6 +47,8 @@ export function ProductsKit({ notify }: { notify: (message: string) => void }) {
           />
           <ProductTile
             {...demoProduct}
+            name="Круассан сливочный"
+            image={croissantPhoto}
             oldMinor={undefined}
             cart={{ value: 0, max: 0, onChange: setQuantity }}
             href="#product-example"
@@ -65,11 +68,14 @@ export function ProductsKit({ notify }: { notify: (message: string) => void }) {
             Нажмите на фото: откроется оригинал. Разведите пальцы, чтобы увеличить.
           </p>
           <div id="product-example">
-            <Gallery name="Томаты" images={[tomatoPhoto, { ...tomatoPhoto, src: `${tomatoPhoto.src}?view=2` }]} />
+            <Gallery name="Томаты" images={[tomatoPhoto, croissantPhoto]} />
           </div>
         </KitSection>
       </section>
       <CategoriesKit />
+      <KitSection title="Рамка и поля фото">
+        <PhotoAnalysisKit />
+      </KitSection>
       <CartPhotosKit />
       <section aria-label="Состояния плитки" className="grid grid-cols-2 gap-2">
         <ProductTile

@@ -1,0 +1,99 @@
+{
+  "croissant": {
+    "src": "https://media.demo.korzina.app/catalog/B2/figma45/croissant-7e8e89232116.png",
+    "hash": "7e8e89232116d4706e07e1a788399a9cebd9b4e9",
+    "original": {
+      "src": "https://media.demo.korzina.app/catalog/B2/figma45/croissant-7e8e89232116.png"
+    },
+    "edgeColor": "#ffffff",
+    "contentBox": {
+      "x": 0.04765625,
+      "y": 0.04765625,
+      "w": 0.9281250000000001,
+      "h": 0.9281250000000001
+    },
+    "width": 1200,
+    "height": 1200
+  },
+  "milk": {
+    "src": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1.png",
+    "hash": "f6e8105395b12b94c5b8a857ed93fb793ac9648f",
+    "original": {
+      "src": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1.png"
+    },
+    "previousPhotoZone": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1-tile.png",
+    "edgeColor": "#ffffff",
+    "contentBox": {
+      "x": 0.23980487804878048,
+      "y": 0.0653125,
+      "w": 0.5057560975609756,
+      "h": 0.87328125
+    },
+    "width": 307,
+    "height": 384
+  },
+  "berry": {
+    "src": "https://media.demo.korzina.app/catalog/B2/figma45/berry-f85d5a7f83cc.png",
+    "hash": "f85d5a7f83ccc9e6d2a7611cba8e887404708f34",
+    "original": {
+      "src": "https://media.demo.korzina.app/catalog/B2/figma45/berry-f85d5a7f83cc.png"
+    },
+    "previousPhotoZone": "https://media.demo.korzina.app/catalog/B2/figma45/berry-f85d5a7f83cc-tile.png",
+    "edgeColor": "#ffffff",
+    "contentBox": {
+      "x": 0.15375,
+      "y": 0.04233918128654971,
+      "w": 0.7003124999999999,
+      "h": 0.9094736842105263
+    },
+    "width": 384,
+    "height": 256
+  },
+  "vegetables": {
+    "src": "https://media.demo.korzina.app/catalog/B2/figma45/vegetables-f8e4079fb84b.png",
+    "hash": "f8e4079fb84b12b3d039ed3f8c9104de33baf123",
+    "original": {
+      "src": "https://media.demo.korzina.app/catalog/B2/figma45/vegetables-f8e4079fb84b.png"
+    },
+    "previousPhotoZone": "https://media.demo.korzina.app/catalog/B2/figma45/vegetables-f8e4079fb84b-tile.png",
+    "edgeColor": "#ffffff",
+    "contentBox": {
+      "x": 0.06,
+      "y": 0.023625730994152046,
+      "w": 0.9112499999999999,
+      "h": 0.9410526315789475
+    },
+    "width": 512,
+    "height": 341
+  },
+  "chicken": {
+    "src": "https://media.demo.korzina.app/catalog/B2/figma45/chicken-d473e71ca338.png",
+    "hash": "d473e71ca3387bcad6432aeebf9d78bb9ac25e1a",
+    "original": {
+      "src": "https://media.demo.korzina.app/catalog/B2/figma45/chicken-d473e71ca338.png"
+    },
+    "previousPhotoZone": "https://media.demo.korzina.app/catalog/B2/figma45/chicken-d473e71ca338-tile.png",
+    "edgeColor": "#ffffff",
+    "contentBox": {
+      "x": 0,
+      "y": 0.041403508771929824,
+      "w": 1,
+      "h": 0.9347368421052631
+    },
+    "width": 512,
+    "height": 341
+  },
+  "tomato": {
+    "src": "https://media.demo.korzina.app/catalog/B2/figma45/tomato-489662d1a54b.png",
+    "hash": "489662d1a54b46c741bff9716210fee07de915cc",
+    "edgeColor": "#f3ebe0",
+    "contentBox": {
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1
+    },
+    "width": 1200,
+    "height": 1200
+  }
+}

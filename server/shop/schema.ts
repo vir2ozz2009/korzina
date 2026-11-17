@@ -1,5 +1,6 @@
 import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
+export { carts } from "../modules/cart/schema";
 export { brands, catalogState, categories, productPhotos, products, variants } from "../modules/catalog/schema";
 export { media, mediaUsage } from "../modules/media/schema";
 

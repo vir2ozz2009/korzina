@@ -25,3 +25,24 @@ jobs:
           node-version-file: .node-version
       # Native Node TypeScript, no dependencies or repeat of the full check.
       - run: node scripts/catalog-smoke.ts https://demo.korzina.app --wait-for-build
+  storefront:
+    needs: catalog
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          E2E_BASE_URL: https://demo.korzina.app
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: demo-browser-result
+          path: test-results/
+          retention-days: 7

@@ -9,8 +9,9 @@ export interface ProductTileProps extends PriceProps {
   image?: ProductImageValue;
   href: string;
   cart: AddToCartProps;
+  stock?: number | null;
 }
-export function ProductTile({ name, unit, image, href, cart, ...price }: ProductTileProps) {
+export function ProductTile({ name, unit, image, href, cart, stock, ...price }: ProductTileProps) {
   return (
     <article className="min-w-0 overflow-hidden rounded-xl bg-card">
       <a href={href} className={`relative block ${cart.max <= 0 ? "opacity-50" : ""}`} aria-label={name}>
@@ -30,8 +31,13 @@ export function ProductTile({ name, unit, image, href, cart, ...price }: Product
           {name}
         </a>
         <p className="text-small text-muted-foreground">{unit}</p>
-        <Price {...price} />
-        {cart.max > 0 ? (
+        <div className="flex min-h-7 flex-wrap items-baseline justify-between gap-x-1">
+          <Price {...price} />
+          {stock !== undefined && stock !== null && stock > 0 && stock <= 5 && (
+            <span className="text-micro font-normal text-subtle-foreground">{stock} осталось</span>
+          )}
+        </div>
+        {cart.max > 0 || cart.value > 0 ? (
           <AddToCart {...cart} />
         ) : (
           <p className="flex min-h-(--control-md) items-center justify-center rounded-pill bg-input text-small text-muted-foreground">

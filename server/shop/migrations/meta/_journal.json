@@ -50,6 +50,20 @@
       "when": 1794919048258,
       "tag": "0006_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1794921892115,
+      "tag": "0007_shiny_silver_surfer",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1794932746306,
+      "tag": "0008_smart_metal_master",
+      "breakpoints": true
     }
   ]
 }

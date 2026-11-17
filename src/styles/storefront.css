@@ -1,0 +1,231 @@
+/* B2 primitives; mobile geometry from Figma 45 and photos.md. */
+:root {
+  --mosaic-gap: 8px;
+  --mosaic-peek: 3.3;
+  --store-mark-width: 104px;
+  --store-mark-height: 44px;
+  --store-header-height: 84px;
+  --store-identity-height: 60px;
+}
+.store-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--store-mark-width) minmax(0, 1fr);
+  align-items: center;
+  height: var(--store-header-height);
+  padding: var(--page-x);
+  background: var(--background);
+}
+.store-address {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--control-md);
+  gap: 2px;
+  text-align: left;
+  min-width: 0;
+}
+.store-address-value {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.store-identity {
+  display: flex;
+  height: var(--store-identity-height);
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  justify-content: center;
+  min-width: 0;
+}
+.store-name {
+  width: 100%;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  line-height: 14px;
+}
+.store-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: var(--store-mark-width);
+  height: var(--store-mark-height);
+  font-size: 25px;
+  font-weight: 700;
+}
+.store-logo img {
+  height: auto;
+  width: auto;
+  max-width: var(--store-mark-width);
+  max-height: var(--store-mark-height);
+  object-fit: contain;
+}
+.store-account {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.category-viewport {
+  container-type: inline-size;
+  min-width: 0;
+}
+.category-mosaic {
+  --category-cell: calc((100cqi + var(--mosaic-gap)) / var(--mosaic-peek) - var(--mosaic-gap));
+  display: grid;
+  grid-auto-flow: column dense;
+  grid-auto-columns: var(--category-cell);
+  grid-template-rows: repeat(2, var(--category-cell));
+  gap: var(--mosaic-gap);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.category-mosaic::-webkit-scrollbar {
+  display: none;
+}
+.category-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  isolation: isolate;
+}
+.category-tile[data-size="2x1"],
+.category-tile[data-size="2x2"] {
+  grid-column: span 2;
+}
+.category-tile[data-size="1x2"],
+.category-tile[data-size="2x2"] {
+  grid-row: span 2;
+}
+.category-label {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  align-self: stretch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin: 10px 10px 4px;
+  padding-right: 4px;
+  font-size: var(--text-small);
+  line-height: var(--text-small--line-height);
+  font-weight: 600;
+}
+.category-tile[data-size="2x1"] .category-label,
+.category-tile[data-size="2x2"] .category-label {
+  max-width: 58%;
+}
+.category-photo-zone {
+  position: relative;
+  z-index: 0;
+  flex: 1;
+  display: flex;
+  padding: 0 8px 8px;
+  overflow: hidden;
+  justify-content: center;
+  align-items: flex-end;
+  min-width: 0;
+  min-height: 0;
+}
+.category-tile[data-size="2x1"] .category-photo-zone,
+.category-tile[data-size="2x2"] .category-photo-zone {
+  margin-left: 31%;
+  justify-content: flex-end;
+}
+.category-photo {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  transform: none;
+  mask-image:
+    linear-gradient(to right, transparent, black 8px, black calc(100% - 8px), transparent),
+    linear-gradient(to bottom, transparent, black 8px, black calc(100% - 8px), transparent);
+  mask-composite: intersect;
+  mask-repeat: no-repeat;
+  pointer-events: none;
+}
+.category-tile[data-size="2x1"] .category-photo,
+.category-tile[data-size="2x2"] .category-photo {
+  object-position: right bottom;
+}
+.category-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 64px;
+  width: 64px;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--primary-soft);
+  color: var(--primary-text);
+}
+.floating-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.27fr);
+  gap: 12px;
+}
+.floating-actions button {
+  padding-inline: 12px;
+}
+.cart-action {
+  width: 100%;
+}
+
+.product-image-pixels {
+  mask-image:
+    linear-gradient(to right, transparent, black 10px, black calc(100% - 10px), transparent),
+    linear-gradient(to bottom, transparent, black 10px, black calc(100% - 10px), transparent);
+  mask-composite: intersect;
+  mask-repeat: no-repeat;
+}
+/* B2 wide tiles: photos.md, full-height photo zone with a separate left title. */
+.category-tile[data-size="2x1"],
+.category-tile[data-size="2x2"] {
+  display: block;
+}
+.category-tile[data-size="2x1"] .category-label,
+.category-tile[data-size="2x2"] .category-label {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 45%;
+  max-width: none;
+  margin: 0;
+}
+.category-tile[data-size="2x1"] .category-photo-zone,
+.category-tile[data-size="2x2"] .category-photo-zone {
+  position: absolute;
+  inset: 0 0 0 30%;
+  margin-left: 0;
+  padding: 8px;
+  justify-content: flex-end;
+}
+
+.product-image-frame {
+  background: var(--photo-edge, var(--card));
+}
+.image-surface {
+  background: var(--input);
+}
+.image-surface[data-loaded="true"] {
+  background: var(--photo-edge, var(--card));
+}
+
+.price-value.price-compact {
+  font-size: var(--text-title-3);
+  line-height: var(--text-title-3--line-height);
+}

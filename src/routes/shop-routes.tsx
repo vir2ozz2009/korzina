@@ -1,33 +1,42 @@
 import { createRoute, lazyRouteComponent } from "@tanstack/react-router";
 import { TemplatePending } from "../app/templates/TemplatePending";
-import { demoQuery, demoSearch } from "../features/demo/api";
 import { rootRoute } from "./root";
 
+const variantsSearch = (search: Record<string, unknown>): { variants?: string } => ({
+  variants: typeof search.variants === "string" ? search.variants : undefined,
+});
 const home = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  validateSearch: demoSearch,
-  staticData: { template: "home", transition: "tab", title: "Korzina", root: true },
-  loaderDeps: ({ search }) => ({ simulate: search.simulate }),
-  loader: ({ context, deps }) => context.qc.ensureQueryData(demoQuery("home", deps.simulate)).catch(() => undefined),
-  component: lazyRouteComponent(() => import("../features/demo/ui/ShopScreens"), "ShopHome"),
+  validateSearch: variantsSearch,
+  staticData: { template: "home", transition: "tab", title: "Магазин", root: true },
+  component: lazyRouteComponent(() => import("../features/catalog/ui/HomeScreen"), "HomeScreen"),
   pendingComponent: () => <TemplatePending template="home" />,
 });
 const product = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/p/demo",
-  validateSearch: demoSearch,
-  staticData: { template: "product", transition: "push", title: "Томаты на ветке" },
-  loaderDeps: ({ search }) => ({ simulate: search.simulate }),
-  loader: ({ context, deps }) => context.qc.ensureQueryData(demoQuery("product", deps.simulate)).catch(() => undefined),
-  component: lazyRouteComponent(() => import("../features/demo/ui/ProductScreen"), "DemoProduct"),
+  path: "/p/$id",
+  validateSearch: variantsSearch,
+  staticData: { template: "product", transition: "push", title: "Товар" },
+  component: lazyRouteComponent(() => import("../features/catalog/ui/ProductScreen"), "ProductScreen"),
   pendingComponent: () => <TemplatePending template="product" />,
 });
 const details = createRoute({
   getParentRoute: () => product,
   path: "details",
   staticData: { template: "feedback", transition: "sheet", title: "Подробнее о товаре" },
-  component: lazyRouteComponent(() => import("../features/demo/ui/DetailsScreen"), "DetailsScreen"),
-  pendingComponent: () => <TemplatePending template="feedback" />,
+  component: lazyRouteComponent(() => import("../features/catalog/ui/DetailsScreen"), "DetailsScreen"),
 });
-export const shopRoutes = [home, product.addChildren([details])];
+const about = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/about",
+  staticData: { template: "form", transition: "push", title: "О магазине" },
+  component: lazyRouteComponent(() => import("../features/catalog/ui/AboutScreen"), "AboutScreen"),
+});
+const cart = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/cart",
+  staticData: { template: "checkout", transition: "push", title: "Корзина" },
+  component: lazyRouteComponent(() => import("../features/cart/ui/CartScreen"), "CartScreen"),
+});
+export const shopRoutes = [home, product.addChildren([details]), about, cart];

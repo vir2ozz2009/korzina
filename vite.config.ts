@@ -14,26 +14,13 @@ export default defineConfig(({ mode }) => ({
     rolldownOptions: {
       output: {
         codeSplitting: {
+          // The budget measures entry + home together. Keep that graph in one
+          // entry chunk so shared UI/query/router code is compressed together.
           groups: [
             {
-              name: "router",
-              test: /node_modules\/@tanstack\/(?:react-router|router-core|history|react-store|store)\//,
-              minShareCount: 2,
-            },
-            { name: "query", test: /node_modules\/@tanstack\/(?:react-query|query-core)\//, minShareCount: 2 },
-            {
-              name: "shell",
+              name: "index",
               test: (id) =>
-                /\/src\/app\/(?:shell|telegram)\//.test(id) && !/\/(?:SellerTabs|SheetRoute)\.tsx$/.test(id),
-            },
-            {
-              name: "ui-core",
-              test: (id) =>
-                /\/src\/ui\/(?:Button|IconButton|Header|Price|AddToCart|Stepper|ProductImage|Img|Skeleton(?:Block|Row|Text|Tile)?|EmptyState|ErrorState|StickyFooter|Card|StoreHeader|SectionHeader|FloatingActions)\.tsx?$/.test(
-                  id,
-                ) ||
-                /\/src\/shared\/(?:money|flags|http-error|errors)\.ts$/.test(id) ||
-                /\/src\/app\/templates\/(?:TemplateSkeleton|TemplatePending|HomeTemplate)\.tsx$/.test(id),
+                /\/src\/app\/main\.tsx$|\/src\/features\/catalog\/ui\/HomeScreen\.tsx$|\/index\.html$/.test(id),
             },
           ],
         },

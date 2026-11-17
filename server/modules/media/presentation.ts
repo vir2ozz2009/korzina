@@ -16,6 +16,10 @@ export function presentMedia(record: MediaRecord, shopId: string, origin: string
     image: publicPurposes.includes(record.purpose)
       ? {
           ...source("original"),
+          edgeColor: record.edgeColor ?? undefined,
+          contentBox: record.contentBox ?? undefined,
+          width: record.width ?? undefined,
+          height: record.height ?? undefined,
           original: { src: `${prefix}original.webp` },
         }
       : null,

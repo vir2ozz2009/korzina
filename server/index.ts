@@ -56,6 +56,7 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
     return c.json(await shopContexts.read(c.req.raw, c.env));
   })
   .use("/auth/*", forwarding)
+  .use("/cart", forwarding)
   .use("/media/*", forwarding)
   .use("/catalog/*", catalogGateway)
   .use("/shop", forwarding)

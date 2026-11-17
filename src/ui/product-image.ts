@@ -2,7 +2,13 @@ interface ImageSource {
   src: string;
   srcSet?: string;
 }
+
+import type { ContentBox } from "../shared/contracts/media";
 export interface ProductImageSource extends ImageSource {
+  contentBox?: ContentBox;
+  width?: number;
+  height?: number;
+  edgeColor?: string;
   original?: ImageSource;
 }
 export type ProductImageValue = string | ProductImageSource;
