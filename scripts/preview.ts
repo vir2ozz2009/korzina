@@ -35,8 +35,8 @@ execFileSync(
     // Version URLs on the existing demo Worker: retain the CLI's exact tag check.
     env: {
       ...process.env,
-      WRANGLER_CI_OVERRIDE_NAME: "korzina-demo",
-      WRANGLER_CI_MATCH_TAG: "b669f60f37d6452cbaaf57b01c750396",
+      CLOUDFLARE_CI_OVERRIDE_WORKER_NAME: "korzina-demo",
+      CLOUDFLARE_CI_MATCH_WORKER_TAG: "b669f60f37d6452cbaaf57b01c750396",
     },
   },
 );
