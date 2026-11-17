@@ -1,0 +1,86 @@
+:root {
+  --app-height: 100dvh;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --tab-height: 0px;
+}
+.app-shell {
+  max-width: var(--content-max);
+  min-height: var(--app-height);
+  margin-inline: auto;
+  padding-top: var(--safe-top);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+  padding-bottom: calc(var(--tab-height) + var(--safe-bottom));
+  overflow-x: clip;
+}
+.app-shell[data-seller="true"] {
+  --tab-height: 64px;
+}
+.screen {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(var(--app-height) - var(--safe-top) - var(--tab-height) - var(--safe-bottom));
+}
+.screen-header {
+  position: sticky;
+  top: var(--safe-top);
+  z-index: 20;
+}
+.seller-tabs {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--content-max);
+  z-index: 30;
+  padding-bottom: var(--safe-bottom);
+}
+.route-transition[data-transition="push"] {
+  animation: route-push var(--duration-push) var(--ease-out);
+}
+.route-transition[data-transition="push"][data-back="true"] {
+  animation-name: route-back;
+}
+.route-transition[data-transition="tab"],
+.route-transition[data-transition="fade"] {
+  animation: content-fade var(--duration-fade) ease-out;
+}
+.content-reveal {
+  animation: content-fade 150ms ease-out;
+}
+@keyframes route-push {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes route-back {
+  from {
+    transform: translateX(-30%);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes content-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-transition,
+  .content-reveal {
+    animation: none;
+  }
+}

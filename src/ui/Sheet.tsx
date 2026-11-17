@@ -22,7 +22,7 @@ export function Sheet({
         <Drawer.Overlay className="fixed inset-0 z-40 bg-foreground/40" />
         <Drawer.Content
           aria-describedby={description ? descriptionId : undefined}
-          className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[90dvh] max-w-(--content-max) flex-col rounded-t-xl bg-card px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-sheet outline-none"
+          className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[90dvh] max-w-(--content-max) flex-col rounded-t-xl bg-card px-5 pt-3 pb-[max(1.25rem,var(--safe-bottom))] shadow-sheet outline-none"
         >
           <div aria-hidden className="mx-auto mb-3 h-1 w-10 shrink-0 rounded-pill bg-border" />
           <div className="flex items-center justify-between gap-3">
