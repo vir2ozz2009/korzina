@@ -1,10 +1,9 @@
-import { ChevronLeft, ChevronRight, Minus, Plus, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { IconButton } from "./IconButton";
-import { ProductImage } from "./ProductImage";
+import { ProductImage, productPhotoClass } from "./ProductImage";
 export function Gallery({ images, name }: { images: readonly string[]; name: string }) {
   const [index, setIndex] = useState(0);
-  const [zoom, setZoom] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const rail = useRef<HTMLDivElement>(null);
@@ -13,7 +12,6 @@ export function Gallery({ images, name }: { images: readonly string[]; name: str
     const element = dialog.current;
     if (expanded) element?.showModal();
     else element?.close();
-    setZoom(false);
   }, [expanded]);
   function move(next: number) {
     const bounded = Math.max(0, Math.min(images.length - 1, next));
@@ -79,19 +77,12 @@ export function Gallery({ images, name }: { images: readonly string[]; name: str
             <X />
           </IconButton>
         </div>
-        <div className="flex h-[75dvh] items-center justify-center overflow-auto">
-          <img
-            src={images[index]}
-            alt={name}
-            className={`max-h-full object-contain transition-transform motion-reduce:transition-none ${zoom ? "scale-150" : ""}`}
-          />
+        <div className="flex h-[75dvh] items-center justify-center">
+          <img src={images[index]} alt={name} className={productPhotoClass} />
         </div>
         <div className="flex justify-center gap-4">
           <IconButton aria-label="Предыдущее фото" disabled={index === 0} onClick={() => move(index - 1)}>
             <ChevronLeft />
-          </IconButton>
-          <IconButton aria-label={zoom ? "Уменьшить фото" : "Увеличить фото"} onClick={() => setZoom(!zoom)}>
-            {zoom ? <Minus /> : <Plus />}
           </IconButton>
           <IconButton
             aria-label="Следующее фото"

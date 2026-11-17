@@ -83,7 +83,7 @@ export function ProductsKit({ notify }: { notify: (message: string) => void }) {
       </KitSection>
       <div id="product-example">
         <KitSection title="Галерея">
-          <p className="text-meta text-muted-foreground">Свайпайте. Нажмите, чтобы открыть и увеличить.</p>
+          <p className="text-meta text-muted-foreground">Свайпайте. Нажмите, чтобы открыть фото целиком.</p>
           <Gallery name="Томаты на ветке" images={[demoProduct.image, `${demoProduct.image}?view=2`]} />
         </KitSection>
       </div>
