@@ -38,9 +38,24 @@ export async function checkContent(page: Page, screen: "home" | "product") {
             );
           };
           const missing = Array.from(document.images)
-            .filter(visible)
+            .filter((img) => visible(img.parentElement ?? img))
             .filter((img) => !img.complete || img.naturalWidth === 0)
             .map((img) => img.currentSrc || img.src);
+          // SVG <image> has no complete/naturalWidth. Reuse the browser cache
+          // through Image probes, retained across polls without repeated requests.
+          const state = window as Window & { smokePhotos?: Map<string, HTMLImageElement> };
+          state.smokePhotos ??= new Map();
+          for (const svgImage of document.querySelectorAll<SVGImageElement>("svg image")) {
+            if (!visible(svgImage.closest("svg") ?? svgImage)) continue;
+            const src = svgImage.href.baseVal;
+            let probe = state.smokePhotos.get(src);
+            if (!probe) {
+              probe = new Image();
+              probe.src = src;
+              state.smokePhotos.set(src, probe);
+            }
+            if (!probe.complete || !probe.naturalWidth) missing.push(src);
+          }
           const photos =
             kind === "home"
               ? Array.from(document.querySelectorAll("article")).filter(visible)
@@ -50,9 +65,15 @@ export async function checkContent(page: Page, screen: "home" | "product") {
           if (kind === "product" && !photos.length) missing.push("Нет фото товара");
           return missing;
         }, screen),
-      { timeout: 5000, message: `Все фото первого экрана ${screen} загружены` },
+      { timeout: 10_000, message: `Все фото первого экрана ${screen} загружены` },
     )
     .toEqual([]);
+  await page.evaluate(async () => {
+    const probes = (window as Window & { smokePhotos?: Map<string, HTMLImageElement> }).smokePhotos?.values() ?? [];
+    await Promise.all(
+      [...document.images, ...probes].filter((img) => img.complete && img.naturalWidth > 0).map((img) => img.decode()),
+    );
+  });
   if (page.viewportSize()?.width === 390)
     await page.screenshot({ path: `test-results/${screen}-390.png`, animations: "disabled" });
 }

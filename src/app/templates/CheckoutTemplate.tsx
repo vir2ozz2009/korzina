@@ -17,7 +17,7 @@ export function CheckoutTemplate({
 }: Omit<TemplateProps, "children"> & {
   sections: readonly ReactNode[];
   summary: ReactNode;
-  cta: string;
+  cta?: string;
   submitting?: boolean;
   onSubmit?: () => void;
   quoteChanged?: ReactNode;
@@ -30,9 +30,11 @@ export function CheckoutTemplate({
       footer={
         <div className="space-y-3">
           {summary}
-          <Button full size="xl" loading={submitting} disabled={!onSubmit} onClick={onSubmit}>
-            {cta}
-          </Button>
+          {cta && (
+            <Button full size="xl" loading={submitting} disabled={!onSubmit} onClick={onSubmit}>
+              {cta}
+            </Button>
+          )}
         </div>
       }
     >
