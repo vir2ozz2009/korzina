@@ -11,6 +11,7 @@
 | Айдентика | [Айдентика](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=1801-52245) |
 | Логотип | [Главный знак](https://www.figma.com/design/KshHEKekxkL6R3l3lq4etd/), SVG в `public/brand/` |
 | Блок → задача → узлы | `docs/SCREENS.md` |
+| Экран → маршрут → шаблон → эталонный кадр | `docs/design-system/navigation.md` |
 
 Бренд в интерфейсе — **Korzina**. Слово «Лавка» в макетах заменяй названием магазина из данных.
 
@@ -37,7 +38,9 @@
 
 Минимальный стартовый набор (F7): `Button` (primary/secondary/ghost, size), `IconButton`, `Price`, `Stepper` (−/кол-во/+ с лимитом), `PriceCapsule` (цена с «+» → степпер), `ProductTile`, `ProductRow`, `Chip`/`ChipGroup`, `Input`, `TextArea`, `Select`, `Switch`, `Checkbox`, `Radio`, `Badge`, `Avatar`, `ImageCarousel` (точки, увеличение), `Skeleton`, `EmptyState`, `ErrorState`, `Toast`, `Sheet` (vaul), `Dialog`, `ListItem` (иконка/текст/шеврон), `SectionHeader`, `StatusPill`, `Divider`.
 
-Шаблоны каркаса (`src/app/shell`, F8): `Screen` (шапка, контент, закреплённый футер, safe-area, сохранение прокрутки), `Header` (назад, заголовок, действия), `TabBar` (витрина: главная, каталог, корзина, профиль; кабинет: свои вкладки), `QueryBoundary`, `Transition`, `SheetRoute`.
+Каркас (`src/app/shell`, F8): `Screen`, `Header`, `QueryBoundary`, `Transition`, `SheetRoute`; оболочка витрины (шапка магазина + плавающие кнопки «Поиск» и «Корзина», без панели вкладок) и оболочка кабинета (5 вкладок: Главная · Заказы · Товары · Деньги · Ещё, у каждой свой стек).
+
+Восемь шаблонов экранов (`src/app/templates`): `home`, `catalog`, `product`, `checkout`, `order`, `form`, `list`, `feedback` — **`docs/design-system/templates.md`**. Все экраны, маршруты и переходы первой версии — **`docs/design-system/navigation.md`**.
 
 Правило: новый визуальный элемент сначала добавляется в кит (и в `/dev/kit`), потом используется в экране.
 
