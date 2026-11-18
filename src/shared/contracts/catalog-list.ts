@@ -21,6 +21,8 @@ export const catalogListInput = catalogFiltersInput
     version: z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
   })
   .refine((value) => value.min === undefined || value.max === undefined || value.min <= value.max);
+export const catalogSearchInput = catalogListInput.safeExtend({ q: z.string().trim().min(2).max(180) });
+export type CatalogSearchInput = z.infer<typeof catalogSearchInput>;
 export type CatalogListInput = z.infer<typeof catalogListInput>;
 export function usesLiveSelection(input: CatalogFilters) {
   return (

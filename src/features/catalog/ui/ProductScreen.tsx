@@ -1,4 +1,4 @@
-import { Link, Outlet, useNavigate, useParams } from "@tanstack/react-router";
+import { Link, Outlet, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { Share2 } from "lucide-react";
 import { useState } from "react";
 import { Header } from "../../../app/shell/Header";
@@ -26,11 +26,12 @@ export function ProductScreen() {
   const cart = useCart();
   const navigate = useNavigate();
   const toast = useToast();
+  const { variant: preferred } = useSearch({ from: "/p/$id" });
   const [selected, setSelected] = useState<string>();
   const [variantSheet, setVariantSheet] = useState<string>();
   const data = query.data;
   const offer = data ? selectOffer(data.variants, cart.query.data?.lines ?? [], id) : undefined;
-  const variant = data?.variants.find((item) => item.id === selected) ?? offer?.variant;
+  const variant = data?.variants.find((item) => item.id === (selected ?? preferred)) ?? offer?.variant;
   const value = cart.query.data?.lines.find((line) => line.variantId === variant?.id)?.quantity ?? 0;
   const name = data?.name ?? "Товар";
   const unavailable = query.error instanceof HttpError && query.error.status === 404;

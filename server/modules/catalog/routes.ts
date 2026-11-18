@@ -2,10 +2,11 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
 import { catalogLiveInput, catalogPageInput } from "../../../src/shared/contracts/catalog";
-import { catalogListInput } from "../../../src/shared/contracts/catalog-list";
+import { catalogListInput, catalogSearchInput } from "../../../src/shared/contracts/catalog-list";
 import { ApiError } from "../../../src/shared/errors";
 import type { ShopEnv } from "../../shop/env";
 import { readPage } from "./page";
+import { readSearch } from "./search";
 import { readSelection } from "./selection";
 import { readDocument, readLive, readProduct } from "./service";
 
@@ -28,6 +29,13 @@ export const catalogRoutes = new Hono<ShopEnv>()
           async (input) => readSelection(c.env.storage, input),
         ),
       ),
+  )
+  .get(
+    "/search",
+    zValidator("query", catalogSearchInput, (result) => {
+      if (!result.success) throw new ApiError("VALIDATION", "Некорректный запрос поиска");
+    }),
+    (c) => c.json(readSearch(c.env.storage, c.req.valid("query"), c.env.shop.id)),
   )
   .get("/selection", zValidator("query", catalogListInput), (c) =>
     c.json(readSelection(c.env.storage, c.req.valid("query"))),

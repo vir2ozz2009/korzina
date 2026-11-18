@@ -236,3 +236,7 @@
     opacity: 1;
   }
 }
+
+body:has([data-search-input]:focus) [data-shop-actions] {
+  visibility: hidden;
+}

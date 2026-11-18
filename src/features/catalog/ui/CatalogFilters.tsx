@@ -12,16 +12,15 @@ const sortOptions = [
   ["price-desc", "Сначала дороже"],
   ["name", "По названию"],
 ] as const;
-
 type Choice = { id: string; name: string };
 const plural = new Intl.PluralRules("ru");
 const forms = { zero: "товаров", one: "товар", two: "товара", few: "товара", many: "товаров", other: "товаров" };
 function countLabel(n: number) {
   return `${n} ${forms[plural.select(n)]}`;
 }
-
 export function CatalogFilters({
   filters,
+  defaultSortLabel = "По умолчанию",
   categories,
   brands,
   currency,
@@ -33,6 +32,7 @@ export function CatalogFilters({
   onCharacteristics,
 }: {
   filters: Filters;
+  defaultSortLabel?: string;
   categories: Choice[];
   brands: Choice[];
   currency: string;
@@ -70,7 +70,7 @@ export function CatalogFilters({
   const activeBrands = brands.filter((b) => selected(filters.brands).includes(b.id));
   const hasPrice = filters.min !== undefined || filters.max !== undefined;
   const hasFilters = hasPrice || !!category || activeBrands.length > 0 || Boolean(filters.inStock);
-  const sort = sortOptions.find(([value]) => value === filters.sort)?.[1] ?? sortOptions[0][1];
+  const sort = sortOptions.find(([value]) => value === filters.sort)?.[1] ?? defaultSortLabel;
   return (
     <>
       <div className="space-y-2">
@@ -128,7 +128,7 @@ export function CatalogFilters({
           <fieldset className="space-y-2" aria-label="Сортировка">
             {sortOptions.map(([value, label]) => (
               <label key={value} className="flex min-h-11 items-center justify-between">
-                {label}
+                {value === "default" ? defaultSortLabel : label}
                 <input
                   type="radio"
                   name="sort"
