@@ -5,12 +5,14 @@ import catalog from "../../demo-catalog.json";
 import { settings } from "../../shop/schema";
 import { seedFulfillment } from "../fulfillment/seed";
 import { media } from "../media/schema";
+import { seedSchedule } from "../slots/seed";
 import { brands, catalogState, categories, productPhotos, products, variants } from "./schema";
 import { seedNavigation } from "./seed-navigation";
 
 // Invoked by the non-production seed command. Stable SKU ids preserve carts.
 export function seedCatalog(storage: DurableObjectStorage) {
   seedFulfillment(storage);
+  seedSchedule(storage);
   const marker = storage.sql
     .exec<{ value: string }>("SELECT value FROM settings WHERE key='catalog_seed'")
     .toArray()[0];

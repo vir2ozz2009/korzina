@@ -8,6 +8,7 @@ import { catalogRoutes } from "../modules/catalog/routes";
 import { diagnostics } from "../modules/diagnostics/routes";
 import { fulfillmentRoutes } from "../modules/fulfillment/routes";
 import { mediaRoutes } from "../modules/media/routes";
+import { slotRoutes } from "../modules/slots/routes";
 import { revisionResponse } from "../revisions";
 import type { ShopEnv } from "./env";
 import { readPublicSettings } from "./public-settings";
@@ -32,6 +33,7 @@ export function shopRoutes() {
       .route("/auth", customerAuth)
       .route("/cart", cartRoutes)
       .route("/fulfillment", fulfillmentRoutes)
+      .route("/slots", slotRoutes)
       .route("/catalog", catalogRoutes)
       .route("/media", mediaRoutes)
       // Demo/localhost-only availability probe, not the cashback product (A4).

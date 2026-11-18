@@ -3,6 +3,7 @@ import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlit
 export { carts } from "../modules/cart/schema";
 export { brands, catalogState, categories, productPhotos, products, variants } from "../modules/catalog/schema";
 export { media, mediaUsage } from "../modules/media/schema";
+export { collectionSlots } from "../modules/slots/schema";
 
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
