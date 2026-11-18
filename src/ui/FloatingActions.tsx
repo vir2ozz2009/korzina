@@ -7,15 +7,17 @@ export function FloatingActions({
   currency,
   onSearch,
   onCart,
+  compact = false,
 }: {
   totalMinor: number;
   count: number;
   currency?: string | null;
   onSearch?: () => void;
+  compact?: boolean;
   onCart: () => void;
 }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.27fr)] gap-3">
+    <div className={compact ? "flex justify-end" : "grid grid-cols-[minmax(0,1fr)_minmax(0,1.27fr)] gap-3"}>
       {onSearch ? (
         <Button
           size="lg"
@@ -31,7 +33,7 @@ export function FloatingActions({
       )}
       <Button
         size="lg"
-        className="pointer-events-auto w-full px-3 shadow-float"
+        className={`pointer-events-auto px-3 shadow-float ${compact ? "w-28" : "w-full"}`}
         subtitle={count && currency ? formatMinor(totalMinor, currency) : "Пока пусто"}
         onClick={onCart}
       >

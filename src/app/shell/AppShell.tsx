@@ -80,7 +80,7 @@ export function AppShell() {
                   <SellerTabs />
                 </Suspense>
               )}
-              {floating && bootstrap?.status === "active" && <ShopActions />}
+              {floating && bootstrap?.status === "active" && <ShopActions compact={path.startsWith("/p/")} />}
             </div>
           </ShopNavigation>
         </CartProvider>

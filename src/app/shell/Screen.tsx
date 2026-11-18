@@ -44,7 +44,15 @@ export function Screen({
         )}
         {after}
       </main>
-      {footer && ready && <StickyFooter>{footer}</StickyFooter>}
+      {footer &&
+        ready &&
+        (template === "product" ? (
+          <div className="pointer-events-none fixed inset-x-3 bottom-(--floating-bottom) z-20 mx-auto max-w-(--content-max) pr-[7.75rem] drop-shadow-[var(--shadow-float)] [&_button]:pointer-events-auto">
+            {footer}
+          </div>
+        ) : (
+          <StickyFooter>{footer}</StickyFooter>
+        ))}
     </section>
   );
 }
