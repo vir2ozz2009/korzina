@@ -1,6 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": ["server/index.ts", "cloudflare.config.ts"],
+  "ignoreFiles": ["src/ui/Unfinished.tsx"],
   "project": ["src/**/*.{ts,tsx,css}", "server/**/*.ts", "scripts/**/*.ts", "*.ts", "e2e/**/*.ts"],
   "drizzle": { "config": ["drizzle.*.config.ts"] }
 }
