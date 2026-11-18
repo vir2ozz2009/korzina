@@ -21,7 +21,7 @@ describe("правила каталога", () => {
     const product = await response.json<{
       currency: string;
       variants: { id: string; priceMinor: number }[];
-      images: { src: string }[];
+      images: { src: string; edgeColor: string }[];
     }>();
     expect(product.currency).toBe("VND");
     expect(product.variants).toMatchObject([
@@ -31,7 +31,9 @@ describe("правила каталога", () => {
       { id: "sku-04", priceMinor: 69000 },
     ]);
     expect(product.images[0].src).toContain("/catalog/B2/figma45/tomato-");
-    expect(product.images).toHaveLength(1);
+    expect(product.images).toHaveLength(2);
+    expect(product.images[1]).toMatchObject({ src: "/seed/tomato-gallery-2.png", edgeColor: "#c6c0b6" });
+    expect(product.images[0].edgeColor).not.toBe(product.images[1].edgeColor);
     expect((await live()).items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: "sku-08", stock: 0, visible: true, available: false }),

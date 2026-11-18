@@ -1,7 +1,9 @@
 import { queryOptions, useQuery } from "@tanstack/react-query";
+import { bootstrap } from "../../app/bootstrap";
 import { queryPolicy } from "../../app/query-defaults";
 import { checkResponse } from "../../shared/http-error";
 import { shopApi, shopKey } from "../../shared/shop-api";
+import { resolveDocumentImage } from "./document-images";
 
 function productQuery(id: string) {
   return queryOptions({
@@ -11,7 +13,18 @@ function productQuery(id: string) {
     queryFn: async ({ signal }) => {
       const response = await shopApi.api.catalog.products[":id"].$get({ param: { id } }, { init: { signal } });
       await checkResponse(response);
-      return response.json();
+      const result = await response.json();
+      const origin = bootstrap?.mediaOrigin ?? "";
+      return {
+        ...result,
+        recommendations: {
+          ...result.recommendations,
+          items: result.recommendations.items.map((item) => ({
+            ...item,
+            image: resolveDocumentImage(item.image, origin),
+          })),
+        },
+      };
     },
   });
 }

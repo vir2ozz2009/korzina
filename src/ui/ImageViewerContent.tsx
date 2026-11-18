@@ -18,6 +18,8 @@ export function ImageViewerContent({
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const touch = useRef<{ x: number; y: number } | undefined>(undefined);
+  const scale = useRef(1);
   const titleId = useId();
   const selected = imageSource(images[index]);
   const original = selected.original ?? selected;
@@ -32,9 +34,25 @@ export function ImageViewerContent({
         event.preventDefault();
         onClose();
       }}
-      className="fixed inset-0 m-auto grid h-dvh max-h-dvh w-screen max-w-none grid-rows-[auto_minmax(0,1fr)_auto] bg-inverse p-3 text-inverse-foreground backdrop:bg-inverse"
+      onTouchStart={(event) => {
+        const point = event.touches[0];
+        touch.current =
+          event.touches.length === 1 && scale.current === 1 ? { x: point.clientX, y: point.clientY } : undefined;
+      }}
+      onTouchEnd={(event) => {
+        const start = touch.current;
+        touch.current = undefined;
+        const point = event.changedTouches[0];
+        if (!start || !point || scale.current !== 1 || event.touches.length) return;
+        const dx = point.clientX - start.x;
+        const dy = point.clientY - start.y;
+        if (dy > 70 && Math.abs(dx) < dy) onClose();
+        else if (Math.abs(dx) > 50 && Math.abs(dy) < Math.abs(dx))
+          onIndexChange(Math.max(0, Math.min(images.length - 1, index + (dx < 0 ? 1 : -1))));
+      }}
+      className="fixed inset-0 m-auto grid h-dvh max-h-dvh w-screen max-w-none grid-rows-[auto_minmax(0,1fr)_auto] bg-inverse py-3 text-inverse-foreground backdrop:bg-inverse"
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 px-3">
         <h3 id={titleId} className="text-label">
           {name} · {index + 1}/{images.length}
         </h3>
@@ -43,7 +61,15 @@ export function ImageViewerContent({
         </IconButton>
       </div>
       <div className="mx-auto min-h-0 w-full max-w-150 overflow-hidden">
-        <TransformWrapper key={index} minScale={1} maxScale={4} doubleClick={{ mode: "toggle" }}>
+        <TransformWrapper
+          key={index}
+          minScale={1}
+          maxScale={4}
+          doubleClick={{ mode: "toggle" }}
+          onTransform={(_, state) => {
+            scale.current = state.scale;
+          }}
+        >
           {({ zoomIn, zoomOut, resetTransform }) => (
             <>
               <TransformComponent
@@ -53,7 +79,7 @@ export function ImageViewerContent({
                 <img
                   src={original.src}
                   srcSet={original.srcSet}
-                  sizes="(max-width: 624px) calc(100vw - 24px), 600px"
+                  sizes="(max-width: 600px) 100vw, 600px"
                   alt={name}
                   draggable={false}
                   className="size-full object-contain object-center"
