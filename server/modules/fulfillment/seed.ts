@@ -47,4 +47,12 @@ export function seedFulfillment(storage: DurableObjectStorage) {
     "INSERT INTO settings(key,value) VALUES('receiving_schedule',?) ON CONFLICT DO NOTHING",
     JSON.stringify(schedule),
   );
+  storage.sql.exec(
+    "INSERT INTO settings(key,value) VALUES('purchase_payment',?) ON CONFLICT DO NOTHING",
+    JSON.stringify({
+      minimumMinor: 120000,
+      methods: ["cash", "transfer"],
+      instruction: "Демо-перевод. Не отправляйте деньги.",
+    }),
+  );
 }

@@ -15,6 +15,7 @@ import m0013 from "./0013_cart_quote.sql?raw";
 import m0014 from "./0014_receiving.sql?raw";
 import m0015 from "./0015_receiving_seats.sql?raw";
 import m0016 from "./0016_purchase_contact.sql?raw";
+import m0017 from "./0017_checkout.sql?raw";
 import journal from "./meta/_journal.json";
 
 export const migrations = {
@@ -37,5 +38,6 @@ export const migrations = {
     m0014,
     m0015,
     m0016,
+    m0017,
   },
 };

@@ -120,6 +120,13 @@
       "when": 1795018427431,
       "tag": "0016_purchase_contact",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1795019119209,
+      "tag": "0017_checkout",
+      "breakpoints": true
     }
   ]
 }

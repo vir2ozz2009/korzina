@@ -112,6 +112,12 @@ export const mediaRoutes = new Hono<MediaRouterEnv>()
         const record = findMedia(c.env, c.req.param("id"));
         assertRead(actor, record);
         if (actor.id !== record.owner) throw new ApiError("FORBIDDEN", "Изменять файл может только его владелец");
+        if (
+          record.purpose === "receipt" &&
+          record.status === "attached" &&
+          c.env.storage.sql.exec("SELECT 1 FROM orders WHERE proof_media_id=?", record.id).toArray().length
+        )
+          throw new ApiError("FORBIDDEN", "Чек уже используется в заказе");
         c.env.db
           .update(media)
           .set({
