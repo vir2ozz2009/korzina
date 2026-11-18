@@ -15,6 +15,26 @@ const live = async (ids = "sku-01,sku-02,sku-08,sku-12,sku-16") =>
   }>();
 
 describe("правила каталога", () => {
+  it("сид даёт фасовкам каждого товара уникальные названия и обновляет старые демо-данные", async () => {
+    const duplicates = async () => {
+      const rows = await catalogSql("SELECT product_id,name FROM variants");
+      const keys = rows.map(({ product_id, name }) =>
+        JSON.stringify([product_id, String(name).toLocaleLowerCase("ru").replace(/\s+/gu, "")]),
+      );
+      return keys.length - new Set(keys).size;
+    };
+    expect(await duplicates()).toBe(0);
+
+    await catalogSql("DELETE FROM settings WHERE key='catalog_variant_names_seed'");
+    await catalogSql("UPDATE variants SET name='125 г', stock=0 WHERE id='sku-08'");
+    await evictDurableObject(catalogStub());
+
+    expect(await duplicates()).toBe(0);
+    expect(await catalogSql("SELECT name,stock FROM variants WHERE id='sku-08'")).toEqual([
+      { name: "500 г", stock: 0 },
+    ]);
+  });
+
   it("сид сохраняет фасовки, целые цены VND, нулевой и неограниченный остаток; повторный запуск не сбрасывает изменения", async () => {
     const response = await catalogRequest("products/product-01");
     expect(response.status).toBe(200);
