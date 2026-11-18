@@ -1,6 +1,6 @@
 import type { CatalogPageInput } from "../../../src/shared/contracts/catalog";
 
-const documentFormat = "R1-media-v2";
+const documentFormat = "B3-subtree-v1";
 
 function matches(request: Request, etag: string) {
   return request.headers

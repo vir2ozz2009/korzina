@@ -41,6 +41,16 @@ test("витрина своего магазина → фасовка/корзи
   await page.locator("article").first().waitFor();
   if (process.env.E2E_BASE_URL) await page.screenshot({ path: "test-results/demo-home.png" });
   await checkWidths(page, "home");
+  await page.evaluate(() => window.scrollTo(0, 400));
+  await expect
+    .poll(() =>
+      page
+        .locator("header")
+        .first()
+        .evaluate((header) => header.getBoundingClientRect().top),
+    )
+    .toBeLessThan(0);
+  await page.evaluate(() => window.scrollTo(0, 0));
   const first = page.locator("article").first();
   await first.getByRole("button", { name: "Выбрать фасовку" }).click();
   const variants = page.getByRole("dialog", { name: "Выберите фасовку" });
@@ -83,6 +93,16 @@ test("витрина своего магазина → фасовка/корзи
   await link.click();
   await expect(page).toHaveURL(new RegExp(`${href}\\?shop=test2$`));
   await checkWidths(page, "product");
+  await page.evaluate(() => window.scrollTo(0, 400));
+  await expect
+    .poll(() =>
+      page
+        .locator("header")
+        .first()
+        .evaluate((header) => header.getBoundingClientRect().top),
+    )
+    .toBeCloseTo(0, 0);
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.getByRole("button", { name: /Открыть фото 1:/ }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button", { name: "Увеличить фото" }).click();
