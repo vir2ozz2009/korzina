@@ -11,6 +11,7 @@ export function cleanupRecords(storage: DurableObjectStorage, now = Date.now()) 
     const statements = [
       ["idempotency", "created_at<?", [now - day]],
       ["sessions", "expires_at<=?", [now]],
+      ["receiving_seats", "expires_at<=?", [now]],
       [
         "carts",
         "updated_at<? AND NOT EXISTS(SELECT 1 FROM sessions s WHERE s.subject=carts.customer AND s.expires_at>?)",
@@ -36,6 +37,7 @@ export async function rescheduleCleanup(storage: DurableObjectStorage, more: boo
     SELECT MIN(created_at)+${day} AS due FROM idempotency
     UNION ALL SELECT MIN(expires_at) FROM sessions
     UNION ALL SELECT MIN(expires_at) FROM media
+    UNION ALL SELECT MIN(expires_at) FROM receiving_seats
     UNION ALL SELECT MIN(updated_at)+${30 * day} FROM carts WHERE NOT EXISTS(
       SELECT 1 FROM sessions s WHERE s.subject=carts.customer AND s.expires_at>?))`,
       now,
