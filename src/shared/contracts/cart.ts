@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { CatalogImage } from "./catalog";
 
 const expectedRevision = z.number().int().nonnegative();
-export const cartChangeInput = z.object({
+const cartChangeInput = z.object({
   variantId: z.string().min(1).max(120),
   quantity: z.number().int().min(0).max(999),
   expectedRevision,
