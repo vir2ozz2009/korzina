@@ -23,12 +23,14 @@ export function toTiles({
     const variant = manual ?? offer.variant;
     const value = manual ? (lines.find((line) => line.variantId === manual.id)?.quantity ?? 0) : offer.quantity;
     const multiple = !manual && offer.multiple;
+    const available = selectOffer(product.variants, [], product.id);
     return {
       id: product.id,
       name: product.name,
       image: product.image ?? undefined,
       href: `/p/${product.id}${manual ? `?variant=${encodeURIComponent(manual.id)}` : ""}`,
-      unit: manual?.name ?? offer.unit,
+      unit: multiple ? "" : (manual?.name ?? offer.unit),
+      variants: available.multiple ? { label: available.unit, open: () => choose(product.id) } : undefined,
       from: !manual && offer.from,
       stock: multiple ? undefined : variant.stock,
       amountMinor: variant.priceMinor,

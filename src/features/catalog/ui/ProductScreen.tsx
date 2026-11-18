@@ -37,6 +37,7 @@ export function ProductScreen() {
   const unavailable = query.error instanceof HttpError && query.error.status === 404;
   const title = data ? "Korzina" : name;
   const details = data?.description.trim();
+  const selectedPhoto = variant?.photoId ? data?.images.findIndex((image) => image.id === variant.photoId) : undefined;
   const share = async () => {
     const url = new URL(`/p/${encodeURIComponent(id)}`, window.location.origin);
     const shop = new URLSearchParams(window.location.search).get("shop");
@@ -107,7 +108,12 @@ export function ProductScreen() {
           onEmpty: () => void navigate({ to: "/" }),
         }}
         gallery={
-          <Gallery images={data?.images.map((image) => ({ ...image, src: image.src ?? "" })) ?? []} name={name} />
+          <Gallery
+            key={id}
+            images={data?.images.map((image) => ({ ...image, src: image.src ?? "" })) ?? []}
+            name={name}
+            selectedIndex={selectedPhoto}
+          />
         }
         info={
           <div className="space-y-3">
@@ -167,7 +173,7 @@ export function ProductScreen() {
               <AddToCart
                 size="lg"
                 value={value}
-                max={variant.stock ?? 999}
+                max={variant.available ? (variant.stock ?? 999) : 0}
                 onChange={change}
                 disabled={cart.pendingProducts.has(id) || !cart.query.data}
               />

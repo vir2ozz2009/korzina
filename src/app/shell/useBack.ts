@@ -14,6 +14,6 @@ export function useBack(fallback = "/") {
       return;
     }
     if (canGoBack(index)) router.history.back();
-    else void router.navigate({ to: fallback, replace: true });
+    else void router.navigate({ to: fallback, search: (previous) => ({ shop: previous.shop }), replace: true });
   };
 }

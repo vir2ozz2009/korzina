@@ -85,24 +85,24 @@ export function HomeScreen() {
                   })
                 : []
             }
+            moreProducts={
+              catalog.isFetchNextPageError ? (
+                <ErrorState error={catalog.error} onRetry={() => void catalog.fetchNextPage()} />
+              ) : catalog.hasNextPage ? (
+                <Button
+                  full
+                  variant="secondary"
+                  loading={catalog.isFetchingNextPage}
+                  onClick={() => void catalog.fetchNextPage()}
+                >
+                  Показать ещё
+                </Button>
+              ) : undefined
+            }
             brands={(document?.brands ?? []).filter((brand) => brand.hasProducts)}
           />,
           cart.query.isError && (
             <ErrorState key="cart-error" error={cart.query.error} onRetry={() => void cart.query.refetch()} />
-          ),
-          catalog.isFetchNextPageError && (
-            <ErrorState key="page-error" error={catalog.error} onRetry={() => void catalog.fetchNextPage()} />
-          ),
-          catalog.hasNextPage && (
-            <Button
-              key="more"
-              full
-              variant="secondary"
-              loading={catalog.isFetchingNextPage}
-              onClick={() => void catalog.fetchNextPage()}
-            >
-              Показать ещё
-            </Button>
           ),
         ]}
       />

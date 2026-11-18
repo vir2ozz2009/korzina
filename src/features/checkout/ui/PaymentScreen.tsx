@@ -185,19 +185,6 @@ export function PaymentScreen() {
                 value="Изменить"
                 onClick={busy ? undefined : () => setContactOpen(true)}
               />
-              <Card>
-                <h2 className="text-title-3">Ваш заказ</h2>
-                <ul className="space-y-2">
-                  {quote.lines.map((line) => (
-                    <li className="flex justify-between gap-3 text-meta" key={line.variantId}>
-                      <span>
-                        {line.name} · {line.quantity} × {line.unit}
-                      </span>
-                      <strong className="shrink-0">{formatMinor(line.totalMinor, quote.currency)}</strong>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
               <PurchaseTotals {...quote} />
               {before && needsAccept && (
                 <QuoteChange

@@ -10,12 +10,13 @@ import { formatMinor, multiplyMinor } from "../../../shared/money";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { Divider } from "../../../ui/Divider";
+import { Header } from "../../../ui/Header";
 import { IconButton } from "../../../ui/IconButton";
 import { ProductRow } from "../../../ui/ProductRow";
 import { StickyFooter } from "../../../ui/StickyFooter";
-import { CartContinue } from "../../checkout";
+import { CartContinue, usePurchaseSummary } from "../../checkout";
 import { ContactSheet, useContact } from "../../contact";
-import { CartShipping } from "../../receiving";
+import { activeReceiving, CartShipping, deliveryLabel, useReceiving } from "../../receiving";
 import { useConfirmCart } from "../api";
 import { useCart } from "../CartProvider";
 import { cartSnapshot } from "../snapshot";
@@ -46,6 +47,13 @@ export function CartScreen() {
   const checking = opening || query.isFetching;
   const currency = cart?.currency;
   const available = cart?.lines.filter((line) => line.available) ?? [];
+  const summary = usePurchaseSummary(available.length > 0 ? cart?.revision : undefined);
+  const receiving = useReceiving(!!cart?.lines.length);
+  const shipping = summary.data?.availability ?? receiving.data?.availability ?? null;
+  const method = receiving.data ? activeReceiving(receiving.data) : undefined;
+  const courier =
+    shipping?.mode === "delivery" && shipping.available && shipping.payee === "courier" && shipping.tariff !== "free";
+  const late = shipping?.mode === "delivery" && shipping.available && shipping.feeMinor === null;
   const unavailable = cart?.lines.filter((line) => !line.available) ?? [];
   const issues = new Map(cart?.review?.changes.map((issue) => [issue.variantId, issue]));
 
@@ -96,15 +104,17 @@ export function CartScreen() {
     <Screen
       template="checkout"
       header={
-        <div className="bg-background px-3 pt-3">
-          <Card size="lg">
-            <div className="flex min-h-8 items-center justify-between">
-              <h1 className="text-title-1">Корзина</h1>
-              <IconButton aria-label="Закрыть корзину" className="-my-1.5 text-muted-foreground" onClick={back}>
+        <div className="bg-background px-3 pt-3 [&_header]:rounded-xl">
+          <Header
+            title="Корзина"
+            headingLevel={1}
+            onBack={back}
+            actions={
+              <IconButton aria-label="Закрыть корзину" className="text-muted-foreground" onClick={back}>
                 <X size={22} />
               </IconButton>
-            </div>
-          </Card>
+            }
+          />
         </div>
       }
       state={{
@@ -143,7 +153,6 @@ export function CartScreen() {
       {cart && currency && cart.lines.length > 0 && (
         <>
           <CartShipping
-            currency={currency}
             revision={cart.revision}
             disabled={checking || query.isError || !!cart.review || pendingProducts.size > 0}
             open={addressOpen}
@@ -172,9 +181,28 @@ export function CartScreen() {
               </>
             )}
             <div className="flex items-baseline justify-between gap-2">
-              <span className="text-label">Итого за товары</span>
-              <strong className="text-title-3">{formatMinor(cart.totalMinor, currency)}</strong>
+              <span>Товары</span>
+              <strong>{formatMinor(cart.totalMinor, currency)}</strong>
             </div>
+            {method && (
+              <div className="flex justify-between gap-3">
+                <span>{method === "pickup" ? "Самовывоз" : "Доставка"}</span>
+                <span className="text-right">
+                  {method === "pickup" ? "Бесплатно" : deliveryLabel(shipping, currency)}
+                </span>
+              </div>
+            )}
+            {summary.data && (
+              <>
+                <Divider />
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-label">
+                    {courier ? "К оплате магазину" : late ? "Итого за товары" : "Итого"}
+                  </span>
+                  <strong className="text-title-3">{formatMinor(summary.data.totalMinor, currency)}</strong>
+                </div>
+              </>
+            )}
           </Card>
           {unavailable.length > 0 && (
             <Card size="lg">
@@ -187,6 +215,7 @@ export function CartScreen() {
       {available.length > 0 && cart && !cart.review && (
         <CartContinue
           revision={cart.revision}
+          summary={summary}
           disabled={checking || query.isError || pendingProducts.size > 0}
           address={() => setAddressOpen(true)}
           contact={() => setContactMode(telegramLaunch ? "phone" : "telegram")}

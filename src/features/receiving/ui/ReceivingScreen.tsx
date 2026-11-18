@@ -155,6 +155,7 @@ export function ReceivingScreen() {
             onClick={() => setEditor("comment")}
           />
           <Sheet
+            form
             title={editor === "details" ? "Детали адреса" : commentTitle}
             open={!!editor}
             onOpenChange={(open) => {
