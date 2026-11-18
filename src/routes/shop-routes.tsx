@@ -1,5 +1,6 @@
 import { createRoute, lazyRouteComponent } from "@tanstack/react-router";
 import { TemplatePending } from "../app/templates/TemplatePending";
+import { catalogRoutes } from "./catalog-routes";
 import { rootRoute } from "./root";
 
 const variantsSearch = (search: Record<string, unknown>): { variants?: string } => ({
@@ -39,4 +40,4 @@ const cart = createRoute({
   staticData: { template: "checkout", transition: "push", title: "Корзина" },
   component: lazyRouteComponent(() => import("../features/cart/ui/CartScreen"), "CartScreen"),
 });
-export const shopRoutes = [home, product.addChildren([details]), about, cart];
+export const shopRoutes = [home, product.addChildren([details]), about, cart, ...catalogRoutes];

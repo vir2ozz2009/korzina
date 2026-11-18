@@ -1,13 +1,13 @@
 import { expect, type Page } from "@playwright/test";
 
 const price = /\d[\d\s.,]*[₫₽$€£]/;
-export async function checkContent(page: Page, screen: "home" | "product") {
+export async function checkContent(page: Page, screen: "home" | "product" | "catalog") {
   await page.evaluate(() => document.fonts.ready);
   if (screen === "home") {
     await expect.soft(page.getByRole("heading", { name: "Категории", exact: true })).toBeVisible();
     await expect.soft(page.locator('nav[aria-label="Категории"] > *').first()).toBeVisible();
     await expect.soft(page.locator("article").first()).toContainText(price);
-  } else {
+  } else if (screen === "product") {
     await expect.soft(page.locator("h1")).not.toBeEmpty();
     await expect.soft(page.locator("#screen-content")).toContainText(price);
     // Figma 47 reserves the bottom for the SKU buy bar, without home floating actions.
@@ -26,6 +26,10 @@ export async function checkContent(page: Page, screen: "home" | "product") {
         }),
       )
       .resolves.toBe(true);
+  }
+  if (screen === "catalog") {
+    await expect.soft(page.locator("header")).toBeVisible();
+    await expect.soft(page.locator("article").first()).toContainText(price);
   }
   await expect.soft
     .poll(
@@ -57,7 +61,7 @@ export async function checkContent(page: Page, screen: "home" | "product") {
             if (!probe.complete || !probe.naturalWidth) missing.push(src);
           }
           const photos =
-            kind === "home"
+            kind !== "product"
               ? Array.from(document.querySelectorAll("article")).filter(visible)
               : Array.from(document.querySelectorAll('[aria-label^="Открыть фото 1:"]'));
           for (const photo of photos)

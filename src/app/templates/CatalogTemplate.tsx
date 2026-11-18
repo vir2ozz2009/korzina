@@ -22,7 +22,7 @@ export function CatalogTemplate({
 }) {
   return (
     <Screen state={state} template="catalog" header={header ?? <Header title={title} />} footer={footer}>
-      <div className="sticky top-18 z-10 overflow-x-auto bg-background py-2">{toolbar}</div>
+      {toolbar && <div className="overflow-x-auto py-2">{toolbar}</div>}
       <div className={layout === "grid" ? "grid grid-cols-2 gap-2" : "space-y-3"}>{children}</div>
       {onLoadMore && (
         <Button full variant="secondary" loading={loadingMore} onClick={onLoadMore}>

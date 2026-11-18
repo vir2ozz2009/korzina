@@ -58,7 +58,7 @@ export function readDocument(storage: DurableObjectStorage, input: CatalogPageIn
 
 export function readLive(storage: DurableObjectStorage, ids: string[]) {
   const query = liveQuery(ids);
-  const rows = storage.sql.exec<LiveRow>(query.sql, ...query.params).toArray();
+  const rows = ids.length ? storage.sql.exec<LiveRow>(query.sql, ...query.params).toArray() : [];
   const state = storage.sql
     .exec<{ currency: string; hideOutOfStock: number; catalogVersion: number }>(
       "SELECT currency,hide_out_of_stock AS hideOutOfStock,version AS catalogVersion FROM catalog_state WHERE id=1",

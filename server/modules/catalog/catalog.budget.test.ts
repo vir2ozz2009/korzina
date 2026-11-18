@@ -106,6 +106,14 @@ describe("бюджеты каталога", () => {
     }
   });
 
+  it("единый endpoint страницы категории/бренда: ≤6 SQL, без записей", async () => {
+    for (const scope of ["all", "category:home", "brand:brand-1"]) {
+      const response = await catalogRequest(`page?scope=${scope}`);
+      expect(response.status).toBe(200);
+      assertSqlBudget(JSON.parse(response.headers.get("x-korzina-sql") as string), { sql: 6, rowsWritten: 0 });
+    }
+  });
+
   it("планы всех запросов товара, категории, бренда, фасовок и фото используют индексы больших таблиц", async () => {
     await catalogSql("SELECT version FROM catalog_state WHERE id=1");
     await runInDurableObject(catalogStub(), (_instance, ctx) => {
