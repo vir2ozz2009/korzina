@@ -78,6 +78,13 @@
       "when": 1794938436922,
       "tag": "0010_nice_lifeguard",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1794995189513,
+      "tag": "0011_catalog_list_prices",
+      "breakpoints": true
     }
   ]
 }

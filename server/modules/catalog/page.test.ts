@@ -66,6 +66,16 @@ it("страницы по16, непрозрачный курсор связан 
       400,
     );
     expect((await catalogRequest("page?scope=all&cursor=broken")).status).toBe(400);
+    const sortedQuery = "scope=category:empty&sort=price-desc&max=100&inStock=1";
+    const sorted = await page(sortedQuery);
+    expect(sorted.items).toHaveLength(16);
+    expect(sorted.count).toBe(19);
+    expect(sorted.next).toBeTruthy();
+    const sortedNext = `${sortedQuery}&cursor=${encodeURIComponent(sorted.next ?? "")}`;
+    const remainder = await page(sortedNext);
+    expect(new Set([...sorted.items, ...remainder.items].map((product) => product.id)).size).toBe(19);
+    await catalogSql("UPDATE variants SET price_minor=101 WHERE id='b3-sku-1'");
+    expect((await catalogRequest(`page?${sortedNext}`)).status).toBe(409);
     await catalogSql("UPDATE products SET visible=0 WHERE id='b3-page-00'");
     expect((await catalogRequest(`page?scope=category:empty&cursor=${encodeURIComponent(first.next)}`)).status).toBe(
       409,
@@ -74,4 +84,19 @@ it("страницы по16, непрозрачный курсор связан 
     await catalogSql("DELETE FROM variants WHERE id LIKE 'b3-sku-%'");
     await catalogSql("DELETE FROM products WHERE id LIKE 'b3-page-%'");
   }
+});
+
+it("диапазон и сортировка используют только доступную фасовку и свежую цену", async () => {
+  await catalogSql("UPDATE variants SET stock=0, price_minor=1 WHERE id='sku-01'");
+  const cheap = await page("scope=category:home&sort=price-asc&max=10");
+  expect(cheap.items.some((item) => item.id === "product-01")).toBe(false);
+  await catalogSql("UPDATE variants SET stock=1, price_minor=2 WHERE id='sku-01'");
+  const updated = await page("scope=category:home&sort=price-asc&min=1&max=10&inStock=1");
+  expect(updated.items[0]?.id).toBe("product-01");
+  expect(updated.count).toBe(1);
+  expect(updated.offers.items.find((item) => item.id === "sku-01")?.priceMinor).toBe(2);
+  const plan = await catalogSql(
+    "EXPLAIN QUERY PLAN SELECT id FROM products WHERE published=1 AND visible=1 AND has_catalog_offer=1 ORDER BY coalesce(available_price, -1), id LIMIT 17",
+  );
+  expect(plan.map((row) => row.detail).join(" ")).toMatch(/SEARCH.*products_catalog_price_idx/);
 });

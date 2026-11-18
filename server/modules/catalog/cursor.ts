@@ -28,6 +28,7 @@ export function listDocumentInput(input: CatalogListInput) {
   const scope = input.scope as CatalogScope;
   return {
     limit: 16,
+    count: input.count,
     after,
     version,
     ...(scope.startsWith("category:") ? { category: scope.slice(9) } : {}),

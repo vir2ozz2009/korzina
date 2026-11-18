@@ -23,6 +23,8 @@ export async function cachedDocument(
 ) {
   const cache = await caches.open("catalog-documents");
   const page = new URLSearchParams({ limit: String(input.limit) });
+  if (input.count) page.set("count", input.count);
+  if (input.productIds) page.set("productIds", input.productIds);
   if (input.after) page.set("after", input.after);
   if (input.category) page.set("category", input.category);
   if (input.brand) page.set("brand", input.brand);

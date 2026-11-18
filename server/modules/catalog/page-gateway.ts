@@ -1,11 +1,12 @@
 import type { Context } from "hono";
 import type { CatalogListInput } from "../../../src/shared/contracts/catalog-list";
 import type { ShopInfo } from "../../../src/shared/contracts/shop";
-import { ApiError } from "../../../src/shared/errors";
+import { ApiError, errorStatus } from "../../../src/shared/errors";
 import type { FeatureState } from "../../../src/shared/flags";
 import { forwardToShop } from "../../shop/forward";
 import { cachedDocument } from "./cache";
 import { readPage } from "./page";
+import type { readSelection } from "./selection";
 import type { readDocument, readLive } from "./service";
 
 export async function pageGateway(
@@ -23,7 +24,11 @@ export async function pageGateway(
   };
   const decode = async <T>(response: Response): Promise<T> => {
     if (!response.ok) {
-      if (response.status === 404) throw new ApiError("NOT_FOUND", "Раздел недоступен");
+      const body = await response
+        .json<{ error?: { code?: keyof typeof errorStatus; message?: string } }>()
+        .catch(() => null);
+      if (body?.error?.code && Object.hasOwn(errorStatus, body.error.code))
+        throw new ApiError(body.error.code, body.error.message ?? "Не удалось загрузить каталог");
       throw new Error(`Catalog upstream ${response.status}`);
     }
     return response.json<T>();
@@ -45,5 +50,12 @@ export async function pageGateway(
           shop,
         ),
       ),
+    async (params) => {
+      const q = new URLSearchParams();
+      for (const [key, value] of Object.entries(params)) if (value !== undefined) q.set(key, String(value));
+      return decode<ReturnType<typeof readSelection>>(
+        await forwardToShop({ req: { raw: request("selection", q) } }, shop),
+      );
+    },
   );
 }

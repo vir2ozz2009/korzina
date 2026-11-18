@@ -67,7 +67,7 @@ export function HomeScreen() {
           import.meta.env.SHOW_UNFINISHED && <HomeUnfinished key="unfinished" />,
           <HomeView
             key="catalog"
-            onAllProducts={unfinished?.("B3b · Все товары")}
+            allProductsHref="/catalog"
             categories={(document?.categories ?? [])
               .filter((category) => !category.parentId && category.hasProducts)
               .map((category) => ({ ...category, image: category.image ?? undefined }))}
