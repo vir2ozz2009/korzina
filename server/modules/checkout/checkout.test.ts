@@ -43,7 +43,7 @@ beforeEach(async () => {
   );
 });
 
-const buy = (path: string, body: object, Cookie: string, key = crypto.randomUUID()) =>
+const buy = (path: string, body: object, Cookie: string, key: string = crypto.randomUUID()) =>
   postAuth(`/api/${path}?shop=lavka`, body, { Cookie, "Idempotency-Key": key });
 const getQuote = async (cookie: string) => {
   const response = await buy("quote", {}, cookie);
