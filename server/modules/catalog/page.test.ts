@@ -100,3 +100,68 @@ it("диапазон и сортировка используют только �
   );
   expect(plan.map((row) => row.detail).join(" ")).toMatch(/SEARCH.*products_catalog_price_idx/);
 });
+
+it("отправляет распроданные товары в конец до пагинации и обновляет ревизию при смене наличия", async () => {
+  const ids = Array.from({ length: 38 }, (_, i) => `stock-page-${String(i).padStart(2, "0")}`);
+  const inStock = ids.filter((_, i) => i % 2 === 1);
+  const sold = ids.filter((_, i) => i % 2 === 0);
+  const scope = "scope=category:empty";
+  try {
+    await catalogSql(
+      `INSERT INTO products(id,name,category_id,published,visible)
+       SELECT value,value,'empty',1,1 FROM json_each(?)`,
+      JSON.stringify(ids),
+    );
+    await catalogSql(
+      `INSERT INTO variants(id,product_id,name,price_minor,stock,visible)
+       SELECT 'sku-'||value,value,'1 шт.',100+CAST(key AS integer),CAST(key AS integer)%2,1 FROM json_each(?)`,
+      JSON.stringify(ids),
+    );
+    for (const sort of ["default", "name", "price-asc", "price-desc"]) {
+      let current = await page(`${scope}&sort=${sort}`);
+      expect(current.items).toHaveLength(16);
+      expect(current.items.every(({ id }) => inStock.includes(id))).toBe(true);
+      const ordered = current.items.map(({ id }) => id);
+      while (current.next) {
+        current = await page(`${scope}&sort=${sort}&cursor=${encodeURIComponent(current.next)}`);
+        expect(current.items.length).toBeGreaterThan(0);
+        ordered.push(...current.items.map(({ id }) => id));
+        expect(ordered.length).toBeLessThanOrEqual(ids.length);
+      }
+      const expected =
+        sort === "price-desc" ? [...inStock].reverse().concat([...sold].reverse()) : inStock.concat(sold);
+      expect(ordered).toEqual(expected);
+    }
+
+    const search = await catalogRequest("search?q=stock-page&cat=empty");
+    expect(search.status).toBe(200);
+    const matches = (await search.json<Page>()).items;
+    expect(matches).toHaveLength(16);
+    expect(matches.every(({ id }) => inStock.includes(id))).toBe(true);
+
+    const query = "document?category=empty&limit=16&count=1";
+    const read = async (path: string) => (await catalogRequest(path)).json<Omit<Page, "offers">>();
+    const first = await read(query);
+    expect(first.items.map(({ id }) => id)).toEqual(inStock.slice(0, 16));
+    expect(first.count).toBe(38);
+    const after = (page: Omit<Page, "offers">) =>
+      `${query}&after=${encodeURIComponent(page.next ?? "")}&version=${page.catalogVersion}`;
+    const second = await read(after(first));
+    const third = await read(after(second));
+    expect([...second.items, ...third.items].map(({ id }) => id)).toEqual(inStock.slice(16).concat(sold));
+    expect(third.next).toBeNull();
+    const scoped = await page(scope);
+    await catalogSql("UPDATE variants SET stock=1 WHERE id='sku-stock-page-00'");
+    expect((await catalogRequest(after(first))).status).toBe(409);
+    expect((await catalogRequest(`page?${scope}&cursor=${encodeURIComponent(scoped.next ?? "")}`)).status).toBe(409);
+    expect((await read(query)).items[0].id).toBe(ids[0]);
+
+    await catalogSql("UPDATE catalog_state SET hide_out_of_stock=1 WHERE id=1");
+    const hidden = await read(query);
+    expect(hidden.count).toBe(20);
+    expect(hidden.items.concat((await read(after(hidden))).items).some(({ id }) => id === ids[2])).toBe(false);
+  } finally {
+    await catalogSql("DELETE FROM products WHERE id LIKE 'stock-page-%'");
+    await catalogSql("UPDATE catalog_state SET hide_out_of_stock=0 WHERE id=1");
+  }
+});

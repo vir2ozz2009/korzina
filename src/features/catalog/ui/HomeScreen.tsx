@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { bootstrap } from "../../../app/bootstrap";
 import { telegramLaunch } from "../../../app/telegram/launch";
 import { HomeTemplate } from "../../../app/templates/HomeTemplate";
+import { HttpError } from "../../../shared/http-error";
 import { AboutStore } from "../../../ui/AboutStore";
 import { ErrorState } from "../../../ui/AsyncErrorState";
 import { Button } from "../../../ui/Button";
@@ -29,6 +30,8 @@ export function HomeScreen() {
   const search = useSearch({ strict: false }) as { variants?: string };
   const products = storefrontProducts(items, offers.data?.items ?? []);
   const error = catalog.error ?? offers.error;
+  const reordered =
+    catalog.isFetchNextPageError && catalog.error instanceof HttpError && catalog.error.code === "VERSION_CONFLICT";
   const pending = catalog.isPending || (items.length > 0 && offers.isPending && !products.length);
   const query = {
     data: pending || ((catalog.isError || offers.isError) && !products.length) ? undefined : products,
@@ -86,7 +89,14 @@ export function HomeScreen() {
                 : []
             }
             moreProducts={
-              catalog.isFetchNextPageError ? (
+              reordered ? (
+                <div className="space-y-2">
+                  <p role="status">Каталог обновился. Обновите список.</p>
+                  <Button full variant="secondary" onClick={() => void offers.refetch()}>
+                    Обновить список
+                  </Button>
+                </div>
+              ) : catalog.isFetchNextPageError ? (
                 <ErrorState error={catalog.error} onRetry={() => void catalog.fetchNextPage()} />
               ) : catalog.hasNextPage ? (
                 <Button

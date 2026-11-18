@@ -18,9 +18,24 @@ export const mediaJsonSql = `json_object('id',m.id,'edgeColor',m.edge_color,'con
 const coverSql = `(SELECT ${mediaJsonSql} FROM product_photos pp JOIN media m ON m.id=pp.media_id
   WHERE pp.product_id=p.id AND m.status='attached' AND m.ready=1 ORDER BY pp.position LIMIT 1)`;
 
-function buildDocumentQuery(input: CatalogPageInput, count: boolean, matchingIds?: string[]) {
-  const conditions = ["p.published=1", "p.visible=1", "p.id>?"];
-  const params: SqlStorageValue[] = [input.after ?? ""];
+export const soldRank = "p.catalog_sold_out";
+
+function buildDocumentQuery(input: CatalogPageInput, count: boolean, hide: boolean, matchingIds?: string[]) {
+  const browse = !matchingIds && !input.productIds;
+  const conditions = ["p.published=1", "p.visible=1"];
+  const params: SqlStorageValue[] = [];
+  if (browse || count) conditions.push("p.has_catalog_offer=1");
+  if (browse && hide) conditions.push(`${soldRank}=0`);
+  if (!count && input.after) {
+    if (browse) {
+      conditions.push(`(${soldRank},p.id) > (
+        coalesce((SELECT catalog_sold_out FROM products WHERE id=?),0), ?)`);
+      params.push(input.after, input.after);
+    } else {
+      conditions.push("p.id>?");
+      params.push(input.after);
+    }
+  }
   if (matchingIds) {
     conditions.push("p.id IN (SELECT value FROM json_each(?))");
     params.push(JSON.stringify(matchingIds));
@@ -40,25 +55,22 @@ function buildDocumentQuery(input: CatalogPageInput, count: boolean, matchingIds
     conditions.push("p.brand_id=?");
     params.push(input.brand);
   }
-  if (count) {
-    params[0] = "";
-    conditions.push("p.has_catalog_offer=1");
-    return { sql: `SELECT count(*) AS count FROM products p WHERE ${conditions.join(" AND ")}`, params };
-  }
+  if (count) return { sql: `SELECT count(*) AS count FROM products p WHERE ${conditions.join(" AND ")}`, params };
   params.push(input.limit + 1);
   return {
     sql: `SELECT p.id, p.name, p.category_id AS categoryId, p.brand_id AS brandId,
       ${coverSql} AS photo,
       (SELECT json_group_array(json_object('id',id,'name',name,'photoId',photoId))
         FROM (${variantMetadataSql})) AS variants
-      FROM products p WHERE ${conditions.join(" AND ")} ORDER BY p.id LIMIT ?`,
+      FROM products p WHERE ${conditions.join(" AND ")} ORDER BY ${browse ? `${soldRank}, ` : ""}p.id LIMIT ?`,
     params,
   };
 }
 
-export const documentQuery = (input: CatalogPageInput) => buildDocumentQuery(input, false);
-export const matchingDocumentQuery = (input: CatalogPageInput, ids: string[]) => buildDocumentQuery(input, false, ids);
-export const documentCountQuery = (input: CatalogPageInput) => buildDocumentQuery(input, true);
+export const documentQuery = (input: CatalogPageInput, hide = false) => buildDocumentQuery(input, false, hide);
+export const matchingDocumentQuery = (input: CatalogPageInput, ids: string[]) =>
+  buildDocumentQuery(input, false, false, ids);
+export const documentCountQuery = (input: CatalogPageInput, hide = false) => buildDocumentQuery(input, true, hide);
 
 export const productSql = `SELECT p.id, p.name, p.description, p.category_id AS categoryId,
   p.brand_id AS brandId, (SELECT name FROM brands WHERE id=p.brand_id AND visible=1) AS brandName, s.version AS catalogVersion, s.currency, s.hide_out_of_stock AS hideOutOfStock,

@@ -16,15 +16,19 @@ function catalogQuery(version?: number) {
     queryKey: catalogKeys.document(version),
     ...queryPolicy.catalog,
     enabled: bootstrap?.status === "active",
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (page: CatalogDocument) => page.next ?? undefined,
+    initialPageParam: undefined as { after: string; version: number } | undefined,
+    getNextPageParam: (page: CatalogDocument) =>
+      page.next ? { after: page.next, version: page.catalogVersion } : undefined,
     queryFn: async ({ pageParam, signal }) => {
       const response = await shopApi.api.catalog.document.$get(
         {
           query: {
             limit: "16",
-            ...(pageParam ? { after: pageParam } : {}),
-            ...(version ? { version: String(version) } : {}),
+            ...(pageParam
+              ? { after: pageParam.after, version: String(pageParam.version) }
+              : version
+                ? { version: String(version) }
+                : {}),
           },
         },
         { init: { signal } },
