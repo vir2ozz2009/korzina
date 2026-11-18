@@ -29,6 +29,8 @@ describe("правила каталога", () => {
     await catalogSql("UPDATE variants SET name='125 г', stock=0 WHERE id='sku-08'");
     await evictDurableObject(catalogStub());
 
+    expect(await duplicates()).toBe(1);
+    await catalogStub().seedDemoCatalog("korzina-demo-lavka");
     expect(await duplicates()).toBe(0);
     expect(await catalogSql("SELECT name,stock FROM variants WHERE id='sku-08'")).toEqual([
       { name: "500 г", stock: 0 },

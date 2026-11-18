@@ -10,6 +10,7 @@ export type ShopEnv = {
     features: FeatureState;
     db: DrizzleSqliteDODatabase;
     storage: DurableObjectStorage;
+    matchedRoute?: (path: string) => void;
     secrets: AuthSecrets;
     platform: D1Database;
     media: Pick<Env, "MEDIA" | "MEDIA_PUBLIC" | "IMAGES" | "MEDIA_PUBLIC_URL">;

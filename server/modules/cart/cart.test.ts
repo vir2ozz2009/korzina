@@ -38,6 +38,7 @@ it("добавление с плитки сохраняет SKU, серверн�
     count: 2,
     totalMinor: 90000,
     currency: "VND",
+    review: { beforeMinor: 135000, changes: [{ variantId: "sku-01", remaining: 2 }] },
     lines: [{ variantId: "sku-01", quantity: 2 }],
   });
   const repeated = await change(cookie, 3, 0, key);
@@ -103,4 +104,41 @@ it("изменение корзины ≤4 SQL вместе с проверко�
     new Request("https://demo.korzina.app/api/cart?shop=lavka", { headers: { Cookie: cookie } }),
   );
   expect(publicResponse.headers.get("Cache-Control")).toBe("no-store");
+});
+
+it("одна ревизия пересчёта объединяет цену, остаток и скрытую позицию до явного подтверждения", async () => {
+  const cookie = await guest();
+  await catalogSql("UPDATE variants SET stock=5 WHERE id='sku-01'");
+  expect((await change(cookie, 3)).status).toBe(200);
+  expect((await change(cookie, 1, 1, crypto.randomUUID(), "sku-02")).status).toBe(200);
+  await catalogSql("UPDATE variants SET stock=2,price_minor=46000 WHERE id='sku-01'");
+  await catalogSql("UPDATE variants SET visible=0 WHERE id='sku-02'");
+  const result = await read(cookie);
+  expect(result).toMatchObject({
+    revision: 3,
+    totalMinor: 92000,
+    adjustments: [],
+    review: {
+      beforeMinor: 214000,
+      changes: [
+        { variantId: "sku-01", oldPriceMinor: 45000, remaining: 2 },
+        { variantId: "sku-02", unavailable: true },
+      ],
+    },
+    lines: [
+      { quantity: 2, totalMinor: 92000 },
+      { quantity: 1, available: false, totalMinor: 0 },
+    ],
+  });
+  expect(await read(cookie)).toEqual(result);
+  const approve = (expectedRevision: number) =>
+    postAuth(
+      "/api/cart?shop=lavka",
+      { confirm: true, expectedRevision },
+      { Cookie: cookie, "Idempotency-Key": crypto.randomUUID() },
+    );
+  expect((await approve(2)).status).toBe(409);
+  expect((await approve(3)).status).toBe(200);
+  expect(await read(cookie)).toMatchObject({ revision: 4, totalMinor: 92000 });
+  expect((await read(cookie)).review).toBeUndefined();
 });

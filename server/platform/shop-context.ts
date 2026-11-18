@@ -1,6 +1,7 @@
 import { type ShopContext, shopContextContract } from "../../src/shared/contracts/shop-context";
 import { ApiError } from "../../src/shared/errors";
 import { forwardToShop } from "../shop/forward";
+import { applyDemoSeed } from "./demo-seed";
 import { readFeatures } from "./features";
 import { resolveShop } from "./resolve-shop";
 
@@ -22,6 +23,7 @@ export class ShopContextCache {
     const hit = this.entries.get(shop.id);
     if (hit && hit.expires > this.now()) return hit.value;
     this.entries.delete(shop.id);
+    await applyDemoSeed(env.PLATFORM, env.APP_ENV, shop.id);
     const features = await readFeatures(env.PLATFORM, shop.id);
     const response = await forwardToShop(
       { req: { raw: new Request("https://internal/api/shop") } },

@@ -10,7 +10,7 @@ export const guestCart = createMiddleware<{ Bindings: Env }>(async (c, next) => 
   if (!shop) throw new ApiError("SHOP_NOT_FOUND", "Магазин не найден");
   if (credential(c.req.raw, customerCookie(shop.id))) return next();
   // No session means no cart. Do not wake Shop just to discover its currency.
-  const cart: Cart = { revision: 0, currency: null, lines: [], count: 0, totalMinor: 0 };
+  const cart: Cart = { revision: 0, currency: null, lines: [], count: 0, totalMinor: 0, adjustments: [] };
   c.header("Cache-Control", "no-store");
   return c.json(cart);
 });

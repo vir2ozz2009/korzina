@@ -7,7 +7,7 @@ import { media } from "../media/schema";
 import { brands, catalogState, categories, productPhotos, products, variants } from "./schema";
 import { seedNavigation } from "./seed-navigation";
 
-// Shop invokes this only for the two owned demo identities. Stable SKU ids preserve carts.
+// Invoked by the non-production seed command. Stable SKU ids preserve carts.
 export function seedCatalog(storage: DurableObjectStorage) {
   const marker = storage.sql
     .exec<{ value: string }>("SELECT value FROM settings WHERE key='catalog_seed'")
