@@ -1,4 +1,5 @@
 import type { CatalogSearchInput } from "../../../src/shared/contracts/catalog-list";
+import { soldRank } from "./queries";
 import { selectionConditions } from "./selection";
 import { readDocument, readLive } from "./service";
 
@@ -60,7 +61,7 @@ export function findMatches(
           WHERE catalog_search MATCH ? AND ${clauses.join(" AND ")}) AS count
     FROM catalog_search JOIN products p ON p.id=catalog_search.product_id
     WHERE catalog_search MATCH ? AND ${clauses.join(" AND ")}
-    ORDER BY ${order}, p.id LIMIT ?`,
+    ORDER BY ${soldRank}, ${order}, p.id LIMIT ?`,
         match,
         ...params,
         match,

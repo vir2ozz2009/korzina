@@ -156,13 +156,35 @@ function seedPhoto(
 
 function seedGallery(storage: DurableObjectStorage) {
   const key = "catalog_gallery_seed";
-  if (storage.sql.exec("SELECT 1 FROM settings WHERE key=?", key).toArray().length) return;
+  const marker = storage.sql.exec<{ value: string }>("SELECT value FROM settings WHERE key=?", key).toArray()[0];
+  if (marker?.value === "photo-bindings-v1") return;
   const db = drizzle(storage);
   storage.transactionSync(() => {
-    const id = "demo-tomato-gallery-2";
-    seedPhoto(db, id, images[id]);
-    db.insert(productPhotos).values({ productId: "product-01", position: 1, mediaId: id }).onConflictDoNothing().run();
-    db.insert(settings).values({ key, value: "B4" }).onConflictDoNothing().run();
+    const secondPhoto = "demo-tomato-gallery-2";
+    if (!marker) {
+      seedPhoto(db, secondPhoto, images[secondPhoto]);
+      db.insert(productPhotos)
+        .values({ productId: "product-01", position: 1, mediaId: secondPhoto })
+        .onConflictDoNothing()
+        .run();
+    }
+    for (const [sku, photo] of [
+      ["sku-02", "demo-curd"],
+      ["sku-03", secondPhoto],
+    ]) {
+      storage.sql.exec(
+        `UPDATE variants SET photo_id=?
+         WHERE id=? AND product_id='product-01' AND photo_id IS NULL
+           AND EXISTS (SELECT 1 FROM product_photos WHERE product_id=variants.product_id AND media_id=?)`,
+        photo,
+        sku,
+        photo,
+      );
+    }
+    storage.sql.exec(
+      "INSERT INTO settings(key,value) VALUES(?, 'photo-bindings-v1') ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+      key,
+    );
   });
 }
 

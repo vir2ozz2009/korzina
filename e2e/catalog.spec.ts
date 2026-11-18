@@ -37,6 +37,11 @@ test("B3: категории → подкатегория → товар → н�
   const scroll = await page.evaluate(() => scrollY);
   await page.locator("article a").last().click();
   await expect(page).toHaveURL(/\/p\/product-01/);
+  const sizes = page.getByRole("group", { name: "Фасовка" });
+  await sizes.getByRole("button", { name: "Набор 2 × 500 г", exact: true }).click();
+  await expect(page.getByRole("group", { name: "Фото 2 из 2" })).toBeAttached();
+  await sizes.getByRole("button", { name: "500 г", exact: true }).click();
+  await expect(page.getByRole("group", { name: "Фото 1 из 2" })).toBeAttached();
   await page.goBack();
   await expect(page.getByRole("button", { name: "Томаты", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect.poll(() => page.evaluate(() => scrollY)).toBeCloseTo(scroll, 0);

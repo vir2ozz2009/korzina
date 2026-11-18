@@ -175,8 +175,15 @@ describe("бюджеты каталога", () => {
   it("планы всех запросов товара, категории, бренда, фасовок и фото используют индексы больших таблиц", async () => {
     await catalogSql("SELECT version FROM catalog_state WHERE id=1");
     await runInDurableObject(catalogStub(), (_instance, ctx) => {
-      const pages = [{ limit: 50 }, { limit: 50, category: "milk" }, { limit: 50, brand: "brand-1" }].map(
-        documentQuery,
+      const pages = [{ limit: 50 }, { limit: 50, category: "milk" }, { limit: 50, brand: "brand-1" }].map((input) =>
+        documentQuery(input),
+      );
+      const next = documentQuery({ limit: 16, after: "product-01" });
+      const nextPlan = ctx.storage.sql
+        .exec<{ detail: string }>(`EXPLAIN QUERY PLAN ${next.sql}`, ...next.params)
+        .toArray();
+      expect(nextPlan.map((row) => row.detail).join("\n")).toMatch(
+        /products_catalog_availability_idx.*catalog_sold_out,id/,
       );
       const statements = [
         ...pages,

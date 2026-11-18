@@ -1,9 +1,10 @@
 import type { CatalogListInput } from "../../../src/shared/contracts/catalog-list";
 import { ApiError } from "../../../src/shared/errors";
+import { soldRank } from "./queries";
 
 const limit = 16;
 type Key = string | number;
-type Cursor = { filter: string; key: Key; id: string; version: number; selectionVersion: number };
+type Cursor = { filter: string; key: Key; id: string; version: number; selectionVersion: number; sold: number };
 
 function readCursor(encoded: string, filter: string): Cursor {
   try {
@@ -83,6 +84,8 @@ export function readSelection(storage: DurableObjectStorage, input: CatalogListI
   const cursor = input.cursor ? readCursor(input.cursor, filter) : undefined;
   if (cursor && (cursor.version !== state.version || cursor.selectionVersion !== state.selectionVersion))
     throw new ApiError("VERSION_CONFLICT", "Каталог обновился. Обновите список.");
+  if (cursor && cursor.sold !== 0 && cursor.sold !== 1)
+    throw new ApiError("VALIDATION", "Некорректная страница каталога");
   const { clauses, params } = selectionConditions(input);
   if (state.hide) clauses.push("p.available_price IS NOT NULL");
   const where = clauses.join(" AND ");
@@ -94,13 +97,34 @@ export function readSelection(storage: DurableObjectStorage, input: CatalogListI
   const descending = input.sort === "price-desc";
   const order = descending ? "DESC" : "ASC";
   const comparison = descending ? "<" : ">";
-  const page = cursor ? `AND (${key}, p.id) ${comparison} (?,?)` : "";
+  const pageParams: SqlStorageValue[] = [];
+  let page = "";
+  if (cursor) {
+    if (!byPrice && input.sort !== "name") {
+      page = `AND (${soldRank}, p.id) > (?,?)`;
+      pageParams.push(cursor.sold, cursor.id);
+    } else if (!byPrice) {
+      page = `AND (${soldRank}, ${key}, p.id) > (?,?,?)`;
+      pageParams.push(cursor.sold, cursor.key, cursor.id);
+    } else if (cursor.sold) {
+      page = `AND p.available_price IS NULL AND p.id ${comparison} ?`;
+      pageParams.push(cursor.id);
+    } else {
+      page = `AND (p.available_price IS NULL OR (p.available_price, p.id) ${comparison} (?,?))`;
+      pageParams.push(cursor.key, cursor.id);
+    }
+  }
+  const sort = byPrice
+    ? `p.available_price ${order} NULLS LAST, p.id ${order}`
+    : input.sort === "name"
+      ? `${soldRank}, ${key}, p.id`
+      : `${soldRank}, p.id`;
   const rows = storage.sql
-    .exec<{ id: string; key: Key }>(
-      `SELECT p.id, ${key} AS key FROM products p WHERE ${where} ${page}
-      ORDER BY ${key} ${order}, p.id ${order} LIMIT ?`,
+    .exec<{ id: string; key: Key; sold: number }>(
+      `SELECT p.id, ${key} AS key, ${soldRank} AS sold FROM products p WHERE ${where} ${page}
+      ORDER BY ${sort} LIMIT ?`,
       ...params,
-      ...(cursor ? [cursor.key, cursor.id] : []),
+      ...pageParams,
       limit + 1,
     )
     .toArray();
@@ -116,6 +140,7 @@ export function readSelection(storage: DurableObjectStorage, input: CatalogListI
             filter,
             key: last.key,
             id: last.id,
+            sold: last.sold,
             version: state.version,
             selectionVersion: state.selectionVersion,
           })
