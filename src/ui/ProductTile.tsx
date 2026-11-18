@@ -11,8 +11,21 @@ export interface ProductTileProps extends PriceProps {
   onOpen?: () => void;
   cart: AddToCartProps;
   stock?: number | null;
+  photoShape?: "square" | "tile";
+  variants?: { label: string; open: () => void };
 }
-export function ProductTile({ name, unit, image, href, onOpen, cart, stock, ...price }: ProductTileProps) {
+export function ProductTile({
+  name,
+  unit,
+  image,
+  href,
+  onOpen,
+  cart,
+  stock,
+  photoShape = "tile",
+  variants,
+  ...price
+}: ProductTileProps) {
   return (
     <article className="min-w-0 overflow-hidden rounded-xl bg-card">
       <a
@@ -24,7 +37,8 @@ export function ProductTile({ name, unit, image, href, onOpen, cart, stock, ...p
         <ProductImage
           {...imageSource(image)}
           alt={name}
-          shape="tile"
+          shape={photoShape}
+          fit="cover"
           sizes="(max-width: 480px) calc((100vw - 32px) / 2), 224px"
           className="w-full"
         />
@@ -36,7 +50,14 @@ export function ProductTile({ name, unit, image, href, onOpen, cart, stock, ...p
         <a href={href} onClick={onOpen} className="line-clamp-2 min-h-9 text-caption">
           {name}
         </a>
-        <p className="text-small text-muted-foreground">{unit}</p>
+        <div className="flex min-h-11 flex-wrap items-center gap-x-2">
+          {unit && <p className="text-small text-muted-foreground">{unit}</p>}
+          {variants && (
+            <button type="button" className="min-h-11 text-label text-primary-strong" onClick={variants.open}>
+              {variants.label} ›
+            </button>
+          )}
+        </div>
         <div className="flex min-h-7 flex-wrap items-baseline justify-between gap-x-1">
           <Price {...price} />
           {stock !== undefined && stock !== null && stock > 0 && stock <= 5 && (
