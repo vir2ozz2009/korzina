@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { AsYouType, type CountryCode, getCountryCallingCode } from "libphonenumber-js/min";
 import { Send } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { telegramLaunch } from "../../app/telegram/launch";
 import { shopKey } from "../../shared/shop-api";
 import { Button } from "../../ui/Button";
@@ -15,37 +15,52 @@ import { finishBrowserLogin, startBrowserLogin } from "./telegram-login";
 const regions = new Intl.DisplayNames(["ru"], { type: "region" });
 
 function PhoneForm({ contact, close }: { contact: Contact; close: () => void }) {
-  const [number, setNumber] = useState(contact.phone ?? "");
+  const country = contact.region as CountryCode;
+  const prefix = `+${getCountryCallingCode(country)}`;
+  const [number, setNumber] = useState(contact.phone ?? `${prefix} `);
   const [confirmed, setConfirmed] = useState(false);
   const [touched, setTouched] = useState(false);
-  const inputId = "order-phone";
-  const phone = new AsYouType(contact.region as CountryCode);
-  const formatted = phone.input(number);
+  const [submitted, setSubmitted] = useState(false);
+  const inputId = useId();
+  const confirmationId = useId();
+  const phone = new AsYouType(country);
+  phone.input(number);
+  const saved = phone.getNumber()?.number;
   const valid = phone.isValid();
   const save = useSavePhone();
-  const invalid = touched && number && !valid ? "Введите номер телефона полностью" : undefined;
+  const invalid = !valid && (submitted || (touched && number.trim() !== prefix));
+  const needsConfirmation = submitted && valid && !confirmed;
   return (
     <form
       className="space-y-3"
       onSubmit={(event) => {
         event.preventDefault();
-        const saved = phone.getNumber()?.number;
-        if (confirmed && valid && saved && !save.isPending)
-          save.mutate(saved, {
-            onSuccess: close,
-            onError: () => document.getElementById(inputId)?.focus(),
-          });
+        if (save.isPending) return;
+        setSubmitted(true);
+        if (!valid || !saved) {
+          document.getElementById(inputId)?.focus({ preventScroll: true });
+          return;
+        }
+        if (!confirmed) {
+          document.getElementById(confirmationId)?.focus({ preventScroll: true });
+          return;
+        }
+        save.mutate(saved, {
+          onSuccess: close,
+          onError: () => document.getElementById(inputId)?.focus({ preventScroll: true }),
+        });
       }}
     >
       <Input
         id={inputId}
-        label={`Номер телефона · ${regions.of(contact.region)} +${getCountryCallingCode(contact.region as CountryCode)}`}
+        label={`Номер телефона · ${regions.of(country)}`}
         type="tel"
         autoComplete="tel"
         inputMode="tel"
         maxLength={40}
-        value={formatted}
-        error={save.error?.message ?? invalid}
+        value={number}
+        hint="Укажите номер с кодом страны. Код можно изменить."
+        error={save.error?.message ?? (invalid ? "Введите номер телефона полностью" : undefined)}
         onBlur={() => setTouched(true)}
         onChange={(event) => {
           setNumber(event.target.value);
@@ -53,12 +68,22 @@ function PhoneForm({ contact, close }: { contact: Contact; close: () => void }) 
         }}
       />
       <Checkbox
+        id={confirmationId}
+        aria-describedby={`${confirmationId}-hint`}
+        aria-invalid={needsConfirmation || undefined}
         label="Это мой номер телефона"
         checked={confirmed}
         disabled={save.isPending}
         onChange={(event) => setConfirmed(event.target.checked)}
       />
-      <Button full type="submit" disabled={!confirmed || !valid} loading={save.isPending}>
+      <p
+        id={`${confirmationId}-hint`}
+        role={needsConfirmation ? "alert" : undefined}
+        className={`text-small ${needsConfirmation ? "text-status-danger-foreground" : "text-muted-foreground"}`}
+      >
+        Подтвердите номер галочкой, чтобы продолжить.
+      </p>
+      <Button full type="submit" loading={save.isPending}>
         Сохранить и продолжить
       </Button>
     </form>
@@ -140,6 +165,7 @@ function LoginContent({ initial, close }: { initial: "telegram" | "phone"; close
 export function ContactSheet({ mode, close }: { mode: "telegram" | "phone" | undefined; close: () => void }) {
   return (
     <Sheet
+      form
       title="Войти в магазин"
       open={!!mode}
       onOpenChange={(open) => {

@@ -7,21 +7,22 @@ import { Card } from "../../../ui/Card";
 import { StickyFooter } from "../../../ui/StickyFooter";
 import { useContact } from "../../contact";
 import { activeReceiving, useReceiving, useSaveReceiving } from "../../receiving";
-import { usePurchaseSummary } from "../api";
+import type { usePurchaseSummary } from "../api";
 
 export function CartContinue({
   revision,
+  summary,
   disabled,
   address,
   contact,
 }: {
   revision: number;
+  summary: ReturnType<typeof usePurchaseSummary>;
   disabled: boolean;
   address: () => void;
   contact: () => void;
 }) {
   const navigate = useNavigate();
-  const summary = usePurchaseSummary(revision);
   const receiving = useReceiving();
   const buyer = useContact();
   const save = useSaveReceiving();
@@ -44,8 +45,6 @@ export function CartContinue({
   const needsAddress =
     method === "delivery" && (selection.receiving?.mode !== "delivery" || !selection.availability?.available);
   const needsContact = !!buyer.data && !buyer.data.phone && !buyer.data.telegramLinked;
-  const courier =
-    data.availability?.mode === "delivery" && data.availability.available && data.availability.payee === "courier";
 
   async function next() {
     if (needsAddress) return address();
@@ -63,12 +62,6 @@ export function CartContinue({
 
   return (
     <>
-      {data.deliveryMinor > 0 || courier ? (
-        <Card className="flex items-center justify-between gap-2">
-          <span>{courier ? "К оплате магазину" : "Итого с доставкой"}</span>
-          <strong>{formatMinor(data.totalMinor, currency)}</strong>
-        </Card>
-      ) : null}
       {data.shortMinor > 0 ? (
         <Card role="status">
           <p>Добавьте товаров ещё на {formatMinor(data.shortMinor, currency)}</p>
