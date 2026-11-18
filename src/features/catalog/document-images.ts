@@ -4,7 +4,8 @@ import type { CatalogImage } from "../../shared/contracts/catalog";
 // uncached bootstrap, keeping photos on R2 rather than proxying them through Shop.
 export function resolveDocumentImage(image: CatalogImage | null, origin: string): CatalogImage | null {
   if (!image) return null;
-  const absolute = (path: string) => (/^(?:https?:)?\/\//.test(path) ? path : `${origin}${path}`);
+  const absolute = (path: string) =>
+    /^(?:https?:)?\/\//.test(path) || path.startsWith("/seed/") ? path : `${origin}${path}`;
   return {
     ...image,
     src: absolute(image.src),
