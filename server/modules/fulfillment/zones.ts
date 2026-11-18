@@ -1,4 +1,4 @@
-import type { DeliveryZone, Point } from "../../../src/shared/contracts/receiving";
+import type { DeliveryTariff, DeliveryZone, Point } from "../../../src/shared/contracts/receiving";
 
 const radians = Math.PI / 180;
 const earthRadiusMeters = 6_371_008.8;
@@ -34,10 +34,20 @@ function insidePolygon(point: Point, vertices: Point[]) {
   return inside;
 }
 
+function tariffCost(tariff: DeliveryTariff) {
+  if (tariff.kind === "free") return 0;
+  return tariff.kind === "fixed" ? tariff.feeMinor : Number.POSITIVE_INFINITY;
+}
+
 export function deliveryZone(zones: DeliveryZone[], point: Point) {
-  return zones.find(({ geometry }) =>
-    geometry.type === "radius"
-      ? distance(geometry.center, point) <= geometry.radiusMeters + 0.001
-      : insidePolygon(point, geometry.points),
-  );
+  let best: DeliveryZone | undefined;
+  for (const zone of zones) {
+    const { geometry } = zone;
+    const inside =
+      geometry.type === "radius"
+        ? distance(geometry.center, point) <= geometry.radiusMeters + 0.001
+        : insidePolygon(point, geometry.points);
+    if (inside && (!best || tariffCost(zone.tariff) < tariffCost(best.tariff))) best = zone;
+  }
+  return best;
 }

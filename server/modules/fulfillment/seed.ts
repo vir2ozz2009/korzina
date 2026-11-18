@@ -2,6 +2,8 @@ import type { FulfillmentSettings } from "../../../src/shared/contracts/receivin
 
 const fulfillment: FulfillmentSettings = {
   delivery: {
+    mode: "map",
+    payee: "shop",
     zones: [
       {
         id: "center",
@@ -11,6 +13,8 @@ const fulfillment: FulfillmentSettings = {
     ],
   },
   pickup: { address: "45 Le Loi, Ho Chi Minh City", hours: "Ежедневно 09:00–20:00" },
+  requiredDetails: ["apartment"],
+  acceptingOrders: true,
 };
 
 export function seedFulfillment(storage: DurableObjectStorage) {

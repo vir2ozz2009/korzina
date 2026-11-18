@@ -8,22 +8,32 @@ import { sessionLimiter } from "../../auth/session-limit";
 import type { ShopEnv } from "../../shop/env";
 import { readCustomer } from "../auth/service";
 import { geocodeAddress } from "./geocoder";
-import { checkFulfillment, readFulfillment, readReceiving, saveReceiving } from "./service";
+import {
+  checkFulfillment,
+  emptySelection,
+  publicFulfillment,
+  readFulfillment,
+  readReceiving,
+  saveReceiving,
+} from "./service";
 
 const geocodeLimit = sessionLimiter(20);
 export const receivingRoutes = new Hono<ShopEnv>()
   .get("/", async (c) => {
-    const settings = readFulfillment(c.env.storage);
+    const settings = readFulfillment(c.env.storage, c.env.features.maps);
     const session = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);
-    const saved = session ? readReceiving(c.env.storage, session.subject) : { revision: 0, receiving: null };
-    return c.json({ ...saved, delivery: !!settings.delivery, pickup: settings.pickup ?? null });
+    const saved = session ? readReceiving(c.env.storage, session.subject) : { revision: 0, ...emptySelection() };
+    const availability = saved.receiving ? checkFulfillment(settings, saved.receiving) : null;
+    return c.json({ ...saved, availability, ...publicFulfillment(settings) });
   })
   .post("/check", authBodyLimit, zValidator("json", receivingInput, validationFailure), (c) =>
-    c.json(checkFulfillment(readFulfillment(c.env.storage), c.req.valid("json"))),
+    c.json(checkFulfillment(readFulfillment(c.env.storage, c.env.features.maps), c.req.valid("json"))),
   )
   .post("/geocode", authBodyLimit, zValidator("json", geocodeInput, validationFailure), async (c) => {
     const session = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);
     if (!session) throw new ApiError("UNAUTHORIZED", "Нужна сессия покупателя");
+    if (readFulfillment(c.env.storage, c.env.features.maps).delivery?.mode !== "map")
+      throw new ApiError("FEATURE_DISABLED", "Поиск по карте недоступен");
     geocodeLimit(c, session.sessionId);
     const coordinator = exports.Shop.get(exports.Shop.idFromName("geocoder:osm"));
     const cache = await caches.open("shop-geocoding");
@@ -36,5 +46,6 @@ export const receivingRoutes = new Hono<ShopEnv>()
   .post("/", authBodyLimit, zValidator("json", receiveCommandInput, validationFailure), async (c) => {
     const session = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);
     if (!session) throw new ApiError("UNAUTHORIZED", "Нужна сессия покупателя");
-    return c.json(saveReceiving(c.env.storage, session.subject, c.req.valid("json")));
+    if (c.env.shop.status !== "active") throw new ApiError("FORBIDDEN", "Магазин временно закрыт");
+    return c.json(saveReceiving(c.env.storage, session.subject, c.req.valid("json"), c.env.features.maps));
   });

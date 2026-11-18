@@ -55,6 +55,7 @@ async function resolveNominatim(point: Point, request: typeof fetch) {
   const url = new URL("/reverse", "https://nominatim.openstreetmap.org");
   url.search = new URLSearchParams({ lat: String(point.lat), lon: String(point.lon), format: "jsonv2" }).toString();
   const response = await request(url, { headers: requestHeaders(), signal: AbortSignal.timeout(3500) });
+  if (response.status === 404) return [];
   if (!response.ok) throw new Error("Nominatim unavailable");
   const item = z
     .object({ display_name: z.string().min(1), lat: z.coerce.number(), lon: z.coerce.number() })
@@ -89,18 +90,23 @@ export async function geocodeAddress(
   const cached = await cache.match(key);
   if (cached) return resultsInput.parse(await cached.json());
   if (!(await permit("photon"))) throw new ApiError("RATE_LIMITED", "Повторите поиск чуть позже");
-  let results;
+  let results: z.infer<typeof resultsInput>;
+  let photonFailed = false;
   try {
     results = await resolvePhoton(normalized, request);
   } catch {
-    if (normalized.type !== "reverse" || !(await permit("nominatim")))
-      throw new ApiError("GEOCODER_UNAVAILABLE", "Поиск адреса недоступен. Укажите адрес вручную.");
+    photonFailed = true;
+    results = [];
+  }
+  if (normalized.type === "reverse" && !results.length && (await permit("nominatim"))) {
     try {
       results = await resolveNominatim(normalized.point, request);
+      photonFailed = false;
     } catch {
-      throw new ApiError("GEOCODER_UNAVAILABLE", "Поиск адреса недоступен. Укажите адрес вручную.");
+      photonFailed = true;
     }
   }
+  if (photonFailed) throw new ApiError("GEOCODER_UNAVAILABLE", "Поиск адреса недоступен. Укажите адрес вручную.");
   await cache.put(key, Response.json(results, { headers: { "Cache-Control": "max-age=86400" } }));
   return results;
 }

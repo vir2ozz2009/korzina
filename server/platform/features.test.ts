@@ -80,7 +80,7 @@ describe("флаги в D1 → Worker → Shop", () => {
     );
     expect(denied.status).toBe(403);
     expect(await denied.json()).toMatchObject({ error: { code: "FORBIDDEN" } });
-    await expect(readFeatures(env.PLATFORM, "missing")).resolves.toEqual({ cashback: false });
+    await expect(readFeatures(env.PLATFORM, "missing")).resolves.toEqual({ cashback: false, maps: true });
     const unavailable = vi.spyOn(env.PLATFORM, "withSession").mockImplementation(() => {
       throw new Error("unavailable");
     });
@@ -105,7 +105,7 @@ describe("флаги в D1 → Worker → Shop", () => {
     const primary = vi.spyOn(env.PLATFORM, "withSession").mockReturnValue(session);
     const queries = vi.spyOn(session, "prepare");
     try {
-      expect(await readFeatures(env.PLATFORM, "korzina-demo-lavka")).toEqual({ cashback: false });
+      expect(await readFeatures(env.PLATFORM, "korzina-demo-lavka")).toEqual({ cashback: false, maps: true });
       expect(primary).toHaveBeenCalledExactlyOnceWith("first-primary");
       expect(queries).toHaveBeenCalledExactlyOnceWith(featureQuery);
     } finally {

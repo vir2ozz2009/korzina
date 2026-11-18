@@ -8,6 +8,7 @@ export type FlagDefinition = {
 // A4 implements cashback; F5 registers its availability only, without money or product behavior.
 export const flags = [
   { key: "cashback", kind: "addon", default: false, description: "Кешбэк (A4)" },
+  { key: "maps", kind: "rollout", default: true, description: "Карта и геокодер витрины (B7)" },
 ] as const satisfies readonly FlagDefinition[];
 
 export type FeatureKey = (typeof flags)[number]["key"];
