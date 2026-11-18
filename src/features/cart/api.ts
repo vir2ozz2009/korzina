@@ -5,23 +5,13 @@ import { queryPolicy } from "../../app/query-defaults";
 import type { Cart, CartCommandInput } from "../../shared/contracts/cart";
 import { checkResponse, errorKind, HttpError } from "../../shared/http-error";
 import { commandHeaders, shopApi, shopKey } from "../../shared/shop-api";
+import { ensureShopSession } from "../../shared/shop-session";
 
 import { type CartCommand, cartMutationOptions, optimisticCart } from "./commands";
 
 import { saveCartSnapshot } from "./snapshot";
 
 const cartKey = ["shop", shopKey, "cart"] as const;
-let guestSession: Promise<void> | undefined;
-function ensureGuest() {
-  guestSession ??= (async () => {
-    const response = await shopApi.api.auth.guest.$post({ json: {} }, { headers: commandHeaders() });
-    await checkResponse(response);
-  })().catch((error) => {
-    guestSession = undefined;
-    throw error;
-  });
-  return guestSession;
-}
 function cartQuery() {
   return queryOptions({
     queryKey: cartKey,
@@ -43,7 +33,7 @@ export function useCartData(notify: (message: string) => void) {
       client,
       cartKey,
       async (input) => {
-        await ensureGuest();
+        await ensureShopSession();
         return sendCart(
           {
             variantId: input.line.variantId,
