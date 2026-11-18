@@ -12,7 +12,7 @@ import { type ReceivingState, useAvailability, useSaveTime } from "../api";
 
 const dayFormat = new Intl.DateTimeFormat("ru", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
 
-function formatDay(date: string) {
+export function formatDay(date: string) {
   return dayFormat.format(new Date(`${date}T12:00:00Z`));
 }
 
@@ -155,22 +155,37 @@ function TimeOptions({
   );
 }
 
-export function ReceivingTime({ data }: { data: ReceivingState }) {
-  const [open, setOpen] = useState(false);
+export function ReceivingTime({
+  data,
+  open,
+  setOpen,
+  disabled = false,
+}: {
+  data: ReceivingState;
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  disabled?: boolean;
+}) {
   const method = data.receiving?.mode;
   const query = useAvailability(method);
   const availability = query.data;
   const close = () => setOpen(false);
   if (!method) return null;
+  const title = method === "delivery" ? "Когда привезти" : "Когда заберёте";
+  const sheetTitle = method === "delivery" ? "Когда привезти заказ" : "Когда заберёте заказ";
   return (
     <>
       <ListItem
-        title="Время получения"
-        subtitle={timeLabel(data.time, availability?.mode) ?? "Выберите удобное время"}
+        title={availability?.mode === "after_order" ? "Договоримся после заказа" : title}
+        subtitle={
+          availability?.mode === "after_order"
+            ? "Магазин свяжется с вами"
+            : (timeLabel(data.time, availability?.mode) ?? "Выберите удобное время")
+        }
         icon={<Clock size={22} />}
-        onClick={availability?.mode === "after_order" ? undefined : () => setOpen(true)}
+        onClick={disabled || availability?.mode === "after_order" ? undefined : () => setOpen(true)}
       />
-      <Sheet title="Время получения" open={open} onOpenChange={setOpen}>
+      <Sheet title={sheetTitle} open={open} onOpenChange={setOpen}>
         {open &&
           (query.isPending ? (
             <div role="status" aria-label="Проверяем доступность">

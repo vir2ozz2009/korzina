@@ -1,4 +1,5 @@
 import { MapPin, Store, Truck } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { useToast } from "../../../app/shell/ToastProvider";
 import type { Receiving, ReceivingAvailability } from "../../../shared/contracts/receiving";
 import { formatMinor } from "../../../shared/money";
@@ -8,7 +9,7 @@ import { Sheet } from "../../../ui/Sheet";
 import { type ReceivingState, useReceiving, useSaveReceiving } from "../api";
 import { AddressSheet } from "./AddressSheet";
 
-function deliveryLabel(result: ReceivingAvailability | null, currency: string) {
+export function deliveryLabel(result: ReceivingAvailability | null, currency: string) {
   if (result?.mode === "pickup" && result.available) return "Самовывоз бесплатно";
   if (result?.mode !== "delivery" || !result.available) return "Рассчитаем по адресу";
   if (result.tariff === "free") return "Бесплатно";
@@ -23,7 +24,7 @@ function deliveryLabel(result: ReceivingAvailability | null, currency: string) {
   return result.feeMinor === null ? "Согласуем после заказа" : formatMinor(result.feeMinor, currency);
 }
 
-function activeReceiving(data: ReceivingState) {
+export function activeReceiving(data: ReceivingState) {
   if (data.receiving && data[data.receiving.mode]) return data.receiving.mode;
   return data.delivery ? "delivery" : data.pickup ? "pickup" : undefined;
 }
@@ -45,6 +46,14 @@ export function CartShipping({
   const save = useSaveReceiving();
   const toast = useToast();
   const data = query.data;
+  const attempted = useRef<number | undefined>(undefined);
+  const previous = data?.lastUsedAddress;
+  const { mutate } = save;
+  useEffect(() => {
+    if (!data?.delivery || data.receiving || !previous || disabled || open || attempted.current === revision) return;
+    attempted.current = revision;
+    mutate({ receiving: { ...previous, comment: undefined }, expectedRevision: revision });
+  }, [data, previous, disabled, open, revision, mutate]);
   if (!data) {
     return query.isError ? (
       <ListItem title="Не удалось проверить доставку" value="Повторить" onClick={() => void query.refetch()} />
