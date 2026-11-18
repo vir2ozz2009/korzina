@@ -4,6 +4,7 @@ import { StorefrontState } from "../../../ui/StorefrontState";
 import type { useCart } from "../../cart";
 import { storefrontProducts } from "../model";
 import { useShoppingMatches } from "../search-api";
+import { asksForPackSize } from "./search-pack-size";
 import { toTiles } from "./toTiles";
 
 export function ShoppingResults({
@@ -22,12 +23,12 @@ export function ShoppingResults({
   remember: () => void;
 }) {
   const result = useShoppingMatches(query, true);
-  if (result.isPending) return offline ? null : <StorefrontState state="loading" />;
+  if (result.isPending && !offline) return <StorefrontState state="loading" />;
   if (!result.data)
     return (
       <EmptyState
-        title="Не удалось выполнить поиск"
-        description="Попробуйте ещё раз. Ваш запрос сохранён"
+        title={offline ? "Нет соединения" : "Не удалось выполнить поиск"}
+        description={offline ? undefined : "Попробуйте ещё раз. Ваш запрос сохранён"}
         action="Повторить"
         onAction={() => void result.refetch()}
       />
@@ -36,7 +37,7 @@ export function ShoppingResults({
   const { items, offers, groups } = result.data;
   const itemsById = new Map(items.map((item) => [item.id, item]));
   const missing = groups.filter((group) => !group.ids.length);
-  const renderTiles = (ids: string[], preferred?: Record<string, string>, columns = 2) => {
+  const renderTiles = (ids: string[], preferred?: Record<string, string>, columns = 2, showPackHint = false) => {
     const ordered = ids.flatMap((id) => {
       const item = itemsById.get(id);
       return item ? [item] : [];
@@ -51,7 +52,12 @@ export function ShoppingResults({
     return (
       <div className={columns === 2 ? "grid grid-cols-2 gap-2" : "grid"}>
         {tiles.map(({ id, ...tile }) => (
-          <ProductTile key={id} {...tile} onOpen={remember} />
+          <div key={id} className="min-w-0">
+            <ProductTile {...tile} onOpen={remember} />
+            {showPackHint && !preferred?.[id] && (
+              <p className="mt-1 text-small text-muted-foreground">Проверьте фасовку</p>
+            )}
+          </div>
         ))}
       </div>
     );
@@ -79,7 +85,7 @@ export function ShoppingResults({
           group.ids.length > 0 && (
             <section key={group.term} className={group.ids.length === 1 ? "min-w-0 space-y-2" : "col-span-2 space-y-2"}>
               <h2 className="min-h-7 break-words text-title-3 first-letter:uppercase">{group.term}</h2>
-              {renderTiles(group.ids, group.preferred, group.ids.length === 1 ? 1 : 2)}
+              {renderTiles(group.ids, group.preferred, group.ids.length === 1 ? 1 : 2, asksForPackSize(group.term))}
             </section>
           ),
       )}

@@ -17,6 +17,7 @@ import { CatalogFilters } from "./CatalogFilters";
 import { SearchInput } from "./SearchInput";
 import { SearchStart } from "./SearchStart";
 import { ShoppingResults } from "./ShoppingResults";
+import { asksForPackSize } from "./search-pack-size";
 import { toTiles } from "./toTiles";
 import { VariantsSheet } from "./VariantsSheet";
 
@@ -150,12 +151,12 @@ export function SearchScreen() {
           </>
         ) : (
           <>
-            {offline && <p className="rounded-xl bg-card p-3">Цена и наличие уточнятся при добавлении</p>}
+            {offline && data && <p className="rounded-xl bg-card p-3">Цена и наличие уточнятся при добавлении</p>}
             {result.isPending && !offline && <StorefrontState state="loading" />}
-            {result.isError && !waiting && !data && (
+            {(result.isError || offline) && !waiting && !data && (
               <EmptyState
-                title="Не удалось выполнить поиск"
-                description="Попробуйте ещё раз. Ваш запрос сохранён"
+                title={offline ? "Нет соединения" : "Не удалось выполнить поиск"}
+                description={offline ? undefined : "Попробуйте ещё раз. Ваш запрос сохранён"}
                 action="Повторить"
                 onAction={() => void result.refetch()}
               />
@@ -201,11 +202,24 @@ export function SearchScreen() {
                   />
                 )}
                 {!!tiles.length && (
-                  <div className="grid grid-cols-2 gap-2">
-                    {tiles.map(({ id, ...tile }) => (
-                      <ProductTile key={id} {...tile} onOpen={() => remember(query)} />
-                    ))}
-                  </div>
+                  <>
+                    {data.count === 0 && <h2 className="text-title-3">Другие товары магазина</h2>}
+                    {data.count > tiles.length && (
+                      <p className="text-meta text-muted-foreground">
+                        Показано {tiles.length} из {data.count}
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      {tiles.map(({ id, ...tile }) => (
+                        <div key={id} className="min-w-0">
+                          <ProductTile {...tile} onOpen={() => remember(query)} />
+                          {data.count > 0 && asksForPackSize(q) && !data.preferred[id] && (
+                            <p className="mt-1 text-small text-muted-foreground">Проверьте фасовку</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
               </>
             )}
