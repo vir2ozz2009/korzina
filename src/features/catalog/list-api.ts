@@ -8,7 +8,7 @@ import { shopApi, shopKey } from "../../shared/shop-api";
 import { resolveDocumentImage } from "./document-images";
 
 type CatalogPage = InferResponseType<typeof shopApi.api.catalog.page.$get>;
-export function productListQuery(scope: CatalogScope, filters: CatalogFilters = {}, enabled = true) {
+function productListQuery(scope: CatalogScope, filters: CatalogFilters = {}, enabled = true) {
   return infiniteQueryOptions({
     queryKey: ["shop", shopKey, "product-list", scope, filters] as const,
     ...queryPolicy.stock,

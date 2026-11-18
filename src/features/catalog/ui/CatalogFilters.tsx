@@ -16,7 +16,7 @@ const sortOptions = [
 type Choice = { id: string; name: string };
 const plural = new Intl.PluralRules("ru");
 const forms = { zero: "товаров", one: "товар", two: "товара", few: "товара", many: "товаров", other: "товаров" };
-export function countLabel(n: number) {
+function countLabel(n: number) {
   return `${n} ${forms[plural.select(n)]}`;
 }
 

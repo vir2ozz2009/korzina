@@ -3,9 +3,7 @@ import { TemplatePending } from "../app/templates/TemplatePending";
 import { type CatalogFilters, catalogFiltersInput } from "../shared/contracts/catalog-list";
 import { rootRoute } from "./root";
 
-export function catalogSearch(
-  search: Record<string, unknown>,
-): CatalogFilters & { subcategory?: string; variants?: string } {
+function catalogSearch(search: Record<string, unknown>): CatalogFilters & { subcategory?: string; variants?: string } {
   const filters = catalogFiltersInput.safeParse(search);
   return {
     ...(filters.success ? filters.data : {}),
