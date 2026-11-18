@@ -109,8 +109,18 @@ export function requireFulfillment(settings: FulfillmentSettings, receiving: Rec
   return result;
 }
 
-type Selection = { receiving: Receiving | null; savedAddresses: DeliveryAddress[]; time: TimeChoice | null };
-export const emptySelection = (): Selection => ({ receiving: null, savedAddresses: [], time: null });
+type Selection = {
+  receiving: Receiving | null;
+  savedAddresses: DeliveryAddress[];
+  time: TimeChoice | null;
+  receivingUpdatedAt: number;
+};
+export const emptySelection = (): Selection => ({
+  receiving: null,
+  savedAddresses: [],
+  time: null,
+  receivingUpdatedAt: 0,
+});
 
 function parseSelection(value: string | null | undefined): Selection {
   if (!value) return emptySelection();
@@ -177,7 +187,7 @@ export function saveReceiving(storage: DurableObjectStorage, customer: string, i
     const revision = current.revision + 1;
     const savedAddresses = rememberAddress(current.savedAddresses, receiving, availability.available);
     const time = current.receiving?.mode === receiving.mode ? current.time : null;
-    const selection = { receiving, savedAddresses, time };
+    const selection = { receiving, savedAddresses, time, receivingUpdatedAt: Date.now() };
     writeReceiving(storage, customer, revision, selection);
     return { revision, ...selection, availability };
   });

@@ -131,7 +131,11 @@ test("B5b: единые плитки списка, ограничения вво
   await milk.getByRole("button", { name: "Выбрать фасовку" }).click();
   await expect(page.getByRole("heading", { name: "Выберите фасовку" })).toBeVisible();
   const pack = page.getByRole("dialog").locator("div.rounded-lg").filter({ hasText: "500 мл" }).first();
+  const change = page.waitForResponse(
+    (response) => new URL(response.url()).pathname === "/api/cart" && response.request().method() === "POST",
+  );
   await pack.getByRole("button", { name: "Добавить в корзину" }).click();
+  expect((await change).ok()).toBe(true);
   await page.keyboard.press("Escape");
   await expect(milk.getByText("1", { exact: true })).toBeVisible();
   const longList = Array(41).fill("молоко").join(", ");

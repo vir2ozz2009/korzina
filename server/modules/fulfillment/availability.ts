@@ -58,7 +58,7 @@ export function saveTime(storage: DurableObjectStorage, subject: string, input: 
       if (!isAvailable(availability.mode, availability.days, time)) throw unavailableTime();
     }
     if (JSON.stringify(current.time) === JSON.stringify(time)) return { revision, ...current };
-    const updated = { ...current, time };
+    const updated = { ...current, time, receivingUpdatedAt: Date.now() };
     writeReceiving(storage, subject, revision + 1, updated);
     return { revision: revision + 1, ...updated };
   });
