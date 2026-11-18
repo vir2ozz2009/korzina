@@ -116,9 +116,36 @@ test("витрина своего магазина → фасовка/корзи
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeCloseTo(scroll, 0);
   await expect(first.getByLabel("В корзине", { exact: true })).toHaveText("1");
   await page.getByRole("button", { name: /^Корзина/ }).click();
-  await expect(page.getByText("250 г · 1 шт.")).toBeVisible();
-  await page.reload();
-  await expect(page.getByText("250 г · 1 шт.")).toBeVisible();
+  const tomato = page.getByRole("listitem").filter({ hasText: "Томаты на ветке" });
+  const quantity = tomato.getByLabel("Количество", { exact: true });
+  await expect(quantity).toHaveText("1");
+  await tomato.getByRole("button", { name: "Увеличить количество" }).click();
+  await expect(quantity).toHaveText("2");
+  await tomato.getByRole("button", { name: "Уменьшить количество" }).click();
+  await expect(tomato.getByRole("button", { name: "Увеличить количество" })).toBeEnabled();
+  await expect(quantity).toHaveText("1");
+
+  let finishCheck: () => void = () => {};
+  const holdCheck = new Promise<void>((resolve) => {
+    finishCheck = resolve;
+  });
+  await page.route("**/api/cart?shop=test2", async (route) => {
+    if (route.request().method() === "GET") await holdCheck;
+    await route.continue();
+  });
+  try {
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByText("Проверяем корзину…")).toBeVisible();
+    await expect(quantity).toHaveText("1");
+    await expect(tomato.getByRole("button", { name: "Увеличить количество" })).toBeDisabled();
+  } finally {
+    finishCheck();
+  }
+  await expect(tomato.getByRole("button", { name: "Увеличить количество" })).toBeEnabled();
+  await page.screenshot({ path: "test-results/cart-390.png", animations: "disabled" });
+  await page.getByRole("button", { name: /Удалить Томаты/ }).click();
+  await page.getByRole("button", { name: /Удалить Голубика/ }).click();
+  await expect(page.getByText("Корзина пуста")).toBeVisible();
   await page.goto("/dev/kit?shop=test2");
   await page.getByRole("button", { name: "Товары", exact: true }).click();
   await checkWidths(page);

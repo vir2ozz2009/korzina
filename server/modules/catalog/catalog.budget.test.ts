@@ -143,7 +143,9 @@ describe("бюджеты каталога", () => {
     }
     const product = await catalogRequest("products/product-01");
     expect(product.status).toBe(200);
-    assertSqlBudget(JSON.parse(product.headers.get("x-korzina-sql") as string), { sql: 3, rowsWritten: 0 });
+    const productMetric = JSON.parse(product.headers.get("x-korzina-sql") as string);
+    expect(productMetric.route).toBe("/api/catalog/products/:id");
+    assertSqlBudget(productMetric, { sql: 3, rowsWritten: 0 });
   });
 
   it("страница категории/бренда ≤4 SQL документа + ≤2 SQL live, без записей", async () => {

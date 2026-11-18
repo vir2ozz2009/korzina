@@ -5,7 +5,7 @@ import { HttpError } from "../../shared/http-error";
 import { type CartCommand, cartMutationOptions, optimisticCart } from "./commands";
 
 const key = ["shop", "one", "cart"];
-const empty: Cart = { revision: 0, currency: null, lines: [], count: 0, totalMinor: 0 };
+const empty: Cart = { revision: 0, currency: null, lines: [], count: 0, totalMinor: 0, adjustments: [] };
 const line = (id: string, priceMinor = 100): CartLine => ({
   productId: id,
   variantId: id,
@@ -92,7 +92,7 @@ it("конфликт первой команды не стирает втору�
   client.clear();
 });
 
-it("сетевой повтор сохраняет ключ и исходную ревизию даже при обновлении кеша", async () => {
+it("сетевой повтор сохраняет ключ и ревизию команды и не затирает более новый кеш", async () => {
   const client = new QueryClient();
   client.setQueryData(key, { ...empty, revision: 3 });
   const send = vi.fn(async () => {
@@ -106,6 +106,6 @@ it("сетевой повтор сохраняет ключ и исходную 
   await new MutationObserver(client, options).mutate(command("a"));
   expect(send).toHaveBeenCalledTimes(2);
   expect(send.mock.calls[0]).toEqual(send.mock.calls[1]);
-  expect(client.getQueryData(key)).toMatchObject({ revision: 4 });
+  expect(client.getQueryData(key)).toMatchObject({ revision: 7 });
   client.clear();
 });

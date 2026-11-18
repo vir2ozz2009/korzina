@@ -113,9 +113,11 @@ export function ProductScreen() {
           <div className="space-y-3">
             <h1 className="text-title-1">{data?.name}</h1>
             {data?.brandId && data.brandName && (
-              <Link to="/b/$id" params={{ id: data.brandId }} className="text-primary-text">
-                {data.brandName} ›
-              </Link>
+              <p>
+                <Link to="/b/$id" params={{ id: data.brandId }} className="text-primary-text">
+                  {data.brandName} ›
+                </Link>
+              </p>
             )}
             {data && variant && (
               <>

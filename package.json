@@ -21,7 +21,7 @@
     "smoke:catalog": "node scripts/catalog-smoke.ts",
     "theme:export": "node scripts/export-theme.ts",
     "schema:shop": "node scripts/shop-schema.ts",
-    "deploy": "npm run check && npm run platform:setup && cf deploy --prebuilt",
+    "deploy": "npm run check && npm run platform:setup -- --seed && cf deploy --prebuilt",
     "shop:create": "node scripts/shop-create.ts",
     "flag": "node scripts/flag.ts",
     "platform:setup": "node scripts/platform-setup.ts"
