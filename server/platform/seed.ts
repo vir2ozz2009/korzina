@@ -18,3 +18,12 @@ export const seedStatements: SqlStatement[] = [
     params: ["test2.demo.korzina.app", "korzina-demo-test2"],
   },
 ];
+
+export const demoSeedShopIds = ["korzina-demo-lavka", "korzina-demo-test2"];
+
+export function requestDemoSeed(shopId: string): SqlStatement {
+  return {
+    sql: "INSERT INTO demo_seed_queue (shop_id,requested_at) VALUES (?,?) ON CONFLICT(shop_id) DO UPDATE SET requested_at=excluded.requested_at",
+    params: [shopId, crypto.randomUUID()],
+  };
+}

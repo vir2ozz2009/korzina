@@ -1,6 +1,5 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { lazy, type ReactNode, Suspense, useState } from "react";
-import { useToast } from "../../../app/shell/ToastProvider";
 import { CatalogTemplate } from "../../../app/templates/CatalogTemplate";
 import {
   type CatalogScope,
@@ -44,7 +43,6 @@ export function ProductList({
   const navigate = useNavigate();
   const cart = useCart();
   const search = parameters;
-  const toast = useToast();
   const category = document?.categories.find((item) => item.id === categoryId);
   const brand = scope.startsWith("brand:") ? document?.brands.find((item) => item.id === scope.slice(6)) : undefined;
   const selected = scope.startsWith("category:") ? scope.slice(9) : undefined;
@@ -155,9 +153,6 @@ export function ProductList({
                   pending={!!draft && preview.isFetching}
                   onDraft={setDraft}
                   onApply={apply}
-                  onCharacteristics={
-                    import.meta.env.SHOW_UNFINISHED ? () => toast("В работе · A · Характеристики") : undefined
-                  }
                 />
               )}
             </>

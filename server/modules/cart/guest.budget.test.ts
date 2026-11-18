@@ -15,7 +15,14 @@ it("пустая гостевая корзина на холодном Worker н
     for (const shop of ["test2", "lavka"]) {
       const response = await app.request(`https://demo.korzina.app/api/cart?shop=${shop}`, {}, env);
       expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ revision: 0, currency: null, lines: [], count: 0, totalMinor: 0 });
+      expect(await response.json()).toEqual({
+        revision: 0,
+        currency: null,
+        lines: [],
+        count: 0,
+        totalMinor: 0,
+        adjustments: [],
+      });
       expect(response.headers.get("Cache-Control")).toBe("no-store");
       expect(response.headers.has("Set-Cookie")).toBe(false);
     }

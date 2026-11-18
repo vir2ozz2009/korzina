@@ -28,7 +28,6 @@ export default defineConfig(({ mode }) => ({
   ],
   define: {
     "import.meta.env.DEV_SCREENS": mode !== "production",
-    "import.meta.env.SHOW_UNFINISHED": mode !== "production",
   },
   build: {
     target: "es2022",

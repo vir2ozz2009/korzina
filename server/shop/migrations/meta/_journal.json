@@ -92,6 +92,13 @@
       "when": 1794995189514,
       "tag": "0012_catalog_search",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1795004236973,
+      "tag": "0013_cart_quote",
+      "breakpoints": true
     }
   ]
 }

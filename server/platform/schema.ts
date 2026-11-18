@@ -83,3 +83,10 @@ export const emailChallenges = sqliteTable("email_challenges", {
   usedAt: integer("used_at"),
   attemptId: text("attempt_id"),
 });
+
+export const demoSeedQueue = sqliteTable("demo_seed_queue", {
+  shopId: text("shop_id")
+    .primaryKey()
+    .references(() => shops.id),
+  requestedAt: text("requested_at").notNull(),
+});

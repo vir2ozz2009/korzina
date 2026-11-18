@@ -7,7 +7,7 @@ import { media } from "../media/schema";
 import { brands, catalogState, categories, productPhotos, products, variants } from "./schema";
 import { seedNavigation } from "./seed-navigation";
 
-// Shop invokes this only for the two owned demo identities. Stable SKU ids preserve carts.
+// Invoked by the non-production seed command. Stable SKU ids preserve carts.
 export function seedCatalog(storage: DurableObjectStorage) {
   const marker = storage.sql
     .exec<{ value: string }>("SELECT value FROM settings WHERE key='catalog_seed'")
@@ -16,6 +16,7 @@ export function seedCatalog(storage: DurableObjectStorage) {
     seedNavigation(storage);
     seedGallery(storage);
     seedShoppingItem(storage);
+    seedVariantNames(storage);
     return;
   }
   const db = drizzle(storage);
@@ -91,6 +92,34 @@ export function seedCatalog(storage: DurableObjectStorage) {
   seedNavigation(storage);
   seedGallery(storage);
   seedShoppingItem(storage);
+  seedVariantNames(storage);
+}
+
+function seedVariantNames(storage: DurableObjectStorage) {
+  const key = "catalog_variant_names_seed";
+  if (storage.sql.exec("SELECT 1 FROM settings WHERE key=?", key).toArray().length) return;
+  const previousNames = new Map([
+    [4, "500 г"],
+    [8, "125 г"],
+    [12, "700 г"],
+    [16, "1 л"],
+    [20, "250 г"],
+    [24, "1 шт."],
+  ]);
+  storage.transactionSync(() => {
+    for (const { id, unit } of catalog.products) {
+      const previousName = previousNames.get(id);
+      if (previousName) {
+        storage.sql.exec(
+          "UPDATE variants SET name=? WHERE id=? AND name=?",
+          unit,
+          `sku-${String(id).padStart(2, "0")}`,
+          previousName,
+        );
+      }
+    }
+    storage.sql.exec("INSERT INTO settings(key,value) VALUES(?, 'B6')", key);
+  });
 }
 
 function seedPhoto(
