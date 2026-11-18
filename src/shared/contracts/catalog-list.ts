@@ -4,7 +4,7 @@ const catalogScope = z.string().regex(/^(all|category:.{1,120}|brand:.{1,120})$/
 export type CatalogScope = "all" | `category:${string}` | `brand:${string}`;
 const filterId = z.string().min(1).max(120);
 const price = z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional();
-export const catalogFiltersInput = z.object({
+const catalogFiltersInput = z.object({
   sort: z.enum(["default", "price-asc", "price-desc", "name"]).optional(),
   min: price,
   max: price,
