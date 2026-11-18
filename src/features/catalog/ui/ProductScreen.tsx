@@ -173,7 +173,7 @@ export function ProductScreen() {
               <AddToCart
                 size="lg"
                 value={value}
-                max={variant.stock ?? 999}
+                max={variant.available ? (variant.stock ?? 999) : 0}
                 onChange={change}
                 disabled={cart.pendingProducts.has(id) || !cart.query.data}
               />

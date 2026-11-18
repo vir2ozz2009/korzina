@@ -41,10 +41,10 @@ export function VariantsSheet({ id, onClose }: { id: string; onClose?: () => voi
                       oldMinor={variant.oldPriceMinor ?? undefined}
                     />
                   </div>
-                  {variant.available ? (
+                  {variant.available || value > 0 ? (
                     <AddToCart
                       value={value}
-                      max={variant.stock ?? 999}
+                      max={variant.available ? (variant.stock ?? 999) : 0}
                       disabled={cart.pendingProducts.has(data.id) || !cart.query.data}
                       loading={cart.pendingProducts.get(data.id) === variant.id}
                       onChange={(quantity) =>
