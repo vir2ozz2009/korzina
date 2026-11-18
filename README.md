@@ -7,7 +7,7 @@
 Откройте репозиторий в Codex и начните новый чат: Codex прочитает `AGENTS.md`. Напишите «Продолжай» — агент возьмёт текущую задачу из `docs/PROGRESS.md`.
 
 - [AGENTS.md](AGENTS.md) — правила работы агента.
-- [План](docs/PLAN.md) — фазы F → B → S → O → L → A и карточки задач.
+- [План](docs/PLAN.md) — блоки и индекс задач; карточки — [docs/tasks](docs/tasks/README.md).
 - [Архитектура](docs/ARCHITECTURE.md) · [Правила кода](docs/CONVENTIONS.md) · [Дизайн и MagicPath](docs/DESIGN.md)
 - [Бизнес-правила](docs/DOMAIN.md) · [Блоки Figma](docs/SCREENS.md) · [Решения](docs/DECISIONS.md) · [Прогресс](docs/PROGRESS.md)
 
