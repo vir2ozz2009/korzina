@@ -10,8 +10,9 @@ export async function checkContent(page: Page, screen: "home" | "product" | "cat
   } else if (screen === "product") {
     await expect.soft(page.locator("h1")).not.toBeEmpty();
     await expect.soft(page.locator("#screen-content")).toContainText(price);
-    // Figma 47 reserves the bottom for the SKU buy bar, without home floating actions.
-    await expect.soft(page.getByRole("button", { name: /^Корзина|^Поиск$/ })).toHaveCount(0);
+    const cart = page.getByRole("button", { name: /^Корзина/ });
+    await expect.soft(cart).toHaveCount(1);
+    await expect.soft(page.getByRole("button", { name: "Нейропоиск" })).toHaveCount(0);
     const plus = page
       .getByRole("button", { name: /^(Добавить в корзину|Выбрать фасовку|Добавить одну штуку)$/ })
       .last();
