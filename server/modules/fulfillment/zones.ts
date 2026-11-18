@@ -1,4 +1,4 @@
-import type { DeliveryZone, Point } from "../../../src/shared/contracts/fulfillment";
+import type { DeliveryZone, Point } from "../../../src/shared/contracts/receiving";
 
 const radians = Math.PI / 180;
 const earthRadiusMeters = 6_371_008.8;

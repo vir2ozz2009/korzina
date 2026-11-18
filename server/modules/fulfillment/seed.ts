@@ -1,4 +1,4 @@
-import type { FulfillmentSettings } from "../../../src/shared/contracts/fulfillment";
+import type { FulfillmentSettings } from "../../../src/shared/contracts/receiving";
 
 const fulfillment: FulfillmentSettings = {
   delivery: {
@@ -6,7 +6,7 @@ const fulfillment: FulfillmentSettings = {
       {
         id: "center",
         geometry: { type: "radius", center: { lat: 10.7769, lon: 106.7009 }, radiusMeters: 6000 },
-        tariff: { kind: "store", amountMinor: 25000 },
+        tariff: { kind: "fixed", feeMinor: 25000 },
       },
     ],
   },

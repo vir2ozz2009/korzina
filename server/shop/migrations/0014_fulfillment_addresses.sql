@@ -1,1 +1,0 @@
-ALTER TABLE `sessions` ADD `delivery_addresses` text DEFAULT '[]' NOT NULL;

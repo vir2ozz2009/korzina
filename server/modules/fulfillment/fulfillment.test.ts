@@ -1,5 +1,5 @@
 import { beforeAll, expect, it, vi } from "vitest";
-import type { DeliveryZone } from "../../../src/shared/contracts/fulfillment";
+import type { DeliveryZone } from "../../../src/shared/contracts/receiving";
 import { cookieFrom, getAuth, postAuth } from "../../testing/auth";
 import { setupPlatform } from "../../testing/platform";
 import { geocodeAddress } from "./geocoder";

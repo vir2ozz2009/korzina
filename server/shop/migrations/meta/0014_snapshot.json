@@ -107,6 +107,13 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "receiving": {
+          "name": "receiving",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {
@@ -638,14 +645,6 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "delivery_addresses": {
-          "name": "delivery_addresses",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'[]'"
         },
         "expires_at": {
           "name": "expires_at",

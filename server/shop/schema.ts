@@ -27,7 +27,6 @@ export const sessions = sqliteTable(
     tokenHash: text("token_hash").primaryKey(),
     subject: text("subject").notNull(),
     kind: text("kind", { enum: ["guest", "telegram"] }).notNull(),
-    deliveryAddresses: text("delivery_addresses").notNull().default("[]"),
     expiresAt: integer("expires_at").notNull(),
   },
   (t) => [index("sessions_expiry_idx").on(t.expiresAt), index("sessions_subject_idx").on(t.subject, t.expiresAt)],
