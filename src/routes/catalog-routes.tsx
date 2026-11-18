@@ -24,7 +24,7 @@ const search = createRoute({
   path: "/search",
   validateSearch: (input: Record<string, unknown>): CatalogFilters & { q?: string; variants?: string } => ({
     ...catalogSearch(input),
-    q: typeof input.q === "string" ? input.q.slice(0, 180) : undefined,
+    q: typeof input.q === "string" ? input.q : undefined,
   }),
   staticData: { template: "catalog", transition: "push", title: "Нейропоиск" },
   component: lazyRouteComponent(() => import("../features/catalog/ui/SearchScreen"), "SearchScreen"),

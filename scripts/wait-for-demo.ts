@@ -10,8 +10,16 @@ for (let attempt = 0; ; attempt++) {
     });
     const html = await response.text();
     if (response.ok && html.includes(`name="build-revision" content="${expected}"`)) {
-      console.log(`Demo revision ready: ${expected}`);
-      break;
+      const search = await fetch("https://demo.korzina.app/api/catalog/search?shop=test2&q=молко", {
+        cache: "no-store",
+        signal: AbortSignal.timeout(10_000),
+      });
+      await search.body?.cancel();
+      if (search.ok) {
+        console.log(`Demo revision ready: ${expected}`);
+        break;
+      }
+      console.log(`Demo search still starting: HTTP ${search.status}`);
     }
   } catch (error) {
     console.log(error instanceof Error ? error.message : "Demo ещё недоступно");

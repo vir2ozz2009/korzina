@@ -34,7 +34,11 @@ function near(a: string, b: string) {
   }
   return true;
 }
-export function readSearch(storage: DurableObjectStorage, input: CatalogSearchInput, shopId: string) {
+export function findMatches(
+  storage: DurableObjectStorage,
+  input: CatalogSearchInput,
+  { limit = 16, nameOnly = false } = {},
+) {
   const normalized = input.q.toLocaleLowerCase("ru");
   const requested = weight(normalized);
   const terms = tokenize(normalized.replace(weightPattern, " ")).slice(0, 8);
@@ -56,24 +60,51 @@ export function readSearch(storage: DurableObjectStorage, input: CatalogSearchIn
           WHERE catalog_search MATCH ? AND ${clauses.join(" AND ")}) AS count
     FROM catalog_search JOIN products p ON p.id=catalog_search.product_id
     WHERE catalog_search MATCH ? AND ${clauses.join(" AND ")}
-    ORDER BY ${order}, p.id LIMIT 16`,
+    ORDER BY ${order}, p.id LIMIT ?`,
         match,
         ...params,
         match,
         ...params,
+        limit,
       )
       .toArray();
-  const query = (words: string[]) => words.map((token) => `"${token}"*`).join(" AND ");
+  const query = (words: string[]) => words.map((token) => `${nameOnly ? "name : " : ""}"${token}"*`).join(" AND ");
   let rows = terms.length ? lookup(query(terms)) : [];
   let suggestion: string | null = null;
-  if (!rows.length && terms.length === 1 && terms[0].length >= 4) {
+  if (!nameOnly && !rows.length && terms.length === 1 && terms[0].length >= 4) {
     const token = terms[0];
     rows = lookup(query([token.slice(0, 2)])).filter((row) =>
       tokenize(row.name).some((candidate) => near(token, candidate)),
     );
     suggestion = rows.length ? (tokenize(rows[0].name).find((candidate) => near(token, candidate)) ?? null) : null;
   }
-  const ids = rows.map((row) => row.id);
+  return { ids: rows.map((row) => row.id), count: rows[0]?.count ?? 0, suggestion, requested };
+}
+
+export function preferredVariants(
+  requested: ReturnType<typeof weight>,
+  items: ReturnType<typeof readDocument>["items"],
+  offers: ReturnType<typeof readLive>["items"],
+) {
+  return !requested
+    ? {}
+    : Object.fromEntries(
+        items.flatMap((item) => {
+          const match = item.variants.find((variant) => {
+            const value = weight(variant.name, true);
+            return (
+              value?.quantity === requested.quantity &&
+              value.volume === requested.volume &&
+              offers.some((offer) => offer.id === variant.id && offer.available)
+            );
+          });
+          return match ? [[item.id, match.id]] : [];
+        }),
+      );
+}
+
+export function readSearch(storage: DurableObjectStorage, input: CatalogSearchInput, shopId: string) {
+  const { ids, count, suggestion, requested } = findMatches(storage, input);
   const document = readDocument(storage, { limit: 16, productIds: ids.join(",") || "," }, shopId);
   const byId = new Map(document.items.map((item) => [item.id, item]));
   const items = ids.flatMap((id) => {
@@ -84,28 +115,13 @@ export function readSearch(storage: DurableObjectStorage, input: CatalogSearchIn
     storage,
     items.flatMap((item) => item.variants.map((item) => item.id)),
   );
-  const preferred = !requested
-    ? {}
-    : Object.fromEntries(
-        items.flatMap((item) => {
-          const match = item.variants.find((variant) => {
-            const value = weight(variant.name, true);
-            return (
-              value?.quantity === requested.quantity &&
-              value.volume === requested.volume &&
-              offers.items.some((offer) => offer.id === variant.id && offer.available)
-            );
-          });
-          return match ? [[item.id, match.id]] : [];
-        }),
-      );
   return {
     ...document,
     items,
-    count: suggestion ? items.length : (rows[0]?.count ?? 0),
+    count: suggestion ? items.length : count,
     next: null,
     offers,
-    preferred,
+    preferred: preferredVariants(requested, items, offers.items),
     suggestion,
   };
 }

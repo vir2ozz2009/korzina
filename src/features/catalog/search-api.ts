@@ -34,3 +34,19 @@ function searchQuery(q: string, filters: CatalogFilters = {}, active = true) {
 export function useCatalogSearch(q: string, filters?: CatalogFilters, active?: boolean) {
   return useQuery(searchQuery(q, filters, active));
 }
+
+export function useShoppingMatches(q: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["shop", shopKey, "shopping-search", q] as const,
+    ...queryPolicy.stock,
+    enabled: enabled && bootstrap?.status === "active",
+    queryFn: async ({ signal }) => {
+      const response = await shopApi.api.catalog["shopping-search"].$post({ json: { q } }, { init: { signal } });
+      await checkResponse(response);
+      const data = await response.json();
+      const image = (item: Parameters<typeof resolveDocumentImage>[0]) =>
+        resolveDocumentImage(item, bootstrap?.mediaOrigin ?? "");
+      return { ...data, items: data.items.map((item) => ({ ...item, image: image(item.image) })) };
+    },
+  });
+}

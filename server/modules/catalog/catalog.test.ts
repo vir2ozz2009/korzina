@@ -133,8 +133,8 @@ it("обновление демо B1 объединяет наборы без с
     const lines = JSON.stringify([{ variantId: "sku-03", quantity: 2 }]);
     ctx.storage.sql.exec("INSERT INTO carts(customer,revision,lines) VALUES('seed-upgrade',1,?)", lines);
     seedCatalog(ctx.storage);
-    expect(ctx.storage.sql.exec("SELECT count(*) AS n FROM products").one()).toEqual({ n: 6 });
-    expect(ctx.storage.sql.exec("SELECT count(*) AS n FROM variants").one()).toEqual({ n: 24 });
+    expect(ctx.storage.sql.exec("SELECT count(*) AS n FROM products").one()).toEqual({ n: 7 });
+    expect(ctx.storage.sql.exec("SELECT count(*) AS n FROM variants").one()).toEqual({ n: 25 });
     expect(ctx.storage.sql.exec("SELECT product_id FROM variants WHERE id='sku-03'").one()).toEqual({
       product_id: "product-01",
     });

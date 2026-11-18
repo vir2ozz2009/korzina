@@ -6,8 +6,8 @@ export function liveQuery(ids: string[]) {
     sql: `SELECT v.id, v.product_id AS productId, v.price_minor AS priceMinor,
   v.old_price_minor AS oldPriceMinor, v.stock, v.visible, v.product_available AS productAvailable
   FROM variants v
-  WHERE ${ids.map(() => "v.id IS ?").join(" OR ")}`,
-    params: ids,
+  WHERE ${ids.length <= 80 ? ids.map(() => "v.id IS ?").join(" OR ") : "v.id IN (SELECT value FROM json_each(?))"}`,
+    params: ids.length <= 80 ? ids : [JSON.stringify(ids)],
   };
 }
 
@@ -18,10 +18,13 @@ export const mediaJsonSql = `json_object('id',m.id,'edgeColor',m.edge_color,'con
 const coverSql = `(SELECT ${mediaJsonSql} FROM product_photos pp JOIN media m ON m.id=pp.media_id
   WHERE pp.product_id=p.id AND m.status='attached' AND m.ready=1 ORDER BY pp.position LIMIT 1)`;
 
-function buildDocumentQuery(input: CatalogPageInput, count: boolean) {
+function buildDocumentQuery(input: CatalogPageInput, count: boolean, matchingIds?: string[]) {
   const conditions = ["p.published=1", "p.visible=1", "p.id>?"];
   const params: SqlStorageValue[] = [input.after ?? ""];
-  if (input.productIds) {
+  if (matchingIds) {
+    conditions.push("p.id IN (SELECT value FROM json_each(?))");
+    params.push(JSON.stringify(matchingIds));
+  } else if (input.productIds) {
     const ids = [...new Set(input.productIds.split(",").filter(Boolean))].slice(0, 16);
     conditions.push(ids.length ? `p.id IN (${ids.map(() => "?").join(",")})` : "0");
     params.push(...ids);
@@ -54,6 +57,7 @@ function buildDocumentQuery(input: CatalogPageInput, count: boolean) {
 }
 
 export const documentQuery = (input: CatalogPageInput) => buildDocumentQuery(input, false);
+export const matchingDocumentQuery = (input: CatalogPageInput, ids: string[]) => buildDocumentQuery(input, false, ids);
 export const documentCountQuery = (input: CatalogPageInput) => buildDocumentQuery(input, true);
 
 export const productSql = `SELECT p.id, p.name, p.description, p.category_id AS categoryId,
