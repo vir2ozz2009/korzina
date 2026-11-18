@@ -43,4 +43,10 @@ const cart = createRoute({
   staticData: { template: "checkout", transition: "push", title: "Корзина" },
   component: lazyRouteComponent(() => import("../features/cart/ui/CartScreen"), "CartScreen"),
 });
-export const shopRoutes = [home, product.addChildren([details]), about, cart, ...catalogRoutes];
+const receiving = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/checkout/receiving",
+  staticData: { template: "checkout", transition: "push", title: "Получение" },
+  component: lazyRouteComponent(() => import("../features/receiving/ui/ReceivingScreen"), "ReceivingScreen"),
+});
+export const shopRoutes = [home, product.addChildren([details]), about, cart, receiving, ...catalogRoutes];

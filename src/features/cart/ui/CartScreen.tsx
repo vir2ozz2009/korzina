@@ -12,6 +12,7 @@ import { Divider } from "../../../ui/Divider";
 import { IconButton } from "../../../ui/IconButton";
 import { ProductRow } from "../../../ui/ProductRow";
 import { StickyFooter } from "../../../ui/StickyFooter";
+import { CartShipping } from "../../receiving";
 import { useConfirmCart } from "../api";
 import { useCart } from "../CartProvider";
 import { cartSnapshot } from "../snapshot";
@@ -22,6 +23,7 @@ export function CartScreen() {
   const { refetch } = query;
   const [saved] = useState(cartSnapshot);
   const [opening, setOpening] = useState(true);
+  const [addressOpen, setAddressOpen] = useState(false);
   useEffect(() => {
     let open = true;
     void refetch({ cancelRefetch: false }).finally(() => {
@@ -135,6 +137,13 @@ export function CartScreen() {
       />
       {cart && currency && cart.lines.length > 0 && (
         <>
+          <CartShipping
+            currency={currency}
+            revision={cart.revision}
+            disabled={checking || query.isError || !!cart.review || pendingProducts.size > 0}
+            open={addressOpen}
+            setOpen={setAddressOpen}
+          />
           <Card size="lg">
             <h2 className="text-title-2">Ваш заказ</h2>
             {available.length > 0 && (

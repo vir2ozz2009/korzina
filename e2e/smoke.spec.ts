@@ -168,3 +168,32 @@ test("витрина своего магазина → фасовка/корзи
   await expect(page.getByRole("button", { name: "Удалить lazy.pdf" })).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("B7: ручной адрес и получение переживают перезагрузку", async ({ page }) => {
+  const headers = () => ({ "Idempotency-Key": crypto.randomUUID() });
+  const session = await page.request.post("/api/auth/guest?shop=test2", { headers: headers(), data: {} });
+  expect(session.ok()).toBe(true);
+  const item = await page.request.post("/api/cart?shop=test2", {
+    headers: headers(),
+    data: { variantId: "sku-01", quantity: 2, expectedRevision: 0 },
+  });
+  expect(item.ok()).toBe(true);
+  await page.goto("/cart?shop=test2");
+  await page.getByRole("button", { name: "Укажите адрес доставки" }).click();
+  const sheet = page.getByRole("dialog", { name: "Адрес доставки" });
+  await sheet.getByRole("button", { name: "Ввести адрес вручную" }).click();
+  await sheet.getByRole("textbox", { name: "Адрес доставки" }).fill("28 Lê Lợi, Хошимин");
+  await sheet.getByRole("button", { name: "Использовать мой адрес как есть" }).click();
+  await expect(sheet).toBeHidden();
+  await expect(page.getByText("Согласуем после заказа")).toBeVisible();
+  await page.screenshot({ path: "test-results/cart-address-390.png", animations: "disabled" });
+  await page.goto("/checkout/receiving?shop=test2");
+  await page.getByRole("button", { name: "Уточнить детали адреса" }).click();
+  const details = page.getByRole("dialog", { name: "Детали адреса" });
+  await details.getByRole("textbox", { name: "Квартира *", exact: true }).fill("12А");
+  await details.getByRole("button", { name: "Сохранить" }).click();
+  await expect(details).toBeHidden();
+  await page.reload();
+  await expect(page.getByText("кв. 12А")).toBeVisible();
+  await page.screenshot({ path: "test-results/receiving-390.png", animations: "disabled" });
+});
