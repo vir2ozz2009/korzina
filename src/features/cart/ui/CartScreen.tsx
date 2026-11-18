@@ -13,6 +13,7 @@ import { Divider } from "../../../ui/Divider";
 import { IconButton } from "../../../ui/IconButton";
 import { ProductRow } from "../../../ui/ProductRow";
 import { StickyFooter } from "../../../ui/StickyFooter";
+import { CartContinue } from "../../checkout";
 import { ContactSheet, useContact } from "../../contact";
 import { CartShipping } from "../../receiving";
 import { useConfirmCart } from "../api";
@@ -27,7 +28,7 @@ export function CartScreen() {
   const [opening, setOpening] = useState(true);
   const [addressOpen, setAddressOpen] = useState(false);
   const [contactMode, setContactMode] = useState<"telegram" | "phone">();
-  const contact = useContact(!telegramLaunch && !!query.data?.lines.length);
+  const contact = useContact(!!query.data?.lines.length);
   useEffect(() => {
     let open = true;
     void refetch({ cancelRefetch: false }).finally(() => {
@@ -182,6 +183,14 @@ export function CartScreen() {
             </Card>
           )}
         </>
+      )}
+      {available.length > 0 && cart && !cart.review && (
+        <CartContinue
+          revision={cart.revision}
+          disabled={checking || query.isError || pendingProducts.size > 0}
+          address={() => setAddressOpen(true)}
+          contact={() => setContactMode(telegramLaunch ? "phone" : "telegram")}
+        />
       )}
       <ContactSheet mode={contactMode} close={() => setContactMode(undefined)} />
     </Screen>

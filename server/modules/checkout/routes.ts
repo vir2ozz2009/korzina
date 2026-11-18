@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { emptyInput } from "../../../src/shared/contracts/auth";
-import { checkoutInput, receiptQuoteInput } from "../../../src/shared/contracts/checkout";
+import { checkoutInput, receiptQuoteInput, shopContactsInput } from "../../../src/shared/contracts/checkout";
 import { ApiError } from "../../../src/shared/errors";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
 import type { ShopEnv } from "../../shop/env";
@@ -19,6 +19,12 @@ export const purchaseRoutes = new Hono<ShopEnv>()
   .get("/checkout/summary", async (c) => {
     const actor = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);
     return c.json(purchaseSummary(c.env, actor?.subject ?? ""));
+  })
+  .get("/checkout/support", (c) => {
+    const row = c.env.storage.sql
+      .exec<{ value: string }>("SELECT value FROM settings WHERE key='shop_contacts'")
+      .toArray()[0];
+    return c.json(row ? shopContactsInput.parse(JSON.parse(row.value)) : []);
   })
   .post("/quote", authBodyLimit, authCommand, zValidator("json", emptyInput, validationFailure), async (c) => {
     const actor = await authenticated(c.env, c.req.raw);

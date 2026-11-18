@@ -42,6 +42,7 @@ export function purchaseSummary(env: Shop, subject: string) {
   return {
     currency: cart.currency,
     itemsMinor: cart.totalMinor,
+    hasItems: cart.lines.some((line) => line.available && line.quantity > 0),
     deliveryMinor,
     totalMinor: addMinor(cart.totalMinor, deliveryMinor),
     minimumMinor: paymentSettings.minimumMinor,

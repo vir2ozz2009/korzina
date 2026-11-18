@@ -8,8 +8,19 @@ export const paymentSettingsInput = z.object({
   minimumMinor: z.number().int().nonnegative(),
   methods: z.array(methodInput).max(2),
   instruction: z.string().trim().max(2000).optional(),
-  qrSrc: z.url({ protocol: /^https$/u }).optional(),
+  qrSrc: z.union([z.url({ protocol: /^https$/u }), z.string().regex(/^\/demo\/[a-z0-9-]+\.png$/u)]).optional(),
 });
+export const shopContactsInput = z
+  .array(
+    z.object({
+      title: z.string().trim().min(1).max(80),
+      href: z
+        .string()
+        .url()
+        .refine((value) => ["https:", "tel:", "mailto:"].includes(new URL(value).protocol)),
+    }),
+  )
+  .max(8);
 export const checkoutInput = z.discriminatedUnion("payment", [
   z.strictObject({ quoteRevision: z.uuid(), payment: z.literal("cash") }),
   z.strictObject({ quoteRevision: z.uuid(), payment: z.literal("transfer"), proofMediaId: z.uuid() }),

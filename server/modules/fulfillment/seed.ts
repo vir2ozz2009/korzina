@@ -48,11 +48,17 @@ export function seedFulfillment(storage: DurableObjectStorage) {
     JSON.stringify(schedule),
   );
   storage.sql.exec(
-    "INSERT INTO settings(key,value) VALUES('purchase_payment',?) ON CONFLICT DO NOTHING",
+    `INSERT INTO settings(key,value) VALUES('purchase_payment',?)
+     ON CONFLICT(key) DO UPDATE SET value=json_insert(settings.value,'$.qrSrc',json_extract(excluded.value,'$.qrSrc'))`,
     JSON.stringify({
       minimumMinor: 120000,
       methods: ["cash", "transfer"],
       instruction: "Демо-перевод. Не отправляйте деньги.",
+      qrSrc: "/demo/payment-qr.png",
     }),
+  );
+  storage.sql.exec(
+    "INSERT INTO settings(key,value) VALUES('shop_contacts',?) ON CONFLICT DO NOTHING",
+    JSON.stringify([{ title: "Поддержка demo", href: "mailto:shop@example.invalid" }]),
   );
 }
