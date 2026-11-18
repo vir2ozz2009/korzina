@@ -8,23 +8,28 @@ export function toTiles({
   currency,
   cart,
   choose,
+  preferred,
 }: {
   products: StorefrontProduct[];
   currency: string;
   cart: ReturnType<typeof useCart>;
   choose: (id: string) => void;
+  preferred?: Record<string, string>;
 }): HomeViewProps["products"] {
   const lines = cart.query.data?.lines ?? [];
   return products.map((product) => {
     const offer = selectOffer(product.variants, lines, product.id);
-    const { variant, quantity: value, multiple } = offer;
+    const manual = product.variants.find((v) => v.id === preferred?.[product.id] && v.available);
+    const variant = manual ?? offer.variant;
+    const value = manual ? (lines.find((line) => line.variantId === manual.id)?.quantity ?? 0) : offer.quantity;
+    const multiple = !manual && offer.multiple;
     return {
       id: product.id,
       name: product.name,
       image: product.image ?? undefined,
-      href: `/p/${product.id}`,
-      unit: offer.unit,
-      from: offer.from,
+      href: `/p/${product.id}${manual ? `?variant=${encodeURIComponent(manual.id)}` : ""}`,
+      unit: manual?.name ?? offer.unit,
+      from: !manual && offer.from,
       stock: multiple ? undefined : variant.stock,
       amountMinor: variant.priceMinor,
       oldMinor: variant.oldPriceMinor ?? undefined,

@@ -79,3 +79,32 @@ test("B3: категории → подкатегория → товар → н�
   await expect(page.getByRole("button", { name: "Сначала дешевле" })).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("B5: опечатка, корзина после очистки и возврат со страницы поиска", async ({ page }) => {
+  await page.goto("/?shop=test2");
+  await page.getByText("Нейропоиск", { exact: true }).click();
+  const input = page.getByRole("searchbox", { name: "Поиск товаров" });
+  await expect(input).toBeFocused();
+  const actions = page.locator("[data-shop-actions]");
+  await expect(actions).toBeHidden();
+  await input.fill("молко");
+  await expect(page.getByRole("button", { name: "молоко ›" })).toBeVisible();
+  await expect(input).toHaveValue("молко");
+  await page.getByRole("button", { name: "молоко ›" }).click();
+  const milk = page.locator("article").filter({ hasText: "Молоко" }).first();
+  await expect(input).toHaveValue("молоко");
+  await expect(milk).toBeVisible();
+  await page.screenshot({ path: "test-results/search-390.png", animations: "disabled" });
+  await input.fill("молоко 500 мл");
+  await input.press("Enter");
+  await milk.getByRole("button", { name: "Добавить в корзину" }).click();
+  await expect(milk.getByText("1", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Очистить запрос" }).click();
+  await expect(actions).toBeVisible();
+  await expect(actions).toContainText(/₫|₽|руб/);
+  await expect(input).toHaveValue("");
+  await page.screenshot({ path: "test-results/search-cleared-390.png", animations: "disabled" });
+  await page.getByRole("button", { name: "Назад" }).click();
+  await expect(page).toHaveURL(/\/\?shop=test2$/);
+  await expect(actions).toContainText(/₫|₽|руб/);
+});

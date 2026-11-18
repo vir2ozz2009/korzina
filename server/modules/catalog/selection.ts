@@ -29,7 +29,7 @@ function encode(value: Cursor) {
   );
 }
 
-function selectionConditions(input: CatalogListInput) {
+export function selectionConditions(input: CatalogListInput) {
   const clauses = ["p.published=1", "p.visible=1", "p.has_catalog_offer=1"];
   const params: SqlStorageValue[] = [];
   if (input.inStock || input.min !== undefined || input.max !== undefined)

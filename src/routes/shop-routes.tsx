@@ -17,7 +17,10 @@ const home = createRoute({
 const product = createRoute({
   getParentRoute: () => rootRoute,
   path: "/p/$id",
-  validateSearch: variantsSearch,
+  validateSearch: (search: Record<string, unknown>): { variants?: string; variant?: string } => ({
+    ...variantsSearch(search),
+    variant: typeof search.variant === "string" ? search.variant : undefined,
+  }),
   staticData: { template: "product", transition: "push", title: "Товар" },
   component: lazyRouteComponent(() => import("../features/catalog/ui/ProductScreen"), "ProductScreen"),
   pendingComponent: () => <TemplatePending template="product" />,

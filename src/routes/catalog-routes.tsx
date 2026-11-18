@@ -19,6 +19,16 @@ const allProducts = createRoute({
   component: lazyRouteComponent(() => import("../features/catalog/ui/AllProductsScreen"), "AllProductsScreen"),
   pendingComponent: () => <TemplatePending template="catalog" />,
 });
+const search = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/search",
+  validateSearch: (input: Record<string, unknown>): CatalogFilters & { q?: string; variants?: string } => ({
+    ...catalogSearch(input),
+    q: typeof input.q === "string" ? input.q.slice(0, 180) : undefined,
+  }),
+  staticData: { template: "catalog", transition: "push", title: "Нейропоиск" },
+  component: lazyRouteComponent(() => import("../features/catalog/ui/SearchScreen"), "SearchScreen"),
+});
 const category = createRoute({
   getParentRoute: () => rootRoute,
   path: "/c/$id",
@@ -47,4 +57,4 @@ const brands = createRoute({
   staticData: { template: "catalog", transition: "push", title: "Бренды" },
   component: lazyRouteComponent(() => import("../features/catalog/ui/NavigationScreen"), "BrandsScreen"),
 });
-export const catalogRoutes = [allProducts, category, brand, categories, brands];
+export const catalogRoutes = [allProducts, search, category, brand, categories, brands];

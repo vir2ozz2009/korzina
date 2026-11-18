@@ -8,13 +8,19 @@ export interface ProductTileProps extends PriceProps {
   unit: string;
   image?: ProductImageValue;
   href: string;
+  onOpen?: () => void;
   cart: AddToCartProps;
   stock?: number | null;
 }
-export function ProductTile({ name, unit, image, href, cart, stock, ...price }: ProductTileProps) {
+export function ProductTile({ name, unit, image, href, onOpen, cart, stock, ...price }: ProductTileProps) {
   return (
     <article className="min-w-0 overflow-hidden rounded-xl bg-card">
-      <a href={href} className={`relative block ${cart.max <= 0 ? "opacity-50" : ""}`} aria-label={name}>
+      <a
+        href={href}
+        onClick={onOpen}
+        className={`relative block ${cart.max <= 0 ? "opacity-50" : ""}`}
+        aria-label={name}
+      >
         <ProductImage
           {...imageSource(image)}
           alt={name}
@@ -27,7 +33,7 @@ export function ProductTile({ name, unit, image, href, cart, stock, ...price }: 
         </span>
       </a>
       <div className="space-y-1 p-2.5">
-        <a href={href} className="line-clamp-2 min-h-9 text-caption">
+        <a href={href} onClick={onOpen} className="line-clamp-2 min-h-9 text-caption">
           {name}
         </a>
         <p className="text-small text-muted-foreground">{unit}</p>
