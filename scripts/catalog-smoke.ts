@@ -22,14 +22,18 @@ async function smoke() {
       variants: { id: string }[];
     }[];
   };
-  assert.equal(data.items.length, 6, "Ждём сид B2: шесть товаров вместо отдельных наборов");
+  assert.equal(data.items.length, 7, "Ждём шесть товаров B2 и товар списка покупок B5b");
+  assert(
+    data.items.some((item) => item.id === "product-25" && item.variants.some((variant) => variant.id === "sku-25")),
+    "Сид B5b должен включать товар для списка покупок",
+  );
   assert(
     data.items.every((item) => item.image?.edgeColor && item.image.contentBox?.w && item.image.contentBox.h),
     "Ждём метаданные фото B2",
   );
   assert.equal(
     data.items.reduce((count, item) => count + item.variants.length, 0),
-    23,
+    24,
   );
   assert(
     !data.items.some((item) => item.variants.some((variant) => variant.id === "sku-12")),

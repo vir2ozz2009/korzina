@@ -15,7 +15,7 @@ const geometry = z.discriminatedUnion("type", [
   z.object({ type: z.literal("radius"), center: pointInput, radiusMeters: z.number().positive().max(100_000) }),
   z.object({ type: z.literal("polygon"), points: z.array(pointInput).min(3).max(100) }),
 ]);
-export const detailField = z.enum(["apartment", "entrance", "floor", "intercom"]);
+const detailField = z.enum(["apartment", "entrance", "floor", "intercom"]);
 const deliveryPayee = z.enum(["shop", "courier"]).default("shop");
 const zoneId = z.string().min(1).max(80);
 
@@ -72,7 +72,7 @@ export type GeocodeInput = z.infer<typeof geocodeInput>;
 export type Receiving = z.infer<typeof receivingInput>;
 export type ReceiveCommand = z.infer<typeof receiveCommandInput>;
 export type FulfillmentSettings = z.infer<typeof fulfillmentSettingsInput>;
-export type DeliverySettings = NonNullable<FulfillmentSettings["delivery"]>;
+type DeliverySettings = NonNullable<FulfillmentSettings["delivery"]>;
 export type DeliveryZone = Extract<DeliverySettings, { mode: "map" }>["zones"][number];
 export type DeliveryAddress = Extract<Receiving, { mode: "delivery" }>;
 export type DeliveryTariff = z.infer<typeof tariff>;
