@@ -1,12 +1,12 @@
 import { createRoute, lazyRouteComponent } from "@tanstack/react-router";
 import { TemplatePending } from "../app/templates/TemplatePending";
-import { type CatalogFilters, catalogFiltersInput } from "../shared/contracts/catalog-list";
+import { readFilterParams } from "../features/catalog/filter-params";
+import type { CatalogFilters } from "../shared/contracts/catalog-list";
 import { rootRoute } from "./root";
 
 function catalogSearch(search: Record<string, unknown>): CatalogFilters & { subcategory?: string; variants?: string } {
-  const filters = catalogFiltersInput.safeParse(search);
   return {
-    ...(filters.success ? filters.data : {}),
+    ...readFilterParams(search),
     subcategory: typeof search.subcategory === "string" ? search.subcategory : undefined,
     variants: typeof search.variants === "string" ? search.variants : undefined,
   };

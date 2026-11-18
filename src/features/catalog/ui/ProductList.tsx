@@ -4,7 +4,6 @@ import { useToast } from "../../../app/shell/ToastProvider";
 import { CatalogTemplate } from "../../../app/templates/CatalogTemplate";
 import {
   type CatalogScope,
-  catalogFiltersInput,
   type CatalogFilters as Filters,
   usesLiveSelection,
 } from "../../../shared/contracts/catalog-list";
@@ -15,6 +14,7 @@ import { Chip } from "../../../ui/Chip";
 import { EmptyState } from "../../../ui/EmptyState";
 import { ProductTile } from "../../../ui/ProductTile";
 import { useCart } from "../../cart";
+import { readFilterParams } from "../filter-params";
 import { useProductList } from "../list-api";
 import { storefrontProducts } from "../model";
 import { CatalogFilters } from "./CatalogFilters";
@@ -32,8 +32,7 @@ export function ProductList({
   onSelect?: (id?: string) => void;
 }) {
   const parameters = useSearch({ strict: false }) as Filters & { variants?: string };
-  const parsed = catalogFiltersInput.safeParse(parameters);
-  const filters = parsed.success ? parsed.data : {};
+  const filters = readFilterParams(parameters);
   const [draft, setDraft] = useState<Filters>();
   const list = useProductList(scope, filters);
   const preview = useProductList(
