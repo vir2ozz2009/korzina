@@ -16,6 +16,7 @@ test("B3: категории → подкатегория → товар → н�
   await category.click();
   await expect(page.locator("article")).toHaveCount(2);
   await checkContent(page, "catalog");
+  await page.screenshot({ path: "test-results/category-390.png" });
   for (const width of [360, 412]) {
     await page.setViewportSize({ width, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
