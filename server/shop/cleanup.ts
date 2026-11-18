@@ -12,6 +12,9 @@ export function cleanupRecords(storage: DurableObjectStorage, now = Date.now()) 
       ["idempotency", "created_at<?", [now - day]],
       ["sessions", "expires_at<=?", [now]],
       ["receiving_seats", "expires_at<=?", [now]],
+      ["customer_telegram_exchanges", "expires_at<=?", [now]],
+      ["checkout_quotes", "expires_at<=?", [now]],
+      ["checkout_receipts", "expires_at<=?", [now]],
       [
         "carts",
         "updated_at<? AND NOT EXISTS(SELECT 1 FROM sessions s WHERE s.subject=carts.customer AND s.expires_at>?)",
@@ -32,17 +35,21 @@ export function cleanupRecords(storage: DurableObjectStorage, now = Date.now()) 
 export async function rescheduleCleanup(storage: DurableObjectStorage, more: boolean, now = Date.now()) {
   if (more) return storage.setAlarm(now + 1000);
   const row = storage.sql
-    .exec<{ due: number | null }>(
-      `SELECT MIN(due) AS due FROM (
-    SELECT MIN(created_at)+${day} AS due FROM idempotency
-    UNION ALL SELECT MIN(expires_at) FROM sessions
-    UNION ALL SELECT MIN(expires_at) FROM media
-    UNION ALL SELECT MIN(expires_at) FROM receiving_seats
-    UNION ALL SELECT MIN(updated_at)+${30 * day} FROM carts WHERE NOT EXISTS(
-      SELECT 1 FROM sessions s WHERE s.subject=carts.customer AND s.expires_at>?))`,
+    .exec<Record<string, number | null>>(
+      `SELECT
+       (SELECT MIN(created_at)+${day} FROM idempotency) AS commands,
+       (SELECT MIN(expires_at) FROM sessions) AS sessions,
+       (SELECT MIN(expires_at) FROM media) AS media,
+       (SELECT MIN(expires_at) FROM receiving_seats) AS seats,
+       (SELECT MIN(expires_at) FROM customer_telegram_exchanges) AS exchanges,
+       (SELECT MIN(expires_at) FROM checkout_quotes) AS checkout_quotes,
+       (SELECT MIN(expires_at) FROM checkout_receipts) AS checkout_receipts,
+       (SELECT MIN(updated_at)+${30 * day} FROM carts WHERE NOT EXISTS(
+         SELECT 1 FROM sessions s WHERE s.subject=carts.customer AND s.expires_at>?)) AS cart_drafts`,
       now,
     )
     .one();
-  if (row.due === null) await storage.deleteAlarm();
-  else await storage.setAlarm(Math.max(now + 1000, Math.min(row.due, now + day)));
+  const due = Math.min(...Object.values(row).filter((value) => value !== null));
+  if (!Number.isFinite(due)) await storage.deleteAlarm();
+  else await storage.setAlarm(Math.max(now + 1000, Math.min(due, now + day)));
 }

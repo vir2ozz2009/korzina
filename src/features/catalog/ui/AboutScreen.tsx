@@ -2,6 +2,7 @@ import { bootstrap } from "../../../app/bootstrap";
 import { FormTemplate } from "../../../app/templates/FormTemplate";
 import { Card } from "../../../ui/Card";
 import { StoreLogo } from "../../../ui/StoreLogo";
+import { ShopContacts } from "../../checkout";
 
 export function AboutScreen() {
   const name = bootstrap?.name ?? "Магазин";
@@ -16,9 +17,7 @@ export function AboutScreen() {
         </Card>,
         <Card key="contacts">
           <h2 className="text-title-3">Контакты и получение</h2>
-          <p className="text-meta text-muted-foreground">
-            Магазин пока не указал контакты, часы работы и условия получения.
-          </p>
+          <ShopContacts enabled />
         </Card>,
       ]}
     />

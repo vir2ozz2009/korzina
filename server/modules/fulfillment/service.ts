@@ -15,7 +15,11 @@ import { deliveryZone } from "./zones";
 
 export function readFulfillment(storage: DurableObjectStorage, maps = true): FulfillmentSettings {
   const [row] = storage.sql.exec<{ value: string }>("SELECT value FROM settings WHERE key='fulfillment'").toArray();
-  const settings = fulfillmentSettingsInput.parse(row ? JSON.parse(row.value) : {});
+  return resolveFulfillment(row?.value, maps);
+}
+
+export function resolveFulfillment(value: string | null | undefined, maps: boolean) {
+  const settings = fulfillmentSettingsInput.parse(value ? JSON.parse(value) : {});
   if (!maps && settings.delivery?.mode === "map") return { ...settings, delivery: undefined };
   return settings;
 }
@@ -109,10 +113,21 @@ export function requireFulfillment(settings: FulfillmentSettings, receiving: Rec
   return result;
 }
 
-type Selection = { receiving: Receiving | null; savedAddresses: DeliveryAddress[]; time: TimeChoice | null };
-export const emptySelection = (): Selection => ({ receiving: null, savedAddresses: [], time: null });
+type Selection = {
+  receiving: Receiving | null;
+  savedAddresses: DeliveryAddress[];
+  time: TimeChoice | null;
+  receivingUpdatedAt: number;
+  lastUsedAddress?: DeliveryAddress;
+};
+export const emptySelection = (): Selection => ({
+  receiving: null,
+  savedAddresses: [],
+  time: null,
+  receivingUpdatedAt: 0,
+});
 
-function parseSelection(value: string | null | undefined): Selection {
+export function parseSelection(value: string | null | undefined): Selection {
   if (!value) return emptySelection();
   const parsed = JSON.parse(value);
   // An older draft stored just the selection inside the same cart column.
@@ -177,7 +192,13 @@ export function saveReceiving(storage: DurableObjectStorage, customer: string, i
     const revision = current.revision + 1;
     const savedAddresses = rememberAddress(current.savedAddresses, receiving, availability.available);
     const time = current.receiving?.mode === receiving.mode ? current.time : null;
-    const selection = { receiving, savedAddresses, time };
+    const selection = {
+      receiving,
+      savedAddresses,
+      time,
+      receivingUpdatedAt: Date.now(),
+      lastUsedAddress: current.lastUsedAddress,
+    };
     writeReceiving(storage, customer, revision, selection);
     return { revision, ...selection, availability };
   });

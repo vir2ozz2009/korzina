@@ -43,4 +43,34 @@ const cart = createRoute({
   staticData: { template: "checkout", transition: "push", title: "Корзина" },
   component: lazyRouteComponent(() => import("../features/cart/ui/CartScreen"), "CartScreen"),
 });
-export const shopRoutes = [home, product.addChildren([details]), about, cart, ...catalogRoutes];
+const receiving = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/checkout/receiving",
+  staticData: { template: "checkout", transition: "push", title: "Получение" },
+  component: lazyRouteComponent(() => import("../features/receiving/ui/ReceivingScreen"), "ReceivingScreen"),
+});
+const payment = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/checkout/payment",
+  staticData: { template: "checkout", transition: "push", title: "Оплата" },
+  component: lazyRouteComponent(() => import("../features/checkout/ui/PaymentScreen"), "PaymentScreen"),
+});
+const done = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/checkout/done",
+  validateSearch: (search: Record<string, unknown>): { order?: number } => ({
+    order: Number.isSafeInteger(Number(search.order)) && Number(search.order) > 0 ? Number(search.order) : undefined,
+  }),
+  staticData: { template: "feedback", transition: "push", title: "Готово" },
+  component: lazyRouteComponent(() => import("../features/checkout/ui/DoneScreen"), "DoneScreen"),
+});
+export const shopRoutes = [
+  home,
+  product.addChildren([details]),
+  about,
+  cart,
+  receiving,
+  payment,
+  done,
+  ...catalogRoutes,
+];

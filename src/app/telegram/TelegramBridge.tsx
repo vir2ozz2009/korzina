@@ -1,5 +1,6 @@
 import { useRouter } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect } from "react";
+import { telegramLaunch } from "./launch";
 
 const Content = lazy(() => import("./TelegramContent").then((module) => ({ default: module.TelegramContent })));
 export function TelegramBridge() {
@@ -11,8 +12,7 @@ export function TelegramBridge() {
       }),
     [router],
   );
-  const launched = window.Telegram?.WebApp || /(?:^|[?#&])tgWebAppData=/.test(location.hash + location.search);
-  return launched ? (
+  return telegramLaunch ? (
     <Suspense fallback={null}>
       <Content />
     </Suspense>

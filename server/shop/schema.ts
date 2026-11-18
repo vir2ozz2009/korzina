@@ -2,6 +2,7 @@ import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlit
 
 export { carts } from "../modules/cart/schema";
 export { brands, catalogState, categories, productPhotos, products, variants } from "../modules/catalog/schema";
+export { checkoutQuotes, checkoutReceipts, orderOutbox, orders } from "../modules/checkout/schema";
 export { media, mediaUsage } from "../modules/media/schema";
 
 export const settings = sqliteTable("settings", {
@@ -45,4 +46,15 @@ export const receivingSeats = sqliteTable(
     primaryKey({ columns: [table.method, table.date, table.slot] }),
     index("receiving_seats_expiry").on(table.expiresAt),
   ],
+);
+
+export const customerTelegramExchanges = sqliteTable(
+  "customer_telegram_exchanges",
+  {
+    id: text("id").primaryKey(),
+    owner: text("owner").notNull(),
+    telegramSubject: text("telegram_subject"),
+    expiresAt: integer("expires_at").notNull(),
+  },
+  (table) => [index("customer_telegram_exchange_expiry").on(table.expiresAt)],
 );

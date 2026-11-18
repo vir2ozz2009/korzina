@@ -1,12 +1,14 @@
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { InferResponseType } from "hono/client";
 import { useRef } from "react";
+import { bootstrap } from "../../app/bootstrap";
 import { type api, apiForShop } from "../../shared/api";
 import type { MediaPurpose, PhotoMetadata } from "../../shared/contracts/media";
 import { checkResponse, HttpError } from "../../shared/http-error";
+import { ensureShopSession } from "../../shared/shop-session";
 
 export type UploadedMedia = InferResponseType<typeof api.api.media.upload.$post, 201>;
-const shop = () => new URLSearchParams(location.search).get("shop") ?? "lavka";
+const shop = () => new URLSearchParams(location.search).get("shop") ?? bootstrap?.slug ?? "lavka";
 export const usageQuery = () =>
   queryOptions({
     queryKey: ["media", shop(), "usage"],
@@ -68,22 +70,9 @@ function sendFile(url: URL, body: Blob, input: UploadInput, metadata: PhotoMetad
 export function useUpload(seller: boolean) {
   const qc = useQueryClient();
   const prepared = useRef(new WeakMap<File, Promise<{ body: Blob; metadata: PhotoMetadata }>>());
-  const guest = useRef<Promise<void> | undefined>(undefined);
   return useMutation({
     mutationFn: async (input: UploadInput) => {
-      if (!seller) {
-        guest.current ??= (async () => {
-          const session = await apiForShop(shop()).api.auth.guest.$post(
-            { json: {} },
-            { headers: { "Idempotency-Key": crypto.randomUUID() } },
-          );
-          await checkResponse(session);
-        })().catch((error: unknown) => {
-          guest.current = undefined;
-          throw error;
-        });
-        await guest.current;
-      }
+      if (!seller) await ensureShopSession();
       let cached = prepared.current.get(input.file);
       if (!cached) {
         cached = (async () => {

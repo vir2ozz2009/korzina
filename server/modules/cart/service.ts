@@ -3,6 +3,7 @@ import type { Cart, CartCommandInput } from "../../../src/shared/contracts/cart"
 import { ApiError } from "../../../src/shared/errors";
 import { addMinor, multiplyMinor } from "../../../src/shared/money";
 import type { CommandIdentity } from "../../middleware/idempotency";
+import { parseSelection, readReceiving, writeReceiving } from "../fulfillment/service";
 import { type CartSource, reconcileQuote, type SavedQuote, savedQuote, toLine } from "./quote";
 
 type CartState = {
@@ -84,6 +85,94 @@ export function readCart(storage: DurableObjectStorage, customer: string, source
     if (changed || initial) persist(storage, customer, cart);
     return cart;
   });
+}
+
+export function removeOrderedLines(
+  storage: DurableObjectStorage,
+  customer: string,
+  cart: Cart,
+  storedReceiving: string | null,
+) {
+  const selection = parseSelection(storedReceiving);
+  const next = { ...selection, time: null };
+  if (next.receiving) {
+    const { comment: _comment, ...receiving } = next.receiving;
+    next.receiving = receiving;
+    if (receiving.mode === "delivery") next.lastUsedAddress = receiving;
+  }
+  const extras = cartTotals(cart.lines.filter((line) => !line.available));
+  storage.sql.exec(
+    "UPDATE carts SET revision=?,lines=?,quote=?,receiving=?,updated_at=? WHERE customer=?",
+    cart.revision + 1,
+    JSON.stringify(extras.lines.map(({ variantId, quantity }) => ({ variantId, quantity }))),
+    JSON.stringify(savedQuote({ ...cart, ...extras, review: undefined })),
+    JSON.stringify(next),
+    Date.now(),
+    customer,
+  );
+}
+
+// Part of the transaction that attaches a verified Telegram session.
+export function mergeCustomerCarts(storage: DurableObjectStorage, guest: string, account: string, source: CartSource) {
+  const from = readReceiving(storage, guest);
+  const to = readReceiving(storage, account);
+  const phones = storage.sql
+    .exec<{ customer: string; phone: string | null }>(
+      "SELECT customer,phone FROM carts WHERE customer IN (?,?)",
+      guest,
+      account,
+    )
+    .toArray();
+  if (!phones.some(({ customer }) => customer === guest)) return;
+  const guestCart = read(storage, guest, source).cart;
+  const accountCart = read(storage, account, source).cart;
+  const lines = new Map(accountCart.lines.map((line) => [line.variantId, line]));
+  for (const line of guestCart.lines) {
+    const other = lines.get(line.variantId);
+    if (!other || line.quantity > other.quantity) lines.set(line.variantId, line);
+  }
+  if (lines.size > 50) throw new ApiError("VALIDATION", "В объединённой корзине больше 50 фасовок");
+  const revision = Math.max(guestCart.revision, accountCart.revision) + 1;
+  const adjustments = new Map(accountCart.review?.changes.map((item) => [item.variantId, item]));
+  for (const item of guestCart.review?.changes ?? []) {
+    if (!adjustments.has(item.variantId)) adjustments.set(item.variantId, item);
+  }
+  const totals = cartTotals([...lines.values()]);
+  const review = adjustments.size
+    ? {
+        beforeMinor: accountCart.review?.beforeMinor ?? guestCart.review?.beforeMinor ?? totals.totalMinor,
+        changes: [...adjustments.values()],
+      }
+    : undefined;
+  persist(storage, account, { revision, currency: accountCart.currency, ...totals, review });
+  const { revision: _revision, ...selection } =
+    from.receiving && (!to.receiving || from.receivingUpdatedAt > to.receivingUpdatedAt) ? from : to;
+  const seenAddresses = new Set<string>();
+  const savedAddresses = [...selection.savedAddresses, ...to.savedAddresses, ...from.savedAddresses]
+    .filter(({ address, districtId }) => {
+      const key = JSON.stringify([address.toLowerCase(), districtId]);
+      if (seenAddresses.has(key)) return false;
+      seenAddresses.add(key);
+      return true;
+    })
+    .slice(0, 3);
+  writeReceiving(storage, account, revision, {
+    ...selection,
+    savedAddresses,
+    lastUsedAddress: selection.lastUsedAddress ?? to.lastUsedAddress ?? from.lastUsedAddress,
+  });
+  const phone =
+    phones.find(({ customer }) => customer === account)?.phone ??
+    phones.find(({ customer }) => customer === guest)?.phone;
+  if (phone) storage.sql.exec("UPDATE carts SET phone=? WHERE customer=?", phone, account);
+  storage.sql.exec("UPDATE orders SET customer=? WHERE customer=?", account, guest);
+  storage.sql.exec(
+    "UPDATE media SET owner=?,request_key='order:'||id WHERE owner=? AND id IN (SELECT proof_media_id FROM orders WHERE customer=?)",
+    account,
+    guest,
+    account,
+  );
+  storage.sql.exec("DELETE FROM carts WHERE customer=?", guest);
 }
 
 export function changeCart(

@@ -13,7 +13,7 @@ export async function verifyInitData(
   initData: string,
   botToken: string,
   now = Date.now(),
-): Promise<{ telegramId: string; authDate: number }> {
+): Promise<{ telegramId: string; authDate: number; startParam?: string }> {
   if (initData.length > 8192) throw invalid();
   const params = new URLSearchParams(initData);
   const keys = [...params.keys()];
@@ -40,7 +40,8 @@ export async function verifyInitData(
   if (!(await crypto.subtle.verify("HMAC", key, signature, encoder.encode(check)))) throw invalid();
   try {
     const user = userSchema.parse(JSON.parse(params.get("user") ?? "null"));
-    return { telegramId: String(user.id), authDate };
+    const startParam = params.get("start_param");
+    return { telegramId: String(user.id), authDate, ...(startParam && { startParam }) };
   } catch {
     throw invalid();
   }

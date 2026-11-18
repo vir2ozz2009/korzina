@@ -1,9 +1,10 @@
 import { useNavigate } from "@tanstack/react-router";
-import { X } from "lucide-react";
+import { Send, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Screen } from "../../../app/shell/Screen";
 import { useToast } from "../../../app/shell/ToastProvider";
 import { useBack } from "../../../app/shell/useBack";
+import { telegramLaunch } from "../../../app/telegram/launch";
 import type { CartLine } from "../../../shared/contracts/cart";
 import { formatMinor, multiplyMinor } from "../../../shared/money";
 import { Button } from "../../../ui/Button";
@@ -12,6 +13,9 @@ import { Divider } from "../../../ui/Divider";
 import { IconButton } from "../../../ui/IconButton";
 import { ProductRow } from "../../../ui/ProductRow";
 import { StickyFooter } from "../../../ui/StickyFooter";
+import { CartContinue } from "../../checkout";
+import { ContactSheet, useContact } from "../../contact";
+import { CartShipping } from "../../receiving";
 import { useConfirmCart } from "../api";
 import { useCart } from "../CartProvider";
 import { cartSnapshot } from "../snapshot";
@@ -22,6 +26,9 @@ export function CartScreen() {
   const { refetch } = query;
   const [saved] = useState(cartSnapshot);
   const [opening, setOpening] = useState(true);
+  const [addressOpen, setAddressOpen] = useState(false);
+  const [contactMode, setContactMode] = useState<"telegram" | "phone">();
+  const contact = useContact(!!query.data?.lines.length);
   useEffect(() => {
     let open = true;
     void refetch({ cancelRefetch: false }).finally(() => {
@@ -135,6 +142,27 @@ export function CartScreen() {
       />
       {cart && currency && cart.lines.length > 0 && (
         <>
+          <CartShipping
+            currency={currency}
+            revision={cart.revision}
+            disabled={checking || query.isError || !!cart.review || pendingProducts.size > 0}
+            open={addressOpen}
+            setOpen={setAddressOpen}
+          />
+          {!telegramLaunch && contact.data && !contact.data.phone && !contact.data.telegramLinked && (
+            <Card className="text-center">
+              <Button full icon={<Send size={16} />} onClick={() => setContactMode("telegram")}>
+                Войти через Telegram
+              </Button>
+              <button
+                type="button"
+                className="min-h-8 text-caption text-muted-foreground underline"
+                onClick={() => setContactMode("phone")}
+              >
+                У меня нет Telegram
+              </button>
+            </Card>
+          )}
           <Card size="lg">
             <h2 className="text-title-2">Ваш заказ</h2>
             {available.length > 0 && (
@@ -156,6 +184,15 @@ export function CartScreen() {
           )}
         </>
       )}
+      {available.length > 0 && cart && !cart.review && (
+        <CartContinue
+          revision={cart.revision}
+          disabled={checking || query.isError || pendingProducts.size > 0}
+          address={() => setAddressOpen(true)}
+          contact={() => setContactMode(telegramLaunch ? "phone" : "telegram")}
+        />
+      )}
+      <ContactSheet mode={contactMode} close={() => setContactMode(undefined)} />
     </Screen>
   );
 }

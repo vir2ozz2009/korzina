@@ -26,4 +26,9 @@ export const emailStartInput = z.strictObject({
 });
 export const emailVerifyInput = z.strictObject({ challengeId: z.uuid(), code: z.string().regex(/^\d{6}$/) });
 export const telegramInput = z.strictObject({ initData: z.string().min(1).max(8192), bearer: z.boolean().optional() });
+export const phoneContactInput = z.strictObject({
+  phone: z.string().trim().min(1).max(40),
+  confirmed: z.literal(true),
+});
+export const telegramExchangeInput = z.strictObject({ exchange: z.string().regex(/^purchase_[a-zA-Z0-9_-]{24,48}$/u) });
 export const emptyInput = z.strictObject({});
