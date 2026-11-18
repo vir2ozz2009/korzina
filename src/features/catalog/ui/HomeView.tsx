@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { BrandTile } from "../../../ui/BrandTile";
 import { CategoryRail } from "../../../ui/CategoryRail";
 import { CategoryTile } from "../../../ui/CategoryTile";
@@ -10,10 +11,18 @@ export interface HomeViewProps {
   allProductsHref?: string;
   categories: { id: string; name: string; image?: ProductImageValue }[];
   products: (ProductTileProps & { id: string })[];
+  moreProducts?: ReactNode;
   brands: { id: string; name: string; image?: ProductImageValue | null }[];
 }
 
-export function HomeView({ categories, products, brands, onAllProducts, allProductsHref }: HomeViewProps) {
+export function HomeView({
+  categories,
+  products,
+  brands,
+  moreProducts,
+  onAllProducts,
+  allProductsHref,
+}: HomeViewProps) {
   return (
     <div className="space-y-3">
       {categories.length > 0 && (
@@ -37,9 +46,10 @@ export function HomeView({ categories, products, brands, onAllProducts, allProdu
         <SectionHeader title="Товары" href={allProductsHref} onClick={onAllProducts} />
         <div className="grid grid-cols-2 gap-2">
           {products.map(({ id, ...product }) => (
-            <ProductTile key={id} {...product} />
+            <ProductTile key={id} {...product} photoShape="square" />
           ))}
         </div>
+        {moreProducts}
       </section>
       {brands.length > 0 && (
         <section className="space-y-2">
