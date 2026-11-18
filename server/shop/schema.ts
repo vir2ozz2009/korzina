@@ -31,3 +31,18 @@ export const sessions = sqliteTable(
   },
   (t) => [index("sessions_expiry_idx").on(t.expiresAt), index("sessions_subject_idx").on(t.subject, t.expiresAt)],
 );
+
+export const receivingSeats = sqliteTable(
+  "receiving_seats",
+  {
+    method: text("method").notNull(),
+    date: text("date").notNull(),
+    slot: text("slot").notNull(),
+    booked: integer("booked").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.method, table.date, table.slot] }),
+    index("receiving_seats_expiry").on(table.expiresAt),
+  ],
+);

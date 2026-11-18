@@ -9,6 +9,7 @@ import {
   type ReceivingAvailability,
   receivingInput,
 } from "../../../src/shared/contracts/receiving";
+import type { TimeChoice } from "../../../src/shared/contracts/receiving-time";
 import { ApiError } from "../../../src/shared/errors";
 import { deliveryZone } from "./zones";
 
@@ -108,15 +109,15 @@ export function requireFulfillment(settings: FulfillmentSettings, receiving: Rec
   return result;
 }
 
-type Selection = { receiving: Receiving | null; savedAddresses: DeliveryAddress[] };
-export const emptySelection = (): Selection => ({ receiving: null, savedAddresses: [] });
+type Selection = { receiving: Receiving | null; savedAddresses: DeliveryAddress[]; time: TimeChoice | null };
+export const emptySelection = (): Selection => ({ receiving: null, savedAddresses: [], time: null });
 
 function parseSelection(value: string | null | undefined): Selection {
   if (!value) return emptySelection();
   const parsed = JSON.parse(value);
   // An older draft stored just the selection inside the same cart column.
   if ("mode" in parsed) return { ...emptySelection(), receiving: receivingInput.parse(parsed) };
-  return parsed as Selection;
+  return { ...emptySelection(), ...(parsed as Selection) };
 }
 
 export function readReceiving(storage: DurableObjectStorage, customer: string) {
@@ -127,6 +128,22 @@ export function readReceiving(storage: DurableObjectStorage, customer: string) {
     )
     .toArray();
   return { revision: row?.revision ?? 0, ...parseSelection(row?.receiving) };
+}
+
+export function writeReceiving(
+  storage: DurableObjectStorage,
+  customer: string,
+  revision: number,
+  selection: Selection,
+) {
+  storage.sql.exec(
+    `INSERT INTO carts (customer,revision,receiving,updated_at) VALUES (?,?,?,?)
+     ON CONFLICT(customer) DO UPDATE SET revision=excluded.revision,receiving=excluded.receiving,updated_at=excluded.updated_at`,
+    customer,
+    revision,
+    JSON.stringify(selection),
+    Date.now(),
+  );
 }
 
 function draftForMode(selection: Receiving, settings: FulfillmentSettings): Receiving {
@@ -159,14 +176,9 @@ export function saveReceiving(storage: DurableObjectStorage, customer: string, i
     if (JSON.stringify(receiving) === JSON.stringify(current.receiving)) return { ...current, availability };
     const revision = current.revision + 1;
     const savedAddresses = rememberAddress(current.savedAddresses, receiving, availability.available);
-    storage.sql.exec(
-      `INSERT INTO carts (customer,revision,receiving,updated_at) VALUES (?,?,?,?)
-       ON CONFLICT(customer) DO UPDATE SET revision=excluded.revision,receiving=excluded.receiving,updated_at=excluded.updated_at`,
-      customer,
-      revision,
-      JSON.stringify({ receiving, savedAddresses } satisfies Selection),
-      Date.now(),
-    );
-    return { revision, receiving, savedAddresses, availability };
+    const time = current.receiving?.mode === receiving.mode ? current.time : null;
+    const selection = { receiving, savedAddresses, time };
+    writeReceiving(storage, customer, revision, selection);
+    return { revision, ...selection, availability };
   });
 }

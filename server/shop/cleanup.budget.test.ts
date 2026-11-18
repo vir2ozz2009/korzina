@@ -27,7 +27,8 @@ it("аларм сохраняет свежие ключи, активные се
       sql.exec("INSERT INTO carts(customer,updated_at) VALUES(?,?)", subject, time);
     const metric = new RequestMetrics();
     await cleanupShop(metric.storage(ctx.storage), env, now);
-    assertSqlBudget(metric.snapshot(), { sql: 6, rowsRead: 35, rowsWritten: 3 });
+    // B8 adds one indexed deletion for expired aggregated capacity.
+    assertSqlBudget(metric.snapshot(), { sql: 7, rowsRead: 35, rowsWritten: 3 });
     expect(sql.exec("SELECT key FROM idempotency").toArray()).toEqual([{ key: "fresh" }]);
     expect(sql.exec("SELECT token_hash FROM sessions").toArray()).toEqual([{ token_hash: "active" }]);
     expect(sql.exec("SELECT customer FROM carts ORDER BY customer").toArray()).toEqual([

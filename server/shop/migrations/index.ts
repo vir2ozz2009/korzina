@@ -13,6 +13,7 @@ import m0011 from "./0011_catalog_list_prices.sql?raw";
 import m0012 from "./0012_catalog_search.sql?raw";
 import m0013 from "./0013_cart_quote.sql?raw";
 import m0014 from "./0014_receiving.sql?raw";
+import m0015 from "./0015_receiving_seats.sql?raw";
 import journal from "./meta/_journal.json";
 
 export const migrations = {
@@ -33,5 +34,6 @@ export const migrations = {
     m0012,
     m0013,
     m0014,
+    m0015,
   },
 };

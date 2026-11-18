@@ -1,4 +1,5 @@
 import type { FulfillmentSettings } from "../../../src/shared/contracts/receiving";
+import { type Schedule, weekdays } from "../../../src/shared/contracts/receiving-time";
 
 const fulfillment: FulfillmentSettings = {
   delivery: {
@@ -21,5 +22,29 @@ export function seedFulfillment(storage: DurableObjectStorage) {
   storage.sql.exec(
     "INSERT INTO settings(key,value) VALUES('fulfillment',?) ON CONFLICT DO NOTHING",
     JSON.stringify(fulfillment),
+  );
+  const delivery = [
+    { start: "10:00", end: "12:00", capacity: 4 },
+    { start: "14:00", end: "16:00", capacity: 4 },
+  ];
+  const pickup = [{ start: "09:00", end: "20:00", capacity: 4 }];
+  const schedule: Schedule = {
+    timeZone: "Asia/Ho_Chi_Minh",
+    delivery: {
+      mode: "slots",
+      days: Object.fromEntries(weekdays.map((day) => [day, delivery])),
+      preparationMinutes: 60,
+      dayCutoff: "18:00",
+    },
+    pickup: {
+      mode: "slots",
+      days: Object.fromEntries(weekdays.map((day) => [day, pickup])),
+      preparationMinutes: 60,
+      dayCutoff: "18:00",
+    },
+  };
+  storage.sql.exec(
+    "INSERT INTO settings(key,value) VALUES('receiving_schedule',?) ON CONFLICT DO NOTHING",
+    JSON.stringify(schedule),
   );
 }

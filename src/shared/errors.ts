@@ -17,6 +17,7 @@ export const errorStatus = {
   GEOCODER_UNAVAILABLE: 503,
   OUT_OF_ZONE: 409,
   PICKUP_UNAVAILABLE: 409,
+  SLOT_TAKEN: 409,
   ADDRESS_NOT_FOUND: 404,
   INTERNAL: 500,
 } as const;
