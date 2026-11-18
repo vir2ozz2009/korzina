@@ -118,8 +118,16 @@ test("B5b: единые плитки списка, ограничения вво
   await expect(page.getByRole("heading", { name: "томаты", exact: true })).toBeVisible();
   await expect(page.getByText("неизвестнаяпозиция", { exact: true })).toBeVisible();
   await expect(page.locator("[data-shop-actions]")).not.toContainText(/₫|₽/);
-  await page.screenshot({ path: "test-results/shopping-list-390.png", animations: "disabled" });
   const milk = page.locator("article").filter({ hasText: "Молоко" }).first();
+  const tomatoes = page.locator("article").filter({ hasText: "Томаты" }).first();
+  const milkBox = await milk.boundingBox();
+  const tomatoBox = await tomatoes.boundingBox();
+  expect(milkBox?.y).toBeCloseTo(tomatoBox?.y ?? -1, 0);
+  expect(milkBox?.x).toBeLessThan(tomatoBox?.x ?? 0);
+  await page
+    .locator("article img")
+    .evaluateAll((images) => Promise.all(images.map((img) => (img as HTMLImageElement).decode())));
+  await page.screenshot({ path: "test-results/shopping-list-390.png", animations: "disabled" });
   await milk.getByRole("button", { name: "Выбрать фасовку" }).click();
   await expect(page.getByRole("heading", { name: "Выберите фасовку" })).toBeVisible();
   const pack = page.getByRole("dialog").locator("div.rounded-lg").filter({ hasText: "500 мл" }).first();

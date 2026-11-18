@@ -36,7 +36,7 @@ export function ShoppingResults({
   const { items, offers, groups } = result.data;
   const itemsById = new Map(items.map((item) => [item.id, item]));
   const missing = groups.filter((group) => !group.ids.length);
-  const renderTiles = (ids: string[], preferred?: Record<string, string>) => {
+  const renderTiles = (ids: string[], preferred?: Record<string, string>, columns = 2) => {
     const ordered = ids.flatMap((id) => {
       const item = itemsById.get(id);
       return item ? [item] : [];
@@ -49,7 +49,7 @@ export function ShoppingResults({
       preferred,
     });
     return (
-      <div className="grid grid-cols-2 gap-2">
+      <div className={columns === 2 ? "grid grid-cols-2 gap-2" : "grid"}>
         {tiles.map(({ id, ...tile }) => (
           <ProductTile key={id} {...tile} onOpen={remember} />
         ))}
@@ -73,18 +73,18 @@ export function ShoppingResults({
     );
 
   return (
-    <div className="space-y-4">
+    <div className="grid grid-cols-2 items-start gap-x-2 gap-y-4">
       {groups.map(
         (group) =>
           group.ids.length > 0 && (
-            <section key={group.term} className="space-y-2">
-              <h2 className="text-title-3 first-letter:uppercase">{group.term}</h2>
-              {renderTiles(group.ids, group.preferred)}
+            <section key={group.term} className={group.ids.length === 1 ? "min-w-0 space-y-2" : "col-span-2 space-y-2"}>
+              <h2 className="min-h-7 break-words text-title-3 first-letter:uppercase">{group.term}</h2>
+              {renderTiles(group.ids, group.preferred, group.ids.length === 1 ? 1 : 2)}
             </section>
           ),
       )}
       {missing.length > 0 && (
-        <section className="space-y-2 rounded-xl bg-card p-4">
+        <section className="col-span-2 space-y-2 rounded-xl bg-card p-4">
           <h2 className="text-title-3">Не удалось найти</h2>
           <ul className="space-y-1">
             {missing.map(({ term }) => (
