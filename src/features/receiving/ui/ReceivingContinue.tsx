@@ -8,7 +8,7 @@ import { Card } from "../../../ui/Card";
 import { StickyFooter } from "../../../ui/StickyFooter";
 import { usePrepareQuote, usePurchaseSummary } from "../../checkout";
 import { type ReceivingState, useAvailability } from "../api";
-import { deliveryLabel } from "./CartShipping";
+import { deliveryLabel } from "../delivery-label";
 
 export function ReceivingContinue({
   data,

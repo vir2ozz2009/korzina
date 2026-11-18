@@ -19,10 +19,7 @@ export function AddressMap({
   callbacks.current = { select, onUnavailable };
   useEffect(() => {
     if (!container.current) return;
-    const current = map(container.current, { zoomControl: false, scrollWheelZoom: false }).setView(
-      [10.7769, 106.7009],
-      13,
-    );
+    const current = map(container.current, { scrollWheelZoom: false }).setView([10.7769, 106.7009], 13);
     mapRef.current = current;
     const tiles = tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
