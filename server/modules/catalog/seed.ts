@@ -14,6 +14,7 @@ export function seedCatalog(storage: DurableObjectStorage) {
     .toArray()[0];
   if (marker?.value === "B2") {
     seedNavigation(storage);
+    seedGallery(storage);
     return;
   }
   const db = drizzle(storage);
@@ -31,30 +32,7 @@ export function seedCatalog(storage: DurableObjectStorage) {
         .values({ id: `brand-${position + 1}`, name, position })
         .onConflictDoUpdate({ target: brands.id, set: { name, position } })
         .run();
-    for (const [id, image] of Object.entries(images)) {
-      const values = {
-        edgeColor: image.edgeColor,
-        contentBox: image.contentBox,
-        width: image.width,
-        height: image.height,
-      };
-      db.insert(media)
-        .values({
-          id,
-          ...values,
-          owner: "demo-seed",
-          purpose: "product",
-          status: "attached",
-          ready: true,
-          bytes: 0,
-          mime: "image/png",
-          requestKey: `seed-${id}`,
-          fingerprint: `seed-${id}`,
-          createdAt: 1794873600000,
-        })
-        .onConflictDoUpdate({ target: media.id, set: values })
-        .run();
-    }
+    for (const [id, image] of Object.entries(images)) seedPhoto(db, id, image);
     const groups = new Map<string, typeof catalog.products>();
     for (const row of catalog.products) {
       const rows = groups.get(row.art) ?? [];
@@ -110,4 +88,42 @@ export function seedCatalog(storage: DurableObjectStorage) {
       .run();
   });
   seedNavigation(storage);
+  seedGallery(storage);
+}
+
+function seedPhoto(db: ReturnType<typeof drizzle>, id: string, image: (typeof images)[keyof typeof images]) {
+  const values = {
+    edgeColor: image.edgeColor,
+    contentBox: image.contentBox,
+    width: image.width,
+    height: image.height,
+  };
+  db.insert(media)
+    .values({
+      id,
+      ...values,
+      owner: "demo-seed",
+      purpose: "product",
+      status: "attached",
+      ready: true,
+      bytes: 0,
+      mime: "image/png",
+      requestKey: `seed-${id}`,
+      fingerprint: `seed-${id}`,
+      createdAt: 1794873600000,
+    })
+    .onConflictDoUpdate({ target: media.id, set: values })
+    .run();
+}
+
+function seedGallery(storage: DurableObjectStorage) {
+  const key = "catalog_gallery_seed";
+  if (storage.sql.exec("SELECT 1 FROM settings WHERE key=?", key).toArray().length) return;
+  const db = drizzle(storage);
+  storage.transactionSync(() => {
+    const id = "demo-tomato-gallery-2";
+    seedPhoto(db, id, images[id]);
+    db.insert(productPhotos).values({ productId: "product-01", position: 1, mediaId: id }).onConflictDoNothing().run();
+    db.insert(settings).values({ key, value: "B4" }).onConflictDoNothing().run();
+  });
 }

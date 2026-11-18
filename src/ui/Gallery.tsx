@@ -48,7 +48,7 @@ export function Gallery({
               alt={`${name}, фото ${i + 1}`}
               sizes={sizes}
               radius="xl"
-              className="size-full"
+              className="size-full [&_img]:size-full"
             />
           </button>
         ))}

@@ -94,5 +94,21 @@
     "original": {
       "src": "https://media.demo.korzina.app/catalog/B2/figma45/croissant-7e8e89232116.png"
     }
+  },
+  "demo-tomato-gallery-2": {
+    "src": "/seed/tomato-gallery-2.png",
+    "edgeColor": "#c6c0b6",
+    "contentBox": {
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 1
+    },
+    "width": 640,
+    "height": 640,
+    "srcSet": "/seed/tomato-gallery-2.png 640w",
+    "original": {
+      "src": "/seed/tomato-gallery-2.png"
+    }
   }
 }

@@ -6,7 +6,7 @@ import { Sheet } from "../../../ui/Sheet";
 import { useCart } from "../../cart";
 import { useProduct } from "../product-api";
 
-export function VariantsSheet({ id }: { id: string }) {
+export function VariantsSheet({ id, onClose }: { id: string; onClose?: () => void }) {
   const product = useProduct(id);
   const cart = useCart();
   const navigate = useNavigate();
@@ -18,7 +18,8 @@ export function VariantsSheet({ id }: { id: string }) {
       title="Выберите фасовку"
       onOpenChange={(open) => {
         if (!open) {
-          if ((router.state.location.state.__TSR_index ?? 0) > 0) router.history.back();
+          if (onClose) onClose();
+          else if ((router.state.location.state.__TSR_index ?? 0) > 0) router.history.back();
           else
             void navigate({ to: ".", search: { ...search, variants: undefined }, replace: true, resetScroll: false });
         }

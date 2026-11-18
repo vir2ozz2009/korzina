@@ -3,6 +3,7 @@ import { ApiError } from "../../../src/shared/errors";
 import { catalogImage, documentImage } from "./images";
 import { readNavigation } from "./navigation";
 import { documentCountQuery, documentQuery, liveQuery, photosSql, productSql } from "./queries";
+import { readRecommendations } from "./recommendations";
 
 type Row = Record<string, SqlStorageValue>;
 type TileRow = Row & {
@@ -107,6 +108,7 @@ export function readProduct(storage: DurableObjectStorage, id: string, shopId: s
         description: string;
         categoryId: string;
         brandId: string | null;
+        brandName: string | null;
         catalogVersion: number;
         currency: string;
         hideOutOfStock: number;
@@ -135,7 +137,9 @@ export function readProduct(storage: DurableObjectStorage, id: string, shopId: s
     name: row.name,
     description: row.description,
     categoryId: row.categoryId,
-    brandId: row.brandId,
+    brandId: row.brandName ? row.brandId : null,
+    brandName: row.brandName,
+    recommendations: readRecommendations(storage, row.categoryId, id, shopId),
     catalogVersion: row.catalogVersion,
     currency: row.currency,
     variants: row.hideOutOfStock ? variants.filter((v) => v.available) : variants,

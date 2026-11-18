@@ -57,7 +57,7 @@ export const documentQuery = (input: CatalogPageInput) => buildDocumentQuery(inp
 export const documentCountQuery = (input: CatalogPageInput) => buildDocumentQuery(input, true);
 
 export const productSql = `SELECT p.id, p.name, p.description, p.category_id AS categoryId,
-  p.brand_id AS brandId, s.version AS catalogVersion, s.currency, s.hide_out_of_stock AS hideOutOfStock,
+  p.brand_id AS brandId, (SELECT name FROM brands WHERE id=p.brand_id AND visible=1) AS brandName, s.version AS catalogVersion, s.currency, s.hide_out_of_stock AS hideOutOfStock,
   (SELECT json_group_array(json_object('id',id,'name',name,'priceMinor',price_minor,
     'oldPriceMinor',old_price_minor,'stock',stock,'photoId',photo_id))
     FROM (SELECT id,name,price_minor,old_price_minor,stock,photo_id FROM variants
