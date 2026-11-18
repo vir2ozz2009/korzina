@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { GeocodeInput, ReceiveCommand } from "../../shared/contracts/receiving";
+import type { ReceivingMethod, TimeCommand } from "../../shared/contracts/receiving-time";
 import { checkResponse } from "../../shared/http-error";
 import { shopApi, shopKey } from "../../shared/shop-api";
 import { ensureShopSession } from "../../shared/shop-session";
@@ -19,22 +20,51 @@ export function useReceiving() {
   });
 }
 
-export function useSaveReceiving() {
+function useReceivingMutation<T, Result>(mutationFn: (input: T) => Promise<Result>) {
   const client = useQueryClient();
   return useMutation({
     scope: { id: JSON.stringify(cartKey) },
-    mutationFn: async (input: ReceiveCommand) => {
-      await ensureShopSession();
-      const response = await shopApi.api.receiving.$post({ json: input });
-      await checkResponse(response);
-      return response.json();
-    },
+    mutationFn,
     onSettled: async () => {
       await Promise.all([
         client.invalidateQueries({ queryKey: receivingKey }),
         client.invalidateQueries({ queryKey: cartKey }),
       ]);
     },
+  });
+}
+
+export function useSaveReceiving() {
+  return useReceivingMutation(async (input: ReceiveCommand) => {
+    await ensureShopSession();
+    const response = await shopApi.api.receiving.$post({ json: input });
+    await checkResponse(response);
+    return response.json();
+  });
+}
+
+export function useAvailability(method: ReceivingMethod | undefined) {
+  return useQuery({
+    queryKey: [...receivingKey, "availability", method],
+    enabled: !!method,
+    staleTime: 30_000,
+    queryFn: async ({ signal }) => {
+      const response = await shopApi.api.receiving.availability.$get(
+        { query: { method: method ?? "pickup" } },
+        { init: { signal } },
+      );
+      await checkResponse(response);
+      return response.json();
+    },
+  });
+}
+
+export function useSaveTime() {
+  return useReceivingMutation(async (input: TimeCommand) => {
+    await ensureShopSession();
+    const response = await shopApi.api.receiving.time.$post({ json: input });
+    await checkResponse(response);
+    return response.json();
   });
 }
 

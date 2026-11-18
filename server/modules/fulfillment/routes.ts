@@ -1,6 +1,7 @@
 import { exports } from "cloudflare:workers";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
+import { z } from "zod";
 import { geocodeInput, receiveCommandInput, receivingInput } from "../../../src/shared/contracts/receiving";
 import { methodInput, timeCommandInput } from "../../../src/shared/contracts/receiving-time";
 import { ApiError } from "../../../src/shared/errors";
@@ -21,12 +22,11 @@ import {
 
 const geocodeLimit = sessionLimiter(20);
 export const receivingRoutes = new Hono<ShopEnv>()
-  .get("/availability", (c) => {
-    const parsed = methodInput.safeParse(c.req.query("method"));
-    if (!parsed.success) throw new ApiError("VALIDATION", "Выберите способ получения");
+  .get("/availability", zValidator("query", z.object({ method: methodInput }), validationFailure), (c) => {
+    const { method } = c.req.valid("query");
     const settings = readFulfillment(c.env.storage, c.env.features.maps);
-    if (!settings[parsed.data]) throw new ApiError("NOT_FOUND", "Способ получения недоступен");
-    return c.json(readAvailability(c.env.storage, parsed.data));
+    if (!settings[method]) throw new ApiError("NOT_FOUND", "Способ получения недоступен");
+    return c.json(readAvailability(c.env.storage, method));
   })
   .post("/time", authBodyLimit, zValidator("json", timeCommandInput, validationFailure), async (c) => {
     const session = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);
