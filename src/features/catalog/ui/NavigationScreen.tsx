@@ -4,6 +4,7 @@ import { BrandTile } from "../../../ui/BrandTile";
 import { Button } from "../../../ui/Button";
 import { CategoryTile } from "../../../ui/CategoryTile";
 import { useProductList } from "../list-api";
+import { CatalogTabs } from "./CatalogTabs";
 
 export function NavigationScreen({ brands = false }: { brands?: boolean }) {
   const query = useProductList("all");
@@ -15,6 +16,7 @@ export function NavigationScreen({ brands = false }: { brands?: boolean }) {
     <CatalogTemplate
       title={brands ? "Бренды" : "Все категории"}
       layout="list"
+      toolbar={<CatalogTabs active={brands ? "/brands" : "/categories"} />}
       state={{
         query,
         empty: brands ? !items.length : !categories.length,
@@ -23,6 +25,11 @@ export function NavigationScreen({ brands = false }: { brands?: boolean }) {
         onEmpty: () => void navigate({ to: "/" }),
       }}
     >
+      {!brands && (
+        <Button full onClick={() => void navigate({ to: "/catalog" })}>
+          Все товары ›
+        </Button>
+      )}
       <div className="grid grid-cols-2 gap-3">
         {brands
           ? items.map((item) => (

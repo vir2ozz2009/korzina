@@ -6,6 +6,7 @@ import { catalogListInput } from "../../../src/shared/contracts/catalog-list";
 import { ApiError } from "../../../src/shared/errors";
 import type { ShopEnv } from "../../shop/env";
 import { readPage } from "./page";
+import { readSelection } from "./selection";
 import { readDocument, readLive, readProduct } from "./service";
 
 export const catalogRoutes = new Hono<ShopEnv>()
@@ -24,8 +25,12 @@ export const catalogRoutes = new Hono<ShopEnv>()
           c.req.valid("query"),
           async (input) => readDocument(c.env.storage, input, c.env.shop.id),
           async (ids) => readLive(c.env.storage, ids),
+          async (input) => readSelection(c.env.storage, input),
         ),
       ),
+  )
+  .get("/selection", zValidator("query", catalogListInput), (c) =>
+    c.json(readSelection(c.env.storage, c.req.valid("query"))),
   )
   .get(
     "/page-offers",

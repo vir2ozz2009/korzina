@@ -1,14 +1,30 @@
 import { createRoute, lazyRouteComponent } from "@tanstack/react-router";
 import { TemplatePending } from "../app/templates/TemplatePending";
+import { type CatalogFilters, catalogFiltersInput } from "../shared/contracts/catalog-list";
 import { rootRoute } from "./root";
 
+export function catalogSearch(
+  search: Record<string, unknown>,
+): CatalogFilters & { subcategory?: string; variants?: string } {
+  const filters = catalogFiltersInput.safeParse(search);
+  return {
+    ...(filters.success ? filters.data : {}),
+    subcategory: typeof search.subcategory === "string" ? search.subcategory : undefined,
+    variants: typeof search.variants === "string" ? search.variants : undefined,
+  };
+}
+const allProducts = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/catalog",
+  validateSearch: catalogSearch,
+  staticData: { template: "catalog", transition: "tab", title: "Все товары" },
+  component: lazyRouteComponent(() => import("../features/catalog/ui/AllProductsScreen"), "AllProductsScreen"),
+  pendingComponent: () => <TemplatePending template="catalog" />,
+});
 const category = createRoute({
   getParentRoute: () => rootRoute,
   path: "/c/$id",
-  validateSearch: (search: Record<string, unknown>): { subcategory?: string; variants?: string } => ({
-    subcategory: typeof search.subcategory === "string" ? search.subcategory : undefined,
-    variants: typeof search.variants === "string" ? search.variants : undefined,
-  }),
+  validateSearch: catalogSearch,
   staticData: { template: "catalog", transition: "push", title: "Категория" },
   component: lazyRouteComponent(() => import("../features/catalog/ui/CategoryScreen"), "CategoryScreen"),
   pendingComponent: () => <TemplatePending template="catalog" />,
@@ -16,9 +32,7 @@ const category = createRoute({
 const brand = createRoute({
   getParentRoute: () => rootRoute,
   path: "/b/$id",
-  validateSearch: (search: Record<string, unknown>): { variants?: string } => ({
-    variants: typeof search.variants === "string" ? search.variants : undefined,
-  }),
+  validateSearch: catalogSearch,
   staticData: { template: "catalog", transition: "push", title: "Бренд" },
   component: lazyRouteComponent(() => import("../features/catalog/ui/BrandScreen"), "BrandScreen"),
   pendingComponent: () => <TemplatePending template="catalog" />,
@@ -35,4 +49,4 @@ const brands = createRoute({
   staticData: { template: "catalog", transition: "push", title: "Бренды" },
   component: lazyRouteComponent(() => import("../features/catalog/ui/NavigationScreen"), "BrandsScreen"),
 });
-export const catalogRoutes = [category, brand, categories, brands];
+export const catalogRoutes = [allProducts, category, brand, categories, brands];

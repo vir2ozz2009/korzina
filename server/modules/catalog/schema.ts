@@ -5,6 +5,7 @@ import { media } from "../media/schema";
 export const catalogState = sqliteTable("catalog_state", {
   id: integer("id").primaryKey(),
   version: integer("version").notNull().default(1),
+  selectionVersion: integer("selection_version").notNull().default(1),
   currency: text("currency").notNull().default("RUB"),
   hideOutOfStock: integer("hide_out_of_stock", { mode: "boolean" }).notNull().default(false),
 });
@@ -44,6 +45,8 @@ export const products = sqliteTable(
       .notNull()
       .references(() => categories.id),
     brandId: text("brand_id").references(() => brands.id),
+    availablePrice: integer("available_price"),
+    hasCatalogOffer: integer("has_catalog_offer").notNull().default(0),
     published: integer("published", { mode: "boolean" }).notNull().default(false),
     visible: integer("visible", { mode: "boolean" }).notNull().default(true),
   },

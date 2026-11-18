@@ -2,7 +2,7 @@ import type { CatalogOffer, CatalogPageInput, CatalogTile } from "../../../src/s
 import { ApiError } from "../../../src/shared/errors";
 import { catalogImage, documentImage } from "./images";
 import { readNavigation } from "./navigation";
-import { documentQuery, liveQuery, photosSql, productSql } from "./queries";
+import { documentCountQuery, documentQuery, liveQuery, photosSql, productSql } from "./queries";
 
 type Row = Record<string, SqlStorageValue>;
 type TileRow = Row & {
@@ -47,8 +47,10 @@ export function readDocument(storage: DurableObjectStorage, input: CatalogPageIn
     image: documentImage(photo, shopId),
     variants: JSON.parse(variants),
   }));
+  const countQuery = input.count ? documentCountQuery(input) : undefined;
   return {
     catalogVersion: state.version,
+    count: countQuery ? storage.sql.exec<{ count: number }>(countQuery.sql, ...countQuery.params).one().count : null,
     categories,
     brands,
     items,

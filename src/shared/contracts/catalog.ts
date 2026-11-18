@@ -4,6 +4,8 @@ import type { PhotoMetadata } from "./media";
 const id = z.string().min(1).max(120);
 export const catalogPageInput = z.object({
   after: id.optional(),
+  productIds: z.string().max(2000).optional(),
+  count: z.literal("1").optional(),
   category: id.optional(),
   brand: id.optional(),
   version: z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
