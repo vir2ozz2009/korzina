@@ -1,4 +1,19 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
+
+async function keyboardViewport(page: Page, open: boolean) {
+  await page.evaluate((open) => {
+    const viewport = window.visualViewport;
+    if (!viewport) throw new Error("VisualViewport is unavailable");
+    for (const [property, value] of [
+      ["height", 412],
+      ["offsetTop", 32],
+    ] as const) {
+      if (open) Object.defineProperty(viewport, property, { configurable: true, value });
+      else Reflect.deleteProperty(viewport, property);
+    }
+    viewport.dispatchEvent(new Event("resize"));
+  }, open);
+}
 
 test("B10: товар, доставка и заказ наличными", async ({ page }) => {
   test.setTimeout(80_000);
@@ -17,23 +32,61 @@ test("B10: товар, доставка и заказ наличными", async
     expect((await saved).ok()).toBe(true);
   }
   await page.screenshot({ path: "test-results/purchase-product-390.png", animations: "disabled" });
-  await page.getByRole("button", { name: /^Корзина/ }).click();
+  const cart = page.getByRole("button", { name: /^Корзина/ });
+  await cart.click();
+  await page.getByRole("button", { name: "Назад", exact: true }).click();
+  await expect(page).toHaveURL(/\/p\/product-17.*shop=test2/);
+  await cart.click();
   await page.getByRole("button", { name: "У меня нет Telegram" }).click();
   const login = page.getByRole("dialog", { name: "Войти в магазин" });
-  await login.getByRole("textbox", { name: /Номер телефона/ }).fill("+84912345678");
-  await expect(login.getByRole("button", { name: "Сохранить и продолжить" })).toBeDisabled();
+  const phone = login.getByRole("textbox", { name: /Номер телефона/ });
+  await expect(phone).toHaveValue(/^\+84\s*$/);
+  await phone.fill("+84912345678");
+  await keyboardViewport(page, true);
+  await expect.poll(async () => (await login.boundingBox())?.y ?? 1000).toBeLessThan(412);
+  await expect
+    .poll(async () => {
+      const field = await phone.boundingBox();
+      return field ? field.y + field.height : 1000;
+    })
+    .toBeLessThan(444);
+  await login.dispatchEvent("pointerdown", { pointerType: "touch", clientY: 110 });
+  await login.dispatchEvent("pointermove", { pointerType: "touch", clientY: 290 });
+  await login.dispatchEvent("pointerup", { pointerType: "touch", clientY: 330 });
+  await expect(phone).toHaveValue("+84912345678");
+  await keyboardViewport(page, false);
+  await login.getByRole("button", { name: "Сохранить и продолжить" }).click();
+  await expect(login.getByRole("alert")).toHaveText("Подтвердите номер галочкой, чтобы продолжить.");
   await login.getByRole("checkbox", { name: "Это мой номер телефона" }).check();
   await page.screenshot({ path: "test-results/checkout-contact-390.png", animations: "disabled" });
   await login.getByRole("button", { name: "Сохранить и продолжить" }).click();
   await expect(login).toBeHidden();
   await expect(page.getByRole("button", { name: "Войти через Telegram" })).toHaveCount(0);
+  await page.context().grantPermissions(["geolocation"]);
+  await page.context().setGeolocation({ latitude: 10.7769, longitude: 106.7009 });
+  await page.route("**/api/receiving/geocode?**", async (route) => {
+    if (route.request().postDataJSON().type === "reverse") {
+      await route.fulfill({ json: { results: [{ address: "45 Lê Lợi, Хошимин", lat: 10.7769, lon: 106.7009 }] } });
+    } else {
+      await route.fulfill({
+        status: 429,
+        json: { error: { code: "RATE_LIMITED", message: "Повторите поиск чуть позже" } },
+      });
+    }
+  });
   await page.getByRole("button", { name: "Укажите адрес доставки", exact: true }).click();
   const sheet = page.getByRole("dialog", { name: "Адрес доставки" });
-  await sheet.getByRole("button", { name: "Ввести адрес вручную" }).click();
-  await sheet.getByRole("textbox", { name: "Адрес доставки" }).fill("28 Lê Lợi, Хошимин");
-  await sheet.getByRole("button", { name: "Использовать мой адрес как есть" }).click();
+  await sheet.getByRole("button", { name: "Определить мою позицию" }).click();
+  const street = sheet.getByRole("searchbox", { name: "Улица, дом, город" });
+  await expect(street).toHaveValue("45 Lê Lợi, Хошимин");
+  await expect(sheet.getByRole("button", { name: "Подтвердить адрес" })).toBeEnabled();
+  await street.fill("28 Lê Lợi, Хошимин");
+  await expect(sheet.getByText("Подсказки пока недоступны. Можно сохранить набранный текст.")).toBeVisible();
+  await page.screenshot({ path: "test-results/checkout-address-fallback-390.png", animations: "disabled" });
+  await sheet.getByRole("button", { name: "Сохранить адрес вручную" }).click();
   await expect(sheet).toBeHidden();
-  await expect(page.getByText("Согласуем после заказа")).toBeVisible();
+  const orderTotals = page.getByRole("heading", { name: "Ваш заказ" }).locator("..");
+  await expect(orderTotals.getByText("Согласуем после заказа")).toBeVisible();
   await page.screenshot({ path: "test-results/cart-address-390.png", animations: "disabled" });
   await page.getByRole("button", { name: /^Продолжить/ }).click();
   await expect(page).toHaveURL(/checkout\/receiving\?shop=test2/);
@@ -64,7 +117,12 @@ test("B10: товар, доставка и заказ наличными", async
     "mailto:shop@example.invalid",
   );
   await help.getByRole("button", { name: "Закрыть", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Ваш заказ", exact: true })).toHaveCount(0);
   await page.getByRole("radio", { name: "Перевод", exact: true }).check();
+  const inlineQr = page.getByRole("img", { name: "QR для перевода" });
+  await expect(inlineQr).toBeVisible();
+  await expect.poll(() => inlineQr.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  await page.screenshot({ path: "test-results/payment-qr-inline-390.png", animations: "disabled" });
   await page.getByRole("button", { name: "QR крупнее" }).click();
   const qr = page.getByRole("dialog", { name: "QR для перевода" });
   await expect(qr.getByRole("img", { name: "QR для перевода" })).toBeVisible();

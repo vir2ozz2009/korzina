@@ -8,9 +8,10 @@ import { ensureShopSession } from "../../shared/shop-session";
 const receivingKey = ["shop", shopKey, "receiving"] as const;
 const cartKey = ["shop", shopKey, "cart"] as const;
 
-export function useReceiving() {
+export function useReceiving(enabled = true) {
   return useQuery({
     queryKey: receivingKey,
+    enabled,
     staleTime: 30_000,
     queryFn: async ({ signal }) => {
       const result = await shopApi.api.receiving.$get({}, { init: { signal } });

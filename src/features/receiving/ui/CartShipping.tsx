@@ -30,13 +30,11 @@ export function activeReceiving(data: ReceivingState) {
 }
 
 export function CartShipping({
-  currency,
   disabled,
   revision,
   open,
   setOpen,
 }: {
-  currency: string;
   disabled: boolean;
   revision: number;
   open: boolean;
@@ -136,13 +134,7 @@ export function CartShipping({
         />
       )}
       {method === "pickup" && data.pickup && <ListItem title={data.pickup.address} subtitle={data.pickup.hours} />}
-      {method && (
-        <ListItem
-          title="Доставка"
-          value={method === "pickup" ? "Самовывоз бесплатно" : deliveryLabel(data.availability, currency)}
-        />
-      )}
-      <Sheet open={open && !!data.delivery} onOpenChange={setOpen} title="Адрес доставки">
+      <Sheet form open={open && !!data.delivery} onOpenChange={setOpen} title="Адрес доставки">
         {open && (
           <AddressSheet
             current={address ?? data.lastUsedAddress}

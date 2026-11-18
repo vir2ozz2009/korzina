@@ -14,7 +14,10 @@ export function SearchField({
 }) {
   const id = useId();
   return (
-    <div className={`flex min-h-11 items-center gap-2 rounded-pill bg-input pl-4 ${disabled ? "opacity-40" : ""}`}>
+    <div
+      data-field-surface
+      className={`flex min-h-11 items-center gap-2 rounded-pill bg-input pl-4 ${disabled ? "opacity-40" : ""}`}
+    >
       <Search size={20} className="shrink-0 text-muted-foreground" />
       <label htmlFor={id} className="sr-only">
         {label}

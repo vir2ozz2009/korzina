@@ -3,12 +3,11 @@ import { useEffect, useRef, useState } from "react";
 import type { Point, Receiving } from "../../../shared/contracts/receiving";
 import { HttpError } from "../../../shared/http-error";
 import { Button } from "../../../ui/Button";
-import { Card } from "../../../ui/Card";
 import { ListItem } from "../../../ui/ListItem";
 import { SearchField } from "../../../ui/SearchField";
 import { type ReceivingState, useGeocode } from "../api";
 
-import { ManualAddressFields, MapAddressTools } from "./AddressFields";
+import { AddressConfirmation, ManualAddressFields, MapAddressTools } from "./AddressFields";
 
 type Address = Extract<Receiving, { mode: "delivery" }>;
 type Place = Point & { address: string };
@@ -35,6 +34,7 @@ export function AddressSheet({
   const [search, setSearch] = useState(false);
   const [results, setResults] = useState<Place[]>([]);
   const [error, setError] = useState("");
+  const [searchNote, setSearchNote] = useState("");
   const reverseRequest = useRef<AbortController>(undefined);
   useEffect(() => () => reverseRequest.current?.abort(), []);
   const [locating, setLocating] = useState(false);
@@ -47,13 +47,15 @@ export function AddressSheet({
     const delay = setTimeout(() => {
       void geocode({ input: { type: "search", address }, signal: controller.signal }).then(
         (data) => {
-          if (!controller.signal.aborted) setResults(data.results);
+          if (controller.signal.aborted) return;
+          setResults(data.results);
+          setSearchNote(data.results.length ? "" : "Адрес не найден. Можно сохранить набранный текст.");
         },
-        (reason: unknown) => {
-          if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : "Не удалось найти адрес");
+        () => {
+          if (!controller.signal.aborted) setSearchNote("Подсказки пока недоступны. Можно сохранить набранный текст.");
         },
       );
-    }, 380);
+    }, 1150);
     return () => {
       clearTimeout(delay);
       controller.abort();
@@ -64,11 +66,12 @@ export function AddressSheet({
     setSearch(false);
     setManual(false);
     setResults([]);
+    setSearchNote("");
     setError("");
     setCandidate(place);
     setEntry({
       ...entry,
-      address: place.address,
+      address: place.address.slice(0, 300),
       point: { lat: place.lat, lon: place.lon },
       acceptedWithoutPoint: undefined,
     });
@@ -78,6 +81,7 @@ export function AddressSheet({
     reverseRequest.current?.abort();
     setCandidate(undefined);
     setResults([]);
+    setSearchNote("");
     setError("");
     setSearch(true);
     setManual(false);
@@ -88,6 +92,7 @@ export function AddressSheet({
     const controller = new AbortController();
     reverseRequest.current = controller;
     setSearch(false);
+    setSearchNote("");
     setError("");
     setCandidate(undefined);
     setEntry({ ...entry, point, acceptedWithoutPoint: undefined });
@@ -138,7 +143,7 @@ export function AddressSheet({
     if (districts.length && !entry.districtId) return setError("Выберите район");
     if (!onMap && requiredDetails.some((field) => !entry[field]?.trim()))
       return setError("Заполните обязательные поля");
-    void saveCurrent({ ...entry, address, acceptedWithoutPoint: onMap && manual && !entry.point ? true : undefined });
+    void saveCurrent({ ...entry, address, acceptedWithoutPoint: onMap && !entry.point ? true : undefined });
   }
 
   const busy = pending || locating;
@@ -176,7 +181,7 @@ export function AddressSheet({
           disabled={busy}
           onChange={(address) => {
             edit();
-            setEntry({ ...entry, address, point: undefined, acceptedWithoutPoint: undefined });
+            setEntry({ ...entry, address: address.slice(0, 300), point: undefined, acceptedWithoutPoint: undefined });
           }}
         />
       )}
@@ -191,12 +196,33 @@ export function AddressSheet({
             onClick={() => choose(place)}
           />
         ))}
-      {onMap && (
+      {error && (
+        <p role="alert" className="text-meta text-status-danger-foreground">
+          {error}
+        </p>
+      )}
+      {searchNote && !manual && (
+        <p role="status" className="text-meta text-muted-foreground">
+          {searchNote}
+        </p>
+      )}
+      {(manual || entry.address.trim()) && (
+        <AddressConfirmation
+          address={entry.address.trim()}
+          candidate={candidate?.address}
+          label={!onMap ? "Сохранить адрес" : entry.point ? "Подтвердить адрес" : "Сохранить адрес вручную"}
+          disabled={busy || (!!entry.point && isPending)}
+          pending={pending}
+          confirm={confirm}
+          edit={onMap && (manual || candidate) ? edit : undefined}
+          manual={manual}
+        />
+      )}
+      {onMap && !manual && (
         <MapAddressTools
           point={entry.point}
           disabled={busy}
-          frozen={manual || !!candidate}
-          manual={manual}
+          frozen={!!candidate}
           locating={locating}
           locate={locate}
           pick={(point) => {
@@ -206,38 +232,12 @@ export function AddressSheet({
             reverseRequest.current?.abort();
             setCandidate(undefined);
             setSearch(false);
+            setSearchNote("");
             setError("");
             setManual(true);
             setEntry({ ...entry, point: undefined });
           }}
         />
-      )}
-      {error && (
-        <p role="alert" className="text-meta text-status-danger-foreground">
-          {error}
-        </p>
-      )}
-      {(manual || candidate) && (
-        <Card className="bg-secondary">
-          {candidate && (
-            <>
-              <p className="text-label">Проверьте адрес</p>
-              <p>{candidate.address}</p>
-            </>
-          )}
-          <Button full disabled={!entry.address.trim() || locating} loading={pending} onClick={confirm}>
-            {!onMap
-              ? "Сохранить адрес"
-              : manual && !entry.point
-                ? "Использовать мой адрес как есть"
-                : "Подтвердить адрес"}
-          </Button>
-          {onMap && (
-            <Button full variant="ghost" disabled={busy} onClick={edit}>
-              {manual ? "Найти на карте" : "Исправить адрес"}
-            </Button>
-          )}
-        </Card>
       )}
       {pickup && (
         <Button full variant="secondary" disabled={busy} onClick={pickup}>

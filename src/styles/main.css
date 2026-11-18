@@ -21,6 +21,31 @@
   :focus-visible {
     @apply outline-2 outline-ring;
   }
+  :is(
+    input:not([type]),
+    input[type="text"],
+    input[type="search"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="url"],
+    input[type="password"],
+    input[type="number"],
+    textarea,
+    select
+  ) {
+    @apply outline-offset-[-2px] ring-inset;
+    /* Mobile Safari zooms the viewport when a focused field is smaller than 16px. */
+    font-size: max(1rem, 1em);
+  }
+  [data-field-surface]:has(> input:focus-visible) {
+    @apply outline-2 outline-offset-[-2px] outline-ring;
+  }
+  [data-field-surface] > input::-webkit-search-cancel-button {
+    appearance: none;
+  }
+  [data-field-surface] > input:focus-visible {
+    @apply outline-none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -31,4 +56,9 @@
     /* biome-ignore lint/complexity/noImportantStyles: Also override Vaul inline drag transitions for reduced motion. */
     transition: none !important;
   }
+}
+
+/* Form sheets scroll with the keyboard. Their explicit close button stays in view. */
+[data-vaul-drawer][data-form-sheet] {
+  touch-action: pan-y;
 }

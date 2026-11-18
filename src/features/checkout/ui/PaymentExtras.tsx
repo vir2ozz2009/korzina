@@ -11,7 +11,7 @@ import { SkeletonBlock } from "../../../ui/SkeletonBlock";
 
 import { useShopContacts } from "../api";
 
-function QrImage({ src }: { src: string }) {
+function QrImage({ src, preview = false }: { src: string; preview?: boolean }) {
   const [failed, setFailed] = useState(false);
   return failed ? (
     <div className="space-y-2">
@@ -25,7 +25,7 @@ function QrImage({ src }: { src: string }) {
       src={src}
       alt="QR для перевода"
       onError={() => setFailed(true)}
-      className="mx-auto max-h-[45dvh] max-w-full rounded-lg object-contain"
+      className={`max-w-full rounded-lg object-contain ${preview ? "size-36" : "mx-auto max-h-[45dvh]"}`}
     />
   );
 }
@@ -35,19 +35,14 @@ export function TransferInstruction({ instruction, qrSrc }: { instruction?: stri
   const toast = useToast();
   return (
     <div className="space-y-3">
-      {instruction && (
-        <CopyField
-          label="Реквизиты для перевода"
-          value={instruction}
-          onCopied={() => toast("Реквизиты скопированы")}
-          onError={() => toast("Не удалось скопировать реквизиты")}
-        />
-      )}
       {qrSrc && (
         <>
-          <Button variant="secondary" onClick={() => setQr(true)}>
-            QR крупнее
-          </Button>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <QrImage key={qrSrc} src={qrSrc} preview />
+            <Button variant="secondary" onClick={() => setQr(true)}>
+              QR крупнее
+            </Button>
+          </div>
           <Sheet title="QR для перевода" open={qr} onOpenChange={setQr}>
             {qr && (
               <div className="space-y-3">
@@ -65,6 +60,14 @@ export function TransferInstruction({ instruction, qrSrc }: { instruction?: stri
             )}
           </Sheet>
         </>
+      )}
+      {instruction && (
+        <CopyField
+          label="Реквизиты для перевода"
+          value={instruction}
+          onCopied={() => toast("Реквизиты скопированы")}
+          onError={() => toast("Не удалось скопировать реквизиты")}
+        />
       )}
     </div>
   );

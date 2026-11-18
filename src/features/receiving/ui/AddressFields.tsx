@@ -2,6 +2,7 @@ import { LocateFixed } from "lucide-react";
 import { lazy, Suspense, useState } from "react";
 import type { DetailField, Point, Receiving } from "../../../shared/contracts/receiving";
 import { Button } from "../../../ui/Button";
+import { Card } from "../../../ui/Card";
 import { Input } from "../../../ui/Input";
 import { Select } from "../../../ui/Select";
 import { SkeletonBlock } from "../../../ui/SkeletonBlock";
@@ -66,7 +67,6 @@ export function MapAddressTools({
   point,
   disabled,
   frozen,
-  manual,
   locating,
   locate,
   pick,
@@ -75,7 +75,6 @@ export function MapAddressTools({
   point?: Point;
   disabled: boolean;
   frozen: boolean;
-  manual: boolean;
   locating: boolean;
   locate: () => void;
   pick: (point: Point) => void;
@@ -104,16 +103,48 @@ export function MapAddressTools({
           Определить мою позицию
         </Button>
       )}
-      {!manual && (
-        <button
-          type="button"
-          className="min-h-10 px-2 text-small text-primary-strong underline"
-          disabled={disabled}
-          onClick={enterManual}
-        >
-          Ввести адрес вручную
-        </button>
-      )}
+      <button
+        type="button"
+        className="min-h-10 px-2 text-small text-primary-strong underline"
+        disabled={disabled}
+        onClick={enterManual}
+      >
+        Ввести адрес вручную
+      </button>
     </>
+  );
+}
+
+export function AddressConfirmation({
+  address,
+  candidate,
+  label,
+  disabled,
+  pending,
+  confirm,
+  edit,
+  manual,
+}: {
+  address: string;
+  candidate?: string;
+  label: string;
+  disabled: boolean;
+  pending: boolean;
+  confirm: () => void;
+  edit?: () => void;
+  manual: boolean;
+}) {
+  return (
+    <Card className="bg-secondary">
+      {candidate && <p className="text-label">Проверьте адрес</p>}
+      <Button full disabled={!address || disabled} loading={pending} onClick={confirm}>
+        {label}
+      </Button>
+      {edit && (
+        <Button full variant="ghost" disabled={disabled} onClick={edit}>
+          {manual ? "Найти на карте" : "Исправить адрес"}
+        </Button>
+      )}
+    </Card>
   );
 }
