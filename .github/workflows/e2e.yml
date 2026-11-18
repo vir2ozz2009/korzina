@@ -2,7 +2,7 @@ name: E2E
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, labeled]
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
   schedule:
     - cron: '0 3 * * *'
   workflow_dispatch:
@@ -21,7 +21,7 @@ jobs:
   smoke:
     if: >-
       github.event_name != 'pull_request' ||
-      (contains(github.event.pull_request.labels.*.name, 'e2e') &&
+      (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'e2e') &&
       (github.event.action != 'labeled' || github.event.label.name == 'e2e'))
     runs-on: ubuntu-latest
     timeout-minutes: 5

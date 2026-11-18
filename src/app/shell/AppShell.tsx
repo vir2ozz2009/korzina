@@ -20,7 +20,11 @@ export function AppShell() {
   const path = useRouterState({ select: (state) => state.location.pathname });
   const isRoot = useRouterState({ select: (state) => state.matches.at(-1)?.staticData.root ?? false });
   const seller = path.startsWith("/seller");
-  const floating = path === "/";
+  const floating =
+    !seller &&
+    !["/admin", "/dev", "/cart", "/checkout", "/order", "/orders"].some(
+      (prefix) => path === prefix || path.startsWith(`${prefix}/`),
+    );
   const start = useRef<{ x: number; y: number } | null>(null);
   const previousPath = useRef(path);
   useEffect(() => {

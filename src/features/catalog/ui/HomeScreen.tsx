@@ -1,6 +1,7 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { bootstrap } from "../../../app/bootstrap";
+import { useToast } from "../../../app/shell/ToastProvider";
 import { HomeTemplate } from "../../../app/templates/HomeTemplate";
 import { AboutStore } from "../../../ui/AboutStore";
 import { ErrorState } from "../../../ui/AsyncErrorState";
@@ -9,6 +10,7 @@ import { StoreHeader } from "../../../ui/StoreHeader";
 import { useCart } from "../../cart";
 import { useCatalog, useOffers } from "../api";
 import { storefrontProducts } from "../model";
+import { HomeUnfinished } from "./HomeUnfinished";
 import { HomeView } from "./HomeView";
 import { toTiles } from "./toTiles";
 
@@ -22,6 +24,8 @@ export function HomeScreen() {
   const offers = useOffers(catalog.data?.pages ?? []);
   const cart = useCart();
   const navigate = useNavigate();
+  const toast = useToast();
+  const unfinished = import.meta.env.SHOW_UNFINISHED ? (task: string) => () => toast(`В работе · ${task}`) : undefined;
   const search = useSearch({ strict: false }) as { variants?: string };
   const products = storefrontProducts(items, offers.data?.items ?? []);
   const error = catalog.error ?? offers.error;
@@ -43,7 +47,15 @@ export function HomeScreen() {
     <>
       <HomeTemplate
         title={bootstrap?.name ?? "Магазин"}
-        header={<StoreHeader name={bootstrap?.name ?? "Магазин"} onAbout={() => void navigate({ to: "/about" })} />}
+        header={
+          <StoreHeader
+            name={bootstrap?.name ?? "Магазин"}
+            onAbout={() => void navigate({ to: "/about" })}
+            onAddress={unfinished?.("B7 · Адрес")}
+            onProfile={unfinished?.("B9 · Вход и профиль")}
+            onChat={unfinished?.("O · Чат")}
+          />
+        }
         after={<AboutStore onClick={() => void navigate({ to: "/about" })} />}
         state={{
           query,
@@ -52,8 +64,10 @@ export function HomeScreen() {
           emptyDescription: "Загляните чуть позже — здесь появятся товары.",
         }}
         sections={[
+          import.meta.env.SHOW_UNFINISHED && <HomeUnfinished key="unfinished" />,
           <HomeView
             key="catalog"
+            onAllProducts={unfinished?.("B3b · Все товары")}
             categories={(document?.categories ?? [])
               .filter((category) => !category.parentId && category.hasProducts)
               .map((category) => ({ ...category, image: category.image ?? undefined }))}

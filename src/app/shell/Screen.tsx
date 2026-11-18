@@ -27,10 +27,7 @@ export function Screen({
   return (
     <section className="flex min-h-[calc(var(--app-height)_-_var(--safe-top)_-_var(--tab-height)_-_var(--safe-bottom))] flex-col">
       <div className={template === "home" ? "relative z-20" : "sticky top-(--safe-top) z-20"}>{header}</div>
-      <main
-        id="screen-content"
-        className={`min-h-0 flex-1 space-y-3 px-(--page-x) ${template === "home" ? "pt-0 pb-24" : "py-3"}`}
-      >
+      <main id="screen-content" className={`min-h-0 flex-1 space-y-3 px-(--page-x) pt-3 pb-24`}>
         {state ? (
           <QueryBoundary
             query={state.query}

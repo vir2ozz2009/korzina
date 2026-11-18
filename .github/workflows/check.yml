@@ -2,7 +2,7 @@ name: Check
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, ready_for_review]
 permissions:
   contents: read
   issues: read
@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   check:
-    if: startsWith(github.head_ref, 'task/')
+    if: github.event.pull_request.draft == false && startsWith(github.head_ref, 'task/')
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:

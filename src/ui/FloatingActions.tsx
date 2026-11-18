@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { formatMinor } from "../shared/money";
 import { Button } from "./Button";
 export function FloatingActions({
@@ -20,18 +20,18 @@ export function FloatingActions({
         <Button
           size="lg"
           variant="inverse"
-          icon={<Search size={22} />}
-          className="px-3 shadow-float"
+          icon={<Sparkles size={22} />}
+          className="pointer-events-auto px-3 shadow-float"
           onClick={onSearch}
         >
-          Поиск
+          Нейропоиск
         </Button>
       ) : (
         <span aria-hidden />
       )}
       <Button
         size="lg"
-        className="w-full px-3 shadow-float"
+        className="pointer-events-auto w-full px-3 shadow-float"
         subtitle={count && currency ? formatMinor(totalMinor, currency) : "Пока пусто"}
         onClick={onCart}
       >

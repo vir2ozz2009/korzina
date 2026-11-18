@@ -6,12 +6,14 @@ import type { ProductImageValue } from "../../../ui/product-image";
 import { SectionHeader } from "../../../ui/SectionHeader";
 
 export interface HomeViewProps {
+  onAllProducts?: () => void;
+  allProductsHref?: string;
   categories: { id: string; name: string; image?: ProductImageValue }[];
   products: (ProductTileProps & { id: string })[];
   brands: { id: string; name: string; image?: ProductImageValue | null }[];
 }
 
-export function HomeView({ categories, products, brands }: HomeViewProps) {
+export function HomeView({ categories, products, brands, onAllProducts, allProductsHref }: HomeViewProps) {
   return (
     <div className="space-y-3">
       {categories.length > 0 && (
@@ -32,7 +34,7 @@ export function HomeView({ categories, products, brands }: HomeViewProps) {
         </section>
       )}
       <section className="space-y-3">
-        <SectionHeader title="Товары" />
+        <SectionHeader title="Товары" href={allProductsHref} onClick={onAllProducts} />
         <div className="grid grid-cols-2 gap-2">
           {products.map(({ id, ...product }) => (
             <ProductTile key={id} {...product} />
