@@ -3,7 +3,7 @@ import type { Cart, CartCommandInput } from "../../../src/shared/contracts/cart"
 import { ApiError } from "../../../src/shared/errors";
 import { addMinor, multiplyMinor } from "../../../src/shared/money";
 import type { CommandIdentity } from "../../middleware/idempotency";
-import { readReceiving, writeReceiving } from "../fulfillment/service";
+import { parseSelection, readReceiving, writeReceiving } from "../fulfillment/service";
 import { type CartSource, reconcileQuote, type SavedQuote, savedQuote, toLine } from "./quote";
 
 type CartState = {
@@ -87,6 +87,31 @@ export function readCart(storage: DurableObjectStorage, customer: string, source
   });
 }
 
+export function removeOrderedLines(
+  storage: DurableObjectStorage,
+  customer: string,
+  cart: Cart,
+  storedReceiving: string | null,
+) {
+  const selection = parseSelection(storedReceiving);
+  const next = { ...selection, time: null };
+  if (next.receiving) {
+    const { comment: _comment, ...receiving } = next.receiving;
+    next.receiving = receiving;
+    if (receiving.mode === "delivery") next.lastUsedAddress = receiving;
+  }
+  const extras = cartTotals(cart.lines.filter((line) => !line.available));
+  storage.sql.exec(
+    "UPDATE carts SET revision=?,lines=?,quote=?,receiving=?,updated_at=? WHERE customer=?",
+    cart.revision + 1,
+    JSON.stringify(extras.lines.map(({ variantId, quantity }) => ({ variantId, quantity }))),
+    JSON.stringify(savedQuote({ ...cart, ...extras, review: undefined })),
+    JSON.stringify(next),
+    Date.now(),
+    customer,
+  );
+}
+
 // Part of the transaction that attaches a verified Telegram session.
 export function mergeCustomerCarts(storage: DurableObjectStorage, guest: string, account: string, source: CartSource) {
   const from = readReceiving(storage, guest);
@@ -131,11 +156,22 @@ export function mergeCustomerCarts(storage: DurableObjectStorage, guest: string,
       return true;
     })
     .slice(0, 3);
-  writeReceiving(storage, account, revision, { ...selection, savedAddresses });
+  writeReceiving(storage, account, revision, {
+    ...selection,
+    savedAddresses,
+    lastUsedAddress: selection.lastUsedAddress ?? to.lastUsedAddress ?? from.lastUsedAddress,
+  });
   const phone =
     phones.find(({ customer }) => customer === account)?.phone ??
     phones.find(({ customer }) => customer === guest)?.phone;
   if (phone) storage.sql.exec("UPDATE carts SET phone=? WHERE customer=?", phone, account);
+  storage.sql.exec("UPDATE orders SET customer=? WHERE customer=?", account, guest);
+  storage.sql.exec(
+    "UPDATE media SET owner=?,request_key='order:'||id WHERE owner=? AND id IN (SELECT proof_media_id FROM orders WHERE customer=?)",
+    account,
+    guest,
+    account,
+  );
   storage.sql.exec("DELETE FROM carts WHERE customer=?", guest);
 }
 
