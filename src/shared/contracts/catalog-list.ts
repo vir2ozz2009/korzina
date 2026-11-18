@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const catalogScope = z.string().regex(/^(all|category:.{1,120}|brand:.{1,120})$/);
+const catalogScope = z.string().regex(/^(all|category:.{1,120}|brand:.{1,120})$/);
 export type CatalogScope = "all" | `category:${string}` | `brand:${string}`;
 export const catalogListInput = z.object({
   scope: catalogScope.default("all"),

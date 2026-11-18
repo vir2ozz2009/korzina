@@ -7,8 +7,8 @@ import { checkResponse } from "../../shared/http-error";
 import { shopApi, shopKey } from "../../shared/shop-api";
 import { resolveDocumentImage } from "./document-images";
 
-export type CatalogPage = InferResponseType<typeof shopApi.api.catalog.page.$get>;
-export function productListQuery(scope: CatalogScope) {
+type CatalogPage = InferResponseType<typeof shopApi.api.catalog.page.$get>;
+function productListQuery(scope: CatalogScope) {
   return infiniteQueryOptions({
     queryKey: ["shop", shopKey, "product-list", scope] as const,
     ...queryPolicy.stock,
