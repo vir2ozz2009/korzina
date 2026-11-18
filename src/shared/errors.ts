@@ -14,6 +14,7 @@ export const errorStatus = {
   PAYLOAD_TOO_LARGE: 413,
   STORAGE_LIMIT: 413,
   MEDIA_UNAVAILABLE: 503,
+  GEOCODER_UNAVAILABLE: 503,
   INTERNAL: 500,
 } as const;
 

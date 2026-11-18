@@ -4,6 +4,8 @@ import type { FeatureState } from "../../src/shared/flags";
 import type { AuthSecrets } from "../auth/config";
 import type { CommandVariables } from "../middleware/idempotency";
 
+import type { GeocoderSecrets } from "../modules/fulfillment/geocoder";
+
 export type ShopEnv = {
   Bindings: {
     shop: ShopInfo;
@@ -11,7 +13,7 @@ export type ShopEnv = {
     db: DrizzleSqliteDODatabase;
     storage: DurableObjectStorage;
     matchedRoute?: (path: string) => void;
-    secrets: AuthSecrets;
+    secrets: AuthSecrets & GeocoderSecrets;
     platform: D1Database;
     media: Pick<Env, "MEDIA" | "MEDIA_PUBLIC" | "IMAGES" | "MEDIA_PUBLIC_URL">;
   };
