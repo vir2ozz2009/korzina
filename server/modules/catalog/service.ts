@@ -30,6 +30,12 @@ type LiveRow = Row &
   };
 
 export function readDocument(storage: DurableObjectStorage, input: CatalogPageInput, shopId: string) {
+  const { categories, brands } = readNavigation(storage, shopId);
+  if (
+    (input.category && !categories.some((category) => category.id === input.category)) ||
+    (input.brand && !brands.some((brand) => brand.id === input.brand))
+  )
+    throw new ApiError("NOT_FOUND", "Раздел недоступен");
   const state = storage.sql.exec<{ version: number }>("SELECT version FROM catalog_state WHERE id=1").one();
   const query = documentQuery(input);
   const rows = storage.sql.exec<TileRow>(query.sql, ...query.params).toArray();
@@ -41,7 +47,6 @@ export function readDocument(storage: DurableObjectStorage, input: CatalogPageIn
     image: documentImage(photo, shopId),
     variants: JSON.parse(variants),
   }));
-  const { categories, brands } = readNavigation(storage, shopId);
   return {
     catalogVersion: state.version,
     categories,
@@ -53,7 +58,7 @@ export function readDocument(storage: DurableObjectStorage, input: CatalogPageIn
 
 export function readLive(storage: DurableObjectStorage, ids: string[]) {
   const query = liveQuery(ids);
-  const rows = storage.sql.exec<LiveRow>(query.sql, ...query.params).toArray();
+  const rows = ids.length ? storage.sql.exec<LiveRow>(query.sql, ...query.params).toArray() : [];
   const state = storage.sql
     .exec<{ currency: string; hideOutOfStock: number; catalogVersion: number }>(
       "SELECT currency,hide_out_of_stock AS hideOutOfStock,version AS catalogVersion FROM catalog_state WHERE id=1",

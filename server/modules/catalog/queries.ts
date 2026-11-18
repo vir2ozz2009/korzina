@@ -21,14 +21,16 @@ const coverSql = `(SELECT ${mediaJsonSql} FROM product_photos pp JOIN media m ON
 export function documentQuery(input: CatalogPageInput) {
   const conditions = ["p.published=1", "p.visible=1", "p.id>?"];
   const params: SqlStorageValue[] = [input.after ?? ""];
-  for (const [column, value] of [
-    ["category_id", input.category],
-    ["brand_id", input.brand],
-  ] as const) {
-    if (value) {
-      conditions.push(`p.${column}=?`);
-      params.push(value);
-    }
+  if (input.category) {
+    conditions.push(`p.category_id IN (WITH RECURSIVE subtree(id) AS (
+      SELECT id FROM categories WHERE id=? AND visible=1
+      UNION SELECT c.id FROM categories c JOIN subtree s ON c.parent_id=s.id WHERE c.visible=1
+    ) SELECT id FROM subtree)`);
+    params.push(input.category);
+  }
+  if (input.brand) {
+    conditions.push("p.brand_id=?");
+    params.push(input.brand);
   }
   params.push(input.limit + 1);
   return {

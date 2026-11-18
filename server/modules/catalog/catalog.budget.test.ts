@@ -90,6 +90,30 @@ describe("бюджеты каталога", () => {
     assertSqlBudget(JSON.parse(product.headers.get("x-korzina-sql") as string), { sql: 3, rowsWritten: 0 });
   });
 
+  it("страница категории/бренда ≤4 SQL документа + ≤2 SQL live, без записей", async () => {
+    for (const filter of ["category=home", "brand=brand-1"]) {
+      const document = await catalogRequest(`document?limit=16&${filter}`);
+      const body = await document.json<{ items: { variants: { id: string }[] }[] }>();
+      assertSqlBudget(JSON.parse(document.headers.get("x-korzina-sql") as string), { sql: 4, rowsWritten: 0 });
+      const ids = body.items.flatMap((item) => item.variants.map((variant) => variant.id));
+      expect(ids.length).toBeGreaterThan(0);
+      const live = await catalogRequest(`live?ids=${ids.join(",")}`);
+      assertSqlBudget(JSON.parse(live.headers.get("x-korzina-sql") as string), {
+        sql: 2,
+        rowsRead: 2 * ids.length,
+        rowsWritten: 0,
+      });
+    }
+  });
+
+  it("единый endpoint страницы категории/бренда: ≤6 SQL, без записей", async () => {
+    for (const scope of ["all", "category:home", "brand:brand-1"]) {
+      const response = await catalogRequest(`page?scope=${scope}`);
+      expect(response.status).toBe(200);
+      assertSqlBudget(JSON.parse(response.headers.get("x-korzina-sql") as string), { sql: 6, rowsWritten: 0 });
+    }
+  });
+
   it("планы всех запросов товара, категории, бренда, фасовок и фото используют индексы больших таблиц", async () => {
     await catalogSql("SELECT version FROM catalog_state WHERE id=1");
     await runInDurableObject(catalogStub(), (_instance, ctx) => {

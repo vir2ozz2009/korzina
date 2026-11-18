@@ -5,13 +5,17 @@ import catalog from "../../demo-catalog.json";
 import { settings } from "../../shop/schema";
 import { media } from "../media/schema";
 import { brands, catalogState, categories, productPhotos, products, variants } from "./schema";
+import { seedNavigation } from "./seed-navigation";
 
 // Shop invokes this only for the two owned demo identities. Stable SKU ids preserve carts.
 export function seedCatalog(storage: DurableObjectStorage) {
   const marker = storage.sql
     .exec<{ value: string }>("SELECT value FROM settings WHERE key='catalog_seed'")
     .toArray()[0];
-  if (marker?.value === "B2") return;
+  if (marker?.value === "B2") {
+    seedNavigation(storage);
+    return;
+  }
   const db = drizzle(storage);
   storage.transactionSync(() => {
     db.update(catalogState).set({ currency: catalog.currency }).run();
@@ -105,4 +109,5 @@ export function seedCatalog(storage: DurableObjectStorage) {
       .onConflictDoUpdate({ target: settings.key, set: { value: "B2" } })
       .run();
   });
+  seedNavigation(storage);
 }

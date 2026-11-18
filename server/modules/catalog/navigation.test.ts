@@ -39,7 +39,7 @@ it("внешние demo-фото сохраняют URL; удалённые и �
     expect(item.image.original.src).toMatch(/^https:\/\/media\.demo\.korzina\.app\//);
   }
   await catalogSql(
-    "UPDATE variants SET visible=0 WHERE product_id IN (SELECT id FROM products WHERE category_id='home')",
+    "UPDATE variants SET visible=0 WHERE product_id IN (SELECT id FROM products WHERE category_id='home' OR category_id IN (SELECT id FROM categories WHERE parent_id='home'))",
   );
   const hidden = await (await catalogRequest("document")).json<Document>();
   expect(hidden.categories.find((c) => c.id === "home")?.hasProducts).toBe(false);

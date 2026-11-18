@@ -1,8 +1,11 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
+import { z } from "zod";
 import { catalogLiveInput, catalogPageInput } from "../../../src/shared/contracts/catalog";
+import { catalogListInput } from "../../../src/shared/contracts/catalog-list";
 import { ApiError } from "../../../src/shared/errors";
 import type { ShopEnv } from "../../shop/env";
+import { readPage } from "./page";
 import { readDocument, readLive, readProduct } from "./service";
 
 export const catalogRoutes = new Hono<ShopEnv>()
@@ -10,6 +13,33 @@ export const catalogRoutes = new Hono<ShopEnv>()
     c.header("Cache-Control", "no-store");
     await next();
   })
+  .get(
+    "/page",
+    zValidator("query", catalogListInput, (result) => {
+      if (!result.success) throw new ApiError("VALIDATION", "Некорректные параметры каталога");
+    }),
+    async (c) =>
+      c.json(
+        await readPage(
+          c.req.valid("query"),
+          async (input) => readDocument(c.env.storage, input, c.env.shop.id),
+          async (ids) => readLive(c.env.storage, ids),
+        ),
+      ),
+  )
+  .get(
+    "/page-offers",
+    zValidator(
+      "query",
+      z.object({
+        ids: z
+          .string()
+          .transform((value) => [...new Set(value.split(",").filter(Boolean))])
+          .pipe(z.array(z.string().min(1).max(120)).max(800)),
+      }),
+    ),
+    (c) => c.json(readLive(c.env.storage, c.req.valid("query").ids)),
+  )
   .get(
     "/document",
     zValidator("query", catalogPageInput, (result) => {
