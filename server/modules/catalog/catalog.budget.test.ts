@@ -1,6 +1,9 @@
 import { runInDurableObject } from "cloudflare:test";
+import { env } from "cloudflare:workers";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { assertSqlBudget } from "../../metrics";
+import { app } from "../../index";
+import { assertSqlBudget, RequestMetrics } from "../../metrics";
+import * as forwarding from "../../shop/forward";
 import { setupPlatform } from "../../testing/platform";
 import { cachedDocument } from "./cache";
 import { brandsSql, categoriesSql } from "./navigation";
@@ -63,6 +66,59 @@ describe("бюджеты каталога", () => {
     load.mockClear();
     await cachedDocument(request, input, "preview", "a", load);
     expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it("неизменная версия категории: один вызов DO за offers, 0 чтений таблиц описаний", async () => {
+    const url = "https://demo.korzina.app/api/catalog/page?shop=lavka&scope=category:home";
+    const warm = await app.request(url, {}, env);
+    expect(warm.status).toBe(200);
+    const before = await warm.json<Awaited<ReturnType<typeof import("./page").readPage>>>();
+    await catalogSql("UPDATE variants SET price_minor=65432,stock=1 WHERE id='sku-01'");
+    const forward = vi.spyOn(forwarding, "forwardToShop");
+    const statements: string[] = [];
+    const storageReader = RequestMetrics.prototype.storage;
+    const storage = vi.spyOn(RequestMetrics.prototype, "storage").mockImplementation(function (
+      this: RequestMetrics,
+      input,
+    ) {
+      const measured = storageReader.call(this, input);
+      const sql = new Proxy(measured.sql, {
+        get: (target, key) =>
+          key === "exec"
+            ? (query: string, ...bindings: SqlStorageValue[]) => {
+                statements.push(query);
+                return target.exec(query, ...bindings);
+              }
+            : Reflect.get(target, key, target),
+      });
+      return new Proxy(measured, { get: (target, key) => (key === "sql" ? sql : Reflect.get(target, key, target)) });
+    });
+    try {
+      for (const endpoint of [url, `${url}&version=${before.catalogVersion}`]) {
+        forward.mockClear();
+        statements.length = 0;
+        const response = await app.request(endpoint, {}, env);
+        expect(response.status).toBe(200);
+        expect(response.headers.get("Cache-Control")).toBe("no-store");
+        const after = await response.json<typeof before>();
+        expect(after.catalogVersion).toBe(before.catalogVersion);
+        expect(after.items).toEqual(before.items);
+        expect(after.offers.items.find((item) => item.id === "sku-01")).toMatchObject({ priceMinor: 65432, stock: 1 });
+        expect(forward).toHaveBeenCalledTimes(1);
+        const request = forward.mock.calls[0][0].req.raw;
+        expect(new URL(request.url).pathname).toBe("/api/catalog/page-offers");
+        expect(new URL(request.url).searchParams.get("ids")?.split(",")).toEqual(
+          before.items.flatMap((item) => item.variants.map((v) => v.id)),
+        );
+        expect(statements).toHaveLength(2);
+        expect(statements.join("\n")).not.toMatch(/\b(products|categories|brands|media|product_photos)\b/i);
+        expect(statements.join("\n")).toMatch(/FROM variants/);
+        expect(statements.join("\n")).toMatch(/FROM catalog_state/);
+      }
+    } finally {
+      forward.mockRestore();
+      storage.mockRestore();
+    }
   });
 
   it("оперативная страница ≤2 SQL и ≤2 строк на SKU, полная карточка ≤3 SQL — через полный маршрут Shop", async () => {
