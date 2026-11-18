@@ -34,10 +34,17 @@ export function SearchInput({
         aria-label="Поиск товаров"
         rows={Math.min(3, query.split("\n").length)}
         aria-invalid={invalid || undefined}
-        className="max-h-[4.5em] min-w-0 grow resize-none bg-transparent text-body outline-none [field-sizing:content]"
+        enterKeyHint="search"
+        className="max-h-[4.5em] min-w-0 grow resize-none bg-transparent text-body-lg font-normal focus-visible:outline-muted-foreground aria-invalid:focus-visible:outline-status-danger-foreground [field-sizing:content]"
         placeholder="Товар, список или блюдо"
         value={query}
         onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+            event.preventDefault();
+            onSubmit();
+          }
+        }}
       />
       {query && (
         <IconButton type="button" aria-label="Очистить запрос" onClick={onClear}>

@@ -1,5 +1,4 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { History } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { CatalogTemplate } from "../../../app/templates/CatalogTemplate";
 import type { CatalogFilters as Filters } from "../../../shared/contracts/catalog-list";
@@ -16,6 +15,7 @@ import { useCatalogSearch } from "../search-api";
 import { useSearchHistory } from "../search-history";
 import { CatalogFilters } from "./CatalogFilters";
 import { SearchInput } from "./SearchInput";
+import { SearchStart } from "./SearchStart";
 import { ShoppingResults } from "./ShoppingResults";
 import { toTiles } from "./toTiles";
 import { VariantsSheet } from "./VariantsSheet";
@@ -27,7 +27,6 @@ export function SearchScreen() {
   const [query, setQuery] = useState(params.q ?? "");
   const field = useRef<HTMLTextAreaElement>(null);
   const { history, remember, clear: clearHistory } = useSearchHistory(params.shop ?? window.location.hostname);
-  const focusOnEntry = useRef(!params.q);
   const filters = readFilterParams(params);
   const q = (params.q ?? "").trim();
   const draftQuery = readShoppingSearch(query);
@@ -55,9 +54,6 @@ export function SearchScreen() {
       window.removeEventListener("online", update);
       window.removeEventListener("offline", update);
     };
-  }, []);
-  useEffect(() => {
-    if (focusOnEntry.current) field.current?.focus();
   }, []);
   useEffect(() => {
     if (draftQuery.kind === "error" || query.trim() === q) return;
@@ -130,33 +126,14 @@ export function SearchScreen() {
             <h2 className="text-title-3">{draftQuery.title}</h2>
             <p className="text-muted-foreground">{draftQuery.message}</p>
           </section>
-        ) : waiting ? (
+        ) : waiting && query.trim().length >= 2 ? (
           !offline && query.trim().length >= 2 && <StorefrontState state="loading" />
-        ) : !queryActive ? (
-          <div className="space-y-3">
-            <p className="text-muted-foreground">Поиск по товарам магазина</p>
-            {!!history.length && (
-              <section className="space-y-2 rounded-xl bg-card p-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-title-3">Недавние запросы</h2>
-                  <Button variant="ghost" className="text-primary-text" onClick={clearHistory}>
-                    Очистить
-                  </Button>
-                </div>
-                {history.map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className="flex min-h-10 items-center gap-2"
-                    onClick={() => pick(value)}
-                  >
-                    <History size={18} />
-                    {value}
-                  </button>
-                ))}
-              </section>
-            )}
-          </div>
+        ) : !queryActive || query.trim().length < 2 ? (
+          query.trim() ? (
+            <p className="text-muted-foreground">Введите ещё один символ</p>
+          ) : (
+            <SearchStart history={history} clearHistory={clearHistory} pick={pick} cart={cart} choose={choose} />
+          )
         ) : !supported ? (
           <EmptyState title="Введите название товара" description="Поиск понимает названия, бренды и категории" />
         ) : groupSearch ? (
