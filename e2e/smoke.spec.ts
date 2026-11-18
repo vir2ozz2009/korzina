@@ -179,6 +179,15 @@ test("B7: ручной адрес и получение переживают п�
   });
   expect(item.ok()).toBe(true);
   await page.goto("/cart?shop=test2");
+  await page.getByRole("button", { name: "У меня нет Telegram" }).click();
+  const login = page.getByRole("dialog", { name: "Войти в магазин" });
+  await login.getByRole("textbox", { name: /Номер телефона/ }).fill("+84912345678");
+  await expect(login.getByRole("button", { name: "Сохранить и продолжить" })).toBeDisabled();
+  await login.getByRole("checkbox", { name: "Это мой номер телефона" }).check();
+  await page.screenshot({ path: "test-results/checkout-contact-390.png", animations: "disabled" });
+  await login.getByRole("button", { name: "Сохранить и продолжить" }).click();
+  await expect(login).toBeHidden();
+  await expect(page.getByRole("button", { name: "Войти через Telegram" })).toHaveCount(0);
   await page.getByRole("button", { name: "Укажите адрес доставки" }).click();
   const sheet = page.getByRole("dialog", { name: "Адрес доставки" });
   await sheet.getByRole("button", { name: "Ввести адрес вручную" }).click();
