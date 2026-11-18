@@ -30,10 +30,14 @@ export function useSavePhone() {
       await checkResponse(response);
       return response.json();
     },
-    onSuccess: (contact) => {
+    onSuccess: async (contact) => {
       const current = client.getQueryData<Contact>(contactKey);
       if (current) client.setQueryData(contactKey, { ...current, ...contact });
-      else return client.invalidateQueries({ queryKey: contactKey });
+      await Promise.all([
+        !current && client.invalidateQueries({ queryKey: contactKey }),
+        client.invalidateQueries({ queryKey: ["shop", shopKey, "cart"] }),
+        client.invalidateQueries({ queryKey: ["shop", shopKey, "receiving"] }),
+      ]);
     },
   });
 }
