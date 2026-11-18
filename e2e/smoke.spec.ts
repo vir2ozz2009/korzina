@@ -195,5 +195,13 @@ test("B7: ручной адрес и получение переживают п�
   await expect(details).toBeHidden();
   await page.reload();
   await expect(page.getByText("кв. 12А")).toBeVisible();
+  await page.getByRole("button", { name: "Время получения" }).click();
+  const time = page.getByRole("dialog", { name: "Время получения" });
+  await time.getByRole("button", { name: "Завтра", exact: true }).click();
+  await time.locator('input[type="radio"]:enabled').first().check();
+  await page.screenshot({ path: "test-results/receiving-time-390.png", animations: "disabled" });
+  await time.getByRole("button", { name: /^Выбрать \d/ }).click();
+  await expect(time).toBeHidden();
+  await expect(page.getByRole("button", { name: /Время получения.*\d{2}:\d{2}/ })).toBeVisible();
   await page.screenshot({ path: "test-results/receiving-390.png", animations: "disabled" });
 });

@@ -12,6 +12,7 @@ import { Sheet } from "../../../ui/Sheet";
 import { TextArea } from "../../../ui/TextArea";
 import { useReceiving, useSaveReceiving } from "../api";
 import { addressFields } from "./AddressFields";
+import { ReceivingTime } from "./ReceivingTime";
 
 type Address = Extract<Receiving, { mode: "delivery" }>;
 
@@ -125,6 +126,7 @@ export function ReceivingScreen() {
               onClick={() => setEditor("details")}
             />
           )}
+          <ReceivingTime data={data} />
           <ListItem
             title={commentTitle}
             subtitle={selection.comment}
