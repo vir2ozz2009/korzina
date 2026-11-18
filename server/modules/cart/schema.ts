@@ -10,6 +10,7 @@ export const carts = sqliteTable(
     revision: integer("revision").notNull().default(0),
     lines: text("lines").notNull().default("[]"),
     quote: text("quote"),
+    receiving: text("receiving"),
   },
   (t) => [index("carts_updated_idx").on(t.updatedAt)],
 );

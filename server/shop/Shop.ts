@@ -97,6 +97,24 @@ export class Shop extends DurableObject<Env> {
     return response;
   }
 
+  allowGeocoder(provider: "photon" | "nominatim") {
+    if (!this.ctx.exports.Shop.idFromName("geocoder:osm").equals(this.ctx.id)) throw new Error("Wrong coordinator");
+    const time = Date.now();
+    return this.ctx.storage.transactionSync(() => {
+      const key = `geocoder:${provider}`;
+      const previous = this.ctx.storage.sql
+        .exec<{ value: string }>("SELECT value FROM settings WHERE key=?", key)
+        .toArray()[0];
+      if (previous && time - Number(previous.value) < 1100) return false;
+      this.ctx.storage.sql.exec(
+        "INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        key,
+        String(time),
+      );
+      return true;
+    });
+  }
+
   async seedDemoCatalog(shopId: string) {
     if (this.env.APP_ENV === "production" || !this.ctx.exports.Shop.idFromName(shopId).equals(this.ctx.id))
       throw new ApiError("FORBIDDEN", "Сидирование недоступно");
