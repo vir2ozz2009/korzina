@@ -14,7 +14,7 @@ test("B3: категории → подкатегория → товар → н�
   await category.scrollIntoViewIfNeeded();
   const homeScroll = await page.evaluate(() => scrollY);
   await category.click();
-  await expect(page.locator("article")).toHaveCount(2);
+  await expect(page.locator("article")).toHaveCount(3);
   await checkContent(page, "catalog");
   await page.screenshot({ path: "test-results/category-390.png", animations: "disabled" });
   for (const width of [360, 412]) {
@@ -55,7 +55,7 @@ test("B3: категории → подкатегория → товар → н�
   await checkContent(page, "catalog");
   await page.screenshot({ path: "test-results/brand-390.png", animations: "disabled" });
   await page.goto("/c/home?shop=test2");
-  await expect(page.locator("article")).toHaveCount(2);
+  await expect(page.locator("article")).toHaveCount(3);
   await page.goto("/b/brand-1?shop=test2");
   await expect(page.locator("article").first()).toBeVisible();
   await page.goto("/categories?shop=test2");
@@ -83,7 +83,7 @@ test("B3: категории → подкатегория → товар → н�
 test("B5: опечатка, корзина после очистки и возврат со страницы поиска", async ({ page }) => {
   await page.goto("/?shop=test2");
   await page.getByText("Нейропоиск", { exact: true }).click();
-  const input = page.getByRole("searchbox", { name: "Поиск товаров" });
+  const input = page.getByLabel("Поиск товаров");
   await expect(input).toBeFocused();
   const actions = page.locator("[data-shop-actions]");
   await expect(actions).toBeHidden();
@@ -96,7 +96,7 @@ test("B5: опечатка, корзина после очистки и возв
   await expect(milk).toBeVisible();
   await page.screenshot({ path: "test-results/search-390.png", animations: "disabled" });
   await input.fill("молоко 500 мл");
-  await input.press("Enter");
+  await page.getByRole("button", { name: "Искать товары" }).click();
   await milk.getByRole("button", { name: "Добавить в корзину" }).click();
   await expect(milk.getByText("1", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Очистить запрос" }).click();
@@ -107,4 +107,36 @@ test("B5: опечатка, корзина после очистки и возв
   await page.getByRole("button", { name: "Назад" }).click();
   await expect(page).toHaveURL(/\/\?shop=test2$/);
   await expect(actions).toContainText(/₫|₽|руб/);
+});
+
+test("B5b: единые плитки списка, ограничения ввода и ингредиенты блюда", async ({ page }) => {
+  await page.goto("/search?shop=test2");
+  const input = page.getByLabel("Поиск товаров");
+  await input.fill("молоко, томаты\nнеизвестнаяпозиция");
+  await page.getByRole("button", { name: "Искать товары" }).click();
+  await expect(page.getByRole("heading", { name: "молоко", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "томаты", exact: true })).toBeVisible();
+  await expect(page.getByText("неизвестнаяпозиция", { exact: true })).toBeVisible();
+  await expect(page.locator("[data-shop-actions]")).not.toContainText(/₫|₽/);
+  await page.screenshot({ path: "test-results/shopping-list-390.png", animations: "disabled" });
+  const milk = page.locator("article").filter({ hasText: "Молоко" }).first();
+  await milk.getByRole("button", { name: "Выбрать фасовку" }).click();
+  await expect(page.getByRole("heading", { name: "Выберите фасовку" })).toBeVisible();
+  const pack = page.getByRole("dialog").locator("div.rounded-lg").filter({ hasText: "500 мл" }).first();
+  await pack.getByRole("button", { name: "Добавить в корзину" }).click();
+  await page.keyboard.press("Escape");
+  await expect(milk.getByText("1", { exact: true })).toBeVisible();
+  const longList = Array(41).fill("молоко").join(", ");
+  await input.fill(longList);
+  await expect(page.getByRole("alert")).toContainText("40 позиций");
+  await expect(input).toHaveValue(longList);
+  await input.fill("я".repeat(4001));
+  await expect(page.getByRole("alert")).toContainText("4000 символов");
+  await expect(input).toHaveValue("я".repeat(4001));
+  await input.fill("греческий салат");
+  await page.getByRole("button", { name: "Искать товары" }).click();
+  await expect(page.getByRole("heading", { name: "Для греческого салата" })).toBeVisible();
+  await expect(page.locator("article").filter({ hasText: "Томаты" }).first()).toBeVisible();
+  await expect(page.locator("article").filter({ hasText: "Огурцы" }).first()).toBeVisible();
+  await page.screenshot({ path: "test-results/dish-search-390.png", animations: "disabled" });
 });

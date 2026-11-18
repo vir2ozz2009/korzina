@@ -1,11 +1,11 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { History, Search, X } from "lucide-react";
+import { History } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { CatalogTemplate } from "../../../app/templates/CatalogTemplate";
 import type { CatalogFilters as Filters } from "../../../shared/contracts/catalog-list";
+import { readShoppingSearch } from "../../../shared/shopping-search";
 import { Button } from "../../../ui/Button";
 import { EmptyState } from "../../../ui/EmptyState";
-import { IconButton } from "../../../ui/IconButton";
 import { ProductTile } from "../../../ui/ProductTile";
 import { StorefrontState } from "../../../ui/StorefrontState";
 import { useCart } from "../../cart";
@@ -15,6 +15,8 @@ import { storefrontProducts } from "../model";
 import { useCatalogSearch } from "../search-api";
 import { useSearchHistory } from "../search-history";
 import { CatalogFilters } from "./CatalogFilters";
+import { SearchInput } from "./SearchInput";
+import { ShoppingResults } from "./ShoppingResults";
 import { toTiles } from "./toTiles";
 import { VariantsSheet } from "./VariantsSheet";
 
@@ -23,15 +25,19 @@ export function SearchScreen() {
   const navigate = useNavigate({ from: "/search" });
   const [draft, setDraft] = useState<Filters>();
   const [query, setQuery] = useState(params.q ?? "");
-  const field = useRef<HTMLInputElement>(null);
+  const field = useRef<HTMLTextAreaElement>(null);
   const { history, remember, clear: clearHistory } = useSearchHistory(params.shop ?? window.location.hostname);
   const focusOnEntry = useRef(!params.q);
   const filters = readFilterParams(params);
   const q = (params.q ?? "").trim();
+  const draftQuery = readShoppingSearch(query);
+  const parsed = readShoppingSearch(q);
+  const single = parsed.kind === "single" && parsed.q.length <= 180 ? parsed.q : "";
+  const groupSearch = q.length >= 2 && !single && parsed.kind !== "error";
   const queryActive = q.length >= 2;
-  const result = useCatalogSearch(q, filters);
+  const result = useCatalogSearch(single, filters);
   const preview = useCatalogSearch(
-    q,
+    single,
     draft,
     !!draft && (draft.min === undefined || draft.max === undefined || draft.min <= draft.max),
   );
@@ -54,7 +60,7 @@ export function SearchScreen() {
     if (focusOnEntry.current) field.current?.focus();
   }, []);
   useEffect(() => {
-    if (query.trim() === q) return;
+    if (draftQuery.kind === "error" || query.trim() === q) return;
     const timer = setTimeout(
       () =>
         void navigate({
@@ -65,7 +71,7 @@ export function SearchScreen() {
       250,
     );
     return () => clearTimeout(timer);
-  }, [navigate, q, query]);
+  }, [draftQuery.kind, navigate, q, query]);
   const apply = (value: Filters) =>
     void navigate({
       search: (previous) => ({
@@ -108,33 +114,25 @@ export function SearchScreen() {
   return (
     <>
       <CatalogTemplate title="Нейропоиск" layout="list">
-        <form
-          className="flex min-h-11 items-center gap-2 rounded-pill bg-card px-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            remember(query);
+        <SearchInput
+          field={field}
+          query={query}
+          invalid={draftQuery.kind === "error"}
+          onChange={setQuery}
+          onClear={clearQuery}
+          onSubmit={() => {
+            if (draftQuery.kind !== "error") remember(query);
             field.current?.blur();
           }}
-        >
-          <Search size={20} className="shrink-0" />
-          <input
-            ref={field}
-            data-search-input
-            aria-label="Поиск товаров"
-            type="search"
-            maxLength={180}
-            className="min-w-0 grow bg-transparent text-body outline-none [&::-webkit-search-cancel-button]:hidden"
-            placeholder="Товар, бренд или категория"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          {query && (
-            <IconButton type="button" aria-label="Очистить запрос" onClick={clearQuery}>
-              <X size={19} />
-            </IconButton>
-          )}
-        </form>
-        {!queryActive ? (
+        />
+        {draftQuery.kind === "error" ? (
+          <section role="alert" className="space-y-1 rounded-xl bg-card p-4">
+            <h2 className="text-title-3">{draftQuery.title}</h2>
+            <p className="text-muted-foreground">{draftQuery.message}</p>
+          </section>
+        ) : waiting ? (
+          !offline && query.trim().length >= 2 && <StorefrontState state="loading" />
+        ) : !queryActive ? (
           <div className="space-y-3">
             <p className="text-muted-foreground">Поиск по товарам магазина</p>
             {!!history.length && (
@@ -161,10 +159,22 @@ export function SearchScreen() {
           </div>
         ) : !supported ? (
           <EmptyState title="Введите название товара" description="Поиск понимает названия, бренды и категории" />
+        ) : groupSearch ? (
+          <>
+            {offline && <p className="rounded-xl bg-card p-3">Цена и наличие уточнятся при добавлении</p>}
+            <ShoppingResults
+              query={q}
+              dish={parsed.kind === "dish" ? parsed.name : undefined}
+              offline={offline}
+              cart={cart}
+              choose={choose}
+              remember={() => remember(query)}
+            />
+          </>
         ) : (
           <>
             {offline && <p className="rounded-xl bg-card p-3">Цена и наличие уточнятся при добавлении</p>}
-            {(waiting || result.isPending) && !offline && <StorefrontState state="loading" />}
+            {result.isPending && !offline && <StorefrontState state="loading" />}
             {result.isError && !waiting && !data && (
               <EmptyState
                 title="Не удалось выполнить поиск"

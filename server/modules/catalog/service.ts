@@ -2,7 +2,7 @@ import type { CatalogOffer, CatalogPageInput, CatalogTile } from "../../../src/s
 import { ApiError } from "../../../src/shared/errors";
 import { catalogImage, documentImage } from "./images";
 import { readNavigation } from "./navigation";
-import { documentCountQuery, documentQuery, liveQuery, photosSql, productSql } from "./queries";
+import { documentCountQuery, documentQuery, liveQuery, matchingDocumentQuery, photosSql, productSql } from "./queries";
 import { readRecommendations } from "./recommendations";
 
 type Row = Record<string, SqlStorageValue>;
@@ -30,7 +30,12 @@ type LiveRow = Row &
     productAvailable: number;
   };
 
-export function readDocument(storage: DurableObjectStorage, input: CatalogPageInput, shopId: string) {
+export function readDocument(
+  storage: DurableObjectStorage,
+  input: CatalogPageInput,
+  shopId: string,
+  matchingIds?: string[],
+) {
   const { categories, brands } = readNavigation(storage, shopId);
   if (
     (input.category && !categories.some((category) => category.id === input.category)) ||
@@ -38,7 +43,7 @@ export function readDocument(storage: DurableObjectStorage, input: CatalogPageIn
   )
     throw new ApiError("NOT_FOUND", "Раздел недоступен");
   const state = storage.sql.exec<{ version: number }>("SELECT version FROM catalog_state WHERE id=1").one();
-  const query = documentQuery(input);
+  const query = matchingIds ? matchingDocumentQuery(input, matchingIds) : documentQuery(input);
   const rows = storage.sql.exec<TileRow>(query.sql, ...query.params).toArray();
   const items: CatalogTile[] = rows.slice(0, input.limit).map(({ photo, variants, ...row }) => ({
     id: row.id,

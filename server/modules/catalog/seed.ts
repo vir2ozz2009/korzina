@@ -15,6 +15,7 @@ export function seedCatalog(storage: DurableObjectStorage) {
   if (marker?.value === "B2") {
     seedNavigation(storage);
     seedGallery(storage);
+    seedShoppingItem(storage);
     return;
   }
   const db = drizzle(storage);
@@ -89,9 +90,15 @@ export function seedCatalog(storage: DurableObjectStorage) {
   });
   seedNavigation(storage);
   seedGallery(storage);
+  seedShoppingItem(storage);
 }
 
-function seedPhoto(db: ReturnType<typeof drizzle>, id: string, image: (typeof images)[keyof typeof images]) {
+function seedPhoto(
+  db: ReturnType<typeof drizzle>,
+  id: string,
+  image: (typeof images)[keyof typeof images],
+  mime = "image/png",
+) {
   const values = {
     edgeColor: image.edgeColor,
     contentBox: image.contentBox,
@@ -107,7 +114,7 @@ function seedPhoto(db: ReturnType<typeof drizzle>, id: string, image: (typeof im
       status: "attached",
       ready: true,
       bytes: 0,
-      mime: "image/png",
+      mime,
       requestKey: `seed-${id}`,
       fingerprint: `seed-${id}`,
       createdAt: 1794873600000,
@@ -125,5 +132,26 @@ function seedGallery(storage: DurableObjectStorage) {
     seedPhoto(db, id, images[id]);
     db.insert(productPhotos).values({ productId: "product-01", position: 1, mediaId: id }).onConflictDoNothing().run();
     db.insert(settings).values({ key, value: "B4" }).onConflictDoNothing().run();
+  });
+}
+
+function seedShoppingItem(storage: DurableObjectStorage) {
+  const key = "shopping_demo_photo_seed";
+  if (storage.sql.exec("SELECT 1 FROM settings WHERE key=?", key).toArray().length) return;
+  const db = drizzle(storage);
+  storage.transactionSync(() => {
+    const productId = "product-25";
+    db.insert(products)
+      .values({ id: productId, name: "Огурцы хрустящие", categoryId: "home", published: true })
+      .onConflictDoNothing()
+      .run();
+    db.insert(variants)
+      .values({ id: "sku-25", productId, name: "500 г", priceMinor: 55000, stock: 15 })
+      .onConflictDoNothing()
+      .run();
+    const photoId = "demo-cucumber";
+    seedPhoto(db, photoId, images[photoId], "image/webp");
+    db.insert(productPhotos).values({ productId, position: 0, mediaId: photoId }).onConflictDoNothing().run();
+    db.insert(settings).values({ key, value: "B5b" }).onConflictDoNothing().run();
   });
 }

@@ -33,7 +33,10 @@ it("непустые категории/бренды и их фото не за�
 it("внешние demo-фото сохраняют URL; удалённые и скрытые SKU не делают раздел непустым", async () => {
   await catalogSql("UPDATE variants SET visible=0 WHERE product_id='product-01'");
   const page = await (await catalogRequest("document")).json<Document>();
-  for (const item of page.items) {
+  const cucumber = page.items.find((item) => item.id === "product-25");
+  expect(cucumber?.image.src).toBe("/seed/cucumber-400.webp");
+  expect(cucumber?.image.original.src).toBe("/seed/cucumber-1200.webp");
+  for (const item of page.items.filter((product) => product !== cucumber)) {
     expect(item.image.src).toMatch(/^https:\/\/media\.demo\.korzina\.app\//);
     expect(item.image.srcSet).toContain("https://media.demo.korzina.app/");
     expect(item.image.original.src).toMatch(/^https:\/\/media\.demo\.korzina\.app\//);

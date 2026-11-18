@@ -110,5 +110,21 @@
     "original": {
       "src": "/seed/tomato-gallery-2.png"
     }
+  },
+  "demo-cucumber": {
+    "src": "/seed/cucumber-400.webp",
+    "edgeColor": "#fcf2e5",
+    "contentBox": {
+      "x": 0.06515625,
+      "y": 0.1928125,
+      "w": 0.8775,
+      "h": 0.5948437499999999
+    },
+    "width": 1200,
+    "height": 1200,
+    "srcSet": "/seed/cucumber-400.webp 400w, /seed/cucumber-1200.webp 1200w",
+    "original": {
+      "src": "/seed/cucumber-1200.webp"
+    }
   }
 }
