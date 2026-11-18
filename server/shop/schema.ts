@@ -46,3 +46,14 @@ export const receivingSeats = sqliteTable(
     index("receiving_seats_expiry").on(table.expiresAt),
   ],
 );
+
+export const customerTelegramExchanges = sqliteTable(
+  "customer_telegram_exchanges",
+  {
+    id: text("id").primaryKey(),
+    owner: text("owner").notNull(),
+    telegramSubject: text("telegram_subject"),
+    expiresAt: integer("expires_at").notNull(),
+  },
+  (table) => [index("customer_telegram_exchange_expiry").on(table.expiresAt)],
+);
