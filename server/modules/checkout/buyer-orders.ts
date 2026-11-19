@@ -131,3 +131,22 @@ export function buyerOrdersPage(
   }));
   return { orders, ...(rows.length > 20 ? { cursor: `${tab}.${orders[19].number}` } : {}) };
 }
+
+export function hasBuyerOrders(storage: DurableObjectStorage, subject: string) {
+  return storage.sql.exec("SELECT 1 FROM orders WHERE customer=? LIMIT 1", subject).toArray().length > 0;
+}
+
+export function transferBuyerOrders(storage: DurableObjectStorage, from: string, to: string) {
+  const result = storage.sql.exec("UPDATE orders SET customer=? WHERE customer=?", to, from);
+  if (!result.rowsWritten) return;
+  storage.sql.exec(
+    `UPDATE media SET owner=?,request_key='order:'||id WHERE owner=? AND id IN (
+       SELECT proof_media_id FROM orders WHERE customer=?
+       UNION ALL SELECT h.media_id FROM order_receipt_history h JOIN orders o ON o.number=h.order_number WHERE o.customer=?
+     )`,
+    to,
+    from,
+    to,
+    to,
+  );
+}

@@ -1,4 +1,4 @@
-import { addressKey } from "../../../src/shared/address-key";
+import { addressKey, savedAddressLimit } from "../../../src/shared/address-key";
 import type { SavedAddress } from "../../../src/shared/contracts/profile";
 import {
   type DeliveryAddress,
@@ -181,7 +181,7 @@ export function draftForMode(selection: Receiving, settings: FulfillmentSettings
 
 export function rememberOrderedAddress(saved: SavedAddress[], receiving: DeliveryAddress) {
   const { comment: _comment, ...address } = receiving;
-  if (saved.length >= 10 || saved.some((item) => addressKey(item) === addressKey(address))) return saved;
+  if (saved.length >= savedAddressLimit || saved.some((item) => addressKey(item) === addressKey(address))) return saved;
   return [{ ...address, id: crypto.randomUUID(), title: "" }, ...saved];
 }
 

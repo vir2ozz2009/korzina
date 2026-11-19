@@ -6,7 +6,9 @@ import { encryptBotToken } from "../../auth/bot-token";
 import { cookieFrom, getAuth, postAuth, signedInitData } from "../../testing/auth";
 import { setupPlatform } from "../../testing/platform";
 import { catalogSql, catalogStub } from "../catalog/testing";
-import { saveReceiving } from "../fulfillment/service";
+import { buyerOrdersPage } from "../checkout/buyer-orders";
+import { favoriteIds, mergeFavoriteIds } from "../favorites/service";
+import { readReceiving, saveReceiving, writeReceiving } from "../fulfillment/service";
 import { customerAuth } from "./routes";
 
 beforeAll(setupPlatform);
@@ -39,7 +41,7 @@ it("нормализует телефоны России и Таиланда и 
   });
 });
 
-it("подписанный Telegram возврат связывает только исходный браузер и один раз переносит корзину", async () => {
+it("§9.3 Telegram переносит заказы, адреса, корзину и избранное ровно один раз после согласия", async () => {
   const token = "12345:korzina-fixture-b9";
   const encryptionKey = "ae".repeat(32);
   await runInDurableObject(catalogStub(), async (_shop, { storage }) => {
@@ -88,6 +90,35 @@ it("подписанный Telegram возврат связывает тольк
       ]),
     );
 
+    const telegram = "telegram:12345";
+    const same = { ...where, id: "same-address", title: "Дом" };
+    const guestLocation = readReceiving(storage, subject);
+    const accountLocation = readReceiving(storage, telegram);
+    writeReceiving(storage, subject, guestLocation.revision, {
+      ...guestLocation,
+      savedAddresses: [
+        { ...same, id: "duplicate-address", address: where.address.toUpperCase() },
+        { ...where, id: "work", title: "Работа", address: "45 Lê Lợi" },
+      ],
+    });
+    writeReceiving(storage, telegram, accountLocation.revision, {
+      ...accountLocation,
+      savedAddresses: [same],
+    });
+    mergeFavoriteIds(storage, subject, ["product-01", "product-02"]);
+    mergeFavoriteIds(storage, telegram, ["product-01", "product-03"]);
+    const createOrder = (customer: string) =>
+      storage.sql
+        .exec<{ number: number }>(
+          "INSERT INTO orders(customer,created_at,status,payment_status,snapshot) VALUES(?,?,'placed','unpaid',?) RETURNING number",
+          customer,
+          Date.now(),
+          JSON.stringify({ totalMinor: 49000, currency: "VND", time: null, phone: "+84912345678" }),
+        )
+        .one().number;
+    const sourceOrder = createOrder(subject);
+    const existingOrder = createOrder(telegram);
+
     expect((await submit("/contact", { phone: "+84912345678", confirmed: true }, origin)).status).toBe(200);
     const started = await submit("/telegram/start", {}, origin);
     const { exchange, url } = await started.json<{ exchange: string; url: string }>();
@@ -103,7 +134,32 @@ it("подписанный Telegram возврат связывает тольк
     expect(storage.sql.exec("SELECT customer FROM carts WHERE customer=?", subject).toArray()).toEqual([
       { customer: subject },
     ]);
+    expect(buyerOrdersPage(storage, subject, "active").orders.map(({ number }) => number)).toEqual([sourceOrder]);
+    expect(buyerOrdersPage(storage, telegram, "active").orders.map(({ number }) => number)).toEqual([existingOrder]);
+    expect(readReceiving(storage, telegram).savedAddresses).toEqual([same]);
+    expect(favoriteIds(storage, telegram).slice().sort()).toEqual(["product-01", "product-03"]);
     expect((await submit("/telegram/finish", { exchange, merge: true }, other)).status).toBe(401);
+    const beforeOverflow = readReceiving(storage, subject);
+    writeReceiving(storage, subject, beforeOverflow.revision, {
+      ...beforeOverflow,
+      savedAddresses: [
+        ...beforeOverflow.savedAddresses,
+        ...Array.from({ length: 9 }, (_, i) => ({
+          ...where,
+          id: `extra-${i}`,
+          title: "",
+          address: `ул. Ле Лой, ${i + 100}`,
+        })),
+      ],
+    });
+    const overflow = await submit("/telegram/finish", { exchange, merge: true }, origin);
+    expect(overflow.status).toBe(409);
+    expect(await overflow.json()).toMatchObject({ error: { code: "ADDRESS_LIMIT" } });
+    expect(buyerOrdersPage(storage, subject, "active").orders.map(({ number }) => number)).toEqual([sourceOrder]);
+    expect(readReceiving(storage, telegram).savedAddresses).toEqual([same]);
+    expect(favoriteIds(storage, telegram).slice().sort()).toEqual(["product-01", "product-03"]);
+    writeReceiving(storage, subject, beforeOverflow.revision, beforeOverflow);
+
     const finished = await submit("/telegram/finish", { exchange, merge: true }, origin);
     expect(finished.status).toBe(200);
     expect(await finished.json()).toMatchObject({ subject: "telegram:12345", kind: "telegram", pending: false });
@@ -120,5 +176,61 @@ it("подписанный Telegram возврат связывает тольк
     ]);
     expect(JSON.parse(row.receiving)).toMatchObject({ receiving: where });
     expect(storage.sql.exec("SELECT * FROM carts WHERE customer=?", subject).toArray()).toEqual([]);
+    const accountOrders = () => buyerOrdersPage(storage, telegram, "active").orders.map(({ number }) => number);
+    expect(accountOrders()).toEqual([existingOrder, sourceOrder]);
+    expect(buyerOrdersPage(storage, subject, "active").orders).toEqual([]);
+    expect(readReceiving(storage, telegram).savedAddresses).toEqual([
+      same,
+      { ...where, id: "work", title: "Работа", address: "45 Lê Lợi" },
+    ]);
+    expect(favoriteIds(storage, telegram).slice().sort()).toEqual(["product-01", "product-02", "product-03"]);
+    expect(favoriteIds(storage, subject)).toEqual([]);
+
+    const archived = await submit("/guest", {});
+    const archivedCookie = cookieFrom(archived);
+    const { subject: archivedSubject } = await archived.json<{ subject: string }>();
+    const archivedOrder = createOrder(archivedSubject);
+    expect(storage.sql.exec("SELECT customer FROM carts WHERE customer=?", archivedSubject).toArray()).toEqual([]);
+    const attempt = await submit("/telegram/start", {}, archivedCookie);
+    const { exchange: archivedExchange } = await attempt.json<{ exchange: string }>();
+    expect(
+      (
+        await submit("/telegram", {
+          initData: await signedInitData(token, { start_param: archivedExchange }),
+        })
+      ).status,
+    ).toBe(201);
+    const archiveConsent = await submit("/telegram/finish", { exchange: archivedExchange }, archivedCookie);
+    expect(await archiveConsent.json()).toEqual({ pending: false, mergeRequired: true });
+    expect(accountOrders()).toEqual([existingOrder, sourceOrder]);
+    storage.sql.exec(
+      `INSERT INTO media(id,owner,purpose,status,ready,bytes,mime,request_key,fingerprint,created_at)
+       VALUES('current-archive-proof',?,'receipt','attached',1,24,'application/pdf','archive-current','pdf',?),
+             ('previous-archive-proof',?,'receipt','attached',1,24,'application/pdf','archive-previous','pdf',?)`,
+      archivedSubject,
+      Date.now(),
+      archivedSubject,
+      Date.now(),
+    );
+    storage.sql.exec("UPDATE orders SET proof_media_id='current-archive-proof' WHERE number=?", archivedOrder);
+    storage.sql.exec(
+      "INSERT INTO order_receipt_history(order_number,media_id,created_at) VALUES(?,'previous-archive-proof',?)",
+      archivedOrder,
+      Date.now(),
+    );
+    const archiveLink = await submit("/telegram/finish", { exchange: archivedExchange, merge: true }, archivedCookie);
+    expect(archiveLink.status).toBe(200);
+    expect(accountOrders()).toEqual([archivedOrder, existingOrder, sourceOrder]);
+    expect(buyerOrdersPage(storage, archivedSubject, "active").orders).toEqual([]);
+    expect(
+      storage.sql
+        .exec("SELECT owner FROM media WHERE id IN ('current-archive-proof','previous-archive-proof')")
+        .toArray(),
+    ).toEqual([{ owner: telegram }, { owner: telegram }]);
+
+    expect((await submit("/telegram/finish", { exchange: archivedExchange, merge: true }, archivedCookie)).status).toBe(
+      401,
+    );
+    expect(accountOrders()).toEqual([archivedOrder, existingOrder, sourceOrder]);
   });
 });

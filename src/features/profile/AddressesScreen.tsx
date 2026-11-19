@@ -3,6 +3,7 @@ import { MapPin } from "lucide-react";
 import { useState } from "react";
 import { Header } from "../../app/shell/Header";
 import { Screen } from "../../app/shell/Screen";
+import { savedAddressLimit } from "../../shared/address-key";
 import type { SavedAddress } from "../../shared/contracts/profile";
 import { errorKind } from "../../shared/http-error";
 import { Button } from "../../ui/Button";
@@ -40,10 +41,10 @@ export function AddressesScreen() {
             />
           ))}
           {addresses.data?.addresses.length === 0 && <EmptyState title="Сохранённых адресов нет" icon={<MapPin />} />}
-          {(addresses.data?.addresses.length ?? 0) >= 10 && <p role="status">Достигнут лимит адресов</p>}
+          {(addresses.data?.addresses.length ?? 0) >= savedAddressLimit && <p role="status">Достигнут лимит адресов</p>}
           <Button
             full
-            disabled={addresses.isError || (addresses.data?.addresses.length ?? 0) >= 10}
+            disabled={addresses.isError || (addresses.data?.addresses.length ?? 0) >= savedAddressLimit}
             onClick={() => setEditor("new")}
           >
             Добавить адрес

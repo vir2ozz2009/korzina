@@ -14,6 +14,7 @@ import { RateLimiter, rateLimit } from "../../middleware/rate-limit";
 import type { ShopEnv } from "../../shop/env";
 import { settings } from "../../shop/schema";
 import { mergeCustomerCarts } from "../cart/service";
+import { hasBuyerOrders, transferBuyerOrders } from "../checkout/buyer-orders";
 import { mergeCustomerFavorites } from "../favorites/service";
 import { hasTelegramProfile, initTelegramProfile } from "../profile/service";
 import { contactRegion, readContact, savePhone } from "./contact";
@@ -27,12 +28,20 @@ const publicSession = ({ subject, kind, expiresAt }: { subject: string; kind: st
   expiresAt,
 });
 
+function hasDeviceProfile(storage: DurableObjectStorage, session: Awaited<ReturnType<typeof readCustomer>>) {
+  return (
+    session?.kind === "guest" &&
+    (!!readContact(storage, session.subject, session.kind).phone || hasBuyerOrders(storage, session.subject))
+  );
+}
+
 function attachGuest(env: ShopEnv["Bindings"], session: Awaited<ReturnType<typeof readCustomer>>, target: string) {
   if (session?.kind !== "guest") return;
   mergeCustomerCarts(env.storage, session.subject, target, {
     id: env.shop.id,
     mediaOrigin: env.media.MEDIA_PUBLIC_URL,
   });
+  transferBuyerOrders(env.storage, session.subject, target);
   mergeCustomerFavorites(env.storage, session.subject, target);
   env.storage.sql.exec("DELETE FROM sessions WHERE subject=? AND kind='guest'", session.subject);
 }
@@ -97,10 +106,7 @@ export const customerAuth = new Hono<ShopEnv>()
     const id = await digest(input.exchange);
     const target = findExchange(c.env.storage, id, existing.sessionId);
     if (!target) return c.json({ pending: true }, 202);
-    const needsConsent =
-      target.requiresMerge &&
-      existing.kind === "guest" &&
-      !!readContact(c.env.storage, existing.subject, existing.kind).phone;
+    const needsConsent = target.requiresMerge && hasDeviceProfile(c.env.storage, existing);
     if (needsConsent && !input.merge) return c.json({ pending: false, mergeRequired: true as const });
     const prepared = await prepareCustomer(target.subject, "telegram");
     c.env.storage.transactionSync(() => {
@@ -126,16 +132,15 @@ export const customerAuth = new Hono<ShopEnv>()
     const existing = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);
     const subject = `telegram:${telegramId}`;
     const collision = hasTelegramProfile(c.env.storage, subject);
-    const phoneProfile =
-      existing?.kind === "guest" && !!readContact(c.env.storage, existing.subject, existing.kind).phone;
-    if (exchange && existing && phoneProfile) {
+    const deviceProfile = hasDeviceProfile(c.env.storage, existing);
+    if (exchange && existing && deviceProfile) {
       c.env.storage.transactionSync(() => {
         confirmExchange(c.env.storage, exchange, subject, collision);
         initTelegramProfile(c.env.storage, subject, name);
       });
       return c.json({ ...publicSession(existing), pending: true }, 202);
     }
-    if (collision && phoneProfile)
+    if (collision && deviceProfile)
       throw new ApiError("AUTH_FAILED", "Подключите Telegram из профиля и подтвердите объединение");
     const created = await prepareCustomer(subject, "telegram");
     c.env.storage.transactionSync(() => {
