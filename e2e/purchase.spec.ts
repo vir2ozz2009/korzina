@@ -175,7 +175,7 @@ test("B10: товар, доставка и заказ наличными", async
   await expect(page.getByText("кв. 12А")).toBeVisible();
   await page.getByRole("button", { name: /Когда привезти/ }).click();
   const time = page.getByRole("dialog", { name: /Когда привезти/ });
-  await time.getByRole("button", { name: "Завтра", exact: true }).click();
+  // The shop initially shows its first available day, which may be later than tomorrow.
   await time.locator('input[type="radio"]:enabled').first().check();
   await page.screenshot({ path: "test-results/receiving-time-390.png", animations: "disabled" });
   await time.getByRole("button", { name: /^Выбрать \d/ }).click();
