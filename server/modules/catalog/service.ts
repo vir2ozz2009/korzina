@@ -30,6 +30,29 @@ type LiveRow = Row &
     productAvailable: number;
   };
 
+function asTiles(rows: TileRow[], shopId: string): CatalogTile[] {
+  return rows.map(({ photo, variants, ...row }) => ({
+    id: row.id,
+    name: row.name,
+    categoryId: row.categoryId,
+    brandId: row.brandId,
+    image: documentImage(photo, shopId),
+    variants: JSON.parse(variants),
+  }));
+}
+
+export function readFavoriteTiles(storage: DurableObjectStorage, shopId: string, ids: string[]) {
+  const query = matchingDocumentQuery({ limit: ids.length }, ids);
+  const rows = ids.length ? storage.sql.exec<TileRow>(query.sql, ...query.params).toArray() : [];
+  const items = asTiles(rows, shopId);
+  const offers = readLive(
+    storage,
+    items.flatMap(({ variants }) => variants.map(({ id }) => id)),
+    true,
+  );
+  return { items, offers: offers.items, currency: offers.currency };
+}
+
 export function readDocument(
   storage: DurableObjectStorage,
   input: CatalogPageInput,
@@ -49,14 +72,7 @@ export function readDocument(
     throw new ApiError("VERSION_CONFLICT", "Каталог обновился. Обновите список.");
   const query = matchingIds ? matchingDocumentQuery(input, matchingIds) : documentQuery(input, Boolean(state.hide));
   const rows = storage.sql.exec<TileRow>(query.sql, ...query.params).toArray();
-  const items: CatalogTile[] = rows.slice(0, input.limit).map(({ photo, variants, ...row }) => ({
-    id: row.id,
-    name: row.name,
-    categoryId: row.categoryId,
-    brandId: row.brandId,
-    image: documentImage(photo, shopId),
-    variants: JSON.parse(variants),
-  }));
+  const items = asTiles(rows.slice(0, input.limit), shopId);
   const countQuery = input.count ? documentCountQuery(input, Boolean(state.hide)) : undefined;
   return {
     catalogVersion: state.version,
@@ -68,7 +84,7 @@ export function readDocument(
   };
 }
 
-export function readLive(storage: DurableObjectStorage, ids: string[]) {
+export function readLive(storage: DurableObjectStorage, ids: string[], includeSoldOut = false) {
   const query = liveQuery(ids);
   const rows = ids.length ? storage.sql.exec<LiveRow>(query.sql, ...query.params).toArray() : [];
   const state = storage.sql
@@ -102,7 +118,7 @@ export function readLive(storage: DurableObjectStorage, ids: string[]) {
         oldPriceMinor: row.oldPriceMinor,
         stock: row.stock,
         available,
-        visible: Boolean(row.visible && row.productAvailable && (!state.hideOutOfStock || available)),
+        visible: Boolean(row.visible && row.productAvailable && (includeSoldOut || !state.hideOutOfStock || available)),
       };
     }),
   };

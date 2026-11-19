@@ -16,6 +16,7 @@ import { IconButton } from "../../../ui/IconButton";
 import { Price } from "../../../ui/Price";
 import { ProductTile } from "../../../ui/ProductTile";
 import { useCart } from "../../cart";
+import { FavoriteButton } from "../../favorites";
 import { useProduct } from "../product-api";
 import { toTiles } from "./toTiles";
 import { VariantsSheet } from "./VariantsSheet";
@@ -93,9 +94,12 @@ export function ProductScreen() {
             title={title}
             actions={
               data && (
-                <IconButton aria-label="Поделиться" onClick={() => void share()}>
-                  <Share2 size={22} />
-                </IconButton>
+                <>
+                  <FavoriteButton id={id} />
+                  <IconButton aria-label="Поделиться" onClick={() => void share()}>
+                    <Share2 size={22} />
+                  </IconButton>
+                </>
               )
             }
           />

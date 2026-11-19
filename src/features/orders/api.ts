@@ -4,23 +4,6 @@ import { checkResponse, errorKind } from "../../shared/http-error";
 import { commandHeaders, shopApi, shopKey } from "../../shared/shop-api";
 
 export const orderKeys = ["shop", shopKey, "buyer-orders"] as const;
-const marker = `korzina:${shopKey}:buyer`;
-export function rememberBuyer(known: boolean) {
-  try {
-    if (known) localStorage.setItem(marker, "1");
-    else localStorage.removeItem(marker);
-  } catch {
-    // The current session is still available in memory.
-  }
-}
-export function hasBuyerMarker() {
-  try {
-    return localStorage.getItem(marker) === "1";
-  } catch {
-    return false;
-  }
-}
-
 export function useActiveOrders(enabled: boolean) {
   const client = useQueryClient();
   const queryKey = [...orderKeys, "active"] as const;

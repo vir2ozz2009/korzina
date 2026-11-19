@@ -1,7 +1,6 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { bootstrap } from "../../../app/bootstrap";
-import { telegramLaunch } from "../../../app/telegram/launch";
 import { HomeTemplate } from "../../../app/templates/HomeTemplate";
 import { storefrontProducts } from "../../../shared/catalog/model";
 import { HttpError } from "../../../shared/http-error";
@@ -10,7 +9,6 @@ import { ErrorState } from "../../../ui/AsyncErrorState";
 import { Button } from "../../../ui/Button";
 import { StoreHeader } from "../../../ui/StoreHeader";
 import { useCart } from "../../cart";
-import { ContactSheet, useContact } from "../../contact";
 import { ActiveOrders } from "../../orders";
 import { useCatalog, useOffers } from "../api";
 import { HomeView } from "./HomeView";
@@ -19,8 +17,6 @@ import { toTiles } from "./toTiles";
 const VariantsSheet = lazy(() => import("./VariantsSheet").then((module) => ({ default: module.VariantsSheet })));
 
 export function HomeScreen() {
-  const [login, setLogin] = useState(false);
-  const contact = useContact(false);
   const [version, setVersion] = useState<number>();
   const catalog = useCatalog(version);
   const document = catalog.data?.pages[0];
@@ -55,9 +51,7 @@ export function HomeScreen() {
           <StoreHeader
             name={bootstrap?.name ?? "Магазин"}
             onAbout={() => void navigate({ to: "/about" })}
-            onProfile={
-              telegramLaunch || contact.data?.phone || contact.data?.telegramLinked ? undefined : () => setLogin(true)
-            }
+            onProfile={() => void navigate({ to: "/profile" })}
           />
         }
         after={<AboutStore onClick={() => void navigate({ to: "/about" })} />}
@@ -118,7 +112,6 @@ export function HomeScreen() {
           ),
         ]}
       />
-      <ContactSheet mode={login ? "telegram" : undefined} close={() => setLogin(false)} />
       {search.variants && (
         <Suspense fallback={null}>
           <VariantsSheet id={search.variants} />

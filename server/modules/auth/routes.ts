@@ -19,6 +19,7 @@ import { RateLimiter, rateLimit } from "../../middleware/rate-limit";
 import type { ShopEnv } from "../../shop/env";
 import { settings } from "../../shop/schema";
 import { mergeCustomerCarts } from "../cart/service";
+import { mergeCustomerFavorites } from "../favorites/service";
 import { contactRegion, readContact, savePhone } from "./contact";
 import { createCustomer, customerTtl, logoutCustomer, prepareCustomer, readCustomer, writeCustomer } from "./service";
 import { confirmExchange, findExchange, startExchange, verifiedExchange } from "./telegram-exchange";
@@ -36,6 +37,7 @@ function attachGuest(env: ShopEnv["Bindings"], session: Awaited<ReturnType<typeo
     id: env.shop.id,
     mediaOrigin: env.media.MEDIA_PUBLIC_URL,
   });
+  mergeCustomerFavorites(env.storage, session.subject, target);
   env.storage.sql.exec("DELETE FROM sessions WHERE subject=? AND kind='guest'", session.subject);
 }
 

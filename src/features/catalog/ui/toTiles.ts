@@ -1,6 +1,8 @@
+import { createElement } from "react";
 import type { StorefrontProduct } from "../../../shared/catalog/model";
 import { selectOffer } from "../../../shared/catalog/offer";
 import type { useCart } from "../../cart";
+import { FavoriteButton } from "../../favorites";
 import type { HomeViewProps } from "./HomeView";
 
 export function toTiles({
@@ -26,6 +28,7 @@ export function toTiles({
     const available = selectOffer(product.variants, [], product.id);
     return {
       id: product.id,
+      action: createElement(FavoriteButton, { id: product.id }),
       name: product.name,
       image: product.image ?? undefined,
       href: `/p/${product.id}${manual ? `?variant=${encodeURIComponent(manual.id)}` : ""}`,

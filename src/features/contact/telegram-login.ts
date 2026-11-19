@@ -1,6 +1,6 @@
 import { checkResponse } from "../../shared/http-error";
 import { commandHeaders, shopApi } from "../../shared/shop-api";
-import { ensureShopSession } from "../../shared/shop-session";
+import { ensureShopSession, rememberBuyer } from "../../shared/shop-session";
 
 function wait(signal: AbortSignal, milliseconds: number) {
   return new Promise<void>((resolve, reject) => {
@@ -36,7 +36,10 @@ export async function finishBrowserLogin(exchange: string, expiresAt: number, si
       { headers: commandHeaders(), init: { signal } },
     );
     await checkResponse(response);
-    if (response.status !== 202) return;
+    if (response.status !== 202) {
+      rememberBuyer(true);
+      return;
+    }
   }
   throw new Error("Время входа через Telegram истекло");
 }

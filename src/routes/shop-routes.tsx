@@ -76,6 +76,18 @@ const buyerOrder = createRoute({
   staticData: { template: "order", transition: "push", title: "Заказ" },
   component: lazyRouteComponent(() => import("../features/orders/ui/OrderScreen"), "OrderScreen"),
 });
+const favorites = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/favorites",
+  staticData: { template: "catalog", transition: "push", title: "Избранное" },
+  component: lazyRouteComponent(() => import("../features/favorites/FavoritesScreen"), "FavoritesScreen"),
+});
+const profile = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/profile",
+  staticData: { template: "form", transition: "push", title: "Профиль" },
+  component: lazyRouteComponent(() => import("../features/profile/ProfileScreen"), "ProfileScreen"),
+});
 export const shopRoutes = [
   home,
   product.addChildren([details]),
@@ -86,5 +98,7 @@ export const shopRoutes = [
   done,
   orderHistory,
   buyerOrder,
+  favorites,
+  profile,
   ...catalogRoutes,
 ];

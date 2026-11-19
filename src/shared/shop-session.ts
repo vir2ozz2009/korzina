@@ -1,5 +1,5 @@
 import { checkResponse } from "./http-error";
-import { commandHeaders, shopApi } from "./shop-api";
+import { commandHeaders, shopApi, shopKey } from "./shop-api";
 
 let guest: Promise<void> | undefined;
 let telegram: Promise<void> | undefined;
@@ -24,6 +24,24 @@ export function authenticateTelegram(initData: string) {
     await guest?.catch(() => {});
     const result = await shopApi.api.auth.telegram.$post({ json: { initData } }, { headers: commandHeaders() });
     await checkResponse(result);
+    rememberBuyer(true);
   })();
   return telegram;
+}
+
+const buyerMarker = `korzina:${shopKey}:buyer`;
+export function rememberBuyer(known: boolean) {
+  try {
+    if (known) localStorage.setItem(buyerMarker, "1");
+    else localStorage.removeItem(buyerMarker);
+  } catch {
+    // The verified session can still be used in this tab.
+  }
+}
+export function hasBuyerMarker() {
+  try {
+    return localStorage.getItem(buyerMarker) === "1";
+  } catch {
+    return false;
+  }
 }

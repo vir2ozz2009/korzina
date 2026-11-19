@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { AddToCart, type AddToCartProps } from "./AddToCart";
 import { DiscountBadge } from "./DiscountBadge";
 import { Price, type PriceProps } from "./Price";
@@ -11,6 +12,7 @@ export interface ProductTileProps extends PriceProps {
   onOpen?: () => void;
   cart: AddToCartProps;
   stock?: number | null;
+  action?: ReactNode;
   photoShape?: "square" | "tile";
   variants?: { label: string; open: () => void };
 }
@@ -22,12 +24,13 @@ export function ProductTile({
   onOpen,
   cart,
   stock,
+  action,
   photoShape = "square",
   variants,
   ...price
 }: ProductTileProps) {
   return (
-    <article className="min-w-0 overflow-hidden rounded-xl bg-card">
+    <article className="relative min-w-0 overflow-hidden rounded-xl bg-card">
       <a
         href={href}
         onClick={onOpen}
@@ -46,6 +49,7 @@ export function ProductTile({
           <DiscountBadge {...price} />
         </span>
       </a>
+      {action && <div className="absolute right-1 top-1">{action}</div>}
       <div className="space-y-1 p-2.5">
         <a href={href} onClick={onOpen} className="line-clamp-2 min-h-9 text-caption">
           {name}
