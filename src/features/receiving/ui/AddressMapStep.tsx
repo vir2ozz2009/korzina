@@ -1,11 +1,12 @@
 import { LocateFixed } from "lucide-react";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import type { Point } from "../../../shared/contracts/receiving";
 import { Button } from "../../../ui/Button";
 import { SkeletonBlock } from "../../../ui/SkeletonBlock";
 import { TextArea } from "../../../ui/TextArea";
 import { usePointDelivery, usePointName } from "../address-api";
 import { AddressReviewStatus } from "./AddressDelivery";
+import { useMapLocation } from "./useMapLocation";
 
 const MapPreview = lazy(() => import("./AddressMap").then(({ AddressMap }) => ({ default: AddressMap })));
 
@@ -32,16 +33,8 @@ export function AddressMapStep({
   other: () => void;
   pickup?: () => void;
 }) {
-  const [locating, setLocating] = useState(false);
-  const [locationError, setLocationError] = useState("");
   const [tileError, setTileError] = useState(false);
-  const active = useRef(false);
-  useEffect(() => {
-    active.current = true;
-    return () => {
-      active.current = false;
-    };
-  }, []);
+  const { center, locating, locationError, locate, pick } = useMapLocation(point, setPoint);
 
   const name = usePointName(point);
   const check = usePointDelivery(point);
@@ -53,37 +46,16 @@ export function AddressMapStep({
     if (mapAddress && rejected && result.reason === "outside") rememberOutside(mapAddress);
   }, [mapAddress, rejected, rememberOutside, result]);
 
-  function locate() {
-    if (!navigator.geolocation) {
-      setLocationError("Геопозиция недоступна. Отметьте точку на карте.");
-      return;
-    }
-    setLocating(true);
-    setLocationError("");
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        if (!active.current) return;
-        setLocating(false);
-        setPoint({ lat: coords.latitude, lon: coords.longitude });
-      },
-      () => {
-        if (!active.current) return;
-        setLocating(false);
-        setLocationError("Не удалось определить геопозицию. Отметьте точку на карте.");
-      },
-      { timeout: 6000 },
-    );
-  }
-
   const finalAddress = mapAddress ?? address.trim();
   return (
     <>
       <p className="text-meta text-muted-foreground">Коснитесь нужного места или переместите метку.</p>
       <Suspense fallback={<SkeletonBlock className="h-44 rounded-xl" />}>
         <MapPreview
+          center={center}
           point={point}
           select={(next) => {
-            if (!pending && !locating) setPoint(next);
+            if (!pending && !locating) pick(next);
           }}
           onUnavailable={() => setTileError(true)}
         />

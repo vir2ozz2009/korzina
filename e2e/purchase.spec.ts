@@ -63,7 +63,7 @@ test("B10: товар, доставка и заказ наличными", async
   await expect(login).toBeHidden();
   await expect(page.getByRole("button", { name: "Войти через Telegram" })).toHaveCount(0);
   await page.context().grantPermissions(["geolocation"]);
-  await page.context().setGeolocation({ latitude: 16.036, longitude: 108.25 });
+  await page.context().setGeolocation({ latitude: 48.8566, longitude: 2.3522 });
   await page.route("**/api/receiving/geocode?**", async (route) => {
     const input = route.request().postDataJSON();
     if (input.type === "reverse" && input.point.lat > 15) {
@@ -81,8 +81,12 @@ test("B10: товар, доставка и заказ наличными", async
   const search = page.getByRole("dialog", { name: "Новый адрес" });
   const street = search.getByRole("searchbox", { name: "Улица, дом, город" });
   await street.fill("136 Hồ Xuân Hương, Дананг");
+  const nearBuyer = page.waitForRequest("https://tile.openstreetmap.org/16/33196/22546.png");
   await search.getByRole("button", { name: "Указать на карте" }).click();
   const map = page.getByRole("dialog", { name: "Адрес на карте" });
+  await nearBuyer;
+  await expect(map.locator(".leaflet-marker-icon")).toHaveCount(0);
+  await page.context().setGeolocation({ latitude: 16.036, longitude: 108.25 });
   await map.getByRole("button", { name: "Определить мою позицию" }).click();
   await expect(map.getByText("За пределами зоны доставки")).toBeVisible();
   await expect(map.getByText("136 Hồ Xuân Hương, Дананг")).toBeVisible();
