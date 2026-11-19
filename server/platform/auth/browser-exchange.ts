@@ -10,7 +10,7 @@ const telegramUsername = /^[a-zA-Z][a-zA-Z0-9_]{4,31}$/;
 const expired = () => new ApiError("AUTH_FAILED", "Ссылка для входа истекла");
 const proofCookie = (hash: string) => `korzina_seller_proof_${hash.slice(0, 16)}`;
 
-export async function startSellerExchange(database: D1Database, username?: string) {
+export async function startSellerExchange(database: D1Database, username?: string, returnUrl?: string) {
   if (!username || !telegramUsername.test(username))
     throw new ApiError("AUTH_UNAVAILABLE", "Бот платформы пока не настроен");
   const exchange = `seller_${newToken().slice(0, 48)}`;
@@ -18,8 +18,8 @@ export async function startSellerExchange(database: D1Database, username?: strin
   const [id, hash] = await Promise.all([digest(exchange), tokenHash(proof)]);
   const expiresAt = Date.now() + ttl * 1000;
   await database
-    .prepare("INSERT INTO seller_exchanges(id, proof_hash, expires_at) VALUES(?,?,?)")
-    .bind(id, hash, expiresAt)
+    .prepare("INSERT INTO seller_exchanges(id,proof_hash,expires_at,return_url) VALUES(?,?,?,?)")
+    .bind(id, hash, expiresAt, returnUrl ?? null)
     .run();
   await scheduleSellerCleanup();
   return {
@@ -31,13 +31,14 @@ export async function startSellerExchange(database: D1Database, username?: strin
 }
 
 export async function confirmSellerExchange(database: D1Database, exchange: string, telegramId: string) {
-  if (!browserCodePattern.test(exchange)) return false;
-  const result = await database
-    .prepare(`UPDATE seller_exchanges SET telegram_id=?
-    WHERE id=? AND expires_at>? AND completed_with IS NULL AND (telegram_id IS NULL OR telegram_id=?)`)
-    .bind(telegramId, await digest(exchange), Date.now(), telegramId)
-    .run();
-  return result.meta.changes === 1;
+  if (!browserCodePattern.test(exchange)) return undefined;
+  return (
+    (await database
+      .prepare(`UPDATE seller_exchanges SET telegram_id=?
+    WHERE id=? AND expires_at>? AND (telegram_id IS NULL OR telegram_id=?) RETURNING return_url`)
+      .bind(telegramId, await digest(exchange), Date.now(), telegramId)
+      .first<{ return_url: string | null }>()) ?? undefined
+  );
 }
 
 export async function finishSellerExchange(database: D1Database, request: Request, exchange: string) {

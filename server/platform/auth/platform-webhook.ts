@@ -5,6 +5,7 @@ import { z } from "zod";
 import { ApiError } from "../../../src/shared/errors";
 import type { AuthSecrets } from "../../auth/config";
 import { matchesTelegramSecret, telegramApi } from "../../auth/telegram-api";
+import { answerBrowserLogin, telegramReturnUrl } from "../../auth/telegram-return";
 import { demoBuyerExchange } from "../../modules/auth/telegram-exchange";
 import { confirmSellerExchange } from "./browser-exchange";
 import { demoPlatformShop, isDemoTelegramOrigin } from "./demo-telegram";
@@ -43,13 +44,8 @@ export const platformWebhook = new Hono<{ Bindings: Env & AuthSecrets }>().post(
     if (purchase && demoBuyerExchange.test(purchase) && c.env.APP_ENV === "demo" && isDemoTelegramOrigin(c.req.raw)) {
       const shop = exports.Shop.get(exports.Shop.idFromName(demoPlatformShop));
       const name = [from.first_name, from.last_name].filter(Boolean).join(" ").slice(0, 100);
-      const accepted = await shop.confirmDemoBuyerTelegram(purchase, String(from.id), name);
-      await telegramApi(token, "sendMessage", {
-        chat_id: chat.id,
-        text: accepted
-          ? "Вход подтверждён. Вернитесь в браузер."
-          : "Ссылка для входа истекла. Начните заново в браузере.",
-      });
+      const accepted = await shop.confirmBuyerTelegram(demoPlatformShop, purchase, String(from.id), name);
+      await answerBrowserLogin(token, chat.id, accepted && (accepted.return_url ?? telegramReturnUrl(c.req.raw)));
     } else if (raw) {
       await answerOwnerInvite(c.env.PLATFORM, {
         raw,
@@ -74,12 +70,11 @@ export const platformWebhook = new Hono<{ Bindings: Env & AuthSecrets }>().post(
       });
     } else if (code) {
       const accepted = await confirmSellerExchange(c.env.PLATFORM, code, String(from.id));
-      await telegramApi(token, "sendMessage", {
-        chat_id: chat.id,
-        text: accepted
-          ? "Вход подтверждён. Вернитесь в браузер."
-          : "Ссылка для входа истекла. Начните заново в браузере.",
-      });
+      await answerBrowserLogin(
+        token,
+        chat.id,
+        accepted && (accepted.return_url ?? telegramReturnUrl(c.req.raw, "/seller", true)),
+      );
     }
     return c.json({ ok: true });
   },

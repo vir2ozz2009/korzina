@@ -1,5 +1,6 @@
 import { Send } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useToast } from "../../../app/shell/ToastProvider";
 import { loadTelegram } from "../../../app/telegram/adapter";
 import { telegramLaunch } from "../../../app/telegram/launch";
 import { readTelegramAttempt, saveTelegramAttempt } from "../../../shared/telegram-browser-attempt";
@@ -13,6 +14,7 @@ const message = (error: unknown) => (error instanceof Error ? error.message : "�
 
 export function CabinetLogin({ store, ready }: { store?: string; ready: () => void }) {
   const { mutateAsync: enter } = useEnterCabinet();
+  const notify = useToast();
   const attempted = useRef(false);
   const [exchange, setExchange] = useState<Exchange | undefined>(() => readTelegramAttempt("seller"));
   const [starting, setStarting] = useState(false);
@@ -23,40 +25,23 @@ export function CabinetLogin({ store, ready }: { store?: string; ready: () => vo
   useEffect(() => {
     if (!exchange) return;
     const request = new AbortController();
-    let timeout: number;
-    const poll = async () => {
-      if (Date.now() >= exchange.expiresAt) {
+    const { signal } = request;
+    void finishCabinetLogin(exchange, signal)
+      .then(() => {
+        if (signal.aborted) return;
         saveTelegramAttempt("seller");
         setExchange(undefined);
-        setError("Ссылка для входа истекла");
-        return;
-      }
-      try {
-        if (
-          document.visibilityState === "visible" &&
-          navigator.onLine &&
-          (await finishCabinetLogin(exchange.exchange, request.signal))
-        ) {
-          saveTelegramAttempt("seller");
-          setExchange(undefined);
-          ready();
-          return;
-        }
-      } catch (error) {
-        if (request.signal.aborted) return;
+        notify("Вы вошли через Telegram");
+        ready();
+      })
+      .catch((error: unknown) => {
+        if (signal.aborted) return;
         saveTelegramAttempt("seller");
         setExchange(undefined);
         setError(message(error));
-        return;
-      }
-      timeout = window.setTimeout(poll, 3500);
-    };
-    timeout = window.setTimeout(poll, 3500);
-    return () => {
-      request.abort();
-      window.clearTimeout(timeout);
-    };
-  }, [exchange, ready]);
+      });
+    return () => request.abort();
+  }, [exchange, notify, ready]);
 
   const start = useCallback(async () => {
     setError("");

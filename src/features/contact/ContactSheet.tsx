@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Send } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useToast } from "../../app/shell/ToastProvider";
 import { telegramLaunch } from "../../app/telegram/launch";
 import { shopKey } from "../../shared/shop-api";
 import {
@@ -36,6 +37,7 @@ function LoginContent({
   const finishRequest = useRef<AbortController>(null);
   const contact = useContact(phone);
   const client = useQueryClient();
+  const notify = useToast();
   useEffect(() => () => startRequest.current?.abort(), []);
 
   async function begin() {
@@ -60,8 +62,11 @@ function LoginContent({
     };
     await client.cancelQueries(filters);
     client.removeQueries(filters);
-    await client.invalidateQueries({ queryKey: ["shop", shopKey] });
-    if (!signal.aborted) close();
+    void client.invalidateQueries({ queryKey: ["shop", shopKey] });
+    if (!signal.aborted) {
+      notify("Вы вошли через Telegram");
+      close();
+    }
   }
 
   const completeLogin = useEffectEvent(complete);

@@ -71,6 +71,13 @@
       "when": 1795092038297,
       "tag": "0009_platform_retention",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1795099846089,
+      "tag": "0010_telegram_return",
+      "breakpoints": true
     }
   ]
 }

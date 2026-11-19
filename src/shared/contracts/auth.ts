@@ -33,3 +33,4 @@ export const phoneContactInput = z.strictObject({
 export const telegramExchangeInput = z.strictObject({ exchange: z.string().regex(/^purchase_[a-zA-Z0-9_-]{24,48}$/u) });
 export const telegramFinishInput = telegramExchangeInput.extend({ merge: z.literal(true).optional() });
 export const emptyInput = z.strictObject({});
+export const telegramStartInput = emptyInput.extend({ returnPath: z.string().max(1024).optional() });

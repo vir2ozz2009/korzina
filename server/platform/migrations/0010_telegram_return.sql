@@ -1,0 +1,1 @@
+ALTER TABLE `seller_exchanges` ADD `return_url` text;

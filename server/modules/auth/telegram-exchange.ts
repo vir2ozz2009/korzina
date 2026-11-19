@@ -5,12 +5,14 @@ import { digest } from "../../auth/tokens";
 const lifetime = 5 * 60 * 1000;
 
 export const demoBuyerExchange = /^purchase_demo_[a-f0-9]{32}$/u;
+export const shopBuyerExchange = /^purchase_[a-f0-9]{32}$/u;
 
 export async function startExchange(
   storage: DurableObjectStorage,
   owner: string,
   botOverride?: string | null,
   demoBot?: () => Promise<string>,
+  returnUrl?: string,
 ) {
   const bot =
     botOverride === undefined
@@ -24,9 +26,15 @@ export async function startExchange(
   const exchange = `purchase_${fallback ? "demo_" : ""}${crypto.randomUUID().replaceAll("-", "")}`;
   const id = await digest(exchange);
   const expiresAt = Date.now() + lifetime;
-  storage.sql.exec("INSERT INTO customer_telegram_exchanges(id,owner,expires_at) VALUES(?,?,?)", id, owner, expiresAt);
+  storage.sql.exec(
+    "INSERT INTO customer_telegram_exchanges(id,owner,expires_at,return_url) VALUES(?,?,?,?)",
+    id,
+    owner,
+    expiresAt,
+    returnUrl ?? null,
+  );
   const url = new URL(`https://t.me/${username}`);
-  url.searchParams.set(fallback ? "start" : "startapp", exchange);
+  url.searchParams.set(fallback || botOverride ? "start" : "startapp", exchange);
   return { exchange, url: url.href, expiresAt };
 }
 
@@ -52,10 +60,22 @@ export function confirmExchange(
   );
 }
 
+export function browserReturnUrl(storage: DurableObjectStorage, id: string, subject: string) {
+  return storage.sql
+    .exec<{ return_url: string | null }>(
+      "SELECT return_url FROM customer_telegram_exchanges WHERE id=? AND telegram_subject=? AND expires_at>?",
+      id,
+      subject,
+      Date.now(),
+    )
+    .toArray()[0];
+}
+
 export function findExchange(storage: DurableObjectStorage, id: string, owner: string) {
   const [row] = storage.sql
     .exec<{ telegram_subject: string | null; requires_merge: number }>(
-      "SELECT telegram_subject,requires_merge FROM customer_telegram_exchanges WHERE id=? AND owner=? AND expires_at>?",
+      `SELECT telegram_subject,requires_merge FROM customer_telegram_exchanges
+      WHERE id=? AND owner=? AND expires_at>? AND completed_at IS NULL`,
       id,
       owner,
       Date.now(),

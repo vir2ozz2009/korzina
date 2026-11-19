@@ -1,13 +1,20 @@
 import { zValidator } from "@hono/zod-validator";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
-import { emptyInput, phoneContactInput, telegramFinishInput, telegramInput } from "../../../src/shared/contracts/auth";
+import {
+  emptyInput,
+  phoneContactInput,
+  telegramFinishInput,
+  telegramInput,
+  telegramStartInput,
+} from "../../../src/shared/contracts/auth";
 import { ApiError } from "../../../src/shared/errors";
 import { decryptBotToken } from "../../auth/bot-token";
 import { customerCookie, sessionCookie } from "../../auth/cookies";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
 import { sessionLimiter } from "../../auth/session-limit";
 import { verifyInitData } from "../../auth/telegram";
+import { telegramReturnUrl } from "../../auth/telegram-return";
 import { digest } from "../../auth/tokens";
 import { handleError } from "../../middleware/errors";
 import { RateLimiter, rateLimit } from "../../middleware/rate-limit";
@@ -84,7 +91,8 @@ export const customerAuth = new Hono<ShopEnv>()
       c.header("Set-Cookie", sessionCookie(c.req.raw, customerCookie(c.env.shop.id), prepared.token, customerTtl));
     return c.json(result);
   })
-  .post("/telegram/start", zValidator("json", emptyInput, validationFailure), async (c) => {
+  .post("/telegram/start", zValidator("json", telegramStartInput, validationFailure), async (c) => {
+    const returnUrl = telegramReturnUrl(c.req.raw, c.req.valid("json").returnPath);
     const existing = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);
     let owner = existing?.sessionId;
     const prepared = owner ? undefined : await prepareCustomer();
@@ -96,7 +104,7 @@ export const customerAuth = new Hono<ShopEnv>()
       c.env.shop.id === demoPlatformShop && isDemoTelegramOrigin(c.req.raw)
         ? () => ensureDemoTelegramWebhook(c.env.platform, c.env.secrets)
         : undefined;
-    const result = await startExchange(c.env.storage, owner, bot?.username, demoBot);
+    const result = await startExchange(c.env.storage, owner, bot?.username, demoBot, returnUrl);
     if (prepared) {
       writeCustomer(c.env.db, prepared);
       c.header("Set-Cookie", sessionCookie(c.req.raw, customerCookie(c.env.shop.id), prepared.token, customerTtl));
@@ -119,7 +127,7 @@ export const customerAuth = new Hono<ShopEnv>()
         throw new ApiError("AUTH_FAILED", "Время входа через Telegram истекло");
       attachGuest(c.env, existing, target.subject);
       writeCustomer(c.env.db, prepared);
-      c.env.storage.sql.exec("DELETE FROM customer_telegram_exchanges WHERE id=?", id);
+      c.env.storage.sql.exec("UPDATE customer_telegram_exchanges SET completed_at=? WHERE id=?", Date.now(), id);
     });
     c.header("Set-Cookie", sessionCookie(c.req.raw, customerCookie(c.env.shop.id), prepared.token, customerTtl));
     return c.json({ ...prepared.session, pending: false });

@@ -1,9 +1,12 @@
+import { exports } from "cloudflare:workers";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { ApiError } from "../../../src/shared/errors";
 import { decryptBotToken } from "../../auth/bot-token";
 import type { AuthSecrets } from "../../auth/config";
 import { matchesTelegramSecret, telegramApi } from "../../auth/telegram-api";
+import { answerBrowserLogin } from "../../auth/telegram-return";
+import { shopBuyerExchange } from "../../modules/auth/telegram-exchange";
 import { botWebhookSecret, managedBot, miniAppAddress } from "../admin/shop-bot";
 import { answerOwnerInvite, invitationPattern } from "./invitation-reply";
 import { telegramMessage } from "./platform-webhook";
@@ -38,7 +41,12 @@ export const shopWebhook = new Hono<{ Bindings: Env & AuthSecrets }>().post(
         platformBot: c.env.PLATFORM_BOT_TOKEN,
         shopId,
       });
-    else if (text === "/start") {
+    else if (text.startsWith("/start ") && shopBuyerExchange.test(text.slice(7))) {
+      const shop = exports.Shop.get(exports.Shop.idFromName(shopId));
+      const name = [from.first_name, from.last_name].filter(Boolean).join(" ").slice(0, 100);
+      const accepted = await shop.confirmBuyerTelegram(shopId, text.slice(7), String(from.id), name);
+      await answerBrowserLogin(token, chat.id, accepted && (accepted.return_url ?? miniAppAddress(origin, shopId)));
+    } else if (text === "/start") {
       await telegramApi(token, "sendMessage", {
         chat_id: from.id,
         text: "Откройте витрину магазина",
