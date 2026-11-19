@@ -1,5 +1,5 @@
 import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
-import type { ContentBox, MediaPurpose } from "../../../src/shared/contracts/media";
+import type { ContentBox, CropPosition, MediaPurpose } from "../../../src/shared/contracts/media";
 
 export const media = sqliteTable(
   "media",
@@ -13,6 +13,7 @@ export const media = sqliteTable(
     mime: text("mime").notNull(),
     edgeColor: text("edge_color"),
     contentBox: text("content_box", { mode: "json" }).$type<ContentBox>(),
+    cropPosition: text("crop_position", { mode: "json" }).$type<CropPosition>(),
     width: integer("width"),
     height: integer("height"),
     requestKey: text("request_key").notNull(),
