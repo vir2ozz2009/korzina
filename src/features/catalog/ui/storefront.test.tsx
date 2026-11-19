@@ -1,7 +1,7 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { expect, it } from "vitest";
 import { cartContract } from "../../../shared/contracts/cart";
-import { catalogListContract, catalogSearchContract } from "../../../shared/contracts/catalog";
+import { catalogListContract, catalogProductContract, catalogSearchContract } from "../../../shared/contracts/catalog";
 import { catalog, filledCart, list, offers, product, storefront } from "../../../testing/storefront";
 
 const button = (name: string | RegExp) => screen.getByRole("button", { name });
@@ -58,10 +58,12 @@ it("§9.3: счётчик фасовок открывает шторку, зак
   storefront("/", (url, init) => {
     if (url.pathname === "/api/auth/guest") return Response.json({ kind: "guest" });
     if (url.pathname === "/api/catalog/products/product-01")
-      return Response.json({
-        ...product,
-        variants: [{ ...product.variants[0], stock: 0, available: false }, product.variants[1]],
-      });
+      return Response.json(
+        catalogProductContract.parse({
+          ...product,
+          variants: [{ ...product.variants[0], stock: 0, available: false }, product.variants[1]],
+        }),
+      );
     if (url.pathname === "/api/cart" && init?.method === "POST") {
       commands.push(JSON.parse(String(init.body)));
       return Response.json(cartContract.parse({ ...filledCart, revision: 2, lines: [], count: 0, totalMinor: 0 }));

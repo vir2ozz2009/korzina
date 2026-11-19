@@ -30,7 +30,12 @@ function project(
       price: variant.priceMinor,
       available: variant.available,
       variants: variants.length,
-      badges: { soldOut: !variant.available, discount: variant.oldPriceMinor !== null, multiple, from },
+      badges: {
+        soldOut: !variant.available,
+        discount: variant.oldPriceMinor !== null && variant.oldPriceMinor > variant.priceMinor,
+        multiple,
+        from,
+      },
     };
   });
   return {

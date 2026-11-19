@@ -4,7 +4,12 @@ import { cleanup, configure, render } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, vi } from "vitest";
 import { createQueryClient } from "../app/query-defaults";
 import { cartContract } from "../shared/contracts/cart";
-import { catalogDocumentContract, catalogListContract, catalogOffersContract } from "../shared/contracts/catalog";
+import {
+  catalogDocumentContract,
+  catalogListContract,
+  catalogOffersContract,
+  catalogProductContract,
+} from "../shared/contracts/catalog";
 import { shopContextContract } from "../shared/contracts/shop-context";
 
 const shop = shopContextContract.parse({
@@ -115,10 +120,13 @@ export const offers = catalogOffersContract.parse({
   })),
 });
 export const list = catalogListContract.parse({ ...catalog, offers });
-export const product = {
+export const product = catalogProductContract.parse({
   ...tile,
   currency: "VND",
-  recommendations: { items: [] },
+  recommendations: { items: [], offers: [] },
+  catalogVersion: 1,
+  description: "",
+  brandName: null,
   images: [],
   variants: variants.map((variant, i) => ({ ...variant, ...offers.items[i] })),
-};
+});

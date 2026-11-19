@@ -8,7 +8,7 @@ type Notice = { message: string; action?: ToastAction };
 const ToastContext = createContext<(message: string, action?: ToastAction) => void>(() => {});
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [notice, setNotice] = useState<Notice>();
-  const close = useCallback(() => setNotice(undefined), []);
+  const close = useCallback(() => setNotice((current) => (current === notice ? undefined : current)), [notice]);
   const notify = useCallback((message: string, action?: ToastAction) => setNotice({ message, action }), []);
   return (
     <ToastContext value={notify}>

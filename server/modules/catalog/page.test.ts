@@ -1,13 +1,17 @@
 import { exports } from "cloudflare:workers";
 import { beforeAll, beforeEach, expect, it } from "vitest";
+import {
+  catalogDocumentContract,
+  catalogListContract,
+  catalogSearchContract,
+} from "../../../src/shared/contracts/catalog";
 import { setupPlatform } from "../../testing/platform";
-import type { readPage } from "./page";
 import { catalogRequest, catalogSql, resetCatalog } from "./testing";
 
-type Page = Awaited<ReturnType<typeof readPage>>;
+type Page = ReturnType<typeof catalogListContract.parse>;
 beforeAll(setupPlatform);
 beforeEach(resetCatalog);
-const page = async (query: string) => (await catalogRequest(`page?${query}`)).json<Page>();
+const page = async (query: string) => (await catalogRequest(`page?${query}`)).json().then(catalogListContract.parse);
 
 it("единая страница по scope: категория, бренд, все, пустой/скрытый раздел; цены и остатки свежие", async () => {
   const category = await page("scope=category:home");
@@ -23,7 +27,9 @@ it("единая страница по scope: категория, бренд, в
     exports.default.fetch(new Request("https://demo.korzina.app/api/catalog/page?shop=test2&scope=category:home"));
   const first = await request();
   expect(first.headers.get("Cache-Control")).toBe("no-store");
-  expect((await first.json<Page>()).offers.items.find((v) => v.id === "sku-01")?.priceMinor).toBe(45000);
+  expect(
+    (await first.json().then(catalogListContract.parse)).offers.items.find((v) => v.id === "sku-01")?.priceMinor,
+  ).toBe(45000);
   // This update targets the other shop: the cached document must never share live state.
   await catalogSql("UPDATE variants SET price_minor=76543,stock=0 WHERE id='sku-01'");
   expect((await page("scope=category:home")).offers.items.find((v) => v.id === "sku-01")).toMatchObject({
@@ -33,8 +39,13 @@ it("единая страница по scope: категория, бренд, в
   const worker = await exports.default.fetch(
     new Request("https://demo.korzina.app/api/catalog/page?shop=lavka&scope=category:home"),
   );
-  expect((await worker.json<Page>()).offers.items.find((v) => v.id === "sku-01")?.priceMinor).toBe(76543);
-  expect((await (await request()).json<Page>()).offers.items.find((v) => v.id === "sku-01")?.priceMinor).toBe(45000);
+  expect(
+    (await worker.json().then(catalogListContract.parse)).offers.items.find((v) => v.id === "sku-01")?.priceMinor,
+  ).toBe(76543);
+  expect(
+    (await (await request()).json().then(catalogListContract.parse)).offers.items.find((v) => v.id === "sku-01")
+      ?.priceMinor,
+  ).toBe(45000);
   await catalogSql("UPDATE categories SET visible=0 WHERE id='home'");
   expect((await catalogRequest("page?scope=category:home")).status).toBe(404);
   expect((await catalogRequest("page?scope=brand:missing")).status).toBe(404);
@@ -135,12 +146,12 @@ it("отправляет распроданные товары в конец д�
 
     const search = await catalogRequest("search?q=stock-page&cat=empty");
     expect(search.status).toBe(200);
-    const matches = (await search.json<Page>()).items;
+    const matches = (await search.json().then(catalogSearchContract.parse)).items;
     expect(matches).toHaveLength(16);
     expect(matches.every(({ id }) => inStock.includes(id))).toBe(true);
 
     const query = "document?category=empty&limit=16&count=1";
-    const read = async (path: string) => (await catalogRequest(path)).json<Omit<Page, "offers">>();
+    const read = async (path: string) => (await catalogRequest(path)).json().then(catalogDocumentContract.parse);
     const first = await read(query);
     expect(first.items.map(({ id }) => id)).toEqual(inStock.slice(0, 16));
     expect(first.count).toBe(38);

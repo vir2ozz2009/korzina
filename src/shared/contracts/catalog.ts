@@ -80,3 +80,23 @@ export const shoppingSearchContract = z.object({
   offers: catalogOffersContract,
   groups: z.array(z.object({ term: z.string(), ids: z.array(id), preferred })),
 });
+
+export const catalogProductContract = tile.omit({ image: true, variants: true }).extend({
+  description: z.string(),
+  brandName: z.string().nullable(),
+  catalogVersion: z.number().int(),
+  currency: z.string(),
+  variants: z.array(
+    z.object({
+      id,
+      name: z.string(),
+      photoId: id.nullable(),
+      priceMinor: z.number().int(),
+      oldPriceMinor: z.number().int().nullable(),
+      stock: z.number().int().nullable(),
+      available: z.boolean(),
+    }),
+  ),
+  images: z.array(catalogImageContract.extend({ id })),
+  recommendations: z.object({ items: z.array(tile), offers: z.array(offer) }),
+});

@@ -3,9 +3,16 @@ import { expect, type Page } from "@playwright/test";
 export function captureApi(page: Page) {
   const errors: string[] = [];
   const calls: string[] = [];
+  let cartReadResponded = false;
+  let receivingStartedBeforeCartResponse = false;
+  page.on("response", (response) => {
+    if (new URL(response.url()).pathname === "/api/cart" && response.request().method() === "GET")
+      cartReadResponded = true;
+  });
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("request", (request) => {
     const path = new URL(request.url()).pathname;
+    if (path === "/api/receiving" && !cartReadResponded) receivingStartedBeforeCartResponse = true;
     if (path.startsWith("/api/")) calls.push(`${request.method()} ${path}`);
   });
   return {
@@ -20,7 +27,12 @@ export function captureApi(page: Page) {
       }
       return actual;
     },
-    reset: () => calls.splice(0),
+    receivingStartedInParallel: () => receivingStartedBeforeCartResponse,
+    reset: () => {
+      calls.length = 0;
+      cartReadResponded = false;
+      receivingStartedBeforeCartResponse = false;
+    },
   };
 }
 
@@ -64,6 +76,7 @@ export async function openCart(page: Page, api: ReturnType<typeof captureApi>, r
     ...(localWorker(page) ? ["GET /api/auth/contact", "GET /api/receiving", "GET /api/checkout/summary"] : []),
   ]);
   expect(actual).toEqual(expect.arrayContaining(["GET /api/cart", "GET /api/receiving", "GET /api/checkout/summary"]));
+  expect(api.receivingStartedInParallel()).toBe(true);
 }
 
 export async function cartClick(page: Page, name: RegExp | string) {

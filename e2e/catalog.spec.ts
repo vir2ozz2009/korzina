@@ -180,13 +180,13 @@ test("П2, §3.1: от категории и фасовки до удалени�
   await cartClick(page, "Добавить в корзину");
   await openCart(page, api);
   await cartClick(page, "Увеличить количество");
-  await expect(page.getByLabel("Количество")).toHaveText("2");
+  await expect(page.getByRole("status", { name: "Количество", exact: true })).toHaveText("2");
   await cartClick(page, "Уменьшить количество");
-  await expect(page.getByLabel("Количество")).toHaveText("1");
+  await expect(page.getByRole("status", { name: "Количество", exact: true })).toHaveText("1");
   await cartClick(page, /^Удалить Томаты/);
   await expect(page.getByText("Корзина пуста")).toBeVisible();
   await cartClick(page, "Вернуть");
-  await expect(page.getByLabel("Количество")).toHaveText("1");
+  await expect(page.getByRole("status", { name: "Количество", exact: true })).toHaveText("1");
   await cartClick(page, /^Удалить Томаты/);
   await expect(page.getByText("Корзина пуста")).toBeVisible();
   expect(api.errors).toEqual([]);
@@ -216,7 +216,7 @@ test("§3.1: изменение цены и остатка требует при
     await expect(page.getByText("Осталось 1")).toBeVisible();
     await cartClick(page, "Принять изменения");
     await expect(changes).toHaveCount(0);
-    await expect(page.getByLabel("Количество")).toHaveText("1");
+    await expect(page.getByRole("status", { name: "Количество", exact: true })).toHaveText("1");
     expect(api.errors).toEqual([]);
   } finally {
     await command("restore");
