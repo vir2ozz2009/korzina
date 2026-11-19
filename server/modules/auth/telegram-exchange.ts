@@ -1,6 +1,7 @@
 import { telegramExchangeInput } from "../../../src/shared/contracts/auth";
 import { ApiError } from "../../../src/shared/errors";
 import { digest } from "../../auth/tokens";
+import { hasTelegramProfile, initTelegramProfile } from "../profile/service";
 
 const lifetime = 5 * 60 * 1000;
 
@@ -60,15 +61,26 @@ export function confirmExchange(
   );
 }
 
-export function browserReturnUrl(storage: DurableObjectStorage, id: string, subject: string) {
-  return storage.sql
-    .exec<{ return_url: string | null }>(
-      "SELECT return_url FROM customer_telegram_exchanges WHERE id=? AND telegram_subject=? AND expires_at>?",
-      id,
-      subject,
-      Date.now(),
-    )
-    .toArray()[0];
+export async function confirmBrowserBuyer(
+  storage: DurableObjectStorage,
+  exchange: string,
+  telegramId: string,
+  name: string,
+) {
+  const id = await digest(exchange);
+  const subject = `telegram:${telegramId}`;
+  return storage.transactionSync(() => {
+    if (confirmExchange(storage, id, subject, hasTelegramProfile(storage, subject)))
+      initTelegramProfile(storage, subject, name);
+    return storage.sql
+      .exec<{ return_url: string | null }>(
+        "SELECT return_url FROM customer_telegram_exchanges WHERE id=? AND telegram_subject=? AND expires_at>?",
+        id,
+        subject,
+        Date.now(),
+      )
+      .toArray()[0];
+  });
 }
 
 export function findExchange(storage: DurableObjectStorage, id: string, owner: string) {

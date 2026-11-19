@@ -12,17 +12,10 @@ import { resolveFeatures } from "../../src/shared/flags";
 import { decryptBotToken } from "../auth/bot-token";
 import type { AuthSecrets } from "../auth/config";
 import { verifyInitData } from "../auth/telegram";
-import { digest } from "../auth/tokens";
 import { RequestMetrics } from "../metrics";
 import { handleError, notFound } from "../middleware/errors";
 import { extendCustomerVisit } from "../modules/auth/service";
-import {
-  browserReturnUrl,
-  confirmExchange,
-  demoBuyerExchange,
-  shopBuyerExchange,
-} from "../modules/auth/telegram-exchange";
-import { hasTelegramProfile, initTelegramProfile } from "../modules/profile/service";
+import { confirmBrowserBuyer, demoBuyerExchange, shopBuyerExchange } from "../modules/auth/telegram-exchange";
 import { botCoordinator, changeShopBot, managedBot } from "../platform/admin/shop-bot";
 import type { ShopMutation } from "../platform/admin/shop-change";
 import { demoPlatformShop } from "../platform/auth/demo-telegram";
@@ -177,14 +170,7 @@ export class Shop extends DurableObject<Env> {
       !/^[1-9][0-9]{0,15}$/.test(telegramId)
     )
       return undefined;
-    const id = await digest(exchange);
-    const storage = this.ctx.storage;
-    const subject = `telegram:${telegramId}`;
-    return storage.transactionSync(() => {
-      if (confirmExchange(storage, id, subject, hasTelegramProfile(storage, subject)))
-        initTelegramProfile(storage, subject, name);
-      return browserReturnUrl(storage, id, subject);
-    });
+    return confirmBrowserBuyer(this.ctx.storage, exchange, telegramId, name);
   }
 
   adminShopStats() {
