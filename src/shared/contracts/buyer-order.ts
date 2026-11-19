@@ -37,7 +37,7 @@ export type ActiveOrders =
   | { rev: string; data: { orders: Pick<OrderSummary, "number" | "stage" | "time">[]; count: number } }
   | { rev: string; unchanged: true };
 export type BuyerOrdersPage = { orders: OrderSummary[]; cursor?: string };
-export type RepeatLine = {
+type RepeatLine = {
   variantId: string;
   name: string;
   unit: string;

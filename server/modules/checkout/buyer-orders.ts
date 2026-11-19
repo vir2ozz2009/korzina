@@ -20,7 +20,7 @@ type OrderRow = {
   snapshot: string;
 };
 
-export function isActiveOrder(stage: OrderStage) {
+function isActiveOrder(stage: OrderStage) {
   return stage !== "completed" && stage !== "cancelled";
 }
 
