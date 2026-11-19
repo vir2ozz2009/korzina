@@ -88,6 +88,7 @@ export function AddressSheet({
 
   function another() {
     setError("");
+    setPoint(undefined);
     setTrail(choices.length ? ["choose", firstEntry] : [firstEntry]);
   }
 
@@ -194,7 +195,7 @@ export function AddressSheet({
             rememberOutside={rememberOutside}
             currency={currency}
             pending={pending}
-            other={another}
+            enterAddress={another}
             pickup={pickup}
             save={(address, selected) =>
               void saveAddress({

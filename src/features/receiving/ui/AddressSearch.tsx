@@ -28,7 +28,9 @@ export function AddressSearch({
   save: () => void;
 }) {
   const { query, searching } = useAddressSuggestions(address);
-  const offerManual = query.isError || query.data?.length === 0;
+  const suggestions = query.data ?? [];
+  const offerSave = !searching && (query.isError || query.data?.length === 0);
+  const offerManual = !offerSave && !blocked && !!address.trim();
   return (
     <>
       <SearchField value={address} label="Улица, дом, город" disabled={pending} onChange={change} />
@@ -37,15 +39,21 @@ export function AddressSearch({
           Ищем адрес…
         </p>
       )}
-      {query.data?.map((place) => (
-        <ListItem
-          key={JSON.stringify(place)}
-          title={place.address}
-          icon={<MapPin size={20} />}
-          onClick={pending ? undefined : () => select(place)}
-        />
-      ))}
-      {offerManual && !blocked && (
+      {!!suggestions.length && (
+        <ul aria-label="Подсказки адреса" className="rounded-xl bg-secondary p-1">
+          {suggestions.map((place) => (
+            <li key={JSON.stringify(place)}>
+              <ListItem
+                title={place.address}
+                icon={<MapPin size={20} />}
+                variant="compact"
+                onClick={pending ? undefined : () => select(place)}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+      {offerSave && !blocked && (
         <>
           <p role="status" className="text-meta">
             {query.isError ? "Подсказки пока недоступны." : "Совпадений нет."} Можно сохранить набранный текст.
@@ -61,13 +69,13 @@ export function AddressSearch({
           Этот адрес уже проверен и находится вне зоны.
         </p>
       )}
-      <div className={offerManual || blocked ? "" : "grid grid-cols-2 gap-2"}>
+      <div className="space-y-2">
         <Button full variant="secondary" disabled={pending} onClick={map}>
           Указать на карте
         </Button>
-        {!offerManual && !blocked && (
-          <Button full variant="secondary" disabled={pending} onClick={manual}>
-            Ввести вручную
+        {offerManual && (
+          <Button full variant="ghost" disabled={pending} onClick={manual}>
+            Ввести адрес вручную
           </Button>
         )}
       </div>

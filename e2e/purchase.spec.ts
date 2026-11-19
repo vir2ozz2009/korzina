@@ -73,6 +73,8 @@ test("B10: товар, доставка и заказ наличными", async
       await route.fulfill({ json: { results: [{ address: "45 Lê Lợi, Хошимин", ...input.point }] } });
     } else if (input.type === "reverse") {
       await route.fulfill({ status: 404, json: { error: { code: "ADDRESS_NOT_FOUND", message: "Адрес не найден" } } });
+    } else if (input.type === "search" && input.address === "45 Lê Lợi") {
+      await route.fulfill({ json: { results: [{ address: "45 Lê Lợi, Хошимин", lat: 10.7769, lon: 106.7009 }] } });
     } else {
       await route.fulfill({
         status: 429,
@@ -140,10 +142,29 @@ test("B10: товар, доставка и заказ наличными", async
   const locate = map.getByRole("button", { name: "Определить мою позицию" });
   await locate.click();
   await expect(map.getByText(/Разрешите геопозицию для этого сайта/)).toBeVisible();
+  await page.screenshot({ path: "test-results/checkout-address-map-fallback-390.png", animations: "disabled" });
+  await map.getByRole("button", { name: "Ввести адрес вручную", exact: true }).click();
+  await expect(street).toHaveValue("28 Lê Lợi, Хошимин");
+  await street.fill("45 Lê Lợi");
+  const suggestions = search.getByRole("list", { name: "Подсказки адреса" });
+  const suggested = suggestions.getByRole("button", { name: "45 Lê Lợi, Хошимин", exact: true });
+  await expect(suggested).toBeVisible();
+  await page.screenshot({ path: "test-results/checkout-address-suggestions-390.png", animations: "disabled" });
+  await suggested.click();
+  const review = page.getByRole("dialog", { name: "Проверьте адрес" });
+  await expect(review.getByText("Доставка доступна", { exact: true })).toBeVisible();
+  await review.getByRole("button", { name: "Назад", exact: true }).click();
+  await street.fill("28 Lê Lợi, Хошимин");
+  await search.getByRole("button", { name: "Сохранить адрес вручную" }).click();
+  await expect(search).toBeHidden();
+  await expect(savedAddress).toBeVisible();
 
   namedPoint = true;
   await page.context().setGeolocation({ latitude: 10.777, longitude: 106.701 });
   await page.context().grantPermissions(["geolocation"]);
+  await savedAddress.click();
+  await chooser.getByRole("button", { name: /28 Lê Lợi, Хошимин.*Текущий адрес/ }).click();
+  await manual.getByRole("button", { name: "Указать на карте" }).click();
   await locate.click();
   await expect(map.getByText("45 Lê Lợi, Хошимин", { exact: true })).toBeVisible();
   await expect(map.getByRole("textbox", { name: "Адрес для курьера" })).toHaveValue("28 Lê Lợi, Хошимин");

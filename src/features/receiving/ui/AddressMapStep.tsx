@@ -20,7 +20,7 @@ export function AddressMapStep({
   currency,
   pending,
   save,
-  other,
+  enterAddress,
   pickup,
 }: {
   address: string;
@@ -32,7 +32,7 @@ export function AddressMapStep({
   currency: string;
   pending: boolean;
   save: (address: string, point: Point) => void;
-  other: () => void;
+  enterAddress: () => void;
   pickup?: () => void;
 }) {
   const [tileError, setTileError] = useState(false);
@@ -64,7 +64,7 @@ export function AddressMapStep({
           onUnavailable={() => setTileError(true)}
         />
       </Suspense>
-      {tileError && <p className="text-meta">Карта загрузилась не полностью. Можно вернуться к вводу адреса.</p>}
+      {tileError && <p className="text-meta">Карта загрузилась не полностью.</p>}
       <Button
         full
         variant="secondary"
@@ -115,9 +115,14 @@ export function AddressMapStep({
           )}
         </>
       )}
+      {!rejected && (!point || locationError || check.isError) && (
+        <Button full variant="secondary" disabled={pending} onClick={enterAddress}>
+          Ввести адрес вручную
+        </Button>
+      )}
       {rejected && (
         <>
-          <Button full disabled={pending} onClick={other}>
+          <Button full disabled={pending} onClick={enterAddress}>
             Указать другой адрес
           </Button>
           {pickup && (
