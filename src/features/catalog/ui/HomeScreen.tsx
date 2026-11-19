@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { bootstrap } from "../../../app/bootstrap";
 import { telegramLaunch } from "../../../app/telegram/launch";
 import { HomeTemplate } from "../../../app/templates/HomeTemplate";
+import { storefrontProducts } from "../../../shared/catalog/model";
 import { HttpError } from "../../../shared/http-error";
 import { AboutStore } from "../../../ui/AboutStore";
 import { ErrorState } from "../../../ui/AsyncErrorState";
@@ -11,7 +12,6 @@ import { StoreHeader } from "../../../ui/StoreHeader";
 import { useCart } from "../../cart";
 import { ContactSheet, useContact } from "../../contact";
 import { useCatalog, useOffers } from "../api";
-import { storefrontProducts } from "../model";
 import { HomeView } from "./HomeView";
 import { toTiles } from "./toTiles";
 

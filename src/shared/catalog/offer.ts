@@ -1,4 +1,4 @@
-import type { CartLine } from "../../shared/contracts/cart";
+import type { CartLine } from "../contracts/cart";
 
 interface Variant {
   id: string;

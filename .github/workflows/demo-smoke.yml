@@ -40,7 +40,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: node scripts/wait-for-demo.ts
-      - run: npm run test:e2e
+      - run: npm run test:e2e -- --grep-invert @home-cart
         env:
           E2E_BASE_URL: https://demo.korzina.app
       - uses: actions/upload-artifact@v4

@@ -2,22 +2,35 @@ import { createContext, lazy, type ReactNode, Suspense, useCallback, useContext,
 
 const Toast = lazy(() => import("../../ui/Toast").then((module) => ({ default: module.Toast })));
 
-const ToastContext = createContext<(message: string) => void>(() => {});
+type ToastAction = { label: string; run: () => void };
+type Notice = { message: string; action?: ToastAction };
+
+const ToastContext = createContext<(message: string, action?: ToastAction) => void>(() => {});
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [message, setMessage] = useState("");
-  const close = useCallback(() => setMessage(""), []);
+  const [notice, setNotice] = useState<Notice>();
+  const close = useCallback(() => setNotice(undefined), []);
+  const notify = useCallback((message: string, action?: ToastAction) => setNotice({ message, action }), []);
   return (
-    <ToastContext value={setMessage}>
+    <ToastContext value={notify}>
       {children}
-      {message && (
+      {notice && (
         <Suspense
           fallback={
             <span role="status" className="sr-only">
-              {message}
+              {notice.message}
             </span>
           }
         >
-          <Toast key={message} message={message} onClose={close} />
+          <Toast
+            key={notice.message}
+            message={notice.message}
+            action={notice.action?.label}
+            onAction={() => {
+              close();
+              notice.action?.run();
+            }}
+            onClose={close}
+          />
         </Suspense>
       )}
     </ToastContext>

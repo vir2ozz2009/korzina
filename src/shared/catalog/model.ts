@@ -1,4 +1,4 @@
-import type { CatalogOffer, CatalogTile } from "../../shared/contracts/catalog";
+import type { CatalogOffer, CatalogTile } from "../contracts/catalog";
 
 // A public snapshot never supplies a price or stock. Missing/tombstoned offers disappear.
 export function storefrontProducts(items: CatalogTile[], offers: CatalogOffer[]) {

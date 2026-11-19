@@ -15,7 +15,7 @@ import { useViewport } from "./useViewport";
 const SellerTabs = lazy(() => import("./SellerTabs").then((module) => ({ default: module.SellerTabs })));
 
 export function AppShell() {
-  useViewport();
+  const keyboardOpen = useViewport();
   const back = useBack();
   const path = useRouterState({ select: (state) => state.location.pathname });
   const isRoot = useRouterState({ select: (state) => state.matches.at(-1)?.staticData.root ?? false });
@@ -80,7 +80,7 @@ export function AppShell() {
                   <SellerTabs />
                 </Suspense>
               )}
-              {floating && bootstrap?.status === "active" && (
+              {floating && !keyboardOpen && bootstrap?.status === "active" && (
                 <ShopActions compact={path.startsWith("/p/")} search={path !== "/search"} />
               )}
             </div>

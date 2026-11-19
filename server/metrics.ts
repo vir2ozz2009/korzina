@@ -1,9 +1,10 @@
-export type SqlMetrics = { sql: number; rowsRead: number; rowsWritten: number; dbMs: number };
+export type SqlMetrics = { sql: number; transactions: number; rowsRead: number; rowsWritten: number; dbMs: number };
 export class RequestMetrics {
   private readonly started = performance.now();
   private readonly cursors: SqlStorageCursor<Record<string, SqlStorageValue>>[] = [];
   private dbMs = 0;
   private queries = 0;
+  private transactions = 0;
 
   private timed<T>(operation: () => T): T {
     const start = performance.now();
@@ -46,6 +47,11 @@ export class RequestMetrics {
     return new Proxy(storage, {
       get: (target, property) => {
         if (property === "sql") return sql;
+        if (property === "transactionSync")
+          return <T>(run: () => T) => {
+            this.transactions++;
+            return storage.transactionSync(run);
+          };
         const value = Reflect.get(target, property, target);
         return typeof value === "function" ? value.bind(target) : value;
       },
@@ -55,6 +61,7 @@ export class RequestMetrics {
   snapshot(): SqlMetrics {
     return {
       sql: this.queries,
+      transactions: this.transactions,
       rowsRead: this.cursors.reduce((n, c) => n + c.rowsRead, 0),
       rowsWritten: this.cursors.reduce((n, c) => n + c.rowsWritten, 0),
       dbMs: this.dbMs,

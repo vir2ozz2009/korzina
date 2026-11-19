@@ -1,6 +1,6 @@
+import type { StorefrontProduct } from "../../../shared/catalog/model";
+import { selectOffer } from "../../../shared/catalog/offer";
 import type { useCart } from "../../cart";
-import type { StorefrontProduct } from "../model";
-import { selectOffer } from "../offer";
 import type { HomeViewProps } from "./HomeView";
 
 export function toTiles({

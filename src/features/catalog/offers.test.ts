@@ -1,10 +1,12 @@
 import { QueryClient } from "@tanstack/react-query";
 import { expect, it, vi } from "vitest";
+import { catalogOffersContract } from "../../shared/contracts/catalog";
 import { offerPages, offersQuery } from "./offers";
 
 it("новая страница live не перечитывает уже загруженную и каждый запрос ограничен 50 SKU", async () => {
   const client = new QueryClient();
-  const fetcher = vi.spyOn(globalThis, "fetch").mockImplementation(async () => Response.json({ items: [] }));
+  const body = catalogOffersContract.parse({ catalogVersion: 1, currency: "VND", hideOutOfStock: false, items: [] });
+  const fetcher = vi.spyOn(globalThis, "fetch").mockImplementation(async () => Response.json(body));
   try {
     const first = { items: [{ variants: Array.from({ length: 60 }, (_, i) => ({ id: `sku-${i}` })) }] };
     const second = { items: [{ variants: [{ id: "next-sku" }] }] };

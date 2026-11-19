@@ -32,7 +32,7 @@ function productListQuery(scope: CatalogScope, filters: CatalogFilters = {}, ena
         { init: { signal } },
       );
       await checkResponse(response);
-      const data = await response.json();
+      const data = (await import("../../shared/contracts/catalog")).catalogListContract.parse(await response.json());
       const image = (value: Parameters<typeof resolveDocumentImage>[0]) =>
         resolveDocumentImage(value, bootstrap?.mediaOrigin ?? "");
       return {
