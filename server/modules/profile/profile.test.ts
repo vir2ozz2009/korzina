@@ -74,7 +74,7 @@ it("§9.4 · изменение корзины не отменяет сохра�
     action: "save",
     revision: before.revision,
     title: "Работа",
-    receiving: { mode: "delivery", address: "45 Lê Lợi" },
+    receiving: { mode: "delivery", address: "45 Lê Lợi", apartment: "7" },
   };
   const saved = await postAuth(path, save, { Cookie });
   expect(saved.status).toBe(200);
