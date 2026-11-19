@@ -143,7 +143,9 @@ describe("бюджеты каталога", () => {
     }
     const product = await catalogRequest("products/product-01");
     expect(product.status).toBe(200);
-    assertSqlBudget(JSON.parse(product.headers.get("x-korzina-sql") as string), { sql: 3, rowsWritten: 0 });
+    const productMetric = JSON.parse(product.headers.get("x-korzina-sql") as string);
+    expect(productMetric.route).toBe("/api/catalog/products/:id");
+    assertSqlBudget(productMetric, { sql: 3, rowsWritten: 0 });
   });
 
   it("страница категории/бренда ≤4 SQL документа + ≤2 SQL live, без записей", async () => {
@@ -173,8 +175,15 @@ describe("бюджеты каталога", () => {
   it("планы всех запросов товара, категории, бренда, фасовок и фото используют индексы больших таблиц", async () => {
     await catalogSql("SELECT version FROM catalog_state WHERE id=1");
     await runInDurableObject(catalogStub(), (_instance, ctx) => {
-      const pages = [{ limit: 50 }, { limit: 50, category: "milk" }, { limit: 50, brand: "brand-1" }].map(
-        documentQuery,
+      const pages = [{ limit: 50 }, { limit: 50, category: "milk" }, { limit: 50, brand: "brand-1" }].map((input) =>
+        documentQuery(input),
+      );
+      const next = documentQuery({ limit: 16, after: "product-01" });
+      const nextPlan = ctx.storage.sql
+        .exec<{ detail: string }>(`EXPLAIN QUERY PLAN ${next.sql}`, ...next.params)
+        .toArray();
+      expect(nextPlan.map((row) => row.detail).join("\n")).toMatch(
+        /products_catalog_availability_idx.*catalog_sold_out,id/,
       );
       const statements = [
         ...pages,

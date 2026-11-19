@@ -1,22 +1,25 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { bootstrap } from "../../../app/bootstrap";
-import { useToast } from "../../../app/shell/ToastProvider";
+import { telegramLaunch } from "../../../app/telegram/launch";
 import { HomeTemplate } from "../../../app/templates/HomeTemplate";
+import { storefrontProducts } from "../../../shared/catalog/model";
+import { HttpError } from "../../../shared/http-error";
 import { AboutStore } from "../../../ui/AboutStore";
 import { ErrorState } from "../../../ui/AsyncErrorState";
 import { Button } from "../../../ui/Button";
 import { StoreHeader } from "../../../ui/StoreHeader";
 import { useCart } from "../../cart";
+import { ContactSheet, useContact } from "../../contact";
 import { useCatalog, useOffers } from "../api";
-import { storefrontProducts } from "../model";
-import { HomeUnfinished } from "./HomeUnfinished";
 import { HomeView } from "./HomeView";
 import { toTiles } from "./toTiles";
 
 const VariantsSheet = lazy(() => import("./VariantsSheet").then((module) => ({ default: module.VariantsSheet })));
 
 export function HomeScreen() {
+  const [login, setLogin] = useState(false);
+  const contact = useContact(false);
   const [version, setVersion] = useState<number>();
   const catalog = useCatalog(version);
   const document = catalog.data?.pages[0];
@@ -24,11 +27,11 @@ export function HomeScreen() {
   const offers = useOffers(catalog.data?.pages ?? []);
   const cart = useCart();
   const navigate = useNavigate();
-  const toast = useToast();
-  const unfinished = import.meta.env.SHOW_UNFINISHED ? (task: string) => () => toast(`В работе · ${task}`) : undefined;
   const search = useSearch({ strict: false }) as { variants?: string };
   const products = storefrontProducts(items, offers.data?.items ?? []);
   const error = catalog.error ?? offers.error;
+  const reordered =
+    catalog.isFetchNextPageError && catalog.error instanceof HttpError && catalog.error.code === "VERSION_CONFLICT";
   const pending = catalog.isPending || (items.length > 0 && offers.isPending && !products.length);
   const query = {
     data: pending || ((catalog.isError || offers.isError) && !products.length) ? undefined : products,
@@ -51,9 +54,9 @@ export function HomeScreen() {
           <StoreHeader
             name={bootstrap?.name ?? "Магазин"}
             onAbout={() => void navigate({ to: "/about" })}
-            onAddress={unfinished?.("B7 · Адрес")}
-            onProfile={unfinished?.("B9 · Вход и профиль")}
-            onChat={unfinished?.("O · Чат")}
+            onProfile={
+              telegramLaunch || contact.data?.phone || contact.data?.telegramLinked ? undefined : () => setLogin(true)
+            }
           />
         }
         after={<AboutStore onClick={() => void navigate({ to: "/about" })} />}
@@ -64,7 +67,6 @@ export function HomeScreen() {
           emptyDescription: "Загляните чуть позже — здесь появятся товары.",
         }}
         sections={[
-          import.meta.env.SHOW_UNFINISHED && <HomeUnfinished key="unfinished" />,
           <HomeView
             key="catalog"
             allProductsHref="/catalog"
@@ -86,27 +88,35 @@ export function HomeScreen() {
                   })
                 : []
             }
+            moreProducts={
+              reordered ? (
+                <div className="space-y-2">
+                  <p role="status">Каталог обновился. Обновите список.</p>
+                  <Button full variant="secondary" onClick={() => void offers.refetch()}>
+                    Обновить список
+                  </Button>
+                </div>
+              ) : catalog.isFetchNextPageError ? (
+                <ErrorState error={catalog.error} onRetry={() => void catalog.fetchNextPage()} />
+              ) : catalog.hasNextPage ? (
+                <Button
+                  full
+                  variant="secondary"
+                  loading={catalog.isFetchingNextPage}
+                  onClick={() => void catalog.fetchNextPage()}
+                >
+                  Показать ещё
+                </Button>
+              ) : undefined
+            }
             brands={(document?.brands ?? []).filter((brand) => brand.hasProducts)}
           />,
           cart.query.isError && (
             <ErrorState key="cart-error" error={cart.query.error} onRetry={() => void cart.query.refetch()} />
           ),
-          catalog.isFetchNextPageError && (
-            <ErrorState key="page-error" error={catalog.error} onRetry={() => void catalog.fetchNextPage()} />
-          ),
-          catalog.hasNextPage && (
-            <Button
-              key="more"
-              full
-              variant="secondary"
-              loading={catalog.isFetchingNextPage}
-              onClick={() => void catalog.fetchNextPage()}
-            >
-              Показать ещё
-            </Button>
-          ),
         ]}
       />
+      <ContactSheet mode={login ? "telegram" : undefined} close={() => setLogin(false)} />
       {search.variants && (
         <Suspense fallback={null}>
           <VariantsSheet id={search.variants} />

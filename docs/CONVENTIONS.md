@@ -66,7 +66,7 @@ function ProductScreen() {
 - в `src/features/**`, `src/routes/**` или `src/ui/**` есть hex/rgb-цвет (цвета — только в `tokens.css` и `theme-presets.ts`), а также `text-white` на `bg-primary` (нужен `text-primary-foreground`), `px` в произвольных классах Tailwind (`w-[123px]`) или inline `style` с цветом;
 - фича импортирует внутренности другой фичи (`features/a/...` → `features/b/ui/...`); общее — только через `src/ui`, `src/shared`, `features/<x>/index.ts`;
 - клиентский код импортирует `server/**` (кроме единственного стираемого `import type { AppType }` в `src/shared/api.ts` для Hono RPC), а сервер — `src/features/**`;
-- файл длиннее 250 строк (исключения — список в скрипте с причиной);
+- файл длиннее 250 строк вне `src/` и `server/`. В этих двух каталогах превышение даёт предупреждение. Длинный файл делим при следующем изменении;
 - в маршруте есть `fetch(` или прямой вызов `api.`;
 - в коде фич есть арифметика денег вне `money.ts` (`* 100`, `/ 100`, `toFixed`);
 - в `src/**` есть `.css`, кроме `src/styles/tokens.css` и `src/styles/main.css`: **стили — только Tailwind-классы на токенах в компонентах**; размеры и геометрия — токенами в `tokens.css`.

@@ -15,7 +15,7 @@ export function offersQuery(ids: string[]) {
     queryFn: async ({ signal }) => {
       const response = await shopApi.api.catalog.live.$get({ query: { ids: ids.join(",") } }, { init: { signal } });
       await checkResponse(response);
-      return response.json();
+      return (await import("../../shared/contracts/catalog")).catalogOffersContract.parse(await response.json());
     },
   });
 }

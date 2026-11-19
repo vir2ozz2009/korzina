@@ -1,0 +1,210 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`§6–§7: порядок видимых непустых разделов и предложения на первой странице главной и каталога 1`] = `
+{
+  "catalog": {
+    "brands": [
+      "brand-1",
+      "brand-2",
+      "brand-3",
+      "brand-4",
+    ],
+    "categories": [
+      "bakery",
+      "fruit",
+      "home",
+      "milk",
+      "meat",
+    ],
+    "tileCount": 7,
+    "tiles": [
+      {
+        "available": true,
+        "badges": {
+          "discount": false,
+          "from": true,
+          "multiple": true,
+          "soldOut": false,
+        },
+        "price": 45000,
+        "sku": "sku-01",
+        "variants": 4,
+      },
+      {
+        "available": true,
+        "badges": {
+          "discount": true,
+          "from": true,
+          "multiple": true,
+          "soldOut": false,
+        },
+        "price": 49000,
+        "sku": "sku-05",
+        "variants": 4,
+      },
+      {
+        "available": true,
+        "badges": {
+          "discount": false,
+          "from": true,
+          "multiple": true,
+          "soldOut": false,
+        },
+        "price": 55000,
+        "sku": "sku-09",
+        "variants": 3,
+      },
+      {
+        "available": true,
+        "badges": {
+          "discount": false,
+          "from": true,
+          "multiple": true,
+          "soldOut": false,
+        },
+        "price": 22000,
+        "sku": "sku-13",
+        "variants": 4,
+      },
+      {
+        "available": true,
+        "badges": {
+          "discount": false,
+          "from": true,
+          "multiple": true,
+          "soldOut": false,
+        },
+        "price": 42000,
+        "sku": "sku-20",
+        "variants": 4,
+      },
+      {
+        "available": true,
+        "badges": {
+          "discount": false,
+          "from": true,
+          "multiple": true,
+          "soldOut": false,
+        },
+        "price": 23000,
+        "sku": "sku-24",
+        "variants": 4,
+      },
+      {
+        "available": true,
+        "badges": {
+          "discount": false,
+          "from": false,
+          "multiple": false,
+          "soldOut": false,
+        },
+        "price": 55000,
+        "sku": "sku-25",
+        "variants": 1,
+      },
+    ],
+  },
+  "home": {
+    "brands": [
+      "brand-1",
+      "brand-2",
+      "brand-3",
+      "brand-4",
+    ],
+    "categories": [
+      "bakery",
+      "fruit",
+      "home",
+      "milk",
+      "meat",
+    ],
+    "tileCount": 7,
+    "tiles": [
+      {
+        "available": true,
+        "badges": {
+          "discount": false,
+          "from": true,
+          "multiple": true,
+          "soldOut": false,
+        },
+        "price": 45000,
+        "sku": "sku-01",
+        "variants": 4,
+      },
+      {
+        "available": true,
+        "badges": {
+          "discount": true,
+          "from": true,
+          "multiple": true,
+          "soldOut": false,
+        },
+        "price": 49000,
+        "sku": "sku-05",
+        "variants": 4,
+      },
+      {
+        "available": true,
+        "badges": {
+          "discount": false,
+          "from": true,
+          "multiple": true,
+          "soldOut": false,
+        },
+        "price": 55000,
+        "sku": "sku-09",
+        "variants": 3,
+      },
+      {
+        "available": true,
+        "badges": {
+          "discount": false,
+          "from": true,
+          "multiple": true,
+          "soldOut": false,
+        },
+        "price": 22000,
+        "sku": "sku-13",
+        "variants": 4,
+      },
+      {
+        "available": true,
+        "badges": {
+          "discount": false,
+          "from": true,
+          "multiple": true,
+          "soldOut": false,
+        },
+        "price": 42000,
+        "sku": "sku-20",
+        "variants": 4,
+      },
+      {
+        "available": true,
+        "badges": {
+          "discount": false,
+          "from": true,
+          "multiple": true,
+          "soldOut": false,
+        },
+        "price": 23000,
+        "sku": "sku-24",
+        "variants": 4,
+      },
+      {
+        "available": true,
+        "badges": {
+          "discount": false,
+          "from": false,
+          "multiple": false,
+          "soldOut": false,
+        },
+        "price": 55000,
+        "sku": "sku-25",
+        "variants": 1,
+      },
+    ],
+  },
+}
+`;

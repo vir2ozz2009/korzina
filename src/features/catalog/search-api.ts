@@ -24,7 +24,7 @@ function searchQuery(q: string, filters: CatalogFilters = {}, active = true) {
         { init: { signal } },
       );
       await checkResponse(response);
-      const data = await response.json();
+      const data = (await import("../../shared/contracts/catalog")).catalogSearchContract.parse(await response.json());
       const image = (item: Parameters<typeof resolveDocumentImage>[0]) =>
         resolveDocumentImage(item, bootstrap?.mediaOrigin ?? "");
       return { ...data, items: data.items.map((item) => ({ ...item, image: image(item.image) })) };
@@ -43,7 +43,7 @@ export function useShoppingMatches(q: string, enabled: boolean) {
     queryFn: async ({ signal }) => {
       const response = await shopApi.api.catalog["shopping-search"].$post({ json: { q } }, { init: { signal } });
       await checkResponse(response);
-      const data = await response.json();
+      const data = (await import("../../shared/contracts/catalog")).shoppingSearchContract.parse(await response.json());
       const image = (item: Parameters<typeof resolveDocumentImage>[0]) =>
         resolveDocumentImage(item, bootstrap?.mediaOrigin ?? "");
       return { ...data, items: data.items.map((item) => ({ ...item, image: image(item.image) })) };

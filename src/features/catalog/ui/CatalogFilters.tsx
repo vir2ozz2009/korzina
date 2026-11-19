@@ -29,7 +29,6 @@ export function CatalogFilters({
   pending,
   onDraft,
   onApply,
-  onCharacteristics,
 }: {
   filters: Filters;
   defaultSortLabel?: string;
@@ -41,7 +40,6 @@ export function CatalogFilters({
   pending: boolean;
   onDraft: (filters: Filters | undefined) => void;
   onApply: (filters: Filters) => void;
-  onCharacteristics?: () => void;
 }) {
   const [sheet, setSheet] = useState<"filters" | "sort">();
   const [level, setLevel] = useState<"category" | "brand">();
@@ -210,14 +208,6 @@ export function CatalogFilters({
             <Button full variant="secondary" onClick={() => setLevel("brand")}>
               {selected(draft.brands).length ? `Выбрано: ${selected(draft.brands).length}` : "Все бренды"} ›
             </Button>
-            {onCharacteristics && (
-              <>
-                <p className="text-label">Характеристики</p>
-                <Button full variant="secondary" onClick={onCharacteristics}>
-                  Любые характеристики ›
-                </Button>
-              </>
-            )}
             <label className="flex min-h-11 items-center gap-3">
               <input
                 type="checkbox"

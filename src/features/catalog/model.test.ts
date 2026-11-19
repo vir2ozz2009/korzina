@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
+import { storefrontProducts } from "../../shared/catalog/model";
 import type { CatalogOffer, CatalogTile } from "../../shared/contracts/catalog";
-import { storefrontProducts } from "./model";
 
 it("плитка использует только оперативные предложения: скрытые, удалённые и чужие SKU из старого документа исчезают", () => {
   const product: CatalogTile = {

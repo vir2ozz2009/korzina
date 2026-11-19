@@ -13,7 +13,9 @@ function productQuery(id: string) {
     queryFn: async ({ signal }) => {
       const response = await shopApi.api.catalog.products[":id"].$get({ param: { id } }, { init: { signal } });
       await checkResponse(response);
-      const result = await response.json();
+      const result = (await import("../../shared/contracts/catalog")).catalogProductContract.parse(
+        await response.json(),
+      );
       const origin = bootstrap?.mediaOrigin ?? "";
       return {
         ...result,

@@ -11,9 +11,35 @@ import m0009 from "./0009_pale_iron_man.sql?raw";
 import m0010 from "./0010_nice_lifeguard.sql?raw";
 import m0011 from "./0011_catalog_list_prices.sql?raw";
 import m0012 from "./0012_catalog_search.sql?raw";
+import m0013 from "./0013_cart_quote.sql?raw";
+import m0014 from "./0014_receiving.sql?raw";
+import m0015 from "./0015_receiving_seats.sql?raw";
+import m0016 from "./0016_purchase_contact.sql?raw";
+import m0017 from "./0017_checkout.sql?raw";
+import m0018 from "./0018_catalog_availability_order.sql?raw";
 import journal from "./meta/_journal.json";
 
 export const migrations = {
   journal,
-  migrations: { m0000, m0001, m0002, m0003, m0004, m0005, m0006, m0007, m0008, m0009, m0010, m0011, m0012 },
+  migrations: {
+    m0000,
+    m0001,
+    m0002,
+    m0003,
+    m0004,
+    m0005,
+    m0006,
+    m0007,
+    m0008,
+    m0009,
+    m0010,
+    m0011,
+    m0012,
+    m0013,
+    m0014,
+    m0015,
+    m0016,
+    m0017,
+    m0018,
+  },
 };

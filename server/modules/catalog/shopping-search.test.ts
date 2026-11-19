@@ -1,9 +1,9 @@
 import { exports } from "cloudflare:workers";
 import { beforeAll, expect, it } from "vitest";
+import { shoppingSearchContract } from "../../../src/shared/contracts/catalog";
 import { readShoppingSearch } from "../../../src/shared/shopping-search";
 import { assertSqlBudget } from "../../metrics";
 import { setupPlatform } from "../../testing/platform";
-import type { readShoppingMatches } from "./shopping-search";
 
 beforeAll(setupPlatform);
 
@@ -29,7 +29,7 @@ it("разбирает список с запятыми и переносами,
 it("возвращает найденные и неизвестные позиции одним запросом, включая точный вес", async () => {
   const response = await search("молоко 500 мл, томаты\nнеизвестнаяпозиция");
   expect(response.status).toBe(200);
-  const data = await response.json<ReturnType<typeof readShoppingMatches>>();
+  const data = await response.json().then(shoppingSearchContract.parse);
   expect(data.groups.map(({ term }) => term)).toEqual(["молоко 500 мл", "томаты", "неизвестнаяпозиция"]);
   expect(data.groups[0].preferred).toEqual({ "product-13": "sku-13" });
   expect(data.groups[1].ids).toContain("product-01");
@@ -41,7 +41,7 @@ it("возвращает найденные и неизвестные позиц
 it("подбирает опубликованные ингредиенты греческого салата", async () => {
   const response = await search("Греческий салат");
   expect(response.status).toBe(200);
-  const { items } = await response.json<ReturnType<typeof readShoppingMatches>>();
+  const { items } = await response.json().then(shoppingSearchContract.parse);
   expect(items.some((item) => /томаты/i.test(item.name))).toBe(true);
   expect(items.some((item) => /огурцы/i.test(item.name))).toBe(true);
   expect(items.every((item) => /томаты|огурцы|сладкий перец|красный лук|оливки|фета/i.test(item.name))).toBe(true);

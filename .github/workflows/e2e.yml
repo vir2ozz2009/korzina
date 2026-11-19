@@ -2,7 +2,21 @@ name: E2E
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review, labeled]
+    paths:
+      - 'src/features/catalog/**'
+      - 'src/features/cart/**'
+      - 'server/modules/catalog/**'
+      - 'server/modules/cart/**'
+      - 'src/shared/catalog/**'
+      - 'src/shared/contracts/catalog*.ts'
+      - 'src/shared/contracts/cart.ts'
+      - 'e2e/catalog.spec.ts'
+      - 'e2e/home-cart.ts'
+      - 'e2e/worker.ts'
+      - 'playwright.config.ts'
+      - 'cloudflare.config.ts'
+      - '.github/workflows/e2e.yml'
+    types: [opened, synchronize, reopened, ready_for_review]
   schedule:
     - cron: '0 3 * * *'
   workflow_dispatch:
@@ -19,10 +33,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   smoke:
-    if: >-
-      github.event_name != 'pull_request' ||
-      (github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'e2e') &&
-      (github.event.action != 'labeled' || github.event.label.name == 'e2e'))
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -33,7 +44,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - if: github.event_name == 'pull_request'
+        run: npm run test:e2e -- --grep @home-cart
+      - if: github.event_name != 'pull_request'
+        run: npm run test:e2e
         env:
           E2E_BASE_URL: ${{ inputs.target == 'demo' && 'https://demo.korzina.app' || '' }}
       - uses: actions/upload-artifact@v4

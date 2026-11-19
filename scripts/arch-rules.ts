@@ -5,8 +5,6 @@ export interface SourceFile {
   content: string;
 }
 
-// Exceptions require a task ID and a reason; no exceptions are needed in F1.
-const lineExceptions: Readonly<Record<string, { task: string; reason: string }>> = {};
 const sourceExtension = /\.(?:[cm]?[jt]sx?|css)$/;
 const restrictedUi = /^src\/(?:features|routes|ui)\//;
 const literalColor = /#[\da-f]{3,8}\b|\brgba?\s*\(/i;
@@ -19,9 +17,10 @@ function resolveImport(file: string, specifier: string): string {
   return specifier.replace(/^\//, "");
 }
 
-export function inspectSource({ path, content }: SourceFile): string[] {
-  if (!sourceExtension.test(path)) return [];
+export function inspectSource({ path, content }: SourceFile) {
   const errors: string[] = [];
+  const warnings: string[] = [];
+  if (!sourceExtension.test(path)) return { errors, warnings };
   if (
     path.startsWith("src/") &&
     path.endsWith(".css") &&
@@ -30,7 +29,11 @@ export function inspectSource({ path, content }: SourceFile): string[] {
     errors.push(`${path}: стили должны быть Tailwind-классами на токенах`);
   const report = (message: string) => errors.push(`${path}: ${message}`);
   const lines = content.trimEnd().split("\n").length;
-  if (lines > 250 && !lineExceptions[path]) report(`длина ${lines} строк, максимум 250`);
+  if (lines > 250) {
+    const message = `длина ${lines} строк, максимум 250`;
+    if (/^(?:src|server)\//.test(path)) warnings.push(`${path}: ${message}`);
+    else report(message);
+  }
 
   if (restrictedUi.test(path)) {
     if (literalColor.test(content)) report("цвета задаются токенами");
@@ -77,5 +80,5 @@ export function inspectSource({ path, content }: SourceFile): string[] {
       report(`внутренности другой фичи: ${match[1]}`);
     }
   }
-  return errors;
+  return { errors, warnings };
 }

@@ -1,7 +1,7 @@
 import { mutationOptions, type QueryClient } from "@tanstack/react-query";
+import { cartTotals } from "../../shared/cart-totals";
 import type { Cart, CartLine } from "../../shared/contracts/cart";
 import { errorKind, HttpError } from "../../shared/http-error";
-import { addMinor, multiplyMinor } from "../../shared/money";
 
 export type CartCommand = {
   line: CartLine;
@@ -9,6 +9,7 @@ export type CartCommand = {
   currency: string;
   key: string;
   expectedRevision?: number;
+  undoRemoval?: boolean;
 };
 
 export function optimisticCart(cart: Cart, pending: CartCommand[]): Cart {
@@ -18,13 +19,10 @@ export function optimisticCart(cart: Cart, pending: CartCommand[]): Cart {
     if (quantity) lines.set(line.variantId, { ...line, quantity });
     else lines.delete(line.variantId);
   }
-  const items = [...lines.values()];
   return {
     ...cart,
     currency: cart.currency ?? pending[0].currency,
-    lines: items,
-    count: items.reduce((sum, line) => sum + line.quantity, 0),
-    totalMinor: addMinor(...items.map((line) => multiplyMinor(line.priceMinor, line.quantity))),
+    ...cartTotals([...lines.values()], cart.adjustments),
   };
 }
 
@@ -33,6 +31,7 @@ export function cartMutationOptions(
   key: readonly string[],
   send: (input: CartCommand & { expectedRevision: number }) => Promise<Cart>,
   notify: (message: string) => void,
+  onRemoved?: (input: CartCommand) => void,
 ) {
   return mutationOptions({
     mutationKey: key,
@@ -47,7 +46,8 @@ export function cartMutationOptions(
     },
     onMutate: () => client.cancelQueries({ queryKey: key }),
     onSuccess: (cart, input) => {
-      client.setQueryData<Cart>(key, cart);
+      client.setQueryData<Cart>(key, (previous) => (previous && previous.revision > cart.revision ? previous : cart));
+      if (input.undoRemoval && !cart.lines.some((line) => line.variantId === input.line.variantId)) onRemoved?.(input);
       if (input.quantity > (cart.lines.find((line) => line.variantId === input.line.variantId)?.quantity ?? 0))
         notify("Больше нет");
     },

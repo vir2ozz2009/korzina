@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    fileParallelism: false,
+    maxWorkers: 2,
     projects: [
       {
         test: {
@@ -11,6 +11,14 @@ export default defineConfig({
           include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
           environment: "node",
           isolate: false,
+        },
+      },
+      {
+        test: {
+          name: "screens",
+          include: ["src/**/*.test.tsx"],
+          environment: "happy-dom",
+          testTimeout: 1800,
         },
       },
       {

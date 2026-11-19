@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { Hono } from "hono";
+import { routePath } from "hono/route";
 import { shopContract } from "../../src/shared/contracts/shop";
 import { shopContextContract } from "../../src/shared/contracts/shop-context";
 import { ApiError, errorBody, errorStatus } from "../../src/shared/errors";
@@ -10,9 +11,9 @@ import { resolveFeatures } from "../../src/shared/flags";
 import type { AuthSecrets } from "../auth/config";
 import { RequestMetrics } from "../metrics";
 import { handleError, notFound } from "../middleware/errors";
-import { seedCatalog } from "../modules/catalog/seed";
 import { cleanupSellers, platformCleanupId } from "../platform/cleanup";
 import { rescheduleCleanup, scheduleCleanup } from "./cleanup";
+import type { ShopEnv } from "./env";
 import { cleanupShop } from "./maintenance";
 import { migrations } from "./migrations";
 import { shopRoutes } from "./routes";
@@ -20,7 +21,15 @@ import { settings } from "./schema";
 
 export class Shop extends DurableObject<Env> {
   private identity: string | undefined;
-  private readonly router = new Hono().onError(handleError).route("/api", shopRoutes()).notFound(notFound);
+  private readonly router = new Hono<ShopEnv>()
+    .onError(handleError)
+    .use("*", async (c, next) => {
+      const path = routePath(c, -1);
+      if (path && !path.endsWith("*")) c.env.matchedRoute?.(path);
+      await next();
+    })
+    .route("/api", shopRoutes())
+    .notFound(notFound);
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -30,11 +39,6 @@ export class Shop extends DurableObject<Env> {
         await rescheduleCleanup(ctx.storage, false);
         ctx.storage.sql.exec("INSERT INTO settings(key,value) VALUES('cleanup_revision','R1')");
       }
-      if (
-        env.APP_ENV !== "production" &&
-        ["korzina-demo-lavka", "korzina-demo-test2"].some((id) => this.ctx.exports.Shop.idFromName(id).equals(ctx.id))
-      )
-        seedCatalog(ctx.storage);
     });
   }
 
@@ -44,6 +48,7 @@ export class Shop extends DurableObject<Env> {
     const db = drizzle(storage);
     let response: Response;
     let shopId: string | undefined;
+    let route = "unmatched";
     try {
       const metadata = request.headers.get("x-korzina-shop");
       if (!metadata) throw new ApiError("FORBIDDEN", "Нет магазина");
@@ -71,15 +76,14 @@ export class Shop extends DurableObject<Env> {
         secrets: this.env as Env & AuthSecrets,
         platform: this.env.PLATFORM,
         media: this.env,
+        matchedRoute: (path) => {
+          route = path;
+        },
       });
     } catch (error) {
       const known = error instanceof ApiError ? error : new ApiError("INTERNAL", "Внутренняя ошибка сервера");
       response = Response.json(errorBody(known), { status: errorStatus[known.code] });
     }
-    const route =
-      this.router.routes.find(
-        (route) => route.path === new URL(request.url).pathname && route.method === request.method,
-      )?.path ?? "unmatched";
     const metric = metrics.record(
       route,
       shopId,
@@ -91,6 +95,31 @@ export class Shop extends DurableObject<Env> {
     // Only the public Worker can see these; it strips them before returning to the client.
     response.headers.set("x-korzina-sql", JSON.stringify(metric));
     return response;
+  }
+
+  allowGeocoder(provider: "photon" | "nominatim") {
+    if (!this.ctx.exports.Shop.idFromName("geocoder:osm").equals(this.ctx.id)) throw new Error("Wrong coordinator");
+    const time = Date.now();
+    return this.ctx.storage.transactionSync(() => {
+      const key = `geocoder:${provider}`;
+      const previous = this.ctx.storage.sql
+        .exec<{ value: string }>("SELECT value FROM settings WHERE key=?", key)
+        .toArray()[0];
+      if (previous && time - Number(previous.value) < 1100) return false;
+      this.ctx.storage.sql.exec(
+        "INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        key,
+        String(time),
+      );
+      return true;
+    });
+  }
+
+  async seedDemoCatalog(shopId: string) {
+    if (this.env.APP_ENV === "production" || !this.ctx.exports.Shop.idFromName(shopId).equals(this.ctx.id))
+      throw new ApiError("FORBIDDEN", "Сидирование недоступно");
+    const { seedCatalog } = await import("../modules/catalog/seed");
+    seedCatalog(this.ctx.storage);
   }
 
   async schedulePlatformCleanup() {

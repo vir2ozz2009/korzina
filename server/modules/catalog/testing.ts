@@ -23,13 +23,19 @@ export function catalogRequest(path: string, id = "korzina-demo-lavka") {
 }
 
 export async function catalogSql(query: string, ...params: SqlStorageValue[]) {
-  await (await catalogRequest("live?ids=sku-01")).arrayBuffer();
-  return runInDurableObject(catalogStub(), (_instance, ctx) => ctx.storage.sql.exec(query, ...params).toArray());
+  return shopCatalogSql(query, params);
 }
 
-export async function resetCatalog() {
-  await (await catalogRequest("live?ids=sku-01")).arrayBuffer();
-  await runInDurableObject(catalogStub(), (_instance, ctx) => {
+export async function shopCatalogSql(query: string, params: SqlStorageValue[], id?: string) {
+  await (await catalogRequest("live?ids=sku-01", id)).arrayBuffer();
+  return runInDurableObject(catalogStub(id), (_instance, ctx) => ctx.storage.sql.exec(query, ...params).toArray());
+}
+
+export const resetCatalog = () => resetShopCatalog();
+
+export async function resetShopCatalog(id?: string) {
+  await (await catalogRequest("live?ids=sku-01", id)).arrayBuffer();
+  await runInDurableObject(catalogStub(id), (_instance, ctx) => {
     ctx.storage.transactionSync(() => {
       ctx.storage.sql.exec("UPDATE products SET visible=1,published=1");
       ctx.storage.sql.exec("UPDATE categories SET visible=1");

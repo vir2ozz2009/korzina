@@ -1,7 +1,8 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { lazy, type ReactNode, Suspense, useState } from "react";
-import { useToast } from "../../../app/shell/ToastProvider";
 import { CatalogTemplate } from "../../../app/templates/CatalogTemplate";
+import { storefrontProducts } from "../../../shared/catalog/model";
 import {
   type CatalogScope,
   type CatalogFilters as Filters,
@@ -10,13 +11,13 @@ import {
 import { HttpError } from "../../../shared/http-error";
 import { ErrorState } from "../../../ui/AsyncErrorState";
 import { BrandTile } from "../../../ui/BrandTile";
+import { Button } from "../../../ui/Button";
 import { Chip } from "../../../ui/Chip";
 import { EmptyState } from "../../../ui/EmptyState";
 import { ProductTile } from "../../../ui/ProductTile";
 import { useCart } from "../../cart";
 import { readFilterParams } from "../filter-params";
-import { useProductList } from "../list-api";
-import { storefrontProducts } from "../model";
+import { productListKey, useProductList } from "../list-api";
 import { CatalogFilters } from "./CatalogFilters";
 import { CatalogTabs } from "./CatalogTabs";
 import { toTiles } from "./toTiles";
@@ -35,6 +36,9 @@ export function ProductList({
   const filters = readFilterParams(parameters);
   const [draft, setDraft] = useState<Filters>();
   const list = useProductList(scope, filters);
+  const client = useQueryClient();
+  const reordered =
+    list.isFetchNextPageError && list.error instanceof HttpError && list.error.code === "VERSION_CONFLICT";
   const preview = useProductList(
     scope,
     draft,
@@ -44,7 +48,6 @@ export function ProductList({
   const navigate = useNavigate();
   const cart = useCart();
   const search = parameters;
-  const toast = useToast();
   const category = document?.categories.find((item) => item.id === categoryId);
   const brand = scope.startsWith("brand:") ? document?.brands.find((item) => item.id === scope.slice(6)) : undefined;
   const selected = scope.startsWith("category:") ? scope.slice(9) : undefined;
@@ -94,7 +97,7 @@ export function ProductList({
           title="0 товаров"
           description="Измените цену или сбросьте фильтры"
           action="Сбросить фильтры"
-          onAction={() => apply({})}
+          onAction={() => apply({ sort: filters.sort })}
         />
       </div>
     );
@@ -155,20 +158,30 @@ export function ProductList({
                   pending={!!draft && preview.isFetching}
                   onDraft={setDraft}
                   onApply={apply}
-                  onCharacteristics={
-                    import.meta.env.SHOW_UNFINISHED ? () => toast("В работе · A · Характеристики") : undefined
-                  }
                 />
               )}
             </>
           )
         }
-        onLoadMore={!unavailable && list.hasNextPage ? () => void list.fetchNextPage() : undefined}
+        onLoadMore={!unavailable && !reordered && list.hasNextPage ? () => void list.fetchNextPage() : undefined}
         loadingMore={list.isFetchingNextPage}
       >
         {content}
       </CatalogTemplate>
-      {list.isFetchNextPageError && <ErrorState error={list.error} onRetry={() => void list.fetchNextPage()} />}
+      {reordered ? (
+        <div className="space-y-2 px-3">
+          <p role="status">Каталог обновился. Обновите список.</p>
+          <Button
+            full
+            variant="secondary"
+            onClick={() => void client.resetQueries({ queryKey: productListKey(scope, filters), exact: true })}
+          >
+            Обновить список
+          </Button>
+        </div>
+      ) : (
+        list.isFetchNextPageError && <ErrorState error={list.error} onRetry={() => void list.fetchNextPage()} />
+      )}
       {cart.query.isError && <ErrorState error={cart.query.error} onRetry={() => void cart.query.refetch()} />}
       {search.variants && (
         <Suspense fallback={null}>

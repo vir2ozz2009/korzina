@@ -8,9 +8,11 @@ import { shopApi, shopKey } from "../../shared/shop-api";
 import { resolveDocumentImage } from "./document-images";
 
 type CatalogPage = InferResponseType<typeof shopApi.api.catalog.page.$get>;
+export const productListKey = (scope: CatalogScope, filters: CatalogFilters = {}) =>
+  ["shop", shopKey, "product-list", scope, filters] as const;
 function productListQuery(scope: CatalogScope, filters: CatalogFilters = {}, enabled = true) {
   return infiniteQueryOptions({
-    queryKey: ["shop", shopKey, "product-list", scope, filters] as const,
+    queryKey: productListKey(scope, filters),
     ...queryPolicy.stock,
     enabled: enabled && bootstrap?.status === "active",
     initialPageParam: undefined as string | undefined,
@@ -30,7 +32,7 @@ function productListQuery(scope: CatalogScope, filters: CatalogFilters = {}, ena
         { init: { signal } },
       );
       await checkResponse(response);
-      const data = await response.json();
+      const data = (await import("../../shared/contracts/catalog")).catalogListContract.parse(await response.json());
       const image = (value: Parameters<typeof resolveDocumentImage>[0]) =>
         resolveDocumentImage(value, bootstrap?.mediaOrigin ?? "");
       return {

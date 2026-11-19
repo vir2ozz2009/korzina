@@ -46,6 +46,7 @@ export const products = sqliteTable(
       .references(() => categories.id),
     brandId: text("brand_id").references(() => brands.id),
     availablePrice: integer("available_price"),
+    catalogSoldOut: integer("catalog_sold_out").generatedAlwaysAs(sql`available_price IS NULL`),
     hasCatalogOffer: integer("has_catalog_offer").notNull().default(0),
     published: integer("published", { mode: "boolean" }).notNull().default(false),
     visible: integer("visible", { mode: "boolean" }).notNull().default(true),
@@ -54,6 +55,15 @@ export const products = sqliteTable(
     index("products_storefront_idx").on(t.published, t.visible, t.id),
     index("products_category_idx").on(t.published, t.visible, t.categoryId, t.id),
     index("products_brand_idx").on(t.published, t.visible, t.brandId, t.id),
+    index("products_catalog_availability_idx").on(t.published, t.visible, t.hasCatalogOffer, t.catalogSoldOut, t.id),
+    index("products_catalog_available_name_idx").on(
+      t.published,
+      t.visible,
+      t.hasCatalogOffer,
+      t.catalogSoldOut,
+      sql`${t.name} COLLATE NOCASE`,
+      t.id,
+    ),
   ],
 );
 

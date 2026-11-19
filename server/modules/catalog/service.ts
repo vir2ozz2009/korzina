@@ -42,8 +42,12 @@ export function readDocument(
     (input.brand && !brands.some((brand) => brand.id === input.brand))
   )
     throw new ApiError("NOT_FOUND", "Раздел недоступен");
-  const state = storage.sql.exec<{ version: number }>("SELECT version FROM catalog_state WHERE id=1").one();
-  const query = matchingIds ? matchingDocumentQuery(input, matchingIds) : documentQuery(input);
+  const state = storage.sql
+    .exec<{ version: number; hide: number }>("SELECT version, hide_out_of_stock AS hide FROM catalog_state WHERE id=1")
+    .one();
+  if (input.after && input.version !== undefined && input.version !== state.version)
+    throw new ApiError("VERSION_CONFLICT", "Каталог обновился. Обновите список.");
+  const query = matchingIds ? matchingDocumentQuery(input, matchingIds) : documentQuery(input, Boolean(state.hide));
   const rows = storage.sql.exec<TileRow>(query.sql, ...query.params).toArray();
   const items: CatalogTile[] = rows.slice(0, input.limit).map(({ photo, variants, ...row }) => ({
     id: row.id,
@@ -53,7 +57,7 @@ export function readDocument(
     image: documentImage(photo, shopId),
     variants: JSON.parse(variants),
   }));
-  const countQuery = input.count ? documentCountQuery(input) : undefined;
+  const countQuery = input.count ? documentCountQuery(input, Boolean(state.hide)) : undefined;
   return {
     catalogVersion: state.version,
     count: countQuery ? storage.sql.exec<{ count: number }>(countQuery.sql, ...countQuery.params).one().count : null,
