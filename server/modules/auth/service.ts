@@ -6,6 +6,23 @@ import { newToken, tokenHash } from "../../auth/tokens";
 import { sessions } from "../../shop/schema";
 
 export const customerTtl = 30 * 86_400;
+
+export function extendCustomerVisit(storage: DurableObjectStorage, sessionId: string) {
+  const now = Date.now();
+  const expiresAt = now + customerTtl * 1000;
+  return (
+    storage.sql
+      .exec(
+        "UPDATE sessions SET expires_at=? WHERE token_hash=? AND kind='telegram' AND expires_at>? AND expires_at<? RETURNING 1",
+        expiresAt,
+        sessionId,
+        now,
+        expiresAt,
+      )
+      .toArray().length > 0
+  );
+}
+
 export async function readCustomerWith<T extends Pick<typeof sessions.$inferSelect, "subject" | "kind" | "expiresAt">>(
   request: Request,
   shopId: string,

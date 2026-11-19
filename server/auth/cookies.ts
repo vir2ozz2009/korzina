@@ -12,6 +12,10 @@ export function credential(request: Request, cookieName: string): string | undef
     if (!match) throw new ApiError("UNAUTHORIZED", "Сессия недействительна");
     return match[1];
   }
+  return cookieValue(request, cookieName);
+}
+
+export function cookieValue(request: Request, cookieName: string) {
   const cookies =
     request.headers
       .get("Cookie")

@@ -78,8 +78,8 @@ it("§9.1 · §9.12 запасной Telegram-вход привязан к ис�
   const update = { message: { from: { id: 90003 }, chat: { id: 90003, type: "private" }, text: `/start ${exchange}` } };
   expect((await postAuth("/api/platform/telegram", update)).status).toBe(403);
   expect((await finish(browser)).status).toBe(202);
-  expect(await confirmSellerExchange(env.PLATFORM, exchange, "90003")).toBe(true);
-  expect(await confirmSellerExchange(env.PLATFORM, exchange, "90004")).toBe(false);
+  expect(await confirmSellerExchange(env.PLATFORM, exchange, "90003")).toEqual({ return_url: null });
+  expect(await confirmSellerExchange(env.PLATFORM, exchange, "90004")).toBeUndefined();
   expect((await finish("")).status).toBe(401);
   const results = await Promise.all([finish(browser), finish(browser)]);
   expect(results.map((response) => response.status).sort()).toEqual([200, 401]);

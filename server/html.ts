@@ -1,7 +1,11 @@
+import { exports } from "cloudflare:workers";
 import type { ShopContext } from "../src/shared/contracts/shop-context";
 import { ApiError } from "../src/shared/errors";
 import { DEFAULT_THEME, themeStyle } from "../src/shared/theme-presets";
+import { cookieValue, customerCookie, sessionCookie } from "./auth/cookies";
+import { tokenHash } from "./auth/tokens";
 import { isDemoPath } from "./development";
+import { customerTtl } from "./modules/auth/service";
 import { shopContexts } from "./platform/shop-context";
 
 export function themedHtml(response: Response, context: ShopContext, shopTheme: boolean): Response {
@@ -33,7 +37,15 @@ export async function serveHtml(request: Request, env: Env): Promise<Response> {
   try {
     const context = await shopContexts.read(request, env);
     const isShop = !/^\/(seller|admin)(\/|$)/.test(url.pathname);
-    return themedHtml(response, context, isShop);
+    const page = themedHtml(response, context, isShop);
+    const name = customerCookie(context.id);
+    const token = request.method === "GET" ? cookieValue(request, name) : undefined;
+    if (token && /^[a-f0-9]{64}$/u.test(token)) {
+      const shop = exports.Shop.get(exports.Shop.idFromName(context.id));
+      const renewed = await shop.extendBuyerVisit(context.id, await tokenHash(token)).catch(() => false);
+      if (renewed) page.headers.append("Set-Cookie", sessionCookie(request, name, token, customerTtl));
+    }
+    return page;
   } catch (error) {
     const status = error instanceof ApiError && error.code === "SHOP_NOT_FOUND" ? 404 : 503;
     return new Response(status === 404 ? "Магазин не найден" : "Магазин временно недоступен. Обновите страницу.", {

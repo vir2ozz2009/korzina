@@ -2,12 +2,13 @@ import { exports } from "cloudflare:workers";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import { emptyInput, telegramInput } from "../../../src/shared/contracts/auth";
+import { telegramInput, telegramStartInput } from "../../../src/shared/contracts/auth";
 import { ApiError } from "../../../src/shared/errors";
 import type { AuthSecrets } from "../../auth/config";
 import { sellerCookie, sessionCookie } from "../../auth/cookies";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
 import { verifyInitData } from "../../auth/telegram";
+import { telegramReturnUrl } from "../../auth/telegram-return";
 import type { CommandVariables } from "../../middleware/idempotency";
 import { browserCodePattern, finishSellerExchange, startSellerExchange } from "./browser-exchange";
 import { enterCabinet, readCabinet } from "./cabinet";
@@ -30,10 +31,11 @@ export const cabinetRoutes = new Hono<{ Bindings: Env & AuthSecrets; Variables: 
   .get("/", zValidator("query", cabinetQuery, validationFailure), async (c) =>
     c.json(await readCabinet(c.env.PLATFORM, c.req.raw, c.req.valid("query").store)),
   )
-  .post("/start", authBodyLimit, authCommand, zValidator("json", emptyInput, validationFailure), async (c) => {
+  .post("/start", authBodyLimit, authCommand, zValidator("json", telegramStartInput, validationFailure), async (c) => {
+    const returnUrl = telegramReturnUrl(c.req.raw, c.req.valid("json").returnPath ?? "/seller", true);
     if (c.env.APP_ENV === "demo" && isDemoTelegramOrigin(c.req.raw))
       await ensureDemoTelegramWebhook(c.env.PLATFORM, c.env);
-    const { cookie, ...exchange } = await startSellerExchange(c.env.PLATFORM, c.env.PLATFORM_BOT_USERNAME);
+    const { cookie, ...exchange } = await startSellerExchange(c.env.PLATFORM, c.env.PLATFORM_BOT_USERNAME, returnUrl);
     c.header("Set-Cookie", sessionCookie(c.req.raw, cookie.name, cookie.value, cookie.ttl));
     return c.json(exchange, 201);
   })

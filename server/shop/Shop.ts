@@ -12,11 +12,10 @@ import { resolveFeatures } from "../../src/shared/flags";
 import { decryptBotToken } from "../auth/bot-token";
 import type { AuthSecrets } from "../auth/config";
 import { verifyInitData } from "../auth/telegram";
-import { digest } from "../auth/tokens";
 import { RequestMetrics } from "../metrics";
 import { handleError, notFound } from "../middleware/errors";
-import { confirmExchange, demoBuyerExchange } from "../modules/auth/telegram-exchange";
-import { hasTelegramProfile, initTelegramProfile } from "../modules/profile/service";
+import { extendCustomerVisit } from "../modules/auth/service";
+import { confirmBrowserBuyer, demoBuyerExchange, shopBuyerExchange } from "../modules/auth/telegram-exchange";
 import { botCoordinator, changeShopBot, managedBot } from "../platform/admin/shop-bot";
 import type { ShopMutation } from "../platform/admin/shop-change";
 import { demoPlatformShop } from "../platform/auth/demo-telegram";
@@ -163,23 +162,15 @@ export class Shop extends DurableObject<Env> {
     });
   }
 
-  async confirmDemoBuyerTelegram(exchange: string, telegramId: string, name: string) {
+  async confirmBuyerTelegram(shopId: string, exchange: string, telegramId: string, name: string) {
+    const isDemo = demoBuyerExchange.test(exchange);
     if (
-      this.env.APP_ENV !== "demo" ||
-      !this.ctx.exports.Shop.idFromName(demoPlatformShop).equals(this.ctx.id) ||
-      !demoBuyerExchange.test(exchange) ||
+      !this.ctx.exports.Shop.idFromName(shopId).equals(this.ctx.id) ||
+      (isDemo ? this.env.APP_ENV !== "demo" || shopId !== demoPlatformShop : !shopBuyerExchange.test(exchange)) ||
       !/^[1-9][0-9]{0,15}$/.test(telegramId)
     )
-      return false;
-    const id = await digest(exchange);
-    const storage = this.ctx.storage;
-    const subject = `telegram:${telegramId}`;
-    return storage.transactionSync(() => {
-      const collision = hasTelegramProfile(storage, subject);
-      if (!confirmExchange(storage, id, subject, collision)) return false;
-      initTelegramProfile(storage, subject, name);
-      return true;
-    });
+      return undefined;
+    return confirmBrowserBuyer(this.ctx.storage, exchange, telegramId, name);
   }
 
   adminShopStats() {
@@ -190,6 +181,12 @@ export class Shop extends DurableObject<Env> {
       WHERE payment_status NOT IN ('unpaid','pending_review') LIMIT 1`)
         .toArray().length > 0;
     return { products, finances };
+  }
+
+  extendBuyerVisit(shopId: string, sessionId: string) {
+    return (
+      this.ctx.exports.Shop.idFromName(shopId).equals(this.ctx.id) && extendCustomerVisit(this.ctx.storage, sessionId)
+    );
   }
 
   allowGeocoder(provider: "photon" | "nominatim") {

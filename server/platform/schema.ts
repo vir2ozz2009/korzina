@@ -119,6 +119,7 @@ export const sellerExchanges = sqliteTable(
     proofHash: text("proof_hash").notNull(),
     telegramId: text("telegram_id"),
     completedWith: text("completed_with"),
+    returnUrl: text("return_url"),
     expiresAt: integer("expires_at").notNull(),
   },
   (table) => [index("seller_exchanges_expiry_idx").on(table.expiresAt)],
