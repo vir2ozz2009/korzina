@@ -8,7 +8,9 @@ import { shopContract } from "../../src/shared/contracts/shop";
 import { shopContextContract } from "../../src/shared/contracts/shop-context";
 import { ApiError, errorBody, errorStatus } from "../../src/shared/errors";
 import { resolveFeatures } from "../../src/shared/flags";
+import { decryptBotToken } from "../auth/bot-token";
 import type { AuthSecrets } from "../auth/config";
+import { verifyInitData } from "../auth/telegram";
 import { RequestMetrics } from "../metrics";
 import { handleError, notFound } from "../middleware/errors";
 import { cleanupSellers, platformCleanupId } from "../platform/cleanup";
@@ -95,6 +97,21 @@ export class Shop extends DurableObject<Env> {
     // Only the public Worker can see these; it strips them before returning to the client.
     response.headers.set("x-korzina-sql", JSON.stringify(metric));
     return response;
+  }
+
+  async verifyCabinetTelegram(initData: string, shopId: string) {
+    if (!this.ctx.exports.Shop.idFromName(shopId).equals(this.ctx.id))
+      throw new ApiError("FORBIDDEN", "Другой магазин");
+    const setting = this.ctx.storage.sql
+      .exec<{ value: string }>("SELECT value FROM settings WHERE key='telegram_bot_token'")
+      .toArray()[0];
+    if (!setting) return undefined;
+    const token = await decryptBotToken(setting.value, shopId, (this.env as Env & AuthSecrets).ENCRYPTION_KEY);
+    try {
+      return (await verifyInitData(initData, token)).telegramId;
+    } catch (error) {
+      if (!(error instanceof ApiError) || error.code !== "UNAUTHORIZED") throw error;
+    }
   }
 
   allowGeocoder(provider: "photon" | "nominatim") {

@@ -1,5 +1,5 @@
 import { Outlet, useRouterState } from "@tanstack/react-router";
-import { lazy, Suspense, type TouchEvent, useEffect, useRef } from "react";
+import { type TouchEvent, useEffect, useRef } from "react";
 import { CartProvider } from "../../features/cart";
 import { FavoritesProvider } from "../../features/favorites";
 import { FeatureProvider } from "../../shared/useFeature";
@@ -12,8 +12,6 @@ import { ToastProvider } from "./ToastProvider";
 import { Transition } from "./Transition";
 import { useBack } from "./useBack";
 import { useViewport } from "./useViewport";
-
-const SellerTabs = lazy(() => import("./SellerTabs").then((module) => ({ default: module.SellerTabs })));
 
 export function AppShell() {
   const keyboardOpen = useViewport();
@@ -73,17 +71,12 @@ export function AppShell() {
                 onTouchEnd={endSwipe}
               >
                 <Transition>
-                  {bootstrap && bootstrap.status !== "active" ? (
+                  {!seller && !path.startsWith("/admin") && bootstrap && bootstrap.status !== "active" ? (
                     <EmptyState title="Магазин временно закрыт" description="Загляните позже." />
                   ) : (
                     <Outlet />
                   )}
                 </Transition>
-                {seller && (
-                  <Suspense fallback={<div className="min-h-16" />}>
-                    <SellerTabs />
-                  </Suspense>
-                )}
                 {floating && !keyboardOpen && bootstrap?.status === "active" && (
                   <ShopActions compact={compactCart} search={path !== "/search"} />
                 )}

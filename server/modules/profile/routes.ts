@@ -1,8 +1,12 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
+import { emptyInput } from "../../../src/shared/contracts/auth";
 import { addressCommand, profileInput } from "../../../src/shared/contracts/profile";
 import { ApiError } from "../../../src/shared/errors";
+import { sellerCookie, sessionCookie } from "../../auth/cookies";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
+import { canEnterCabinet, customerTelegramId, enterCabinet } from "../../platform/auth/cabinet";
+import { sellerTtl } from "../../platform/auth/sessions";
 import { executeCommand } from "../../shop/commands";
 import type { ShopEnv } from "../../shop/env";
 import { contactRegion } from "../auth/contact";
@@ -20,12 +24,20 @@ export const profileRoutes = new Hono<ShopEnv>()
     c.header("Cache-Control", "private, no-store");
     await next();
   })
-  .get("/", async (c) =>
-    c.json({
-      ...editableProfile(c.env.storage, await actor(c.env, c.req.raw)),
+  .get("/", async (c) => {
+    const session = await actor(c.env, c.req.raw);
+    return c.json({
+      ...editableProfile(c.env.storage, session),
       region: contactRegion(c.env.storage),
-    }),
-  )
+      sellerCabinet: await canEnterCabinet(c.env.platform, customerTelegramId(session), c.env.shop.id),
+    });
+  })
+  .post("/seller", authBodyLimit, authCommand, zValidator("json", emptyInput, validationFailure), async (c) => {
+    const session = await actor(c.env, c.req.raw);
+    const token = await enterCabinet(c.env.platform, customerTelegramId(session), c.env.shop.id);
+    c.header("Set-Cookie", sessionCookie(c.req.raw, sellerCookie, token, sellerTtl));
+    return c.json({ ok: true as const });
+  })
   .post("/", authBodyLimit, authCommand, zValidator("json", profileInput, validationFailure), async (c) => {
     const session = await actor(c.env, c.req.raw);
     const { storage, db } = c.env;

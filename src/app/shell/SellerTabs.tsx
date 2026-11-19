@@ -1,15 +1,12 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import { House, ListOrdered, Menu, Package, Wallet } from "lucide-react";
+import { House, MoreHorizontal } from "lucide-react";
 import { useEffect } from "react";
 
 import { sellerHistory, sellerTab } from "./tab-history";
 
 const tabs = [
   { path: "/seller", title: "Главная", Icon: House },
-  { path: "/seller/orders", title: "Заказы", Icon: ListOrdered },
-  { path: "/seller/products", title: "Товары", Icon: Package },
-  { path: "/seller/money", title: "Деньги", Icon: Wallet },
-  { path: "/seller/more", title: "Ещё", Icon: Menu },
+  { path: "/seller/more", title: "Ещё", Icon: MoreHorizontal },
 ];
 export function SellerTabs() {
   const router = useRouter();
@@ -20,8 +17,8 @@ export function SellerTabs() {
   }, [location.href]);
   return (
     <nav
-      aria-label="Кабинет"
-      className="fixed bottom-0 left-1/2 z-30 w-full max-w-(--content-max) -translate-x-1/2 pb-(--safe-bottom) grid grid-cols-5 border-t border-border bg-card"
+      aria-label="Кабинет продавца"
+      className="fixed bottom-0 left-1/2 z-30 w-full max-w-(--content-max) -translate-x-1/2 pb-(--safe-bottom) grid grid-cols-2 border-t border-border bg-card"
     >
       {tabs.map(({ path, title, Icon }) => (
         <button
@@ -32,7 +29,13 @@ export function SellerTabs() {
           onClick={async () => {
             sellerHistory.savePosition(location.href, window.scrollY);
             const { href, top } = sellerHistory.destination(path, active);
-            await router.navigate({ to: href, resetScroll: false });
+            const url = new URL(href, window.location.origin);
+            for (const key of ["shop", "store"]) {
+              const current = new URLSearchParams(location.searchStr).get(key);
+              if (current) url.searchParams.set(key, current);
+              else url.searchParams.delete(key);
+            }
+            await router.navigate({ href: url.pathname + url.search, resetScroll: false });
             requestAnimationFrame(() => window.scrollTo({ top, behavior: "instant" }));
           }}
         >

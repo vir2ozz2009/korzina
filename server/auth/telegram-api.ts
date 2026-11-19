@@ -1,0 +1,33 @@
+import { ApiError } from "../../src/shared/errors";
+
+export async function telegramApi(token: string, method: string, body: object): Promise<unknown> {
+  const unavailable = () => new ApiError("AUTH_UNAVAILABLE", "Telegram временно недоступен");
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (response.status === 401 || response.status === 404) throw new ApiError("AUTH_FAILED", "Токен не подошёл");
+    if (!response.ok) throw unavailable();
+    const payload: unknown = await response.json();
+    if (!payload || typeof payload !== "object" || !("ok" in payload) || payload.ok !== true || !("result" in payload))
+      throw unavailable();
+    return payload.result;
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw unavailable();
+  }
+}
+
+export async function matchesTelegramSecret(actual: string | undefined, expected: string | undefined) {
+  if (!actual || !expected || actual.length > 256) return false;
+  const encoder = new TextEncoder();
+  const [left, right] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(actual)),
+    crypto.subtle.digest("SHA-256", encoder.encode(expected)),
+  ]);
+  const subtle = crypto.subtle as SubtleCrypto & { timingSafeEqual(left: ArrayBuffer, right: ArrayBuffer): boolean };
+  return subtle.timingSafeEqual(left, right);
+}

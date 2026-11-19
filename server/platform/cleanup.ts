@@ -7,14 +7,20 @@ export async function scheduleSellerCleanup() {
 }
 // One coordinator rather than repeating platform cleanup in every shop's alarm.
 export async function cleanupSellers(database: D1Database, storage: DurableObjectStorage, now = Date.now()) {
-  const result = await database
-    .prepare(`DELETE FROM seller_sessions WHERE token_hash IN (
-    SELECT token_hash FROM seller_sessions WHERE expires_at<=? ORDER BY expires_at LIMIT 100)`)
-    .bind(now)
-    .run();
-  if (result.meta.changes === 100) return storage.setAlarm(now + 1000);
+  const results = await database.batch([
+    database
+      .prepare(`DELETE FROM seller_sessions WHERE token_hash IN (
+      SELECT token_hash FROM seller_sessions WHERE expires_at<=? ORDER BY expires_at LIMIT 100)`)
+      .bind(now),
+    database
+      .prepare(`DELETE FROM seller_exchanges WHERE id IN (
+      SELECT id FROM seller_exchanges WHERE expires_at<=? ORDER BY expires_at LIMIT 100)`)
+      .bind(now),
+  ]);
+  if (results.some(({ meta }) => meta.changes === 100)) return storage.setAlarm(now + 1000);
   const next = await database
-    .prepare("SELECT MIN(expires_at) AS due FROM seller_sessions")
+    .prepare(`SELECT MIN(due) AS due FROM (SELECT MIN(expires_at) AS due FROM seller_sessions
+      UNION ALL SELECT MIN(expires_at) AS due FROM seller_exchanges)`)
     .first<{ due: number | null }>();
   if (next?.due == null) await storage.deleteAlarm();
   else await storage.setAlarm(Math.max(now + 1000, Math.min(next.due, now + day)));

@@ -1,6 +1,7 @@
-const sellerRoots = ["/seller", "/seller/orders", "/seller/products", "/seller/money", "/seller/more"] as const;
+const sellerRoots = ["/seller", "/seller/more"] as const;
 export function sellerTab(href: string) {
   const path = href.split(/[?#]/)[0];
+  if (path === "/seller/profile") return "/seller/more";
   return sellerRoots.findLast((root) => path === root || path.startsWith(`${root}/`)) ?? "/seller";
 }
 

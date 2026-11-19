@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Heart, LogOut, MapPin, Package, Send, User } from "lucide-react";
+import { BriefcaseBusiness, Heart, LogOut, MapPin, Package, Send, User } from "lucide-react";
 import { useState } from "react";
+import { bootstrap } from "../../../app/bootstrap";
 import { Header } from "../../../app/shell/Header";
 import { QueryBoundary } from "../../../app/shell/QueryBoundary";
 import { Screen } from "../../../app/shell/Screen";
@@ -10,6 +11,7 @@ import { Card } from "../../../ui/Card";
 import { ListItem } from "../../../ui/ListItem";
 import { Sheet } from "../../../ui/Sheet";
 import { ContactSheet, useContact } from "../../contact";
+import { useEnterCabinet } from "../../seller";
 import { useLogout, useProfile } from "../api";
 
 export function ProfileScreen() {
@@ -17,6 +19,7 @@ export function ProfileScreen() {
   const active = Boolean(contact.data?.phone || contact.data?.telegramLinked);
   const profile = useProfile(active);
   const logout = useLogout();
+  const seller = useEnterCabinet();
   const [sheet, setSheet] = useState<"telegram" | "link" | "logout">();
   const navigate = useNavigate();
   const close = () => setSheet(undefined);
@@ -61,6 +64,23 @@ export function ProfileScreen() {
                   {!person.telegramLinked && (
                     <ListItem title="Подключить Telegram" icon={<Send size={22} />} onClick={() => setSheet("link")} />
                   )}
+                  {person.sellerCabinet && (
+                    <ListItem
+                      title="Кабинет продавца"
+                      icon={<BriefcaseBusiness size={22} />}
+                      onClick={() => {
+                        if (seller.isPending) return;
+                        seller.mutate(undefined, {
+                          onSuccess: () =>
+                            void navigate({
+                              to: "/seller",
+                              search: (current) => ({ shop: current.shop, store: bootstrap?.slug }),
+                            }),
+                        });
+                      }}
+                    />
+                  )}
+                  {seller.error && <p role="alert">{seller.error.message}</p>}
                   <ListItem
                     title="Выйти"
                     icon={<LogOut size={22} />}

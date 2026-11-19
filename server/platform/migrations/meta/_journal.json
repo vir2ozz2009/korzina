@@ -43,6 +43,13 @@
       "when": 1795004082084,
       "tag": "0005_demo_seed_queue",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1795089564402,
+      "tag": "0006_seller_browser_exchanges",
+      "breakpoints": true
     }
   ]
 }
