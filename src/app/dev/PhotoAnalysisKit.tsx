@@ -53,7 +53,7 @@ export function PhotoAnalysisKit() {
       />
       {item?.status === "ready" && (
         <>
-          <ProductImage src={item.src} edgeColor={item.edgeColor} alt={item.name} shape="tile" className="w-full" />
+          <ProductImage src={item.src} edgeColor={item.edgeColor} alt={item.name} fit="contain" className="w-full" />
           <output aria-label="edgeColor" className="text-small">
             edgeColor: {item.edgeColor}
           </output>

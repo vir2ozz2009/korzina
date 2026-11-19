@@ -18,6 +18,7 @@ export function presentMedia(record: MediaRecord, shopId: string, origin: string
           ...source("original"),
           edgeColor: record.edgeColor ?? undefined,
           contentBox: record.contentBox ?? undefined,
+          cropPosition: record.cropPosition ?? undefined,
           width: record.width ?? undefined,
           height: record.height ?? undefined,
           original: { src: `${prefix}original.webp` },

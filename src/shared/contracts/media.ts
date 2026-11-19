@@ -15,6 +15,8 @@ const contentBoxContract = z
   })
   .refine((box) => box.x + box.w <= 1.000001 && box.y + box.h <= 1.000001, "Рамка выходит за фото");
 export type ContentBox = z.infer<typeof contentBoxContract>;
+export const cropPositionContract = z.strictObject({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) });
+export type CropPosition = z.infer<typeof cropPositionContract>;
 export const photoMetadataContract = z.object({
   edgeColor: z
     .string()

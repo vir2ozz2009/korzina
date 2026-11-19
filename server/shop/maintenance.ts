@@ -6,7 +6,8 @@ export async function cleanupShop(
   env: Pick<Env, "MEDIA" | "MEDIA_PUBLIC">,
   now = Date.now(),
 ) {
-  const mediaBacklog = await cleanupMedia(storage, env, now);
-  const recordsBacklog = cleanupRecords(storage, now);
-  await rescheduleCleanup(storage, mediaBacklog || recordsBacklog, now);
+  const media = await cleanupMedia(storage, env, now);
+  // Reserve one SQL each for selecting due tables and scheduling the next alarm.
+  const recordsBacklog = cleanupRecords(storage, now, media.processed ? 2 : 4);
+  await rescheduleCleanup(storage, media.more || recordsBacklog, now);
 }

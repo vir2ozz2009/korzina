@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Img } from "./Img";
-import type { ProductImageSource } from "./product-image";
+import { imagePosition, type ProductImageSource } from "./product-image";
 
 export interface ProductImageProps extends Partial<ProductImageSource> {
   alt: string;
@@ -16,18 +16,24 @@ export function ProductImage({
   src,
   srcSet,
   edgeColor,
+  cropPosition,
   alt,
   sizes,
   shape = "square",
   radius = "md",
   className = "",
   fallback,
-  fit = "contain",
+  fit = "cover",
   priority,
 }: ProductImageProps) {
+  const photoStyle = {
+    "--photo-edge": fit === "contain" ? edgeColor : undefined,
+    "--photo-position": imagePosition(cropPosition),
+  } as CSSProperties;
   return (
     <span
-      style={fit === "contain" ? ({ "--photo-edge": edgeColor } as CSSProperties) : undefined}
+      data-product-photo
+      style={photoStyle}
       className={`relative flex self-start items-center justify-center overflow-hidden bg-[var(--photo-edge,var(--card))] ${shape === "tile" ? "aspect-[179/142]" : "aspect-square"} ${radius === "xl" ? "rounded-xl" : "rounded-md"} ${className}`}
     >
       <Img
@@ -40,7 +46,7 @@ export function ProductImage({
         className={`absolute inset-0 size-full ${fit === "cover" ? "[&_img]:size-full" : ""}`}
         imageClassName={
           fit === "cover"
-            ? "size-full object-cover object-center"
+            ? "size-full object-cover [object-position:var(--photo-position)]"
             : "object-contain object-center [mask-image:var(--product-mask)] [mask-composite:intersect] [mask-repeat:no-repeat]"
         }
       />
