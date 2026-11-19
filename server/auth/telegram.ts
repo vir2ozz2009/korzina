@@ -2,7 +2,11 @@ import { z } from "zod";
 import { ApiError } from "../../src/shared/errors";
 
 const encoder = new TextEncoder();
-const userSchema = z.object({ id: z.number().int().positive().max(Number.MAX_SAFE_INTEGER) });
+const userSchema = z.object({
+  id: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
+});
 const invalid = () => new ApiError("UNAUTHORIZED", "Данные Telegram недействительны или устарели");
 async function hmac(key: Uint8Array<ArrayBuffer>, value: string) {
   const imported = await crypto.subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
@@ -13,7 +17,8 @@ export async function verifyInitData(
   initData: string,
   botToken: string,
   now = Date.now(),
-): Promise<{ telegramId: string; authDate: number; startParam?: string }> {
+  profile = false,
+): Promise<{ telegramId: string; authDate: number; startParam?: string; name?: string }> {
   if (initData.length > 8192) throw invalid();
   const params = new URLSearchParams(initData);
   const keys = [...params.keys()];
@@ -41,7 +46,8 @@ export async function verifyInitData(
   try {
     const user = userSchema.parse(JSON.parse(params.get("user") ?? "null"));
     const startParam = params.get("start_param");
-    return { telegramId: String(user.id), authDate, ...(startParam && { startParam }) };
+    const name = profile ? [user.first_name, user.last_name].filter(Boolean).join(" ").trim().slice(0, 50) : "";
+    return { telegramId: String(user.id), authDate, ...(startParam && { startParam }), ...(name && { name }) };
   } catch {
     throw invalid();
   }

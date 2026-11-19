@@ -21,6 +21,8 @@ export function AppShell() {
   const path = useRouterState({ select: (state) => state.location.pathname });
   const isRoot = useRouterState({ select: (state) => state.matches.at(-1)?.staticData.root ?? false });
   const seller = path.startsWith("/seller");
+  const compactCart =
+    path.startsWith("/p/") || path === "/favorites" || path === "/profile" || path.startsWith("/profile/");
   const floating =
     !seller &&
     !["/admin", "/dev", "/cart", "/checkout", "/order", "/orders"].some(
@@ -83,7 +85,7 @@ export function AppShell() {
                   </Suspense>
                 )}
                 {floating && !keyboardOpen && bootstrap?.status === "active" && (
-                  <ShopActions compact={path.startsWith("/p/")} search={path !== "/search"} />
+                  <ShopActions compact={compactCart} search={path !== "/search"} />
                 )}
               </div>
             </ShopNavigation>

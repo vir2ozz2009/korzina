@@ -128,10 +128,10 @@ it("хранит получение и адреса в своей корзине
   expect(await response.json()).toMatchObject({
     revision: 1,
     receiving: { ...street, entrance: "Б", comment: "Позвоните" },
-    savedAddresses: [{ ...street, entrance: "Б" }],
+    savedAddresses: [],
   });
   const pickup = await save(headers, 1, { mode: "pickup" });
-  expect(await pickup.json()).toMatchObject({ revision: 2, receiving: { mode: "pickup" }, savedAddresses: [street] });
+  expect(await pickup.json()).toMatchObject({ revision: 2, receiving: { mode: "pickup" }, savedAddresses: [] });
   const stranger = await getAuth(path, await guest());
   expect(await stranger.json()).toMatchObject({ receiving: null, savedAddresses: [] });
   expect(await (await getAuth("/api/cart?shop=lavka", headers)).json()).toMatchObject({ revision: 2 });

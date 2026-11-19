@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Cart } from "../../shared/contracts/cart";
 import type { ReceiveCommand } from "../../shared/contracts/receiving";
 import type { ReceivingMethod, TimeCommand } from "../../shared/contracts/receiving-time";
-import { checkResponse } from "../../shared/http-error";
+import { checkResponse, HttpError } from "../../shared/http-error";
 import { shopApi, shopKey } from "../../shared/shop-api";
 import { ensureShopSession } from "../../shared/shop-session";
 
@@ -36,11 +37,33 @@ function useReceivingMutation<T, Result>(mutationFn: (input: T) => Promise<Resul
 }
 
 export function useSaveReceiving() {
-  return useReceivingMutation(async (input: ReceiveCommand) => {
-    await ensureShopSession();
-    const response = await shopApi.api.receiving.$post({ json: input });
-    await checkResponse(response);
-    return response.json();
+  const client = useQueryClient();
+  return useMutation({
+    scope: { id: JSON.stringify(cartKey) },
+    mutationFn: async (input: ReceiveCommand) => {
+      await ensureShopSession();
+      const response = await shopApi.api.receiving.$post({ json: input });
+      await checkResponse(response);
+      return response.json();
+    },
+    onSuccess: async (selection) => {
+      await Promise.all([
+        client.cancelQueries({ queryKey: receivingKey, exact: true }),
+        client.cancelQueries({ queryKey: cartKey, exact: true }),
+      ]);
+      client.setQueryData<ReceivingState>(receivingKey, (current) =>
+        current && current.revision <= selection.revision ? { ...current, ...selection } : current,
+      );
+      client.setQueryData<Cart>(cartKey, (current) =>
+        current && current.revision < selection.revision ? { ...current, revision: selection.revision } : current,
+      );
+    },
+    onError: (error) => {
+      if (error instanceof HttpError && error.code === "VERSION_CONFLICT") {
+        void client.invalidateQueries({ queryKey: receivingKey, exact: true });
+        void client.invalidateQueries({ queryKey: cartKey, exact: true });
+      }
+    },
   });
 }
 

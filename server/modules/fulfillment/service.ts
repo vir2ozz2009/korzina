@@ -1,3 +1,5 @@
+import { addressKey } from "../../../src/shared/address-key";
+import type { SavedAddress } from "../../../src/shared/contracts/profile";
 import {
   type DeliveryAddress,
   type DeliveryTariff,
@@ -115,7 +117,7 @@ export function requireFulfillment(settings: FulfillmentSettings, receiving: Rec
 
 type Selection = {
   receiving: Receiving | null;
-  savedAddresses: DeliveryAddress[];
+  savedAddresses: SavedAddress[];
   time: TimeChoice | null;
   receivingUpdatedAt: number;
   lastUsedAddress?: DeliveryAddress;
@@ -132,7 +134,15 @@ export function parseSelection(value: string | null | undefined): Selection {
   const parsed = JSON.parse(value);
   // An older draft stored just the selection inside the same cart column.
   if ("mode" in parsed) return { ...emptySelection(), receiving: receivingInput.parse(parsed) };
-  return { ...emptySelection(), ...(parsed as Selection) };
+  const current = { ...emptySelection(), ...(parsed as Selection) };
+  return {
+    ...current,
+    savedAddresses: current.savedAddresses.map((address) => ({
+      ...address,
+      id: address.id ?? `legacy:${addressKey(address)}`,
+      title: address.title ?? "",
+    })),
+  };
 }
 
 export function readReceiving(storage: DurableObjectStorage, customer: string) {
@@ -161,7 +171,7 @@ export function writeReceiving(
   );
 }
 
-function draftForMode(selection: Receiving, settings: FulfillmentSettings): Receiving {
+export function draftForMode(selection: Receiving, settings: FulfillmentSettings): Receiving {
   if (selection.mode === "pickup") return selection;
   const { point, districtId, acceptedWithoutPoint, ...address } = selection;
   if (settings.delivery?.mode === "map")
@@ -169,15 +179,10 @@ function draftForMode(selection: Receiving, settings: FulfillmentSettings): Rece
   return { ...address, districtId: settings.delivery?.mode === "districts" ? districtId : undefined };
 }
 
-function rememberAddress(saved: DeliveryAddress[], receiving: Receiving, available: boolean) {
-  if (receiving.mode === "pickup" || !available) return saved;
+export function rememberOrderedAddress(saved: SavedAddress[], receiving: DeliveryAddress) {
   const { comment: _comment, ...address } = receiving;
-  const addressKey = (value: DeliveryAddress) => value.address.toLowerCase().replace(/\s+/gu, " ");
-  const name = addressKey(address);
-  return [
-    address,
-    ...saved.filter((entry) => addressKey(entry) !== name || entry.districtId !== address.districtId),
-  ].slice(0, 3);
+  if (saved.length >= 10 || saved.some((item) => addressKey(item) === addressKey(address))) return saved;
+  return [{ ...address, id: crypto.randomUUID(), title: "" }, ...saved];
 }
 
 export function saveReceiving(storage: DurableObjectStorage, customer: string, input: ReceiveCommand, maps = true) {
@@ -190,11 +195,10 @@ export function saveReceiving(storage: DurableObjectStorage, customer: string, i
     const availability = requireFulfillment(settings, receiving, !!input.complete);
     if (JSON.stringify(receiving) === JSON.stringify(current.receiving)) return { ...current, availability };
     const revision = current.revision + 1;
-    const savedAddresses = rememberAddress(current.savedAddresses, receiving, availability.available);
     const time = current.receiving?.mode === receiving.mode ? current.time : null;
     const selection = {
       receiving,
-      savedAddresses,
+      savedAddresses: current.savedAddresses,
       time,
       receivingUpdatedAt: Date.now(),
       lastUsedAddress: current.lastUsedAddress,

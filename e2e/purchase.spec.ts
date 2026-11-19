@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { verifyFavoriteCart, verifyOrderCancellation } from "./after-order";
+import { verifyFavoriteCart, verifyOrderCancellation, verifySavedAddress } from "./after-order";
 
 async function keyboardViewport(page: Page, open: boolean) {
   await page.evaluate((open) => {
@@ -17,7 +17,7 @@ async function keyboardViewport(page: Page, open: boolean) {
 }
 
 test("B10: товар, доставка и заказ наличными", async ({ page }) => {
-  test.setTimeout(80_000);
+  test.setTimeout(105_000);
   page.setDefaultTimeout(12_000);
   await page.goto("/p/product-17?shop=test2&variant=sku-20");
   const cartWrite = () =>
@@ -240,4 +240,5 @@ test("B10: товар, доставка и заказ наличными", async
   await expect(page).toHaveURL(/\/\?shop=test2$/);
   await verifyOrderCancellation(page, order.number);
   await verifyFavoriteCart(page);
+  await verifySavedAddress(page);
 });

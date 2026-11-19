@@ -11,6 +11,7 @@ import { diagnostics } from "../modules/diagnostics/routes";
 import { favoritesRoutes } from "../modules/favorites/routes";
 import { receivingRoutes } from "../modules/fulfillment/routes";
 import { mediaRoutes } from "../modules/media/routes";
+import { profileRoutes } from "../modules/profile/routes";
 import { revisionResponse } from "../revisions";
 import type { ShopEnv } from "./env";
 import { readPublicSettings } from "./public-settings";
@@ -38,6 +39,7 @@ export function shopRoutes() {
       .route("/", purchaseRoutes)
       .route("/orders", buyerOrderRoutes)
       .route("/favorites", favoritesRoutes)
+      .route("/profile", profileRoutes)
       .route("/catalog", catalogRoutes)
       .route("/media", mediaRoutes)
       // Demo/localhost-only availability probe, not the cashback product (A4).

@@ -176,6 +176,9 @@ export function OrderScreen() {
           <Button full disabled={disabled} onClick={() => setSheet("repeat")}>
             Повторить заказ
           </Button>
+          <Button full variant="ghost" onClick={() => void navigate({ to: "/orders" })}>
+            Мои заказы
+          </Button>
           <Button full variant="ghost" onClick={home}>
             К покупкам
           </Button>

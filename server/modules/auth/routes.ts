@@ -1,12 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
-import {
-  emptyInput,
-  phoneContactInput,
-  telegramExchangeInput,
-  telegramInput,
-} from "../../../src/shared/contracts/auth";
+import { emptyInput, phoneContactInput, telegramFinishInput, telegramInput } from "../../../src/shared/contracts/auth";
 import { ApiError } from "../../../src/shared/errors";
 import { decryptBotToken } from "../../auth/bot-token";
 import { customerCookie, sessionCookie } from "../../auth/cookies";
@@ -20,6 +15,7 @@ import type { ShopEnv } from "../../shop/env";
 import { settings } from "../../shop/schema";
 import { mergeCustomerCarts } from "../cart/service";
 import { mergeCustomerFavorites } from "../favorites/service";
+import { hasTelegramProfile, initTelegramProfile } from "../profile/service";
 import { contactRegion, readContact, savePhone } from "./contact";
 import { createCustomer, customerTtl, logoutCustomer, prepareCustomer, readCustomer, writeCustomer } from "./service";
 import { confirmExchange, findExchange, startExchange, verifiedExchange } from "./telegram-exchange";
@@ -93,18 +89,24 @@ export const customerAuth = new Hono<ShopEnv>()
     }
     return c.json(result);
   })
-  .post("/telegram/finish", zValidator("json", telegramExchangeInput, validationFailure), async (c) => {
+  .post("/telegram/finish", zValidator("json", telegramFinishInput, validationFailure), async (c) => {
     const existing = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);
     if (!existing) throw new ApiError("UNAUTHORIZED", "Нужна исходная сессия покупателя");
     limitCustomer(c, existing.sessionId);
-    const id = await digest(c.req.valid("json").exchange);
+    const input = c.req.valid("json");
+    const id = await digest(input.exchange);
     const target = findExchange(c.env.storage, id, existing.sessionId);
     if (!target) return c.json({ pending: true }, 202);
-    const prepared = await prepareCustomer(target, "telegram");
+    const needsConsent =
+      target.requiresMerge &&
+      existing.kind === "guest" &&
+      !!readContact(c.env.storage, existing.subject, existing.kind).phone;
+    if (needsConsent && !input.merge) return c.json({ pending: false, mergeRequired: true as const });
+    const prepared = await prepareCustomer(target.subject, "telegram");
     c.env.storage.transactionSync(() => {
-      if (findExchange(c.env.storage, id, existing.sessionId) !== target)
+      if (findExchange(c.env.storage, id, existing.sessionId)?.subject !== target.subject)
         throw new ApiError("AUTH_FAILED", "Время входа через Telegram истекло");
-      attachGuest(c.env, existing, target);
+      attachGuest(c.env, existing, target.subject);
       writeCustomer(c.env.db, prepared);
       c.env.storage.sql.exec("DELETE FROM customer_telegram_exchanges WHERE id=?", id);
     });
@@ -119,14 +121,28 @@ export const customerAuth = new Hono<ShopEnv>()
       .where(eq(settings.key, "telegram_bot_token"))
       .get();
     const botToken = await decryptBotToken(configured?.value, c.env.shop.id, c.env.secrets.ENCRYPTION_KEY);
-    const { telegramId, startParam } = await verifyInitData(input.initData, botToken);
+    const { telegramId, startParam, name } = await verifyInitData(input.initData, botToken, Date.now(), true);
     const exchange = await verifiedExchange(startParam);
     const existing = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);
-    const created = await prepareCustomer(`telegram:${telegramId}`, "telegram");
+    const subject = `telegram:${telegramId}`;
+    const collision = hasTelegramProfile(c.env.storage, subject);
+    const phoneProfile =
+      existing?.kind === "guest" && !!readContact(c.env.storage, existing.subject, existing.kind).phone;
+    if (exchange && existing && phoneProfile) {
+      c.env.storage.transactionSync(() => {
+        confirmExchange(c.env.storage, exchange, subject, collision);
+        initTelegramProfile(c.env.storage, subject, name);
+      });
+      return c.json({ ...publicSession(existing), pending: true }, 202);
+    }
+    if (collision && phoneProfile)
+      throw new ApiError("AUTH_FAILED", "Подключите Telegram из профиля и подтвердите объединение");
+    const created = await prepareCustomer(subject, "telegram");
     c.env.storage.transactionSync(() => {
       attachGuest(c.env, existing, created.session.subject);
       writeCustomer(c.env.db, created);
-      if (exchange) confirmExchange(c.env.storage, exchange, created.session.subject);
+      if (exchange) confirmExchange(c.env.storage, exchange, subject, collision);
+      initTelegramProfile(c.env.storage, subject, name);
     });
     c.header("Set-Cookie", sessionCookie(c.req.raw, customerCookie(c.env.shop.id), created.token, customerTtl));
     return c.json({ ...created.session, ...(input.bearer ? { token: created.token } : {}) }, 201);
@@ -138,7 +154,35 @@ export const customerAuth = new Hono<ShopEnv>()
     return c.json(publicSession(session));
   })
   .post("/logout", zValidator("json", emptyInput, validationFailure), async (c) => {
-    await logoutCustomer(c.env.db, c.req.raw, c.env.shop.id);
-    c.header("Set-Cookie", sessionCookie(c.req.raw, customerCookie(c.env.shop.id), "", 0));
+    const existing = await readCustomer(c.env.db, c.req.raw, c.env.shop.id).catch((error) => {
+      if (error instanceof ApiError && error.code === "UNAUTHORIZED") return undefined;
+      throw error;
+    });
+    const prepared =
+      existing?.kind === "guest" && readContact(c.env.storage, existing.subject, existing.kind).phone
+        ? await prepareCustomer()
+        : undefined;
+    if (existing && prepared) {
+      c.env.storage.transactionSync(() => {
+        const active = c.env.storage.sql.exec(
+          "DELETE FROM sessions WHERE token_hash=? AND expires_at>?",
+          existing.sessionId,
+          Date.now(),
+        );
+        if (!active.rowsWritten) throw new ApiError("UNAUTHORIZED", "Сессия недействительна");
+        writeCustomer(c.env.db, prepared);
+        c.env.storage.sql.exec(
+          `INSERT INTO carts(customer,lines,quote,updated_at)
+           SELECT ?,lines,quote,? FROM carts WHERE customer=? AND lines!='[]'`,
+          prepared.session.subject,
+          Date.now(),
+          existing.subject,
+        );
+      });
+    } else await logoutCustomer(c.env.db, c.req.raw, c.env.shop.id);
+    c.header(
+      "Set-Cookie",
+      sessionCookie(c.req.raw, customerCookie(c.env.shop.id), prepared?.token ?? "", prepared ? customerTtl : 0),
+    );
     return c.json({ ok: true });
   });
