@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { Hono } from "hono";
 import { routePath } from "hono/route";
+import type { BotChange } from "../../src/shared/contracts/admin";
 import { shopContract } from "../../src/shared/contracts/shop";
 import { shopContextContract } from "../../src/shared/contracts/shop-context";
 import { ApiError, errorBody, errorStatus } from "../../src/shared/errors";
@@ -13,7 +14,10 @@ import type { AuthSecrets } from "../auth/config";
 import { verifyInitData } from "../auth/telegram";
 import { RequestMetrics } from "../metrics";
 import { handleError, notFound } from "../middleware/errors";
+import { botCoordinator, changeShopBot, managedBot } from "../platform/admin/shop-bot";
+import type { ShopMutation } from "../platform/admin/shop-change";
 import { cleanupSellers, platformCleanupId } from "../platform/cleanup";
+import { applyAdminSettings } from "./admin-settings";
 import { rescheduleCleanup, scheduleCleanup } from "./cleanup";
 import type { ShopEnv } from "./env";
 import { cleanupShop } from "./maintenance";
@@ -23,6 +27,7 @@ import { settings } from "./schema";
 
 export class Shop extends DurableObject<Env> {
   private identity: string | undefined;
+  private settingsSignature: string | undefined;
   private readonly router = new Hono<ShopEnv>()
     .onError(handleError)
     .use("*", async (c, next) => {
@@ -37,9 +42,14 @@ export class Shop extends DurableObject<Env> {
     super(ctx, env);
     ctx.blockConcurrencyWhile(async () => {
       await migrate(drizzle(ctx.storage), migrations);
-      if (!ctx.storage.sql.exec("SELECT value FROM settings WHERE key='cleanup_revision'").toArray().length) {
+      if (
+        !ctx.storage.sql.exec("SELECT value FROM settings WHERE key='cleanup_revision' AND value='AD2'").toArray()
+          .length
+      ) {
         await rescheduleCleanup(ctx.storage, false);
-        ctx.storage.sql.exec("INSERT INTO settings(key,value) VALUES('cleanup_revision','R1')");
+        ctx.storage.sql.exec(
+          "INSERT INTO settings(key,value) VALUES('cleanup_revision','AD2') ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        );
       }
     });
   }
@@ -69,6 +79,14 @@ export class Shop extends DurableObject<Env> {
         if (!identity)
           storage.transactionSync(() => db.insert(settings).values({ key: "shop_id", value: shop.id }).run());
         this.identity = shop.id;
+      }
+      if (data.adminSettings) {
+        const configured = shopContextContract.shape.adminSettings.parse(data.adminSettings);
+        const signature = JSON.stringify(configured);
+        if (configured && signature !== this.settingsSignature) {
+          applyAdminSettings(storage, configured);
+          this.settingsSignature = signature;
+        }
       }
       response = await this.router.fetch(request, {
         shop,
@@ -102,16 +120,44 @@ export class Shop extends DurableObject<Env> {
   async verifyCabinetTelegram(initData: string, shopId: string) {
     if (!this.ctx.exports.Shop.idFromName(shopId).equals(this.ctx.id))
       throw new ApiError("FORBIDDEN", "Другой магазин");
-    const setting = this.ctx.storage.sql
-      .exec<{ value: string }>("SELECT value FROM settings WHERE key='telegram_bot_token'")
-      .toArray()[0];
-    if (!setting) return undefined;
-    const token = await decryptBotToken(setting.value, shopId, (this.env as Env & AuthSecrets).ENCRYPTION_KEY);
+    const bot = await managedBot(this.env.PLATFORM, shopId);
+    const setting = bot
+      ? undefined
+      : this.ctx.storage.sql
+          .exec<{ value: string }>("SELECT value FROM settings WHERE key='telegram_bot_token'")
+          .toArray()[0];
+    const encrypted = bot?.token ?? setting?.value;
+    if (!encrypted) return undefined;
+    const token = await decryptBotToken(encrypted, shopId, (this.env as Env & AuthSecrets).ENCRYPTION_KEY);
     try {
       return (await verifyInitData(initData, token)).telegramId;
     } catch (error) {
       if (!(error instanceof ApiError) || error.code !== "UNAUTHORIZED") throw error;
     }
+  }
+
+  adminBotChange(mutation: ShopMutation, input: BotChange, origin: string) {
+    if (!this.ctx.exports.Shop.idFromName(botCoordinator).equals(this.ctx.id))
+      throw new ApiError("FORBIDDEN", "Нет доступа");
+    return this.ctx.blockConcurrencyWhile(async () => {
+      try {
+        const result = await changeShopBot(this.env.PLATFORM, this.env as Env & AuthSecrets, mutation, input, origin);
+        return { ok: true as const, result };
+      } catch (error) {
+        const known = error instanceof ApiError ? error : new ApiError("INTERNAL", "Не удалось настроить бота");
+        return { ok: false as const, code: known.code, message: known.message };
+      }
+    });
+  }
+
+  adminShopStats() {
+    const products = this.ctx.storage.sql.exec<{ count: number }>("SELECT COUNT(*) AS count FROM products").one().count;
+    const finances =
+      this.ctx.storage.sql
+        .exec(`SELECT 1 FROM orders
+      WHERE payment_status NOT IN ('unpaid','pending_review') LIMIT 1`)
+        .toArray().length > 0;
+    return { products, finances };
   }
 
   allowGeocoder(provider: "photon" | "nominatim") {

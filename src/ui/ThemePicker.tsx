@@ -9,14 +9,22 @@ import {
   validateCustomColor,
 } from "../shared/theme-presets";
 
-export function ThemePicker({ initial, onChange }: { initial: ShopTheme; onChange: (theme: ShopTheme) => void }) {
+export function ThemePicker({
+  initial,
+  onChange,
+  applyToPage = true,
+}: {
+  initial: ShopTheme;
+  onChange: (theme: ShopTheme) => void;
+  applyToPage?: boolean;
+}) {
   const id = useId();
   const [selected, setSelected] = useState(initial);
   const [custom, setCustom] = useState("custom" in initial ? initial.custom : CUSTOM_PREVIEW_COLOR);
   const [error, setError] = useState("");
   function choose(theme: ShopTheme) {
     setSelected(theme);
-    applyTheme(theme);
+    if (applyToPage) applyTheme(theme);
     onChange(theme);
     setError("");
   }

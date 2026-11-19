@@ -5,6 +5,7 @@ import { checkoutInput, receiptQuoteInput, shopContactsInput } from "../../../sr
 import { ApiError } from "../../../src/shared/errors";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
 import type { ShopEnv } from "../../shop/env";
+import { schedulePlatformOrders } from "../../shop/order-projection";
 import { readCustomer } from "../auth/service";
 import { bindReceipt, placeOrder, readOrder } from "./order";
 import { createQuote, purchaseSummary } from "./quote";
@@ -33,6 +34,7 @@ export const purchaseRoutes = new Hono<ShopEnv>()
   .post("/checkout", authBodyLimit, authCommand, zValidator("json", checkoutInput, validationFailure), async (c) => {
     const actor = await authenticated(c.env, c.req.raw);
     const result = placeOrder(c.env, actor, c.req.valid("json"), c.get("command"));
+    await schedulePlatformOrders(c.env.storage);
     return c.json(result.body, 201);
   })
   .post(

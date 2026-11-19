@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../shared/api";
-import type { ShopDraftInput } from "../../shared/contracts/admin";
-import { checkResponse } from "../../shared/http-error";
+import type { BotChange, ShopChange, ShopDraftInput } from "../../shared/contracts/admin";
+import { checkResponse, errorKind, HttpError } from "../../shared/http-error";
 import { commandHeaders, shopApi } from "../../shared/shop-api";
 
 const adminApi = api.api.platform.admin;
@@ -62,4 +62,44 @@ export function useOpenAdmin() {
     },
     onSuccess: () => client.invalidateQueries({ queryKey: ["admin"] }),
   });
+}
+
+export type AdminShop = NonNullable<ReturnType<typeof useAdminShop>["data"]>;
+
+export function useShopChange(id: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ input, key }: { input: ShopChange; key: string }) => {
+      const response = await adminApi.shops[":id"].$patch(
+        { param: { id }, json: input },
+        { headers: commandHeaders(key) },
+      );
+      await checkResponse(response);
+      return response.json();
+    },
+    retry: (failures, error) => failures < 1 && errorKind(error) === "retry",
+    onSuccess: () => client.invalidateQueries({ queryKey: registryKey }),
+    onError: (error) => {
+      if (error instanceof HttpError && error.code === "VERSION_CONFLICT")
+        void client.invalidateQueries({ queryKey: detailKey(id) });
+    },
+  });
+}
+
+export function useBotChange(id: string) {
+  const client = useQueryClient();
+  return async (input: BotChange) => {
+    const response = await adminApi.shops[":id"].bot.$post(
+      { param: { id }, json: input },
+      { headers: commandHeaders() },
+    );
+    try {
+      await checkResponse(response);
+    } catch (error) {
+      if (error instanceof HttpError && error.code === "VERSION_CONFLICT")
+        await client.invalidateQueries({ queryKey: detailKey(id) });
+      throw error;
+    }
+    await client.invalidateQueries({ queryKey: registryKey });
+  };
 }

@@ -1,3 +1,5 @@
+import { nextPlatformOrder } from "./order-projection";
+
 export const day = 86_400_000;
 const batchSize = 100;
 
@@ -45,6 +47,7 @@ export async function rescheduleCleanup(storage: DurableObjectStorage, more: boo
     .exec<Record<string, number | null>>(
       `SELECT
        (SELECT MIN(created_at)+${day} FROM idempotency) AS commands,
+       ${nextPlatformOrder} AS platform_orders,
        (SELECT MIN(expires_at) FROM sessions) AS sessions,
        (SELECT MIN(expires_at) FROM media) AS media,
        (SELECT MIN(expires_at) FROM receiving_seats) AS seats,

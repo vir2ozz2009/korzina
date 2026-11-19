@@ -1,5 +1,5 @@
 import { Send } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { loadTelegram } from "../../../app/telegram/adapter";
 import { telegramLaunch } from "../../../app/telegram/launch";
 import { Button } from "../../../ui/Button";
@@ -11,7 +11,8 @@ type Exchange = Awaited<ReturnType<typeof startCabinetLogin>>;
 const message = (error: unknown) => (error instanceof Error ? error.message : "Не удалось открыть Telegram");
 
 export function CabinetLogin({ store, ready }: { store?: string; ready: () => void }) {
-  const enter = useEnterCabinet();
+  const { mutateAsync: enter } = useEnterCabinet();
+  const attempted = useRef(false);
   const [exchange, setExchange] = useState<Exchange>();
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
@@ -53,7 +54,7 @@ export function CabinetLogin({ store, ready }: { store?: string; ready: () => vo
     };
   }, [exchange, ready]);
 
-  const start = async () => {
+  const start = useCallback(async () => {
     setError("");
     setStarting(true);
     const request = new AbortController();
@@ -62,7 +63,7 @@ export function CabinetLogin({ store, ready }: { store?: string; ready: () => vo
       if (telegramLaunch) {
         const telegram = await loadTelegram();
         if (!telegram?.initData) throw new Error("Откройте кабинет из Telegram");
-        await enter.mutateAsync({ initData: telegram.initData, store });
+        await enter({ initData: telegram.initData, store });
       } else {
         setExchange(await startCabinetLogin(request.signal));
       }
@@ -71,7 +72,12 @@ export function CabinetLogin({ store, ready }: { store?: string; ready: () => vo
     } finally {
       if (!request.signal.aborted) setStarting(false);
     }
-  };
+  }, [enter, store]);
+  useEffect(() => {
+    if (!telegramLaunch || attempted.current) return;
+    attempted.current = true;
+    void start();
+  }, [start]);
 
   return (
     <Card size="lg" className="space-y-5">

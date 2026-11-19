@@ -10,11 +10,13 @@ import { requestId } from "./middleware/request-id";
 import { guestCart } from "./modules/cart/guest";
 import { catalogGateway } from "./modules/catalog/gateway";
 import { localPublicMedia } from "./modules/media/local-public";
+import { publicShop } from "./platform/admin/public-shop";
 import { adminRoutes } from "./platform/admin/routes";
 import { sellerAccess } from "./platform/auth/access-routes";
 import { cabinetRoutes } from "./platform/auth/cabinet-routes";
 import { platformWebhook } from "./platform/auth/platform-webhook";
 import { platformAuth } from "./platform/auth/routes";
+import { shopWebhook } from "./platform/auth/shop-webhook";
 import { shopContexts } from "./platform/shop-context";
 import { forwardToShop } from "./shop/forward";
 import { shopRoutes } from "./shop/routes";
@@ -28,7 +30,7 @@ const forwarding = createMiddleware<{ Bindings: Env }>(async (c) => {
   ) {
     return notFound(c);
   }
-  const shop = await shopContexts.read(c.req.raw, c.env);
+  const shop = await shopContexts.read(c.req.raw, c.env, c.req.path === "/api/checkout" && c.req.method === "POST");
   return forwardToShop(c, shop);
 });
 
@@ -49,6 +51,8 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
   .route("/platform/auth", platformAuth)
   .route("/platform/admin", adminRoutes)
   .route("/platform/telegram", platformWebhook)
+  .route("/platform/shop-telegram", shopWebhook)
+  .route("/platform/storefront", publicShop)
   .route("/seller/access", sellerAccess)
   .route("/seller/cabinet", cabinetRoutes)
   .get("/shop", async (c) => {
