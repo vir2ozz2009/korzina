@@ -212,7 +212,7 @@ export function SearchScreen() {
                     <div className="grid grid-cols-2 gap-2">
                       {tiles.map(({ id, ...tile }) => (
                         <div key={id} className="min-w-0">
-                          <ProductTile {...tile} onOpen={() => remember(query)} />
+                          <ProductTile {...tile} photoShape="square" onOpen={() => remember(query)} />
                           {data.count > 0 && asksForPackSize(q) && !data.preferred[id] && (
                             <p className="mt-1 text-small text-muted-foreground">Проверьте фасовку</p>
                           )}
