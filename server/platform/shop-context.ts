@@ -13,21 +13,37 @@ export class ShopContextCache {
 
   constructor(private readonly now = () => Date.now()) {}
 
+  invalidate(shopId: string) {
+    this.entries.delete(shopId);
+  }
+
   async read(
     request: Request,
     env: Pick<Env, "PLATFORM"> & Partial<Pick<Env, "APP_ENV" | "MEDIA_PUBLIC_URL">>,
+    fresh = false,
   ): Promise<ShopContext> {
     const started = this.now();
-    const shop = await resolveShop(request, env.PLATFORM, env.APP_ENV);
+    const shop = await resolveShop(request, env.PLATFORM, env.APP_ENV, fresh);
     if (!shop) throw new ApiError("SHOP_NOT_FOUND", "Магазин не найден");
+    const adminSettings =
+      shop.country && shop.timeZone
+        ? shopContextContract.shape.adminSettings.parse({
+            name: shop.name,
+            country: shop.country,
+            currency: shop.currency,
+            timeZone: shop.timeZone,
+            theme: shop.theme ? JSON.parse(shop.theme) : undefined,
+          })
+        : undefined;
     const hit = this.entries.get(shop.id);
-    if (hit && hit.expires > this.now()) return hit.value;
+    if (hit && hit.expires > this.now() && JSON.stringify(hit.value.adminSettings) === JSON.stringify(adminSettings))
+      return { ...hit.value, status: shop.status };
     this.entries.delete(shop.id);
     await applyDemoSeed(env.PLATFORM, env.APP_ENV, shop.id);
     const features = await readFeatures(env.PLATFORM, shop.id);
     const response = await forwardToShop(
       { req: { raw: new Request("https://internal/api/shop") } },
-      { ...shop, features },
+      { ...shop, features, adminSettings },
     );
     if (!response.ok) throw new ApiError("INTERNAL", "Не удалось загрузить оформление магазина");
     const settings = shopContextContract.parse(await response.json());
@@ -36,6 +52,7 @@ export class ShopContextCache {
       name: settings.name,
       theme: settings.theme,
       features,
+      adminSettings,
       mediaOrigin: env.MEDIA_PUBLIC_URL,
     });
     if (this.entries.size >= 500) this.entries.delete(this.entries.keys().next().value as string);

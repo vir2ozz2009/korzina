@@ -10,5 +10,14 @@ export const shopContextContract = z.extend(shopContract, {
     z.transform((values) => resolveFeatures(Object.entries(values).map(([key, enabled]) => ({ key, enabled })))),
   ),
   theme: z.pipe(z.unknown(), z.transform(normalizeTheme)),
+  adminSettings: z.optional(
+    z.object({
+      name: z.string(),
+      country: z.string(),
+      currency: z.nullable(z.string()),
+      timeZone: z.string(),
+      theme: z.pipe(z.unknown(), z.transform(normalizeTheme)),
+    }),
+  ),
 });
 export type ShopContext = z.infer<typeof shopContextContract>;

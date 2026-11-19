@@ -57,6 +57,13 @@
       "when": 1795090186617,
       "tag": "0007_admin_registry",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1795090880061,
+      "tag": "0008_admin_card",
+      "breakpoints": true
     }
   ]
 }

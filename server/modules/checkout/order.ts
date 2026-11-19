@@ -80,6 +80,7 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
   const subject = actor.subject;
   const now = Date.now();
   return executeCommand(storage, env.db, `checkout:${subject}`, command, () => {
+    if (env.shop.status !== "active") throw new ApiError("SHOP_CLOSED", "Магазин временно не принимает заказы");
     const previous = loadQuote(storage, subject, input.quoteRevision, now);
     const { snapshot, cart, storedReceiving } = purchaseDraft(env, subject, actor.kind, now, false);
     if (!snapshot.paymentSettings.methods.includes(input.payment))

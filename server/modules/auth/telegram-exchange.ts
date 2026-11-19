@@ -4,10 +4,12 @@ import { digest } from "../../auth/tokens";
 
 const lifetime = 5 * 60 * 1000;
 
-export async function startExchange(storage: DurableObjectStorage, owner: string) {
-  const bot = storage.sql
-    .exec<{ value: string }>("SELECT value FROM settings WHERE key='telegram_bot_username'")
-    .toArray()[0]?.value;
+export async function startExchange(storage: DurableObjectStorage, owner: string, botOverride?: string | null) {
+  const bot =
+    botOverride === undefined
+      ? storage.sql.exec<{ value: string }>("SELECT value FROM settings WHERE key='telegram_bot_username'").toArray()[0]
+          ?.value
+      : botOverride;
   if (!bot || !/^[A-Za-z][A-Za-z0-9_]{4,31}$/u.test(bot))
     throw new ApiError("AUTH_UNAVAILABLE", "Telegram магазина пока не подключён");
   const exchange = `purchase_${crypto.randomUUID().replaceAll("-", "")}`;

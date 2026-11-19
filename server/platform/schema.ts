@@ -17,6 +17,8 @@ export const shops = sqliteTable("shops", {
   timeZone: text("time_zone"),
   theme: text("theme"),
   botUsername: text("bot_username"),
+  ownerName: text("owner_name"),
+  statusNotice: text("status_notice"),
   createdAt: integer("created_at").notNull(),
 });
 
@@ -36,6 +38,7 @@ export const invitations = sqliteTable("invitations", {
   linkId: text("link_id").unique(),
   platformAllowed: integer("platform_allowed", { mode: "boolean" }).notNull().default(false),
   usedBy: text("used_by"),
+  redeemedId: text("redeemed_id"),
   revokedAt: integer("revoked_at"),
   replacementReason: text("replacement_reason"),
 });
@@ -179,3 +182,12 @@ export const platformOrderEvents = sqliteTable(
     index("platform_order_events_date_idx").on(table.createdAt, table.shopId),
   ],
 );
+
+export const shopBots = sqliteTable("shop_bots", {
+  shopId: text("shop_id")
+    .primaryKey()
+    .references(() => shops.id),
+  telegramId: text("telegram_id").unique(),
+  username: text("username"),
+  token: text("token"),
+});

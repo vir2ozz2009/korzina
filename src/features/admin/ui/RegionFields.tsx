@@ -5,7 +5,7 @@ import { Radio } from "../../../ui/Radio";
 import { SearchField } from "../../../ui/SearchField";
 
 const countries = new Intl.DisplayNames("ru", { type: "region" });
-const countryName = (code: string) => (code === "KG" ? "Кыргызстан" : (countries.of(code) ?? code));
+export const countryName = (code: string) => (code === "KG" ? "Кыргызстан" : (countries.of(code) ?? code));
 const priority: readonly string[] = priorityCountries;
 const countryOrder = [
   ...priority,
@@ -32,7 +32,7 @@ const cityNames: Record<string, string> = {
   "Asia/Nicosia": "Никосия",
   "Asia/Jerusalem": "Иерусалим",
 };
-const timeZoneName = (zone: string) => cityNames[zone] ?? zone.replaceAll("_", " ");
+export const timeZoneName = (zone: string) => cityNames[zone] ?? zone.replaceAll("_", " ");
 const normalize = (value: string) =>
   value
     .toLocaleLowerCase("ru")

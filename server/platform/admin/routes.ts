@@ -1,13 +1,18 @@
+import { exports } from "cloudflare:workers";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import { type AdminShopStatus, shopDraftInput } from "../../../src/shared/contracts/admin";
+import { botChange, shopChange, shopDraftInput } from "../../../src/shared/contracts/admin";
 import { ApiError } from "../../../src/shared/errors";
 import type { AuthSecrets } from "../../auth/config";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
-import type { CommandVariables } from "../../middleware/idempotency";
+import { type CommandVariables, idempotency } from "../../middleware/idempotency";
+import { shopContexts } from "../shop-context";
 import { requireAdmin } from "./access";
-import { createDraft, registry, slugAvailability, storefrontUrl } from "./registry";
+import { createDraft, registry, slugAvailability } from "./registry";
+import { botCoordinator } from "./shop-bot";
+import { changeShop } from "./shop-change";
+import { managedShop, shopDetail } from "./shop-detail";
 
 export const adminRoutes = new Hono<{
   Bindings: Env & AuthSecrets;
@@ -27,22 +32,36 @@ export const adminRoutes = new Hono<{
   )
   .get("/shops/:id", async (c) => {
     const id = c.req.param("id");
-    const row = await c.env.PLATFORM.withSession("first-primary")
-      .prepare(`SELECT id,name,slug,status,country,currency,
-      time_zone AS timeZone, version FROM shops WHERE id=? AND status IN ('draft','active','paused')`)
-      .bind(id)
-      .first<{
-        id: string;
-        name: string;
-        slug: string;
-        status: AdminShopStatus;
-        country: string | null;
-        currency: string | null;
-        timeZone: string | null;
-        version: number;
-      }>();
-    if (!row) throw new ApiError("SHOP_NOT_FOUND", "Магазин не найден");
-    return c.json({ ...row, storefrontUrl: storefrontUrl(c.req.raw, c.env.APP_ENV, row.slug) });
+    const shop = await managedShop(c.env.PLATFORM, id);
+    const stats = await exports.Shop.get(exports.Shop.idFromName(id)).adminShopStats();
+    return c.json(await shopDetail(c.env.PLATFORM, c.env, c.req.raw, shop, stats.products));
+  })
+  .patch("/shops/:id", authBodyLimit, idempotency, zValidator("json", shopChange, validationFailure), async (c) => {
+    const id = c.req.param("id");
+    const input = c.req.valid("json");
+    if (input.action === "data") await managedShop(c.env.PLATFORM, id);
+    const locked =
+      input.action === "data" ? (await exports.Shop.get(exports.Shop.idFromName(id)).adminShopStats()).finances : false;
+    const mutation = { id, actor: c.get("actorId"), command: c.get("command"), version: input.version };
+    const result = await changeShop(c.env.PLATFORM, mutation, input, c.env, locked);
+    shopContexts.invalidate(id);
+    return c.json(result);
+  })
+  .post("/shops/:id/bot", authBodyLimit, authCommand, zValidator("json", botChange, validationFailure), async (c) => {
+    const input = c.req.valid("json");
+    const mutation = {
+      id: c.req.param("id"),
+      actor: c.get("actorId"),
+      command: c.get("command"),
+      version: input.version,
+    };
+    const result = await exports.Shop.get(exports.Shop.idFromName(botCoordinator)).adminBotChange(
+      mutation,
+      input,
+      new URL(c.req.url).origin,
+    );
+    if (!result.ok) throw new ApiError(result.code, result.message);
+    return c.json(result.result);
   })
   .post("/shops", authBodyLimit, authCommand, zValidator("json", shopDraftInput, validationFailure), async (c) =>
     c.json(await createDraft(c.env.PLATFORM, c.env, c.get("actorId"), c.get("command"), c.req.valid("json")), 201),

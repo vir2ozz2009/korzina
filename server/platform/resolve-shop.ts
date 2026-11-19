@@ -1,18 +1,14 @@
-import { and, eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
 import { isDevelopmentHost } from "../development";
-import { domains, type PlatformShop, shops } from "./schema";
+import type { PlatformShop } from "./schema";
 
-const fields = {
-  id: shops.id,
-  slug: shops.slug,
-  name: shops.name,
-  status: shops.status,
-  plan: shops.plan,
-  createdAt: shops.createdAt,
-};
 const ttl = 30_000;
-type CachedShop = { shop: PlatformShop; expires: number };
+type ResolvedShop = PlatformShop & {
+  country: string | null;
+  currency: string | null;
+  timeZone: string | null;
+  theme: string | null;
+};
+type CachedShop = { shop: ResolvedShop; expires: number };
 const memory = new Map<string, CachedShop>();
 function remember(key: string, entry: CachedShop) {
   if (memory.size >= 500) memory.delete(memory.keys().next().value as string);
@@ -23,16 +19,17 @@ export async function resolveShop(
   request: Request,
   database: D1Database,
   namespace = "demo",
-): Promise<PlatformShop | undefined> {
+  fresh = false,
+): Promise<ResolvedShop | undefined> {
   const url = new URL(request.url);
   const slug = isDevelopmentHost(url.hostname) ? (url.searchParams.get("shop") ?? "lavka") : undefined;
-  const key = `https://shop-resolution.invalid/v3/${namespace}/${slug ? `slug/${encodeURIComponent(slug)}` : `host/${url.hostname}`}`;
-  const hit = memory.get(key);
+  const key = `https://shop-resolution.invalid/v4/${namespace}/${slug ? `slug/${encodeURIComponent(slug)}` : `host/${url.hostname}`}`;
+  const hit = fresh ? undefined : memory.get(key);
   if (hit && hit.expires > Date.now()) return hit.shop;
   memory.delete(key);
 
   const cache = await caches.open("shop-resolution");
-  const cached = await cache.match(key);
+  const cached = fresh ? undefined : await cache.match(key);
   if (cached) {
     const entry = await cached.json<CachedShop>();
     if (entry.expires > Date.now()) {
@@ -41,24 +38,20 @@ export async function resolveShop(
     }
   }
 
-  const db = drizzle(database);
+  const source = fresh ? database.withSession("first-primary") : database;
+  const columns =
+    "s.id,s.slug,s.name,s.status,s.plan,s.created_at AS createdAt,s.country,s.currency,s.time_zone AS timeZone,s.theme";
+  const open = "s.status IN ('draft','active','paused')";
   const shop = slug
-    ? await db
-        .select(fields)
-        .from(shops)
-        .where(and(eq(shops.slug, slug), eq(shops.status, "active")))
-        .get()
-    : await db
-        .select({ shop: fields })
-        .from(domains)
-        .innerJoin(shops, eq(domains.shopId, shops.id))
-        .where(and(eq(domains.host, url.hostname), eq(shops.status, "active")))
-        .get()
-        .then((row) => row?.shop);
+    ? await source.prepare(`SELECT ${columns} FROM shops s WHERE s.slug=? AND ${open}`).bind(slug).first<ResolvedShop>()
+    : await source
+        .prepare(`SELECT ${columns} FROM domains d JOIN shops s ON s.id=d.shop_id WHERE d.host=? AND ${open}`)
+        .bind(url.hostname)
+        .first<ResolvedShop>();
   if (shop) {
     const entry = { shop, expires: Date.now() + ttl };
     remember(key, entry);
     await cache.put(key, Response.json(entry, { headers: { "Cache-Control": "max-age=30" } }));
   }
-  return shop;
+  return shop ?? undefined;
 }

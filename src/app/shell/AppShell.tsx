@@ -19,6 +19,11 @@ export function AppShell() {
   const path = useRouterState({ select: (state) => state.location.pathname });
   const isRoot = useRouterState({ select: (state) => state.matches.at(-1)?.staticData.root ?? false });
   const seller = path.startsWith("/seller");
+  const storefrontClosed =
+    bootstrap &&
+    ["draft", "paused"].includes(bootstrap.status) &&
+    !seller &&
+    !/^\/(admin|orders|order|profile)(\/|$)/.test(path);
   const compactCart =
     path.startsWith("/p/") || path === "/favorites" || path === "/profile" || path.startsWith("/profile/");
   const floating =
@@ -71,8 +76,15 @@ export function AppShell() {
                 onTouchEnd={endSwipe}
               >
                 <Transition>
-                  {!seller && !path.startsWith("/admin") && bootstrap && bootstrap.status !== "active" ? (
-                    <EmptyState title="Магазин временно закрыт" description="Загляните позже." />
+                  {storefrontClosed ? (
+                    <EmptyState
+                      title={
+                        bootstrap?.status === "paused"
+                          ? "Магазин временно не принимает заказы"
+                          : "Магазин скоро откроется"
+                      }
+                      description="Загляните позже."
+                    />
                   ) : (
                     <Outlet />
                   )}

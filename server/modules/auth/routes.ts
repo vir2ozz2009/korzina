@@ -12,6 +12,7 @@ import { digest } from "../../auth/tokens";
 import { handleError } from "../../middleware/errors";
 import { RateLimiter, rateLimit } from "../../middleware/rate-limit";
 import { adminCookie, revokeAdminSession } from "../../platform/admin/access";
+import { managedBot } from "../../platform/admin/shop-bot";
 import type { ShopEnv } from "../../shop/env";
 import { settings } from "../../shop/schema";
 import { mergeBuyer } from "../buyer/merge";
@@ -89,7 +90,8 @@ export const customerAuth = new Hono<ShopEnv>()
     if (prepared) owner = prepared.tokenHash;
     if (!owner) throw new ApiError("UNAUTHORIZED", "Нужна сессия покупателя");
     if (existing) limitCustomer(c, existing.sessionId);
-    const result = await startExchange(c.env.storage, owner);
+    const bot = await managedBot(c.env.platform, c.env.shop.id);
+    const result = await startExchange(c.env.storage, owner, bot?.username);
     if (prepared) {
       writeCustomer(c.env.db, prepared);
       c.header("Set-Cookie", sessionCookie(c.req.raw, customerCookie(c.env.shop.id), prepared.token, customerTtl));
@@ -119,12 +121,15 @@ export const customerAuth = new Hono<ShopEnv>()
   })
   .post("/telegram", zValidator("json", telegramInput, validationFailure), async (c) => {
     const input = c.req.valid("json");
-    const configured = c.env.db
-      .select({ value: settings.value })
-      .from(settings)
-      .where(eq(settings.key, "telegram_bot_token"))
-      .get();
-    const botToken = await decryptBotToken(configured?.value, c.env.shop.id, c.env.secrets.ENCRYPTION_KEY);
+    const bot = await managedBot(c.env.platform, c.env.shop.id);
+    const configured = bot
+      ? undefined
+      : c.env.db.select({ value: settings.value }).from(settings).where(eq(settings.key, "telegram_bot_token")).get();
+    const botToken = await decryptBotToken(
+      bot?.token ?? configured?.value,
+      c.env.shop.id,
+      c.env.secrets.ENCRYPTION_KEY,
+    );
     const { telegramId, startParam, name } = await verifyInitData(input.initData, botToken, Date.now(), true);
     const exchange = await verifiedExchange(startParam);
     const existing = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);

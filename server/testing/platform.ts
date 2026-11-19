@@ -7,11 +7,12 @@ import cleanupMigration from "../platform/migrations/0004_sticky_screwball.sql?r
 import demoSeedMigration from "../platform/migrations/0005_demo_seed_queue.sql?raw";
 import sellerExchangeMigration from "../platform/migrations/0006_seller_browser_exchanges.sql?raw";
 import adminRegistryMigration from "../platform/migrations/0007_admin_registry.sql?raw";
+import adminCardMigration from "../platform/migrations/0008_admin_card.sql?raw";
 import { demoSeedShopIds, seedStatements } from "../platform/seed";
 
 export async function setupPlatform() {
   await env.PLATFORM.batch(
-    `${migration}--> statement-breakpoint${authMigration}--> statement-breakpoint${featureMigration}--> statement-breakpoint${mediaMigration}--> statement-breakpoint${cleanupMigration}--> statement-breakpoint${demoSeedMigration}--> statement-breakpoint${sellerExchangeMigration}--> statement-breakpoint${adminRegistryMigration}`
+    `${migration}--> statement-breakpoint${authMigration}--> statement-breakpoint${featureMigration}--> statement-breakpoint${mediaMigration}--> statement-breakpoint${cleanupMigration}--> statement-breakpoint${demoSeedMigration}--> statement-breakpoint${sellerExchangeMigration}--> statement-breakpoint${adminRegistryMigration}--> statement-breakpoint${adminCardMigration}`
       .split("--> statement-breakpoint")
       .map((sql) => env.PLATFORM.prepare(sql)),
   );
