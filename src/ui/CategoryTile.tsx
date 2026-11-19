@@ -39,7 +39,7 @@ export function CategoryTile({
       }
     >
       <span
-        className={`z-2 line-clamp-2 shrink-0 self-stretch pr-1 text-small font-semibold ${wide ? "absolute top-2.5 left-2.5 w-[45%]" : "relative mx-2.5 mt-2.5 mb-1"}`}
+        className={`z-2 line-clamp-2 shrink-0 self-stretch wrap-anywhere text-small font-semibold ${wide ? "absolute top-2.5 left-2.5 w-[calc(30%-var(--spacing)/2)]" : "relative mx-2.5 mt-2.5 mb-1 h-8 pr-1"}`}
       >
         {name}
       </span>

@@ -3,7 +3,7 @@ import type { InferResponseType } from "hono/client";
 import { useRef } from "react";
 import { bootstrap } from "../../app/bootstrap";
 import { type api, apiForShop } from "../../shared/api";
-import type { MediaPurpose, PhotoMetadata } from "../../shared/contracts/media";
+import type { CropPosition, MediaPurpose, PhotoMetadata } from "../../shared/contracts/media";
 import { checkResponse, HttpError } from "../../shared/http-error";
 import { ensureShopSession } from "../../shared/shop-session";
 
@@ -121,9 +121,10 @@ export async function changeMediaState(
   seller: boolean,
   action: "attach" | "delete",
   key: string = crypto.randomUUID(),
+  cropPosition?: CropPosition,
 ) {
   const response = await apiForShop(shop(), seller).api.media[":id"].state.$post(
-    { param: { id }, json: { action } },
+    { param: { id }, json: action === "attach" ? { action, cropPosition } : { action } },
     { headers: { "Idempotency-Key": key } },
   );
   await checkResponse(response);

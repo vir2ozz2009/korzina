@@ -137,6 +137,7 @@ export function readProduct(storage: DurableObjectStorage, id: string, shopId: s
       id: string;
       edgeColor: string | null;
       contentBox: string | null;
+      cropPosition: string | null;
       width: number | null;
       height: number | null;
     }>(photosSql, id)
@@ -157,6 +158,7 @@ export function readProduct(storage: DurableObjectStorage, id: string, shopId: s
       ...catalogImage(p.id, shopId, origin, {
         edgeColor: p.edgeColor ?? undefined,
         contentBox: p.contentBox ? JSON.parse(p.contentBox) : undefined,
+        cropPosition: p.cropPosition ? JSON.parse(p.cropPosition) : undefined,
         width: p.width ?? undefined,
         height: p.height ?? undefined,
       }),

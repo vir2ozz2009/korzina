@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { photoMetadataContract } from "./media";
+import { cropPositionContract, photoMetadataContract } from "./media";
 
 const id = z.string().min(1).max(120);
 export const catalogPageInput = z.object({
@@ -20,6 +20,7 @@ export const catalogLiveInput = z.object({
 export type CatalogPageInput = z.infer<typeof catalogPageInput>;
 
 export const catalogImageContract = photoMetadataContract.extend({
+  cropPosition: cropPositionContract.optional(),
   src: z.string(),
   srcSet: z.string(),
   original: z.object({ src: z.string() }),

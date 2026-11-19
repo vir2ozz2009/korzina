@@ -57,6 +57,7 @@ export async function uploadMedia(
       id: crypto.randomUUID(),
       edgeColor: metadata.edgeColor ?? null,
       contentBox: metadata.contentBox ?? null,
+      cropPosition: null,
       width: metadata.width ?? null,
       height: metadata.height ?? null,
       owner: actor.id,

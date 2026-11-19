@@ -22,7 +22,7 @@ export function ProductTile({
   onOpen,
   cart,
   stock,
-  photoShape = "tile",
+  photoShape = "square",
   variants,
   ...price
 }: ProductTileProps) {

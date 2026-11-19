@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { checkContent } from "./content";
+import { expectCategoryFrames, expectSquarePhotos } from "./photo-frames";
 
 async function checkWidths(page: Page, screen?: "home" | "product") {
   if (screen) await checkContent(page, screen);
@@ -104,7 +105,7 @@ test("витрина своего магазина → фасовка/корзи
     .toBeCloseTo(0, 0);
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.getByRole("button", { name: /Открыть фото 1:/ }).click();
-  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("dialog").locator("img")).toHaveCSS("object-fit", "contain");
   await page.getByRole("button", { name: "Увеличить фото" }).click();
   await page.getByRole("button", { name: "Закрыть фото" }).click();
   await page.getByRole("link", { name: "Подробнее о товаре" }).click();
@@ -117,6 +118,7 @@ test("витрина своего магазина → фасовка/корзи
   await expect(first.getByLabel("В корзине", { exact: true })).toHaveText("1");
   await page.getByRole("button", { name: /^Корзина/ }).click();
   const tomato = page.getByRole("listitem").filter({ hasText: "Томаты на ветке" });
+  await expectSquarePhotos(tomato.locator("[data-product-photo]"));
   const quantity = tomato.getByLabel("Количество", { exact: true });
   await expect(quantity).toHaveText("1");
   await tomato.getByRole("button", { name: "Увеличить количество" }).click();
@@ -149,6 +151,10 @@ test("витрина своего магазина → фасовка/корзи
   await page.goto("/dev/kit?shop=test2");
   await page.getByRole("button", { name: "Товары", exact: true }).click();
   await checkWidths(page);
+  const mosaic = page.getByRole("region", { name: "Мозаика категорий" });
+  await mosaic.getByRole("button", { name: "Мозаика: 1×2, 2×2" }).click();
+  await expectCategoryFrames(mosaic.getByRole("navigation", { name: "Категории" }), ["1x1", "2x1", "1x2", "2x2"]);
+  await expectSquarePhotos(page.locator("#kit-product-rows [data-product-photo]"));
   await page.getByRole("button", { name: "Шаблоны", exact: true }).click();
   await page.getByRole("button", { name: "form", exact: true }).click();
   await page.getByLabel("Название магазина").fill("Изменённое название");

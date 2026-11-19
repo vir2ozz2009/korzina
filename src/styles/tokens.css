@@ -85,6 +85,8 @@
   --store-header-height: 84px;
   --store-identity-height: 60px;
   --store-logo-font: 25px;
+  --category-photo-radius: 8px;
+  --photo-crop-shade: rgb(0 0 0 / 0.4);
   --category-fade: 8px;
   --product-fade: 10px;
   --category-mask:

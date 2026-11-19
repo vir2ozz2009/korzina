@@ -1,19 +1,20 @@
 import type { CatalogImage } from "../../../src/shared/contracts/catalog";
-import type { PhotoMetadata } from "../../../src/shared/contracts/media";
+import type { CropPosition, PhotoMetadata } from "../../../src/shared/contracts/media";
 import { mediaWidths } from "../../../src/shared/contracts/media";
 import demoImages from "../../../src/shared/demo-images.json";
 
+type ImageMetadata = PhotoMetadata & { cropPosition?: CropPosition };
 const demoImageMap = new Map(Object.entries(demoImages));
 
 export function catalogImage(
   id: string | null,
   shopId: string,
   origin: string,
-  metadata: PhotoMetadata = {},
+  metadata: ImageMetadata = {},
 ): CatalogImage | null {
   if (!id) return null;
   const demo = demoImageMap.get(id);
-  if (demo) return demo;
+  if (demo) return metadata.cropPosition ? { ...demo, cropPosition: metadata.cropPosition } : demo;
   const prefix = `${origin}/${shopId}/${id}/original`;
   return {
     ...metadata,
@@ -25,7 +26,7 @@ export function catalogImage(
 
 export function documentImage(value: string | null, shopId: string) {
   if (!value) return null;
-  const { id, ...metadata } = JSON.parse(value) as PhotoMetadata & { id: string };
+  const { id, ...metadata } = JSON.parse(value) as ImageMetadata & { id: string };
   return catalogImage(
     id,
     shopId,
