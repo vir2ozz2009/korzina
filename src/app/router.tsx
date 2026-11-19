@@ -1,6 +1,6 @@
 import { createRoute, createRouter, lazyRouteComponent } from "@tanstack/react-router";
 import { rootRoute } from "../routes/root";
-import { sellerRoutes } from "../routes/seller-routes";
+import { sellerRoutes } from "../routes/cabinet-routes";
 import { shopRoutes } from "../routes/shop-routes";
 import { createQueryClient } from "./query-defaults";
 import { TemplatePending } from "./templates/TemplatePending";
