@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ActiveOrders, RepeatPreview } from "../../shared/contracts/buyer-order";
-import { checkResponse, errorKind } from "../../shared/http-error";
+import { checkResponse, errorKind, HttpError } from "../../shared/http-error";
 import { commandHeaders, shopApi, shopKey } from "../../shared/shop-api";
 
 export const orderKeys = ["shop", shopKey, "buyer-orders"] as const;
@@ -91,6 +91,10 @@ export function useOrderChange(number: number) {
           );
       await checkResponse(response);
       return response.json();
+    },
+    onError: (error) => {
+      if (error instanceof HttpError && error.code === "VERSION_CONFLICT")
+        void client.invalidateQueries({ queryKey: orderKey(number) });
     },
     onSuccess: (value) => {
       client.setQueryData(orderKey(number), value);

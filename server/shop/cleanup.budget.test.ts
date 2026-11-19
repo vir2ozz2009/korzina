@@ -75,7 +75,7 @@ it("все виды просроченных данных и файлы убир
       future,
     );
     sql.exec(
-      "INSERT INTO customer_telegram_exchanges VALUES('old','gone',NULL,?),('fresh','here',NULL,?)",
+      "INSERT INTO customer_telegram_exchanges(id,owner,telegram_subject,expires_at) VALUES('old','gone',NULL,?),('fresh','here',NULL,?)",
       past,
       future,
     );
