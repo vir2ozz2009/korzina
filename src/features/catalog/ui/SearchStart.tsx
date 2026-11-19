@@ -69,7 +69,7 @@ export function SearchStart({
           <h2 className="text-title-3">Товары магазина</h2>
           <div className="grid grid-cols-2 gap-2">
             {tiles.map(({ id, ...tile }) => (
-              <ProductTile key={id} {...tile} />
+              <ProductTile key={id} {...tile} photoShape="square" />
             ))}
           </div>
         </section>
