@@ -32,16 +32,12 @@
       "indexes": {
         "accounts_telegram_id_unique": {
           "name": "accounts_telegram_id_unique",
-          "columns": [
-            "telegram_id"
-          ],
+          "columns": ["telegram_id"],
           "isUnique": true
         },
         "accounts_email_unique": {
           "name": "accounts_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         }
       },
@@ -78,9 +74,7 @@
       "indexes": {
         "admin_sessions_expiry_idx": {
           "name": "admin_sessions_expiry_idx",
-          "columns": [
-            "expires_at"
-          ],
+          "columns": ["expires_at"],
           "isUnique": false
         }
       },
@@ -89,12 +83,8 @@
           "name": "admin_sessions_account_id_platform_admins_account_id_fk",
           "tableFrom": "admin_sessions",
           "tableTo": "platform_admins",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "account_id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["account_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -127,12 +117,8 @@
           "name": "demo_seed_queue_shop_id_shops_id_fk",
           "tableFrom": "demo_seed_queue",
           "tableTo": "shops",
-          "columnsFrom": [
-            "shop_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shop_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -165,12 +151,8 @@
           "name": "domains_shop_id_shops_id_fk",
           "tableFrom": "domains",
           "tableTo": "shops",
-          "columnsFrom": [
-            "shop_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shop_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -270,22 +252,15 @@
           "name": "feature_overrides_shop_id_shops_id_fk",
           "tableFrom": "feature_overrides",
           "tableTo": "shops",
-          "columnsFrom": [
-            "shop_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shop_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "feature_overrides_shop_id_key_pk": {
-          "columns": [
-            "shop_id",
-            "key"
-          ],
+          "columns": ["shop_id", "key"],
           "name": "feature_overrides_shop_id_key_pk"
         }
       },
@@ -363,23 +338,17 @@
       "indexes": {
         "invitations_link_id_unique": {
           "name": "invitations_link_id_unique",
-          "columns": [
-            "link_id"
-          ],
+          "columns": ["link_id"],
           "isUnique": true
         },
         "invitations_expiry_idx": {
           "name": "invitations_expiry_idx",
-          "columns": [
-            "expires_at"
-          ],
+          "columns": ["expires_at"],
           "isUnique": false
         },
         "invitations_shop_idx": {
           "name": "invitations_shop_idx",
-          "columns": [
-            "shop_id"
-          ],
+          "columns": ["shop_id"],
           "isUnique": false
         }
       },
@@ -388,12 +357,8 @@
           "name": "invitations_shop_id_shops_id_fk",
           "tableFrom": "invitations",
           "tableTo": "shops",
-          "columnsFrom": [
-            "shop_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shop_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -445,9 +410,7 @@
       "indexes": {
         "memberships_account_idx": {
           "name": "memberships_account_idx",
-          "columns": [
-            "account_id"
-          ],
+          "columns": ["account_id"],
           "isUnique": false
         }
       },
@@ -456,12 +419,8 @@
           "name": "memberships_shop_id_shops_id_fk",
           "tableFrom": "memberships",
           "tableTo": "shops",
-          "columnsFrom": [
-            "shop_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shop_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -469,22 +428,15 @@
           "name": "memberships_account_id_accounts_id_fk",
           "tableFrom": "memberships",
           "tableTo": "accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "memberships_shop_id_account_id_pk": {
-          "columns": [
-            "shop_id",
-            "account_id"
-          ],
+          "columns": ["shop_id", "account_id"],
           "name": "memberships_shop_id_account_id_pk"
         }
       },
@@ -508,12 +460,8 @@
           "name": "platform_admins_account_id_accounts_id_fk",
           "tableFrom": "platform_admins",
           "tableTo": "accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -571,9 +519,7 @@
       "indexes": {
         "platform_audit_created_idx": {
           "name": "platform_audit_created_idx",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         }
       },
@@ -582,12 +528,8 @@
           "name": "platform_audit_shop_id_shops_id_fk",
           "tableFrom": "platform_audit",
           "tableTo": "shops",
-          "columnsFrom": [
-            "shop_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shop_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -638,19 +580,14 @@
       "indexes": {
         "platform_commands_created_idx": {
           "name": "platform_commands_created_idx",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "platform_commands_account_id_key_pk": {
-          "columns": [
-            "account_id",
-            "key"
-          ],
+          "columns": ["account_id", "key"],
           "name": "platform_commands_account_id_key_pk"
         }
       },
@@ -685,10 +622,7 @@
       "indexes": {
         "platform_order_events_date_idx": {
           "name": "platform_order_events_date_idx",
-          "columns": [
-            "created_at",
-            "shop_id"
-          ],
+          "columns": ["created_at", "shop_id"],
           "isUnique": false
         }
       },
@@ -697,22 +631,15 @@
           "name": "platform_order_events_shop_id_shops_id_fk",
           "tableFrom": "platform_order_events",
           "tableTo": "shops",
-          "columnsFrom": [
-            "shop_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shop_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "platform_order_events_shop_id_order_number_pk": {
-          "columns": [
-            "shop_id",
-            "order_number"
-          ],
+          "columns": ["shop_id", "order_number"],
           "name": "platform_order_events_shop_id_order_number_pk"
         }
       },
@@ -792,9 +719,7 @@
       "indexes": {
         "seller_exchanges_expiry_idx": {
           "name": "seller_exchanges_expiry_idx",
-          "columns": [
-            "expires_at"
-          ],
+          "columns": ["expires_at"],
           "isUnique": false
         }
       },
@@ -831,9 +756,7 @@
       "indexes": {
         "seller_sessions_expiry_idx": {
           "name": "seller_sessions_expiry_idx",
-          "columns": [
-            "expires_at"
-          ],
+          "columns": ["expires_at"],
           "isUnique": false
         }
       },
@@ -842,12 +765,8 @@
           "name": "seller_sessions_account_id_accounts_id_fk",
           "tableFrom": "seller_sessions",
           "tableTo": "accounts",
-          "columnsFrom": [
-            "account_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["account_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -891,9 +810,7 @@
       "indexes": {
         "shop_bots_telegram_id_unique": {
           "name": "shop_bots_telegram_id_unique",
-          "columns": [
-            "telegram_id"
-          ],
+          "columns": ["telegram_id"],
           "isUnique": true
         }
       },
@@ -902,12 +819,8 @@
           "name": "shop_bots_shop_id_shops_id_fk",
           "tableFrom": "shop_bots",
           "tableTo": "shops",
-          "columnsFrom": [
-            "shop_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["shop_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1024,9 +937,7 @@
       "indexes": {
         "shops_slug_unique": {
           "name": "shops_slug_unique",
-          "columns": [
-            "slug"
-          ],
+          "columns": ["slug"],
           "isUnique": true
         }
       },

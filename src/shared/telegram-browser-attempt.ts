@@ -17,13 +17,22 @@ function storageKey(kind: keyof Attempts) {
 const sharedKey = (kind: keyof Attempts) => `korzina:telegram-handoff:${kind}`;
 const completedKey = (kind: keyof Attempts) => `korzina:telegram-finished:${kind}`;
 
+function sharedAttempt<Kind extends keyof Attempts>(kind: Kind) {
+  const stored = localStorage.getItem(sharedKey(kind));
+  if (!stored) return undefined;
+  const shared = JSON.parse(stored) as { key: string; attempt: Attempts[Kind] };
+  if (shared.attempt.expiresAt > Date.now()) return shared;
+  localStorage.removeItem(sharedKey(kind));
+}
+
 export function readTelegramAttempt<Kind extends keyof Attempts>(kind: Kind): Attempts[Kind] | undefined {
   try {
     const key = storageKey(kind);
     const saved = sessionStorage.getItem(key);
-    const shared = location.hash === "#telegram-return" ? localStorage.getItem(sharedKey(kind)) : null;
-    const handoff = shared ? (JSON.parse(shared) as { key: string; attempt: Attempts[Kind] }) : undefined;
-    const attempt = saved ? (JSON.parse(saved) as Attempts[Kind]) : handoff?.key === key ? handoff.attempt : undefined;
+    const local = saved ? (JSON.parse(saved) as Attempts[Kind]) : undefined;
+    if (local && local.expiresAt > Date.now() && new URL(local.url).origin === "https://t.me") return local;
+    const handoff = location.hash === "#telegram-return" ? sharedAttempt(kind) : undefined;
+    const attempt = handoff?.key === key ? handoff.attempt : undefined;
     if (attempt && attempt.expiresAt > Date.now() && new URL(attempt.url).origin === "https://t.me") return attempt;
   } catch {
     // The browser may disallow storage.
@@ -37,9 +46,10 @@ export function saveTelegramAttempt<Kind extends keyof Attempts>(kind: Kind, att
       sessionStorage.setItem(key, JSON.stringify(attempt));
       localStorage.setItem(sharedKey(kind), JSON.stringify({ key, attempt }));
     } else {
+      const active = readTelegramAttempt(kind);
       sessionStorage.removeItem(key);
-      const shared = localStorage.getItem(sharedKey(kind));
-      if (shared && JSON.parse(shared).key === key) localStorage.removeItem(sharedKey(kind));
+      const shared = sharedAttempt(kind);
+      if (shared && shared.attempt.exchange === active?.exchange) localStorage.removeItem(sharedKey(kind));
     }
   } catch {
     // A native Telegram handoff can still return to the live page without storage.
