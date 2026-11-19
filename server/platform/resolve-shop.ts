@@ -3,6 +3,14 @@ import { drizzle } from "drizzle-orm/d1";
 import { isDevelopmentHost } from "../development";
 import { domains, type PlatformShop, shops } from "./schema";
 
+const fields = {
+  id: shops.id,
+  slug: shops.slug,
+  name: shops.name,
+  status: shops.status,
+  plan: shops.plan,
+  createdAt: shops.createdAt,
+};
 const ttl = 30_000;
 type CachedShop = { shop: PlatformShop; expires: number };
 const memory = new Map<string, CachedShop>();
@@ -36,12 +44,12 @@ export async function resolveShop(
   const db = drizzle(database);
   const shop = slug
     ? await db
-        .select()
+        .select(fields)
         .from(shops)
         .where(and(eq(shops.slug, slug), eq(shops.status, "active")))
         .get()
     : await db
-        .select({ shop: shops })
+        .select({ shop: fields })
         .from(domains)
         .innerJoin(shops, eq(domains.shopId, shops.id))
         .where(and(eq(domains.host, url.hostname), eq(shops.status, "active")))

@@ -112,8 +112,9 @@ export function useLogout() {
         predicate: ({ queryKey }: { queryKey: readonly unknown[] }) =>
           queryKey[0] === "shop" && queryKey[1] === shopKey && keys.includes(String(queryKey[2])),
       };
-      await client.cancelQueries(filters);
+      await Promise.all([client.cancelQueries(filters), client.cancelQueries({ queryKey: ["admin"] })]);
       client.removeQueries(filters);
+      client.removeQueries({ queryKey: ["admin"] });
       await client.invalidateQueries({ queryKey: ["shop", shopKey] });
     },
   });

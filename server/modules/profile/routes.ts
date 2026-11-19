@@ -5,6 +5,7 @@ import { addressCommand, profileInput } from "../../../src/shared/contracts/prof
 import { ApiError } from "../../../src/shared/errors";
 import { sellerCookie, sessionCookie } from "../../auth/cookies";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
+import { adminAccount, adminCookie, openAdminSession } from "../../platform/admin/access";
 import { canEnterCabinet, customerTelegramId, enterCabinet } from "../../platform/auth/cabinet";
 import { sellerTtl } from "../../platform/auth/sessions";
 import { executeCommand } from "../../shop/commands";
@@ -26,11 +27,24 @@ export const profileRoutes = new Hono<ShopEnv>()
   })
   .get("/", async (c) => {
     const session = await actor(c.env, c.req.raw);
-    return c.json({
-      ...editableProfile(c.env.storage, session),
-      region: contactRegion(c.env.storage),
-      sellerCabinet: await canEnterCabinet(c.env.platform, customerTelegramId(session), c.env.shop.id),
-    });
+    const profile = editableProfile(c.env.storage, session);
+    const telegramId = customerTelegramId(session);
+    const [sellerCabinet, admin] = await Promise.all([
+      canEnterCabinet(c.env.platform, telegramId, c.env.shop.id),
+      adminAccount(c.env.platform, c.env.secrets, telegramId),
+    ]);
+    return c.json({ ...profile, region: contactRegion(c.env.storage), sellerCabinet, platformAdmin: !!admin });
+  })
+  .post("/admin", authBodyLimit, authCommand, zValidator("json", emptyInput, validationFailure), async (c) => {
+    const session = await actor(c.env, c.req.raw);
+    const result = await openAdminSession(
+      c.env.platform,
+      c.env.secrets,
+      customerTelegramId(session),
+      session.expiresAt,
+    );
+    c.header("Set-Cookie", sessionCookie(c.req.raw, adminCookie, result.token, result.ttl));
+    return c.json({ ok: true as const });
   })
   .post("/seller", authBodyLimit, authCommand, zValidator("json", emptyInput, validationFailure), async (c) => {
     const session = await actor(c.env, c.req.raw);

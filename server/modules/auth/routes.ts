@@ -11,6 +11,7 @@ import { verifyInitData } from "../../auth/telegram";
 import { digest } from "../../auth/tokens";
 import { handleError } from "../../middleware/errors";
 import { RateLimiter, rateLimit } from "../../middleware/rate-limit";
+import { adminCookie, revokeAdminSession } from "../../platform/admin/access";
 import type { ShopEnv } from "../../shop/env";
 import { settings } from "../../shop/schema";
 import { mergeBuyer } from "../buyer/merge";
@@ -186,5 +187,7 @@ export const customerAuth = new Hono<ShopEnv>()
       "Set-Cookie",
       sessionCookie(c.req.raw, customerCookie(c.env.shop.id), prepared?.token ?? "", prepared ? customerTtl : 0),
     );
+    await revokeAdminSession(c.env.platform, c.req.raw);
+    c.header("Set-Cookie", sessionCookie(c.req.raw, adminCookie, "", 0), { append: true });
     return c.json({ ok: true });
   });
