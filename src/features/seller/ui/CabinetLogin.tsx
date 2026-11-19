@@ -2,6 +2,7 @@ import { Send } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadTelegram } from "../../../app/telegram/adapter";
 import { telegramLaunch } from "../../../app/telegram/launch";
+import { readTelegramAttempt, saveTelegramAttempt } from "../../../shared/telegram-browser-attempt";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { useEnterCabinet } from "../api";
@@ -13,7 +14,7 @@ const message = (error: unknown) => (error instanceof Error ? error.message : "�
 export function CabinetLogin({ store, ready }: { store?: string; ready: () => void }) {
   const { mutateAsync: enter } = useEnterCabinet();
   const attempted = useRef(false);
-  const [exchange, setExchange] = useState<Exchange>();
+  const [exchange, setExchange] = useState<Exchange | undefined>(() => readTelegramAttempt("seller"));
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
   const startRequest = useRef<AbortController | undefined>(undefined);
@@ -25,6 +26,7 @@ export function CabinetLogin({ store, ready }: { store?: string; ready: () => vo
     let timeout: number;
     const poll = async () => {
       if (Date.now() >= exchange.expiresAt) {
+        saveTelegramAttempt("seller");
         setExchange(undefined);
         setError("Ссылка для входа истекла");
         return;
@@ -35,12 +37,14 @@ export function CabinetLogin({ store, ready }: { store?: string; ready: () => vo
           navigator.onLine &&
           (await finishCabinetLogin(exchange.exchange, request.signal))
         ) {
+          saveTelegramAttempt("seller");
           setExchange(undefined);
           ready();
           return;
         }
       } catch (error) {
         if (request.signal.aborted) return;
+        saveTelegramAttempt("seller");
         setExchange(undefined);
         setError(message(error));
         return;
@@ -91,11 +95,21 @@ export function CabinetLogin({ store, ready }: { store?: string; ready: () => vo
               full
               size="lg"
               icon={<Send size={18} />}
-              onClick={() => window.open(exchange.url, "_blank", "noopener")}
+              onClick={() => {
+                saveTelegramAttempt("seller", exchange);
+                window.location.assign(exchange.url);
+              }}
             >
               Открыть Telegram
             </Button>
-            <Button full variant="secondary" onClick={() => setExchange(undefined)}>
+            <Button
+              full
+              variant="secondary"
+              onClick={() => {
+                saveTelegramAttempt("seller");
+                setExchange(undefined);
+              }}
+            >
               Отмена
             </Button>
           </div>
