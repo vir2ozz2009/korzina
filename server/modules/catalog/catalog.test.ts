@@ -72,6 +72,25 @@ describe("правила каталога", () => {
     expect(other.items[0].stock).toBe(2);
   });
 
+  it("добавляет связь снимков с фасовками на старом демо-сиде и сохраняет ручную привязку", async () => {
+    await catalogSql("UPDATE settings SET value='B4' WHERE key='catalog_gallery_seed'");
+    await catalogSql("UPDATE variants SET photo_id=NULL WHERE id='sku-03'");
+    await catalogSql("UPDATE variants SET photo_id='demo-tomato-gallery-2' WHERE id='sku-02'");
+    await catalogStub().seedDemoCatalog("korzina-demo-lavka");
+    const product = await (await catalogRequest("products/product-01")).json<{
+      variants: { id: string; photoId: string | null }[];
+      images: { id: string }[];
+    }>();
+    expect(product.variants.slice(1, 3)).toMatchObject([
+      { id: "sku-02", photoId: product.images[1].id },
+      { id: "sku-03", photoId: product.images[1].id },
+    ]);
+    const version = (await live()).catalogVersion;
+    await catalogStub().seedDemoCatalog("korzina-demo-lavka");
+    expect((await live()).catalogVersion).toBe(version);
+    await catalogSql("UPDATE variants SET photo_id='demo-curd' WHERE id='sku-02'");
+  });
+
   it("скрытие и снятие с публикации действуют сразу на фасовки и прямую ссылку; скрытые категории и бренды отсутствуют в навигации", async () => {
     await catalogSql("UPDATE products SET visible=0 WHERE id='product-01'");
     expect((await catalogRequest("products/product-01")).status).toBe(404);
