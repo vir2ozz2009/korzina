@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { verifyOrderCancellation } from "./after-order";
 
 async function keyboardViewport(page: Page, open: boolean) {
   await page.evaluate((open) => {
@@ -237,4 +238,5 @@ test("B10: товар, доставка и заказ наличными", async
   await page.screenshot({ path: "test-results/purchase-done-390.png", animations: "disabled" });
   await page.getByRole("button", { name: "К покупкам" }).click();
   await expect(page).toHaveURL(/\/\?shop=test2$/);
+  await verifyOrderCancellation(page, order.number);
 });

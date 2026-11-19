@@ -30,6 +30,7 @@ export const orders = sqliteTable(
     customer: text("customer").notNull(),
     createdAt: integer("created_at").notNull(),
     status: text("status").notNull(),
+    version: integer("version").notNull().default(0),
     paymentStatus: text("payment_status").notNull(),
     proofMediaId: text("proof_media_id"),
     snapshot: text("snapshot").notNull(),
@@ -44,6 +45,34 @@ export const orderOutbox = sqliteTable("order_outbox", {
   orderNumber: integer("order_number")
     .primaryKey()
     .references(() => orders.number),
+  event: text("event").notNull(),
+  createdAt: integer("created_at").notNull(),
+});
+
+export const buyerOrderRevisions = sqliteTable("buyer_order_revisions", {
+  customer: text("customer").primaryKey(),
+  revision: integer("revision").notNull(),
+});
+
+export const orderReceiptHistory = sqliteTable(
+  "order_receipt_history",
+  {
+    sequence: integer("sequence").primaryKey({ autoIncrement: true }),
+    orderNumber: integer("order_number")
+      .notNull()
+      .references(() => orders.number),
+    mediaId: text("media_id").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [index("order_receipts_number").on(table.orderNumber, table.sequence)],
+);
+
+export const buyerOrderEvents = sqliteTable("buyer_order_events", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  orderNumber: integer("order_number")
+    .notNull()
+    .references(() => orders.number),
+  actor: text("actor").notNull(),
   event: text("event").notNull(),
   createdAt: integer("created_at").notNull(),
 });

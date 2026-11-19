@@ -61,6 +61,11 @@ export function DoneScreen() {
             subtitle={[address, time].filter(Boolean).join(" · ")}
           />
           <PurchaseTotals {...order} done />
+          <ListItem
+            title="Открыть заказ"
+            onClick={() => void navigate({ to: "/orders/$number", params: { number: String(order.number) } })}
+          />
+          <ListItem title="Мои заказы" onClick={() => void navigate({ to: "/orders" })} />
           {transfer && (transfer.credentialsChanged || transfer.differenceMinor !== 0) && (
             <Card>
               {transfer.differenceMinor !== 0 && (

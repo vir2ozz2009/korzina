@@ -15,13 +15,15 @@ type CartState = {
   response: string | null;
 };
 
-const read = (
+export function readCartState(
   storage: DurableObjectStorage,
   customer: string,
   source: CartSource,
-  variantId = "",
+  variantIds: string[] = [],
   identity?: CommandIdentity,
-) => {
+) {
+  const variantId = variantIds[0] ?? "";
+  const batch = variantIds.length > 1;
   const row = storage.sql
     .exec<CartState>(
       `SELECT COALESCE(c.revision,0) AS revision,s.currency,c.quote,i.fingerprint,i.response,
@@ -32,15 +34,14 @@ const read = (
         'photo',CASE WHEN m.id IS NOT NULL THEN json_object('id',m.id,'edgeColor',m.edge_color,'cropPosition',json(m.crop_position)) END))
       FROM (SELECT json_extract(j.value,'$.variantId') AS variant_id,json_extract(j.value,'$.quantity') AS quantity
             FROM json_each(COALESCE(c.lines,'[]')) j
-            UNION ALL SELECT ?,0 WHERE ? != '') w
+            UNION ALL ${batch ? "SELECT value,0 FROM json_each(?)" : "SELECT ?,0 WHERE ? != ''"}) w
       LEFT JOIN variants v ON v.id=w.variant_id LEFT JOIN products p ON p.id=v.product_id
       LEFT JOIN media m ON m.id=COALESCE(v.photo_id, (
         SELECT pp.media_id FROM product_photos pp WHERE pp.product_id=p.id ORDER BY pp.position LIMIT 1
       )) AND m.ready=1 AND m.status='attached') AS lines
       FROM catalog_state s LEFT JOIN carts c ON c.customer=?
       LEFT JOIN idempotency i ON i.scope=? AND i.key=? WHERE s.id=1`,
-      variantId,
-      variantId,
+      ...(batch ? [JSON.stringify(variantIds)] : [variantId, variantId]),
       customer,
       `cart:${customer}`,
       identity?.key ?? "",
@@ -60,13 +61,13 @@ const read = (
   return {
     ...current,
     initial: !saved && current.cart.lines.length > 0,
-    offered: rows.find((line) => line.quantity === 0),
+    offered: rows.filter((line) => line.quantity === 0),
     previous: row.response,
     fingerprint: row.fingerprint,
   };
-};
+}
 
-function persist(storage: DurableObjectStorage, customer: string, cart: Cart) {
+export function persistCart(storage: DurableObjectStorage, customer: string, cart: Cart) {
   const lines = cart.lines.map(({ variantId, quantity }) => ({ variantId, quantity }));
   storage.sql.exec(
     `INSERT INTO carts(customer,revision,lines,quote,updated_at) VALUES(?,?,?,?,?)
@@ -81,8 +82,8 @@ function persist(storage: DurableObjectStorage, customer: string, cart: Cart) {
 
 export function readCart(storage: DurableObjectStorage, customer: string, source: CartSource): Cart {
   return storage.transactionSync(() => {
-    const { cart, changed, initial } = read(storage, customer, source);
-    if (changed || initial) persist(storage, customer, cart);
+    const { cart, changed, initial } = readCartState(storage, customer, source);
+    if (changed || initial) persistCart(storage, customer, cart);
     return cart;
   });
 }
@@ -124,8 +125,8 @@ export function mergeCustomerCarts(storage: DurableObjectStorage, guest: string,
     )
     .toArray();
   if (!phones.some(({ customer }) => customer === guest)) return;
-  const guestCart = read(storage, guest, source).cart;
-  const accountCart = read(storage, account, source).cart;
+  const guestCart = readCartState(storage, guest, source).cart;
+  const accountCart = readCartState(storage, account, source).cart;
   const lines = new Map(accountCart.lines.map((line) => [line.variantId, line]));
   for (const line of guestCart.lines) {
     const other = lines.get(line.variantId);
@@ -144,7 +145,7 @@ export function mergeCustomerCarts(storage: DurableObjectStorage, guest: string,
         changes: [...adjustments.values()],
       }
     : undefined;
-  persist(storage, account, { revision, currency: accountCart.currency, ...totals, review });
+  persistCart(storage, account, { revision, currency: accountCart.currency, ...totals, review });
   const { revision: _revision, ...selection } =
     from.receiving && (!to.receiving || from.receivingUpdatedAt > to.receivingUpdatedAt) ? from : to;
   const seenAddresses = new Set<string>();
@@ -183,15 +184,20 @@ export function changeCart(
   identity: CommandIdentity,
 ): Cart {
   const result = storage.transactionSync(() => {
-    const current = read(storage, customer, source, "variantId" in input ? input.variantId : "", identity);
+    const current = readCartState(storage, customer, source, "variantId" in input ? [input.variantId] : [], identity);
     if (current.previous) {
       if (current.fingerprint !== identity.fingerprint)
         throw new ApiError("IDEMPOTENCY_CONFLICT", "Ключ уже использован с другим запросом");
       return JSON.parse(current.previous) as Cart;
     }
-    const { cart, offered, changed, initial } = current;
+    const {
+      cart,
+      offered: [offered],
+      changed,
+      initial,
+    } = current;
     if (cart.revision !== input.expectedRevision) {
-      if (changed || initial) persist(storage, customer, cart);
+      if (changed || initial) persistCart(storage, customer, cart);
       return new ApiError("VERSION_CONFLICT", "Корзина изменилась. Попробуйте ещё раз.", { cart });
     }
     let next = cart;
@@ -225,7 +231,7 @@ export function changeCart(
         next = { ...cart, revision: cart.revision + 1, ...totals, review };
       }
     }
-    if (next !== cart || initial) persist(storage, customer, next);
+    if (next !== cart || initial) persistCart(storage, customer, next);
     storage.sql.exec(
       "INSERT INTO idempotency(scope,key,fingerprint,response,created_at) VALUES(?,?,?,?,?)",
       `cart:${customer}`,

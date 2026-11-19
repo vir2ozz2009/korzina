@@ -89,7 +89,7 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
         beforeMinor: previous.totalMinor,
         afterMinor: snapshot.totalMinor,
       });
-    reserveTime(storage, snapshot.receiving.mode, snapshot.time, now);
+    const seatReserved = reserveTime(storage, snapshot.receiving.mode, snapshot.time, now);
     const { paymentSettings, ...details } = snapshot;
     const proof = input.payment === "transfer" ? input.proofMediaId : null;
     const transferReview = proof
@@ -98,6 +98,9 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
     const paymentStatus = proof ? "pending_review" : "unpaid";
     const order: OrderSnapshot = { ...details, payment: input.payment, paymentStatus, transferReview };
     const stock = order.lines.map(({ variantId, quantity }) => ({ variantId, quantity }));
+    const reservedStock = cart.lines
+      .filter(({ available, stock }) => available && stock !== null)
+      .map(({ variantId }) => variantId);
     storage.sql.exec(
       `WITH ordered AS (
          SELECT json_extract(value,'$.variantId') AS id, json_extract(value,'$.quantity') AS quantity FROM json_each(?)
@@ -113,7 +116,7 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
         now,
         paymentStatus,
         proof,
-        JSON.stringify(order),
+        JSON.stringify({ ...order, seatReserved, reservedStock }),
       )
       .one();
     storage.sql.exec("INSERT INTO order_outbox(order_number,event,created_at) VALUES(?,'order.placed',?)", number, now);
@@ -128,5 +131,10 @@ export function readOrder(storage: DurableObjectStorage, subject: string, number
     .exec<{ snapshot: string }>("SELECT snapshot FROM orders WHERE customer=? AND number=?", subject, number)
     .toArray()[0];
   if (!row) throw new ApiError("NOT_FOUND", "Заказ недоступен");
-  return { ...(JSON.parse(row.snapshot) as OrderSnapshot), number };
+  const {
+    seatReserved: _seat,
+    reservedStock: _stock,
+    ...order
+  } = JSON.parse(row.snapshot) as OrderSnapshot & { seatReserved?: boolean; reservedStock?: string[] };
+  return { ...order, number };
 }
