@@ -5,7 +5,7 @@ import { setupPlatform } from "../testing/platform";
 import { cleanupSellers, platformCleanupId, scheduleSellerCleanup } from "./cleanup";
 
 beforeAll(setupPlatform);
-it("координатор убирает только истёкшие seller_sessions и входы; три SQL и снятие аларма после последней записи", async () => {
+it("координатор убирает только истёкшие seller_sessions и входы; четыре SQL и снятие аларма после последней записи", async () => {
   const now = Date.now();
   await env.PLATFORM.prepare("INSERT INTO accounts(id) VALUES('cleanup-account')").run();
   await env.PLATFORM.prepare(
@@ -24,7 +24,7 @@ it("координатор убирает только истёкшие seller_s
     const queries = vi.spyOn(env.PLATFORM, "prepare");
     try {
       await cleanupSellers(env.PLATFORM, ctx.storage, now);
-      expect(queries).toHaveBeenCalledTimes(3);
+      expect(queries).toHaveBeenCalledTimes(4);
     } finally {
       queries.mockRestore();
     }

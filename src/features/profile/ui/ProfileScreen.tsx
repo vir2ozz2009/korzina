@@ -1,15 +1,17 @@
 import { useNavigate } from "@tanstack/react-router";
-import { BriefcaseBusiness, Heart, LogOut, MapPin, Package, Send, User } from "lucide-react";
+import { BriefcaseBusiness, Heart, LogOut, MapPin, Package, Send, ShieldCheck, User } from "lucide-react";
 import { useState } from "react";
 import { bootstrap } from "../../../app/bootstrap";
 import { Header } from "../../../app/shell/Header";
 import { QueryBoundary } from "../../../app/shell/QueryBoundary";
 import { Screen } from "../../../app/shell/Screen";
+import { HttpError } from "../../../shared/http-error";
 import { Avatar } from "../../../ui/Avatar";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { ListItem } from "../../../ui/ListItem";
 import { Sheet } from "../../../ui/Sheet";
+import { useOpenAdmin } from "../../admin";
 import { ContactSheet, useContact } from "../../contact";
 import { useEnterCabinet } from "../../seller";
 import { useLogout, useProfile } from "../api";
@@ -20,6 +22,7 @@ export function ProfileScreen() {
   const profile = useProfile(active);
   const logout = useLogout();
   const seller = useEnterCabinet();
+  const admin = useOpenAdmin();
   const [sheet, setSheet] = useState<"telegram" | "link" | "logout">();
   const navigate = useNavigate();
   const close = () => setSheet(undefined);
@@ -80,7 +83,24 @@ export function ProfileScreen() {
                       }}
                     />
                   )}
+                  {person.platformAdmin && (
+                    <ListItem
+                      title="Админка"
+                      icon={<ShieldCheck size={22} />}
+                      onClick={() => {
+                        if (admin.isPending) return;
+                        const open = () => void navigate({ to: "/admin", search: (state) => ({ shop: state.shop }) });
+                        admin.mutate(undefined, {
+                          onSuccess: open,
+                          onError: (error) => {
+                            if (error instanceof HttpError && error.status === 401) open();
+                          },
+                        });
+                      }}
+                    />
+                  )}
                   {seller.error && <p role="alert">{seller.error.message}</p>}
+                  {admin.error && <p role="alert">{admin.error.message}</p>}
                   <ListItem
                     title="Выйти"
                     icon={<LogOut size={22} />}

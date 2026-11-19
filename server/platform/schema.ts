@@ -11,6 +11,12 @@ export const shops = sqliteTable("shops", {
   name: text("name").notNull(),
   status: text("status").notNull().default("active"),
   plan: text("plan").notNull().default("base"),
+  version: integer("version").notNull().default(0),
+  country: text("country"),
+  currency: text("currency"),
+  timeZone: text("time_zone"),
+  theme: text("theme"),
+  botUsername: text("bot_username"),
   createdAt: integer("created_at").notNull(),
 });
 
@@ -27,9 +33,14 @@ export const invitations = sqliteTable("invitations", {
     .notNull()
     .references(() => shops.id),
   expiresAt: integer("expires_at").notNull(),
+  linkId: text("link_id").unique(),
+  platformAllowed: integer("platform_allowed", { mode: "boolean" }).notNull().default(false),
+  usedBy: text("used_by"),
+  revokedAt: integer("revoked_at"),
+  replacementReason: text("replacement_reason"),
 });
 
-export type PlatformShop = typeof shops.$inferSelect;
+export type PlatformShop = Pick<typeof shops.$inferSelect, "id" | "slug" | "name" | "status" | "plan" | "createdAt">;
 
 export const featureOverrides = sqliteTable(
   "feature_overrides",
@@ -104,4 +115,67 @@ export const sellerExchanges = sqliteTable(
     expiresAt: integer("expires_at").notNull(),
   },
   (table) => [index("seller_exchanges_expiry_idx").on(table.expiresAt)],
+);
+
+export const platformAdmins = sqliteTable("platform_admins", {
+  accountId: text("account_id")
+    .primaryKey()
+    .references(() => accounts.id),
+});
+
+export const adminSessions = sqliteTable(
+  "admin_sessions",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => platformAdmins.accountId, { onDelete: "cascade" }),
+    expiresAt: integer("expires_at").notNull(),
+  },
+  (table) => [index("admin_sessions_expiry_idx").on(table.expiresAt)],
+);
+
+export const platformCommands = sqliteTable(
+  "platform_commands",
+  {
+    accountId: text("account_id").notNull(),
+    key: text("key").notNull(),
+    fingerprint: text("fingerprint").notNull(),
+    result: text("result").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.accountId, table.key] }),
+    index("platform_commands_created_idx").on(table.createdAt),
+  ],
+);
+
+export const platformAudit = sqliteTable(
+  "platform_audit",
+  {
+    id: text("id").primaryKey(),
+    shopId: text("shop_id")
+      .notNull()
+      .references(() => shops.id),
+    actorId: text("actor_id").notNull(),
+    action: text("action").notNull(),
+    changed: text("changed").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [index("platform_audit_created_idx").on(table.createdAt)],
+);
+
+export const platformOrderEvents = sqliteTable(
+  "platform_order_events",
+  {
+    shopId: text("shop_id")
+      .notNull()
+      .references(() => shops.id),
+    orderNumber: integer("order_number").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.shopId, table.orderNumber] }),
+    index("platform_order_events_date_idx").on(table.createdAt, table.shopId),
+  ],
 );

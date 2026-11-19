@@ -22,6 +22,7 @@
     "theme:export": "node scripts/export-theme.ts",
     "schema:shop": "node scripts/shop-schema.ts",
     "deploy": "npm run check && npm run platform:setup -- --seed && cf deploy --prebuilt",
+    "admin:grant": "node scripts/admin-grant.ts",
     "shop:create": "node scripts/shop-create.ts",
     "flag": "node scripts/flag.ts",
     "platform:setup": "node scripts/platform-setup.ts"

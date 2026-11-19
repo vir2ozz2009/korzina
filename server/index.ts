@@ -10,6 +10,7 @@ import { requestId } from "./middleware/request-id";
 import { guestCart } from "./modules/cart/guest";
 import { catalogGateway } from "./modules/catalog/gateway";
 import { localPublicMedia } from "./modules/media/local-public";
+import { adminRoutes } from "./platform/admin/routes";
 import { sellerAccess } from "./platform/auth/access-routes";
 import { cabinetRoutes } from "./platform/auth/cabinet-routes";
 import { platformWebhook } from "./platform/auth/platform-webhook";
@@ -46,6 +47,7 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
     localPublicMedia(c.req.raw, c.env, c.req.param("shop"), c.req.param("id"), c.req.param("name")),
   )
   .route("/platform/auth", platformAuth)
+  .route("/platform/admin", adminRoutes)
   .route("/platform/telegram", platformWebhook)
   .route("/seller/access", sellerAccess)
   .route("/seller/cabinet", cabinetRoutes)

@@ -1,0 +1,1 @@
+export { useOpenAdmin } from "./api";
