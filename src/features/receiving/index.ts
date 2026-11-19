@@ -1,3 +1,4 @@
 export { useReceiving, useSaveReceiving } from "./api";
-export { activeReceiving, CartShipping, deliveryLabel } from "./ui/CartShipping";
+export { deliveryLabel } from "./delivery-label";
+export { activeReceiving, CartShipping } from "./ui/CartShipping";
 export { formatDay, ReceivingTime } from "./ui/ReceivingTime";

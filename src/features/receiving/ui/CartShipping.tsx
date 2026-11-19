@@ -1,28 +1,11 @@
 import { MapPin, Store, Truck } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useToast } from "../../../app/shell/ToastProvider";
-import type { Receiving, ReceivingAvailability } from "../../../shared/contracts/receiving";
-import { formatMinor } from "../../../shared/money";
+import type { Receiving } from "../../../shared/contracts/receiving";
 import { Card } from "../../../ui/Card";
 import { ListItem } from "../../../ui/ListItem";
-import { Sheet } from "../../../ui/Sheet";
 import { type ReceivingState, useReceiving, useSaveReceiving } from "../api";
 import { AddressSheet } from "./AddressSheet";
-
-export function deliveryLabel(result: ReceivingAvailability | null, currency: string) {
-  if (result?.mode === "pickup" && result.available) return "Самовывоз бесплатно";
-  if (result?.mode !== "delivery" || !result.available) return "Рассчитаем по адресу";
-  if (result.tariff === "free") return "Бесплатно";
-  if (result.payee === "courier") {
-    const cost = result.unverified
-      ? "уточнит магазин"
-      : result.feeMinor === null
-        ? "по тарифу службы"
-        : formatMinor(result.feeMinor, currency);
-    return `Оплата курьеру · ${cost}`;
-  }
-  return result.feeMinor === null ? "Согласуем после заказа" : formatMinor(result.feeMinor, currency);
-}
 
 export function activeReceiving(data: ReceivingState) {
   if (data.receiving && data[data.receiving.mode]) return data.receiving.mode;
@@ -31,11 +14,13 @@ export function activeReceiving(data: ReceivingState) {
 
 export function CartShipping({
   disabled,
+  currency,
   revision,
   open,
   setOpen,
 }: {
   disabled: boolean;
+  currency: string;
   revision: number;
   open: boolean;
   setOpen: (value: boolean) => void;
@@ -128,26 +113,34 @@ export function CartShipping({
       {method === "delivery" && (
         <ListItem
           title={address?.address || "Укажите адрес доставки"}
-          subtitle={address ? (data.availability?.available ? "Адрес доставки" : "Нужно проверить адрес") : undefined}
+          subtitle={
+            address
+              ? data.availability?.available
+                ? address.acceptedWithoutPoint
+                  ? "Условия доставки уточняются"
+                  : "Адрес доставки"
+                : "Нужно проверить адрес"
+              : undefined
+          }
           icon={<MapPin size={22} />}
           onClick={blocked ? undefined : () => setOpen(true)}
         />
       )}
       {method === "pickup" && data.pickup && <ListItem title={data.pickup.address} subtitle={data.pickup.hours} />}
-      <Sheet form open={open && !!data.delivery} onOpenChange={setOpen} title="Адрес доставки">
-        {open && (
-          <AddressSheet
-            current={address ?? data.lastUsedAddress}
-            data={data}
-            pending={save.isPending}
-            save={async (selected) => {
-              await update(selected);
-              setOpen(false);
-            }}
-            pickup={data.pickup ? () => void choose("pickup") : undefined}
-          />
-        )}
-      </Sheet>
+      {open && data.delivery && (
+        <AddressSheet
+          current={address}
+          data={data}
+          currency={currency}
+          pending={save.isPending}
+          close={() => setOpen(false)}
+          save={async (selected) => {
+            await update(selected);
+            setOpen(false);
+          }}
+          pickup={data.pickup ? () => void choose("pickup") : undefined}
+        />
+      )}
     </>
   );
 }

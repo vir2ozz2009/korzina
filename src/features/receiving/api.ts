@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { GeocodeInput, ReceiveCommand } from "../../shared/contracts/receiving";
+import type { ReceiveCommand } from "../../shared/contracts/receiving";
 import type { ReceivingMethod, TimeCommand } from "../../shared/contracts/receiving-time";
 import { checkResponse } from "../../shared/http-error";
 import { shopApi, shopKey } from "../../shared/shop-api";
@@ -66,17 +66,6 @@ export function useSaveTime() {
     const response = await shopApi.api.receiving.time.$post({ json: input });
     await checkResponse(response);
     return response.json();
-  });
-}
-
-export function useGeocode() {
-  return useMutation({
-    mutationFn: async ({ input, signal }: { input: GeocodeInput; signal?: AbortSignal }) => {
-      await ensureShopSession();
-      const result = await shopApi.api.receiving.geocode.$post({ json: input }, { init: { signal } });
-      await checkResponse(result);
-      return result.json();
-    },
   });
 }
 

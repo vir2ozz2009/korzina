@@ -153,6 +153,7 @@ export function CartScreen() {
       {cart && currency && cart.lines.length > 0 && (
         <>
           <CartShipping
+            currency={currency}
             revision={cart.revision}
             disabled={checking || query.isError || !!cart.review || pendingProducts.size > 0}
             open={addressOpen}

@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { type ReactNode, useId } from "react";
 import { Drawer } from "vaul";
 import { IconButton } from "./IconButton";
@@ -6,6 +6,7 @@ import { useSheetViewport } from "./useSheetViewport";
 export function SheetContent({
   open,
   onOpenChange,
+  onBack,
   title,
   description,
   form = false,
@@ -13,6 +14,7 @@ export function SheetContent({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onBack?: () => void;
   title: string;
   description?: string;
   form?: boolean;
@@ -32,7 +34,12 @@ export function SheetContent({
         >
           {!form && <div aria-hidden className="mx-auto mb-3 h-1 w-10 shrink-0 rounded-pill bg-border" />}
           <div className="flex shrink-0 items-center justify-between gap-3">
-            <Drawer.Title className="text-title-3">{title}</Drawer.Title>
+            {onBack && (
+              <IconButton aria-label="Назад" onClick={onBack}>
+                <ArrowLeft size={22} />
+              </IconButton>
+            )}
+            <Drawer.Title className="min-w-0 flex-1 text-title-3">{title}</Drawer.Title>
             <Drawer.Close asChild>
               <IconButton aria-label="Закрыть">
                 <X size={22} />
