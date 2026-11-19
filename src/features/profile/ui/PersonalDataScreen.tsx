@@ -1,14 +1,14 @@
 import { useBlocker, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { Header } from "../../app/shell/Header";
-import { Screen } from "../../app/shell/Screen";
-import { useToast } from "../../app/shell/ToastProvider";
-import { errorKind, HttpError } from "../../shared/http-error";
-import { Button } from "../../ui/Button";
-import { EmptyState } from "../../ui/EmptyState";
-import { Input } from "../../ui/Input";
-import { Sheet } from "../../ui/Sheet";
-import { useEditProfile, useProfile } from "./api";
+import { Header } from "../../../app/shell/Header";
+import { Screen } from "../../../app/shell/Screen";
+import { useToast } from "../../../app/shell/ToastProvider";
+import { errorKind, HttpError } from "../../../shared/http-error";
+import { Button } from "../../../ui/Button";
+import { EmptyState } from "../../../ui/EmptyState";
+import { Input } from "../../../ui/Input";
+import { Sheet } from "../../../ui/Sheet";
+import { useEditProfile, useProfile } from "../api";
 
 export function PersonalDataScreen() {
   const profile = useProfile();

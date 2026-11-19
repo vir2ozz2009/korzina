@@ -162,6 +162,13 @@
       "when": 1795071291044,
       "tag": "0022_buyer_profile",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1795077395932,
+      "tag": "0023_buyer_order_insert_revision",
+      "breakpoints": true
     }
   ]
 }

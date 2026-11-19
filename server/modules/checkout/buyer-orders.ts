@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import type {
   BuyerOrder,
   BuyerOrdersPage,
@@ -8,7 +9,12 @@ import type {
 import type { OrderSnapshot } from "../../../src/shared/contracts/checkout";
 import type { TimeChoice } from "../../../src/shared/contracts/receiving-time";
 import { ApiError } from "../../../src/shared/errors";
+import { digest } from "../../auth/tokens";
 import { revisionResponse } from "../../revisions";
+import type { ShopEnv } from "../../shop/env";
+import { sessions } from "../../shop/schema";
+import { readCustomerWith } from "../auth/service";
+import { buyerOrderRevisions } from "./schema";
 
 type OrderRow = {
   number: number;
@@ -69,22 +75,31 @@ const scope = {
   completed: "status IN ('completed','cancelled')",
 };
 
-export function activeBuyerOrders(storage: DurableObjectStorage, customer: string, request: Request) {
-  const { latest, changes } = storage.sql
-    .exec<{ latest: number | null; changes: number | null }>(
-      `SELECT (SELECT number FROM orders WHERE customer=? ORDER BY number DESC LIMIT 1) AS latest,
-      (SELECT revision FROM buyer_order_revisions WHERE customer=?) AS changes`,
-      customer,
-      customer,
-    )
-    .one();
-  const revision = `${latest ?? 0}.${changes ?? 0}`;
+export async function activeBuyerOrders({ db, storage, shop }: ShopEnv["Bindings"], request: Request) {
+  const session = await readCustomerWith(request, shop.id, async (sessionId) => {
+    // Scope cached badges to the session before reading the current revision.
+    const cacheKey = await digest(`active-orders:${shop.id}:${sessionId}`);
+    const row = db
+      .select({
+        subject: sessions.subject,
+        kind: sessions.kind,
+        expiresAt: sessions.expiresAt,
+        revision: buyerOrderRevisions.revision,
+      })
+      .from(sessions)
+      .leftJoin(buyerOrderRevisions, eq(sessions.subject, buyerOrderRevisions.customer))
+      .where(eq(sessions.tokenHash, sessionId))
+      .get();
+    return row && { ...row, cacheKey: BigInt(`0x${cacheKey.slice(0, 16)}`) };
+  });
+  if (!session) throw new ApiError("UNAUTHORIZED", "Войдите в магазин");
+  const revision = `1.${session.cacheKey}.${session.revision ?? 0}`;
   return revisionResponse(request, revision, () => {
     const rows = storage.sql
       .exec<Pick<SummaryRow, "number" | "status" | "time">>(
         `SELECT number,status,json_extract(snapshot,'$.time') AS time
        FROM orders WHERE customer=? AND ${scope.active} ORDER BY number DESC`,
-        customer,
+        session.subject,
       )
       .toArray();
     return {
@@ -134,19 +149,4 @@ export function buyerOrdersPage(
 
 export function hasBuyerOrders(storage: DurableObjectStorage, subject: string) {
   return storage.sql.exec("SELECT 1 FROM orders WHERE customer=? LIMIT 1", subject).toArray().length > 0;
-}
-
-export function transferBuyerOrders(storage: DurableObjectStorage, from: string, to: string) {
-  const result = storage.sql.exec("UPDATE orders SET customer=? WHERE customer=?", to, from);
-  if (!result.rowsWritten) return;
-  storage.sql.exec(
-    `UPDATE media SET owner=?,request_key='order:'||id WHERE owner=? AND id IN (
-       SELECT proof_media_id FROM orders WHERE customer=?
-       UNION ALL SELECT h.media_id FROM order_receipt_history h JOIN orders o ON o.number=h.order_number WHERE o.customer=?
-     )`,
-    to,
-    from,
-    to,
-    to,
-  );
 }

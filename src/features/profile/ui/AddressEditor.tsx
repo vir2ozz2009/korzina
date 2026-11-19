@@ -1,21 +1,14 @@
 import { useRef, useState } from "react";
-import type { AddressCommand, SavedAddress } from "../../shared/contracts/profile";
-import type { DeliveryAddress, DetailField } from "../../shared/contracts/receiving";
-import { HttpError } from "../../shared/http-error";
-import { Button } from "../../ui/Button";
-import { Input } from "../../ui/Input";
-import { ListItem } from "../../ui/ListItem";
-import { Sheet } from "../../ui/Sheet";
-import { useCart } from "../cart";
-import { AddressSheet, useReceiving } from "../receiving";
-import { useAddresses, useEditAddress } from "./api";
-
-const labels: Record<DetailField, string> = {
-  apartment: "Квартира",
-  entrance: "Подъезд",
-  floor: "Этаж",
-  intercom: "Домофон",
-};
+import type { AddressCommand, SavedAddress } from "../../../shared/contracts/profile";
+import type { DeliveryAddress, DetailField } from "../../../shared/contracts/receiving";
+import { HttpError } from "../../../shared/http-error";
+import { Button } from "../../../ui/Button";
+import { Input } from "../../../ui/Input";
+import { ListItem } from "../../../ui/ListItem";
+import { Sheet } from "../../../ui/Sheet";
+import { useCart } from "../../cart";
+import { AddressSheet, ManualAddressFields, useReceiving } from "../../receiving";
+import { useAddresses, useEditAddress } from "../api";
 
 export function AddressEditor({ initial, close }: { initial?: SavedAddress; close: () => void }) {
   const [name, setName] = useState(initial?.title ?? "");
@@ -76,21 +69,18 @@ export function AddressEditor({ initial, close }: { initial?: SavedAddress; clos
           </Button>
         )}
         {data.data && !data.data.delivery && <p>Доставка недоступна</p>}
-        {address &&
-          data.data?.requiredDetails.map((field) => (
-            <Input
-              key={field}
-              id={`profile-address-${field}`}
-              label={labels[field]}
-              value={address[field] ?? ""}
-              maxLength={80}
-              error={missing === field ? "Заполните это поле" : undefined}
-              onChange={(event) => {
-                setAddress({ ...address, [field]: event.target.value });
-                setMissing(undefined);
-              }}
-            />
-          ))}
+        {address && data.data && (
+          <ManualAddressFields
+            value={address}
+            required={data.data.requiredDetails}
+            invalid={missing}
+            idPrefix="profile-address"
+            onChange={(next) => {
+              setAddress(next);
+              setMissing(undefined);
+            }}
+          />
+        )}
         {edit.isError && !confirm && <p role="alert">{edit.error.message || "Не удалось сохранить адрес"}</p>}
         <Button full type="submit" loading={edit.isPending && !confirm} disabled={!address || !data.data?.delivery}>
           Сохранить

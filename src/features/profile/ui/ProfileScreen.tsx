@@ -1,16 +1,16 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Heart, LogOut, MapPin, Package, Send, User } from "lucide-react";
 import { useState } from "react";
-import { Header } from "../../app/shell/Header";
-import { QueryBoundary } from "../../app/shell/QueryBoundary";
-import { Screen } from "../../app/shell/Screen";
-import { Avatar } from "../../ui/Avatar";
-import { Button } from "../../ui/Button";
-import { Card } from "../../ui/Card";
-import { ListItem } from "../../ui/ListItem";
-import { Sheet } from "../../ui/Sheet";
-import { ContactSheet, useContact } from "../contact";
-import { useLogout, useProfile } from "./api";
+import { Header } from "../../../app/shell/Header";
+import { QueryBoundary } from "../../../app/shell/QueryBoundary";
+import { Screen } from "../../../app/shell/Screen";
+import { Avatar } from "../../../ui/Avatar";
+import { Button } from "../../../ui/Button";
+import { Card } from "../../../ui/Card";
+import { ListItem } from "../../../ui/ListItem";
+import { Sheet } from "../../../ui/Sheet";
+import { ContactSheet, useContact } from "../../contact";
+import { useLogout, useProfile } from "../api";
 
 export function ProfileScreen() {
   const contact = useContact();
