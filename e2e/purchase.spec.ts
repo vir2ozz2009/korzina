@@ -118,7 +118,16 @@ test("B10: товар, доставка и заказ наличными", async
   );
   await help.getByRole("button", { name: "Закрыть", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Ваш заказ", exact: true })).toHaveCount(0);
-  await page.getByRole("radio", { name: "Перевод", exact: true }).check();
+  await expect(page.getByText("Куриное филе", { exact: true })).toHaveCount(0);
+  const cash = page.getByRole("radio", { name: "Наличные", exact: true });
+  const transfer = page.getByRole("radio", { name: "Перевод", exact: true });
+  const placeOrder = page.getByRole("button", { name: /^Оформить заказ/ });
+  await expect(cash).toBeVisible();
+  await expect(cash).not.toBeChecked();
+  await expect(transfer).not.toBeChecked();
+  await expect(placeOrder).toBeDisabled();
+  await page.screenshot({ path: "test-results/payment-unselected-390.png", animations: "disabled" });
+  await transfer.check();
   const inlineQr = page.getByRole("img", { name: "QR для перевода" });
   await expect(inlineQr).toBeVisible();
   await expect.poll(() => inlineQr.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
@@ -137,6 +146,7 @@ test("B10: товар, доставка и заказ наличными", async
   await page.screenshot({ path: "test-results/payment-receipt-390.png", animations: "disabled" });
   await page.reload();
   await expect(page.getByText("demo-receipt.pdf")).toBeVisible();
+  await expect(transfer).toBeChecked();
   await page.locator('input[type="file"][aria-label="Чек"]').setInputFiles({
     name: "demo-replacement.pdf",
     mimeType: "application/pdf",
@@ -146,7 +156,8 @@ test("B10: товар, доставка и заказ наличными", async
   await expect(page).toHaveURL(/checkout\/payment/);
   await page.getByRole("button", { name: "Удалить", exact: true }).click();
   await expect(page.getByRole("button", { name: /^Оформить заказ/ })).toBeDisabled();
-  await page.getByRole("radio", { name: "Наличные", exact: true }).check();
+  await cash.check();
+  await expect(placeOrder).toBeEnabled();
   await page.screenshot({ path: "test-results/payment-cash-390.png", animations: "disabled" });
   const checkout = page.waitForResponse(
     (response) => new URL(response.url()).pathname === "/api/checkout" && response.request().method() === "POST",
