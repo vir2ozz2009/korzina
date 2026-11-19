@@ -1,64 +1,15 @@
 import { runInDurableObject } from "cloudflare:test";
 import { beforeAll, beforeEach, expect, it } from "vitest";
-import type { OrderResult, QuoteResponse } from "../../../src/shared/contracts/checkout";
+import type { OrderResult } from "../../../src/shared/contracts/checkout";
 import { assertSqlBudget, type SqlMetrics } from "../../metrics";
-import { cookieFrom, getAuth, postAuth } from "../../testing/auth";
+import { getAuth } from "../../testing/auth";
 import { setupPlatform } from "../../testing/platform";
 import { catalogSql, catalogStub } from "../catalog/testing";
 
-beforeAll(setupPlatform);
-beforeEach(async () => {
-  await catalogSql("UPDATE catalog_state SET currency='VND' WHERE id=1");
-  await catalogSql(
-    "UPDATE settings SET value=? WHERE key='fulfillment'",
-    JSON.stringify({
-      delivery: {
-        mode: "map",
-        zones: [
-          {
-            id: "center",
-            geometry: { type: "radius", center: { lat: 10.7769, lon: 106.7009 }, radiusMeters: 6000 },
-            tariff: { kind: "fixed", feeMinor: 25000 },
-          },
-        ],
-      },
-      pickup: { address: "45 Lê Lợi", hours: "09:00–20:00" },
-    }),
-  );
-  await catalogSql(
-    "UPDATE settings SET value=? WHERE key='receiving_schedule'",
-    JSON.stringify({
-      timeZone: "Asia/Ho_Chi_Minh",
-      delivery: { mode: "after_order", days: {} },
-      pickup: { mode: "after_order", days: {} },
-    }),
-  );
-  await catalogSql(
-    "UPDATE settings SET value=? WHERE key='purchase_payment'",
-    JSON.stringify({
-      minimumMinor: 0,
-      methods: ["cash", "transfer"],
-      instruction: "Инструкция тестового магазина",
-    }),
-  );
-});
+import { buy, customer, getQuote, setupCheckout } from "./testing";
 
-const buy = (path: string, body: object, Cookie: string, key: string = crypto.randomUUID()) =>
-  postAuth(`/api/${path}?shop=lavka`, body, { Cookie, "Idempotency-Key": key });
-const getQuote = async (cookie: string) => {
-  const response = await buy("quote", {}, cookie);
-  expect(response.status).toBe(200);
-  return response.json<QuoteResponse>();
-};
-async function customer(variantId: string, receiving = { mode: "pickup" } as object) {
-  const contact = await postAuth("/api/auth/contact?shop=lavka", { phone: "+84912345678", confirmed: true });
-  const cookie = cookieFrom(contact);
-  expect(contact.status).toBe(200);
-  const cart = await buy("cart", { variantId, quantity: 1, expectedRevision: 0 }, cookie);
-  expect(cart.status).toBe(200);
-  expect((await buy("receiving", { receiving, expectedRevision: 1, complete: true }, cookie)).status).toBe(200);
-  return cookie;
-}
+beforeAll(setupPlatform);
+beforeEach(setupCheckout);
 
 it("наличные: один заказ при повторе, последний товар достаётся одному, данные сохраняются снимком", async () => {
   await catalogSql("UPDATE variants SET stock=1,price_minor=130000 WHERE id='sku-01'");
@@ -187,7 +138,8 @@ it("чек связывается один раз с исходной суммо
   );
   expect(response.status).toBe(201);
   const metrics: SqlMetrics = JSON.parse(response.headers.get("x-korzina-sql") ?? "null");
-  assertSqlBudget(metrics, { sql: 15, rowsRead: 32, rowsWritten: 17 });
+  // The active-order revision adds a row and a primary-key index entry on the first order.
+  assertSqlBudget(metrics, { sql: 15, rowsRead: 32, rowsWritten: 19 });
   expect(await response.json()).toMatchObject({
     paymentStatus: "pending_review",
     totalMinor: 135000,
@@ -223,56 +175,4 @@ it("прежний расчёт отклоняется после изменен
   expect(await response.json()).toMatchObject({
     error: { code: "QUOTE_CHANGED", details: { beforeMinor: 130000, afterMinor: 135000 } },
   });
-});
-
-it("отмена покупателя освобождает остаток один раз, закрывает активный заказ и сохраняет историю", async () => {
-  await catalogSql("UPDATE variants SET stock=2 WHERE id='sku-01'");
-  const owner = await customer("sku-01");
-  const stranger = await customer("sku-02");
-  const quote = await getQuote(owner);
-  const placed = await buy("checkout", { quoteRevision: quote.quoteRevision, payment: "cash" }, owner);
-  expect(placed.status).toBe(201);
-  const { number } = await placed.json<OrderResult>();
-  const get = (path: string, cookie = owner) =>
-    getAuth(`/api/orders${path}${path.includes("?") ? "&" : "?"}shop=lavka`, { Cookie: cookie });
-  expect((await get(`/${number}`, stranger)).status).toBe(404);
-  const active = await get("/active");
-  expect(await active.json()).toMatchObject({ data: { count: 1, orders: [{ number, stage: "placed" }] } });
-  const badge = active.headers.get("etag");
-  const unchanged = await getAuth("/api/orders/active?shop=lavka", { Cookie: owner, "If-None-Match": badge ?? "" });
-  expect(unchanged.status).toBe(304);
-  const key = crypto.randomUUID();
-  const cancel = () => buy(`orders/${number}/cancel`, { expectedVersion: 0 }, owner, key);
-  const cancelled = await cancel();
-  expect(await cancelled.json()).toMatchObject({ number, stage: "cancelled", version: 1, canCancel: false });
-  expect((await cancel()).status).toBe(200);
-  expect(await catalogSql("SELECT stock FROM variants WHERE id='sku-01'")).toEqual([{ stock: 2 }]);
-  expect(await (await get("/active")).json()).toMatchObject({ data: { count: 0 } });
-  expect(await (await get("?tab=completed")).json()).toMatchObject({ orders: [{ number, stage: "cancelled" }] });
-});
-
-it("повтор блокирует изменившуюся цену и добавляет доступное количество поверх корзины один раз", async () => {
-  await catalogSql("UPDATE variants SET stock=5,price_minor=100000 WHERE id='sku-01'");
-  const owner = await customer("sku-01");
-  const quote = await getQuote(owner);
-  const { number } = await (
-    await buy("checkout", { quoteRevision: quote.quoteRevision, payment: "cash" }, owner)
-  ).json<OrderResult>();
-  const path = `orders/${number}/repeat`;
-  const preview = async () =>
-    (await getAuth(`/api/${path}?shop=lavka`, { Cookie: owner })).json<{
-      check: string;
-      expectedCartRevision: number;
-      lines: { priceMinor: number }[];
-    }>();
-  const command = (data: Awaited<ReturnType<typeof preview>>, key?: string) =>
-    buy(path, { expectedCartRevision: data.expectedCartRevision, check: data.check }, owner, key);
-  const before = await preview();
-  await catalogSql("UPDATE variants SET price_minor=130000 WHERE id='sku-01'");
-  expect((await command(before)).status).toBe(409);
-  const after = await preview();
-  expect(after.lines[0]?.priceMinor).toBe(130000);
-  const key = crypto.randomUUID();
-  expect(await (await command(after, key)).json()).toMatchObject({ cart: { count: 1 } });
-  expect(await (await command(after, key)).json()).toMatchObject({ cart: { count: 1 } });
 });

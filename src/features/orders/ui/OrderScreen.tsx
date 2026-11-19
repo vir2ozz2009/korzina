@@ -4,9 +4,8 @@ import { useRef, useState } from "react";
 import { Header } from "../../../app/shell/Header";
 import { Screen } from "../../../app/shell/Screen";
 import { useToast } from "../../../app/shell/ToastProvider";
-import type { BuyerOrder, OrderStage } from "../../../shared/contracts/buyer-order";
+import type { OrderStage } from "../../../shared/contracts/buyer-order";
 import { errorKind, HttpError } from "../../../shared/http-error";
-import { formatMinor } from "../../../shared/money";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { EmptyState } from "../../../ui/EmptyState";
@@ -18,26 +17,9 @@ import { PurchaseTotals, useShopContacts } from "../../checkout";
 import { ContactSheet } from "../../contact";
 import { useBuyerOrder, useOrderChange } from "../api";
 import { orderStages, orderTime } from "./active-orders";
+import { OrderPayment } from "./OrderPayment";
 import { OrderProofSheet } from "./OrderProofSheet";
 import { RepeatSheet } from "./RepeatSheet";
-
-function paymentText(order: BuyerOrder) {
-  if (order.stage === "cancelled") {
-    if (order.refundMinor !== undefined) return `К возврату ${formatMinor(order.refundMinor, order.currency)}`;
-    if (order.paymentStatus === "pending_review") return "Оплата на проверке. Если деньги поступили, магазин их вернёт";
-    return "Оплата не требуется";
-  }
-  switch (order.paymentStatus) {
-    case "confirmed":
-      return "Оплачено";
-    case "rejected":
-      return "Магазин не подтвердил оплату — свяжитесь с магазином";
-    case "pending_review":
-      return "Чек отправлен, магазин проверит";
-    default:
-      return "Оплатите при получении";
-  }
-}
 
 export function OrderScreen() {
   const { number: raw } = useParams({ from: "/orders/$number" });
@@ -147,10 +129,7 @@ export function OrderScreen() {
             ))}
           </Card>
           <PurchaseTotals {...order} done />
-          <Card>
-            <p className="text-label">{order.payment === "cash" ? "Наличные" : "Перевод"}</p>
-            <p>{paymentText(order)}</p>
-          </Card>
+          <OrderPayment order={order} />
           <Button full variant="secondary" onClick={() => setSheet("contacts")}>
             Связь с магазином
           </Button>

@@ -1,16 +1,16 @@
 import { useNavigate } from "@tanstack/react-router";
 import { MapPin } from "lucide-react";
 import { useState } from "react";
-import { Header } from "../../app/shell/Header";
-import { Screen } from "../../app/shell/Screen";
-import { savedAddressLimit } from "../../shared/address-key";
-import type { SavedAddress } from "../../shared/contracts/profile";
-import { errorKind } from "../../shared/http-error";
-import { Button } from "../../ui/Button";
-import { EmptyState } from "../../ui/EmptyState";
-import { ListItem } from "../../ui/ListItem";
+import { Header } from "../../../app/shell/Header";
+import { Screen } from "../../../app/shell/Screen";
+import { savedAddressLimit } from "../../../shared/address-key";
+import type { SavedAddress } from "../../../shared/contracts/profile";
+import { errorKind } from "../../../shared/http-error";
+import { Button } from "../../../ui/Button";
+import { EmptyState } from "../../../ui/EmptyState";
+import { ListItem } from "../../../ui/ListItem";
+import { useAddresses } from "../api";
 import { AddressEditor } from "./AddressEditor";
-import { useAddresses } from "./api";
 
 export function AddressesScreen() {
   const addresses = useAddresses();

@@ -13,9 +13,8 @@ import { handleError } from "../../middleware/errors";
 import { RateLimiter, rateLimit } from "../../middleware/rate-limit";
 import type { ShopEnv } from "../../shop/env";
 import { settings } from "../../shop/schema";
-import { mergeCustomerCarts } from "../cart/service";
-import { hasBuyerOrders, transferBuyerOrders } from "../checkout/buyer-orders";
-import { mergeCustomerFavorites } from "../favorites/service";
+import { mergeBuyer } from "../buyer/merge";
+import { hasBuyerOrders } from "../checkout/buyer-orders";
 import { hasTelegramProfile, initTelegramProfile } from "../profile/service";
 import { contactRegion, readContact, savePhone } from "./contact";
 import { createCustomer, customerTtl, logoutCustomer, prepareCustomer, readCustomer, writeCustomer } from "./service";
@@ -37,12 +36,10 @@ function hasDeviceProfile(storage: DurableObjectStorage, session: Awaited<Return
 
 function attachGuest(env: ShopEnv["Bindings"], session: Awaited<ReturnType<typeof readCustomer>>, target: string) {
   if (session?.kind !== "guest") return;
-  mergeCustomerCarts(env.storage, session.subject, target, {
+  mergeBuyer(env.storage, session.subject, target, {
     id: env.shop.id,
     mediaOrigin: env.media.MEDIA_PUBLIC_URL,
   });
-  transferBuyerOrders(env.storage, session.subject, target);
-  mergeCustomerFavorites(env.storage, session.subject, target);
   env.storage.sql.exec("DELETE FROM sessions WHERE subject=? AND kind='guest'", session.subject);
 }
 

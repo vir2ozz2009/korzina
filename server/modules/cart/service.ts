@@ -1,10 +1,9 @@
-import { addressKey, savedAddressLimit } from "../../../src/shared/address-key";
 import { cartTotals } from "../../../src/shared/cart-totals";
 import type { Cart, CartCommandInput } from "../../../src/shared/contracts/cart";
 import { ApiError } from "../../../src/shared/errors";
 import { addMinor, multiplyMinor } from "../../../src/shared/money";
 import type { CommandIdentity } from "../../middleware/idempotency";
-import { parseSelection, readReceiving, rememberOrderedAddress, writeReceiving } from "../fulfillment/service";
+import { parseSelection, rememberOrderedAddress } from "../fulfillment/service";
 import { type CartSource, reconcileQuote, type SavedQuote, savedQuote, toLine } from "./quote";
 
 type CartState = {
@@ -115,65 +114,6 @@ export function removeOrderedLines(
     Date.now(),
     customer,
   );
-}
-
-// Part of the transaction that attaches a verified Telegram session.
-export function mergeCustomerCarts(storage: DurableObjectStorage, guest: string, account: string, source: CartSource) {
-  const from = readReceiving(storage, guest);
-  const to = readReceiving(storage, account);
-  const phones = storage.sql
-    .exec<{ customer: string; phone: string | null }>(
-      "SELECT customer,phone FROM carts WHERE customer IN (?,?)",
-      guest,
-      account,
-    )
-    .toArray();
-  if (!phones.some(({ customer }) => customer === guest)) return;
-  const guestCart = readCartState(storage, guest, source).cart;
-  const accountCart = readCartState(storage, account, source).cart;
-  const lines = new Map(accountCart.lines.map((line) => [line.variantId, line]));
-  for (const line of guestCart.lines) {
-    const other = lines.get(line.variantId);
-    if (!other || line.quantity > other.quantity) lines.set(line.variantId, line);
-  }
-  if (lines.size > 50) throw new ApiError("VALIDATION", "В объединённой корзине больше 50 фасовок");
-  const revision = Math.max(guestCart.revision, accountCart.revision) + 1;
-  const adjustments = new Map(accountCart.review?.changes.map((item) => [item.variantId, item]));
-  for (const item of guestCart.review?.changes ?? []) {
-    if (!adjustments.has(item.variantId)) adjustments.set(item.variantId, item);
-  }
-  const totals = cartTotals([...lines.values()]);
-  const review = adjustments.size
-    ? {
-        beforeMinor: accountCart.review?.beforeMinor ?? guestCart.review?.beforeMinor ?? totals.totalMinor,
-        changes: [...adjustments.values()],
-      }
-    : undefined;
-  persistCart(storage, account, { revision, currency: accountCart.currency, ...totals, review });
-  const { revision: _revision, ...selection } =
-    from.receiving && (!to.receiving || from.receivingUpdatedAt > to.receivingUpdatedAt) ? from : to;
-  const seenAddresses = new Set<string>();
-  const savedAddresses = [...to.savedAddresses, ...from.savedAddresses].filter((address) => {
-    const key = addressKey(address);
-    if (seenAddresses.has(key)) return false;
-    seenAddresses.add(key);
-    return true;
-  });
-  if (savedAddresses.length > savedAddressLimit)
-    throw new ApiError(
-      "ADDRESS_LIMIT",
-      "При объединении получится больше 10 адресов. Удалите лишние адреса и повторите.",
-    );
-  writeReceiving(storage, account, revision, {
-    ...selection,
-    savedAddresses,
-    lastUsedAddress: selection.lastUsedAddress ?? to.lastUsedAddress ?? from.lastUsedAddress,
-  });
-  const phone =
-    phones.find(({ customer }) => customer === account)?.phone ??
-    phones.find(({ customer }) => customer === guest)?.phone;
-  if (phone) storage.sql.exec("UPDATE carts SET phone=? WHERE customer=?", phone, account);
-  storage.sql.exec("DELETE FROM carts WHERE customer=?", guest);
 }
 
 export function changeCart(

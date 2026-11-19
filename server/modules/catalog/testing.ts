@@ -4,9 +4,14 @@ import catalog from "../../demo-catalog.json";
 
 export const catalogStub = (id = "korzina-demo-lavka") => exports.Shop.get(exports.Shop.idFromName(id));
 export function catalogRequest(path: string, id = "korzina-demo-lavka") {
+  return shopRequest(`catalog/${path}`, {}, id);
+}
+
+export function shopRequest(path: string, headers: Record<string, string>, id = "korzina-demo-lavka") {
   return catalogStub(id).fetch(
-    new Request(`https://internal/api/catalog/${path}`, {
+    new Request(`https://internal/api/${path}`, {
       headers: {
+        ...headers,
         "x-korzina-shop": encodeURIComponent(
           JSON.stringify({
             id,

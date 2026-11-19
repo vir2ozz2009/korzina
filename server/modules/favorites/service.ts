@@ -19,14 +19,3 @@ export function mergeFavoriteIds(storage: DurableObjectStorage, customer: string
     JSON.stringify(unique),
   );
 }
-
-export function mergeCustomerFavorites(storage: DurableObjectStorage, source: string, target: string) {
-  storage.sql.exec(
-    `INSERT INTO buyer_favorites(customer,product_id,added_at)
-     SELECT ?,product_id,added_at FROM buyer_favorites WHERE customer=?
-     ON CONFLICT(customer,product_id) DO UPDATE SET added_at=MAX(added_at,excluded.added_at)`,
-    target,
-    source,
-  );
-  storage.sql.exec("DELETE FROM buyer_favorites WHERE customer=?", source);
-}
