@@ -50,6 +50,7 @@ export async function verifySavedAddress(page: Page) {
   await expect(page).toHaveURL(/\/favorites/);
   await page.goBack();
   await expect(page.getByText("Вошли по номеру на этом устройстве")).toBeVisible();
+  await expect(page.getByText("Заказ отменён", { exact: true })).toBeHidden({ timeout: 8_000 });
   await page.screenshot({ path: "test-results/b13-profile-390.png", animations: "disabled" });
   await page.getByRole("button", { name: "Мои адреса" }).click();
   await expect(page.getByRole("button", { name: /28 Lê Lợi/ })).toBeVisible();
