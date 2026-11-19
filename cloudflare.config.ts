@@ -14,7 +14,11 @@ export default defineConfig(({ mode, isPreview }) => ({
     env: {
       APP_ENV: bindings.text(isPreview ? "preview" : mode === "production" ? "production" : "demo"),
       ASSETS: bindings.assets(),
-      PLATFORM: bindings.d1(environmentResources(isPreview).database),
+      PLATFORM: bindings.d1(
+        !isPreview && mode === "demo"
+          ? { id: environmentResources(false).database.id }
+          : environmentResources(isPreview).database,
+      ),
       MEDIA: bindings.r2({ name: environmentResources(isPreview).media }),
       MEDIA_PUBLIC: bindings.r2({ name: environmentResources(isPreview).publicMedia }),
       IMAGES: bindings.images(),
