@@ -1,7 +1,7 @@
 import { runInDurableObject } from "cloudflare:test";
 import { beforeAll, beforeEach, expect, it } from "vitest";
 import type { OrderResult, QuoteResponse } from "../../../src/shared/contracts/checkout";
-import { assertSqlBudget } from "../../metrics";
+import { assertSqlBudget, type SqlMetrics } from "../../metrics";
 import { cookieFrom, getAuth, postAuth } from "../../testing/auth";
 import { setupPlatform } from "../../testing/platform";
 import { catalogSql, catalogStub } from "../catalog/testing";
@@ -186,7 +186,8 @@ it("чек связывается один раз с исходной суммо
     }),
   );
   expect(response.status).toBe(201);
-  assertSqlBudget(JSON.parse(response.headers.get("x-korzina-sql") ?? "null"), { sql: 15 });
+  const metrics: SqlMetrics = JSON.parse(response.headers.get("x-korzina-sql") ?? "null");
+  assertSqlBudget(metrics, { sql: 15, rowsRead: 32, rowsWritten: 17 });
   expect(await response.json()).toMatchObject({
     paymentStatus: "pending_review",
     totalMinor: 135000,
@@ -197,5 +198,29 @@ it("чек связывается один раз с исходной суммо
   ]);
   await runInDurableObject(catalogStub(), (_shop, { storage }) => {
     expect(storage.sql.exec("SELECT number FROM orders WHERE proof_media_id=?", id).toArray()).toHaveLength(1);
+  });
+});
+
+it("служебные поля сохранённого расчёта не требуют повторного подтверждения", async () => {
+  const cookie = await customer("sku-01");
+  const { quoteRevision } = await getQuote(cookie);
+  await catalogSql(
+    "UPDATE checkout_quotes SET snapshot=json_set(snapshot,'$.trace',1,'$.lines[0].trace',1) WHERE id=?",
+    quoteRevision,
+  );
+  expect((await buy("checkout", { quoteRevision, payment: "cash" }, cookie)).status).toBe(201);
+});
+
+it("прежний расчёт отклоняется после изменения и подтверждения цены в корзине", async () => {
+  await catalogSql("UPDATE variants SET price_minor=130000 WHERE id='sku-01'");
+  const cookie = await customer("sku-01");
+  const { quoteRevision } = await getQuote(cookie);
+  await catalogSql("UPDATE variants SET price_minor=135000 WHERE id='sku-01'");
+  const reviewed = await (await getAuth("/api/cart?shop=lavka", { Cookie: cookie })).json<{ revision: number }>();
+  expect((await buy("cart", { confirm: true, expectedRevision: reviewed.revision }, cookie)).status).toBe(200);
+  const response = await buy("checkout", { quoteRevision, payment: "cash" }, cookie);
+  expect(response.status).toBe(409);
+  expect(await response.json()).toMatchObject({
+    error: { code: "QUOTE_CHANGED", details: { beforeMinor: 130000, afterMinor: 135000 } },
   });
 });

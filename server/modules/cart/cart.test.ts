@@ -103,7 +103,7 @@ it("изменение корзины ≤4 SQL вместе с проверко�
   );
   expect(response.status).toBe(200);
   const metrics: SqlMetrics = JSON.parse(response.headers.get("x-korzina-sql") ?? "null");
-  assertSqlBudget(metrics, { sql: 4 });
+  assertSqlBudget(metrics, { sql: 4, rowsRead: 6, rowsWritten: 6 });
   expect(metrics.transactions).toBe(1);
   expect(cartContract.parse(await response.json())).toEqual(await read(cookie));
   const publicResponse = await exports.default.fetch(
