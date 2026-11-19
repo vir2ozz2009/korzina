@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useBlocker, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { Header } from "../../app/shell/Header";
 import { Screen } from "../../app/shell/Screen";
@@ -7,6 +7,7 @@ import { errorKind, HttpError } from "../../shared/http-error";
 import { Button } from "../../ui/Button";
 import { EmptyState } from "../../ui/EmptyState";
 import { Input } from "../../ui/Input";
+import { Sheet } from "../../ui/Sheet";
 import { useEditProfile, useProfile } from "./api";
 
 export function PersonalDataScreen() {
@@ -18,6 +19,12 @@ export function PersonalDataScreen() {
   const [name, setName] = useState<string>();
   const [phone, setPhone] = useState<string>();
   const attempt = useRef<{ input: string; key: string }>(undefined);
+  const dirty = draft && ((name ?? draft.name) !== draft.name || (phone ?? draft.phone) !== draft.phone);
+  const leave = useBlocker({
+    shouldBlockFn: () => !!dirty,
+    enableBeforeUnload: !!dirty,
+    withResolver: true,
+  });
   const header = <Header title="Мои данные" />;
   if (profile.isError && errorKind(profile.error) === "access")
     return (
@@ -79,6 +86,24 @@ export function PersonalDataScreen() {
             Сохранить
           </Button>
         </form>
+      )}
+      {leave.status === "blocked" && (
+        <Sheet
+          open
+          title="Выйти без сохранения?"
+          onOpenChange={(open) => {
+            if (!open) leave.reset();
+          }}
+        >
+          <div className="space-y-2">
+            <Button full variant="secondary" onClick={leave.reset}>
+              Отмена
+            </Button>
+            <Button full disabled={edit.isPending} onClick={leave.proceed}>
+              Выйти
+            </Button>
+          </div>
+        </Sheet>
       )}
     </Screen>
   );
