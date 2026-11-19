@@ -118,6 +118,7 @@ export function requireFulfillment(settings: FulfillmentSettings, receiving: Rec
 type Selection = {
   receiving: Receiving | null;
   savedAddresses: SavedAddress[];
+  addressesRevision: number;
   time: TimeChoice | null;
   receivingUpdatedAt: number;
   lastUsedAddress?: DeliveryAddress;
@@ -125,6 +126,7 @@ type Selection = {
 export const emptySelection = (): Selection => ({
   receiving: null,
   savedAddresses: [],
+  addressesRevision: 0,
   time: null,
   receivingUpdatedAt: 0,
 });
@@ -199,6 +201,7 @@ export function saveReceiving(storage: DurableObjectStorage, customer: string, i
     const selection = {
       receiving,
       savedAddresses: current.savedAddresses,
+      addressesRevision: current.addressesRevision,
       time,
       receivingUpdatedAt: Date.now(),
       lastUsedAddress: current.lastUsedAddress,

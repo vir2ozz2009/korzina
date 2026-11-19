@@ -1,5 +1,5 @@
 import { Send } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "../../../app/shell/ToastProvider";
 import { loadTelegram } from "../../../app/telegram/adapter";
 import { telegramLaunch } from "../../../app/telegram/launch";
@@ -12,10 +12,17 @@ import { finishCabinetLogin, startCabinetLogin } from "../browser-login";
 type Exchange = Awaited<ReturnType<typeof startCabinetLogin>>;
 const message = (error: unknown) => (error instanceof Error ? error.message : "Не удалось открыть Telegram");
 
-export function CabinetLogin({ store, ready }: { store?: string; ready: () => void }) {
+export function CabinetLogin({
+  store,
+  ready,
+  automaticLoginAttempted,
+}: {
+  store?: string;
+  ready: () => void;
+  automaticLoginAttempted: RefObject<boolean>;
+}) {
   const { mutateAsync: enter } = useEnterCabinet();
   const notify = useToast();
-  const attempted = useRef(false);
   const [exchange, setExchange] = useState<Exchange | undefined>(() => readTelegramAttempt("seller"));
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
@@ -63,10 +70,10 @@ export function CabinetLogin({ store, ready }: { store?: string; ready: () => vo
     }
   }, [enter, store]);
   useEffect(() => {
-    if (!telegramLaunch || attempted.current) return;
-    attempted.current = true;
+    if (!telegramLaunch || automaticLoginAttempted.current) return;
+    automaticLoginAttempted.current = true;
     void start();
-  }, [start]);
+  }, [automaticLoginAttempted, start]);
 
   return (
     <Card size="lg" className="space-y-5">

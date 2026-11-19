@@ -58,8 +58,8 @@ export function editProfile(
 
 export function profileAddresses(storage: DurableObjectStorage, actor: Actor) {
   editableProfile(storage, actor);
-  const { revision, savedAddresses } = readReceiving(storage, actor.subject);
-  return { revision, addresses: savedAddresses };
+  const { addressesRevision, savedAddresses } = readReceiving(storage, actor.subject);
+  return { revision: addressesRevision, addresses: savedAddresses };
 }
 
 export function updateProfileAddress(
@@ -70,7 +70,7 @@ export function updateProfileAddress(
 ) {
   editableProfile(storage, actor);
   const { revision, ...current } = readReceiving(storage, actor.subject);
-  if (input.revision !== revision) throw new ApiError("VERSION_CONFLICT", "Список адресов изменился");
+  if (input.revision !== current.addressesRevision) throw new ApiError("VERSION_CONFLICT", "Список адресов изменился");
   const original = input.id ? current.savedAddresses.find((item) => item.id === input.id) : undefined;
   if (input.id && !original) throw new ApiError("ADDRESS_NOT_FOUND", "Адрес недоступен");
   let savedAddresses = current.savedAddresses.filter((item) => item.id !== input.id);
@@ -96,8 +96,14 @@ export function updateProfileAddress(
     addressKey(original) === addressKey(current.lastUsedAddress)
       ? undefined
       : current.lastUsedAddress;
-  writeReceiving(storage, actor.subject, revision + 1, { ...current, savedAddresses, lastUsedAddress });
-  return { revision: revision + 1, addresses: savedAddresses, lastUsedAddress };
+  const nextRevision = revision + 1;
+  writeReceiving(storage, actor.subject, nextRevision, {
+    ...current,
+    savedAddresses,
+    addressesRevision: nextRevision,
+    lastUsedAddress,
+  });
+  return { revision: nextRevision, addresses: savedAddresses, lastUsedAddress };
 }
 
 export function hasTelegramProfile(storage: DurableObjectStorage, subject: string) {

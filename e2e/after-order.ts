@@ -61,7 +61,14 @@ export async function verifySavedAddress(page: Page) {
   await page.getByRole("searchbox", { name: "Улица, дом, город", exact: true }).fill("улица Ле Лой, 45");
   await page.getByRole("button", { name: "Сохранить адрес вручную", exact: true }).click();
   await page.getByRole("textbox", { name: "Квартира", exact: true }).fill("7");
-  await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+  const [saved] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/api/profile/addresses" && response.request().method() === "POST",
+    ),
+    page.getByRole("button", { name: "Сохранить", exact: true }).click(),
+  ]);
+  expect(saved.status()).toBe(200);
   await expect(page.getByRole("button", { name: /^Работа/ })).toBeVisible();
   await page.screenshot({ path: "test-results/b13-addresses-390.png", animations: "disabled" });
   await page.getByRole("button", { name: /^Корзина/ }).click();
