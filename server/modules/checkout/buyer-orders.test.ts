@@ -100,7 +100,7 @@ it("чужой заказ, другой магазин и тот же номер
   expect((await getAuth(detail("test2"), { Authorization: `Bearer ${token}` })).status).toBe(401);
 });
 
-it("заменяет чек на проверке ровно один раз, сохраняет историю и отклоняет чужой файл и проверенную оплату", async () => {
+it("§9.2 заменяет чек на проверке ровно один раз, сохраняет историю и отклоняет чужой файл и проверенную оплату", async () => {
   const owner = await signIn(snapshot.phone ?? "");
   const stranger = await signIn("+84902345678");
   const previous = await proof(owner.subject, "attached");
@@ -143,4 +143,36 @@ it("заменяет чек на проверке ровно один раз, с
   expect(await catalogSql("SELECT media_id FROM order_receipt_history WHERE order_number=?", order)).toEqual([
     { media_id: previous },
   ]);
+});
+
+it("§9.1 оформленный и принятый заказы активны, выполненный и отменённый в завершённых", async () => {
+  const owner = await signIn(snapshot.phone ?? "");
+  const order = async (stage: string) => {
+    const [row] = await catalogSql(
+      "INSERT INTO orders(customer,created_at,status,payment_status,snapshot) VALUES(?,?,?,'unpaid',?) RETURNING number",
+      owner.subject,
+      Date.now(),
+      stage,
+      JSON.stringify(snapshot),
+    );
+    return row.number;
+  };
+  const placed = await order("placed");
+  const accepted = await order("accepted");
+  const completed = await order("completed");
+  const cancelled = await order("cancelled");
+  const read = async (tab: string) =>
+    (await getAuth(`/api/orders?shop=lavka&tab=${tab}`, { Cookie: owner.Cookie })).json();
+  expect(await read("active")).toMatchObject({
+    orders: [
+      { number: accepted, stage: "accepted" },
+      { number: placed, stage: "placed" },
+    ],
+  });
+  expect(await read("completed")).toMatchObject({
+    orders: [
+      { number: cancelled, stage: "cancelled" },
+      { number: completed, stage: "completed" },
+    ],
+  });
 });

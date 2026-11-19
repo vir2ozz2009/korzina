@@ -1,4 +1,4 @@
-import { addressKey } from "../../../src/shared/address-key";
+import { addressKey, savedAddressLimit } from "../../../src/shared/address-key";
 import { cartTotals } from "../../../src/shared/cart-totals";
 import type { Cart, CartCommandInput } from "../../../src/shared/contracts/cart";
 import { ApiError } from "../../../src/shared/errors";
@@ -159,6 +159,11 @@ export function mergeCustomerCarts(storage: DurableObjectStorage, guest: string,
     seenAddresses.add(key);
     return true;
   });
+  if (savedAddresses.length > savedAddressLimit)
+    throw new ApiError(
+      "ADDRESS_LIMIT",
+      "При объединении получится больше 10 адресов. Удалите лишние адреса и повторите.",
+    );
   writeReceiving(storage, account, revision, {
     ...selection,
     savedAddresses,
@@ -168,17 +173,6 @@ export function mergeCustomerCarts(storage: DurableObjectStorage, guest: string,
     phones.find(({ customer }) => customer === account)?.phone ??
     phones.find(({ customer }) => customer === guest)?.phone;
   if (phone) storage.sql.exec("UPDATE carts SET phone=? WHERE customer=?", phone, account);
-  storage.sql.exec("UPDATE orders SET customer=? WHERE customer=?", account, guest);
-  storage.sql.exec(
-    `UPDATE media SET owner=?,request_key='order:'||id WHERE owner=? AND id IN (
-       SELECT proof_media_id FROM orders WHERE customer=?
-       UNION ALL SELECT h.media_id FROM order_receipt_history h JOIN orders o ON o.number=h.order_number WHERE o.customer=?
-     )`,
-    account,
-    guest,
-    account,
-    account,
-  );
   storage.sql.exec("DELETE FROM carts WHERE customer=?", guest);
 }
 

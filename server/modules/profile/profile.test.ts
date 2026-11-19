@@ -12,7 +12,7 @@ async function login() {
   return cookieFrom(response);
 }
 
-it("адрес профиля выбирается в корзине, удаление сохраняет выбранную копию и профили изолированы", async () => {
+it("§9.4 адрес профиля выбирается в корзине, удаление сохраняет выбранную копию и профили изолированы", async () => {
   await catalogSql(
     "INSERT OR REPLACE INTO settings(key,value) VALUES('fulfillment',?)",
     JSON.stringify({ delivery: { mode: "text", tariff: { kind: "free" } }, requiredDetails: ["apartment"] }),
@@ -56,4 +56,57 @@ it("адрес профиля выбирается в корзине, удале
     receiving,
     savedAddresses: [],
   });
+});
+
+it("§9.4, §9.5 сохраняет ровно 10 адресов, одиннадцатый не мешает оформить заказ", async () => {
+  await catalogSql(
+    "INSERT OR REPLACE INTO settings(key,value) VALUES('fulfillment',?),('receiving_schedule',?),('purchase_payment',?)",
+    JSON.stringify({ delivery: { mode: "text", tariff: { kind: "free" } }, requiredDetails: [] }),
+    JSON.stringify({ timeZone: "Asia/Ho_Chi_Minh", delivery: { mode: "after_order", days: {} } }),
+    JSON.stringify({ methods: ["cash"], minimumMinor: 0 }),
+  );
+  await catalogSql("UPDATE variants SET stock=5 WHERE id='sku-01'");
+  const Cookie = await login();
+  const buy = (path: string, body: object) => postAuth(`/api/${path}?shop=lavka`, body, { Cookie });
+  const read = async () =>
+    (await getAuth("/api/profile/addresses?shop=lavka", { Cookie })).json<{
+      revision: number;
+      addresses: SavedAddress[];
+    }>();
+  const address = (number: number) => ({ mode: "delivery", address: `ул. Ле Лой, ${number}` });
+  let current = await read();
+  for (let number = 1; number <= 10; number++) {
+    const saved = await buy("profile/addresses", {
+      action: "save",
+      revision: current.revision,
+      title: `Адрес ${number}`,
+      receiving: address(number),
+    });
+    expect(saved.status).toBe(200);
+    current = await saved.json<typeof current>();
+  }
+  expect(current.addresses).toHaveLength(10);
+  const blocked = await buy("profile/addresses", {
+    action: "save",
+    revision: current.revision,
+    title: "Одиннадцатый",
+    receiving: address(11),
+  });
+  expect(blocked.status).toBe(409);
+  expect(await blocked.json()).toMatchObject({ error: { code: "ADDRESS_LIMIT" } });
+  expect(await read()).toEqual(current);
+
+  const cart = await buy("cart", { variantId: "sku-01", quantity: 1, expectedRevision: current.revision });
+  expect(cart.status).toBe(200);
+  const { revision } = await cart.json<{ revision: number }>();
+  expect((await buy("receiving", { receiving: address(11), expectedRevision: revision, complete: true })).status).toBe(
+    200,
+  );
+  const quote = await buy("quote", {});
+  expect(quote.status).toBe(200);
+  const { quoteRevision } = await quote.json<{ quoteRevision: string }>();
+  const order = await buy("checkout", { quoteRevision, payment: "cash" });
+  expect(order.status).toBe(201);
+  expect(await order.json()).toMatchObject({ receiving: address(11) });
+  expect((await read()).addresses).toEqual(current.addresses);
 });

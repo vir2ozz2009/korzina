@@ -1,4 +1,4 @@
-import { addressKey } from "../../../src/shared/address-key";
+import { addressKey, savedAddressLimit } from "../../../src/shared/address-key";
 import type { AddressCommand, SavedAddress } from "../../../src/shared/contracts/profile";
 import { ApiError } from "../../../src/shared/errors";
 import { contactRegion, savePhone } from "../auth/contact";
@@ -75,7 +75,8 @@ export function updateProfileAddress(
   if (input.id && !original) throw new ApiError("ADDRESS_NOT_FOUND", "Адрес недоступен");
   let savedAddresses = current.savedAddresses.filter((item) => item.id !== input.id);
   if (input.action === "save") {
-    if (!original && savedAddresses.length >= 10) throw new ApiError("ADDRESS_LIMIT", "Достигнут лимит адресов");
+    if (!original && savedAddresses.length >= savedAddressLimit)
+      throw new ApiError("ADDRESS_LIMIT", "Достигнут лимит адресов");
     const settings = readFulfillment(storage, maps);
     const address = draftForMode(input.receiving, settings);
     if (address.mode !== "delivery") throw new ApiError("VALIDATION", "Укажите адрес доставки");
@@ -103,7 +104,10 @@ export function hasTelegramProfile(storage: DurableObjectStorage, subject: strin
   return (
     storage.sql
       .exec(
-        `SELECT 1 FROM carts WHERE customer=? UNION ALL SELECT 1 FROM sessions WHERE subject=? LIMIT 1`,
+        `SELECT 1 FROM carts WHERE customer=?
+         UNION ALL SELECT 1 FROM sessions WHERE subject=?
+         UNION ALL SELECT 1 FROM orders WHERE customer=? LIMIT 1`,
+        subject,
         subject,
         subject,
       )
