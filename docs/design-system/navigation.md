@@ -159,7 +159,6 @@
 | Регион, валюта, время | `…/store/region` | form | push | [903:60934](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=903-60934) | S6 |
 | Выбор страны / пояса / валюты | `…/region/country|timezone|currency` | catalog | sheet | [904:59886](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=904-59886) | S6 |
 | Бот магазина | `/seller/settings/bot` | form | push | [916:59971](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=916-59971) | S7 |
-| Подключение токена | `…/bot/connect` | form | push | [916:60122](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=916-60122) | S7 |
 | Рабочая группа | `…/bot/workgroup` | form | push | [916:61042](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=916-61042) | S7 |
 | События уведомлений | `…/bot/events` | form | push | [916:61489](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=916-61489) | O4 |
 | Команда | `/seller/settings/team` | list | push | [928:62804](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=928-62804) | S8 |
@@ -183,6 +182,7 @@
 | Новый магазин · шаг 3 «Владелец» | `/admin/shops/new/owner` | form | push | стиль 928:61647 | AD1 |
 | Магазин создан (ссылка, QR, инструкция) | `/admin/shops/$id/created` | order | replace | стиль 186:11072 | AD1 |
 | Карточка магазина | `/admin/shops/$id` | order | push | стиль 632:51098 | AD2 |
+| Подключение токена администратором | `/admin/shops/$id/bot` | form | push | [916:60122](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=916-60122) | S7 |
 | Смена статуса (причина, подтверждение) | `/admin/shops/$id/status` | feedback | sheet | — | AD2 |
 | Дополнения магазина | `/admin/shops/$id/features` | list | push | — | AD2 |
 | Владелец и приглашение | `/admin/shops/$id/owner` | form | push | стиль 923:70909 | AD2 |
