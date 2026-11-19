@@ -1,9 +1,17 @@
 import { expect, type Page } from "@playwright/test";
 
+import { expectCategoryFrames, expectSquarePhotos } from "./photo-frames";
+
 const price = /\d[\d\s.,]*[₫₽$€£]/;
 export async function checkContent(page: Page, screen: "home" | "product" | "catalog") {
   await page.evaluate(() => document.fonts.ready);
+  await expectSquarePhotos(
+    screen === "product"
+      ? page.locator('[aria-label^="Открыть фото "] [data-product-photo]')
+      : page.locator("article [data-product-photo]"),
+  );
   if (screen === "home") {
+    await expectCategoryFrames(page.getByRole("navigation", { name: "Категории", exact: true }), ["1x1", "2x1"]);
     await expect.soft(page.getByRole("heading", { name: "Категории", exact: true })).toBeVisible();
     await expect.soft(page.locator('nav[aria-label="Категории"] > *').first()).toBeVisible();
     await expect.soft(page.locator("article").first()).toContainText(price);

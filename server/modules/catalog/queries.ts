@@ -14,7 +14,7 @@ export function liveQuery(ids: string[]) {
 const variantMetadataSql = `SELECT id, name, photo_id AS photoId FROM variants
   WHERE product_id=p.id AND visible=1 ORDER BY position, id`;
 
-export const mediaJsonSql = `json_object('id',m.id,'edgeColor',m.edge_color,'contentBox',json(m.content_box),'width',m.width,'height',m.height)`;
+export const mediaJsonSql = `json_object('id',m.id,'edgeColor',m.edge_color,'contentBox',json(m.content_box),'cropPosition',json(m.crop_position),'width',m.width,'height',m.height)`;
 const coverSql = `(SELECT ${mediaJsonSql} FROM product_photos pp JOIN media m ON m.id=pp.media_id
   WHERE pp.product_id=p.id AND m.status='attached' AND m.ready=1 ORDER BY pp.position LIMIT 1)`;
 
@@ -81,5 +81,5 @@ export const productSql = `SELECT p.id, p.name, p.description, p.category_id AS 
   FROM products p CROSS JOIN catalog_state s
   WHERE p.id=? AND p.published=1 AND p.visible=1 AND s.id=1`;
 
-export const photosSql = `SELECT pp.media_id AS id,m.edge_color AS edgeColor,m.content_box AS contentBox,m.width,m.height FROM product_photos pp JOIN media m ON m.id=pp.media_id
+export const photosSql = `SELECT pp.media_id AS id,m.edge_color AS edgeColor,m.content_box AS contentBox,m.crop_position AS cropPosition,m.width,m.height FROM product_photos pp JOIN media m ON m.id=pp.media_id
   WHERE pp.product_id=? AND m.status='attached' AND m.ready=1 ORDER BY pp.position`;

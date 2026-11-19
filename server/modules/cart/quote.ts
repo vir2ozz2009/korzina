@@ -1,6 +1,6 @@
 import { cartTotals } from "../../../src/shared/cart-totals";
 import type { Cart, CartIssue, CartLine, CartReview } from "../../../src/shared/contracts/cart";
-import type { PhotoMetadata } from "../../../src/shared/contracts/media";
+import type { CropPosition } from "../../../src/shared/contracts/media";
 import { catalogImage } from "../catalog/images";
 
 export type SavedLine = Pick<
@@ -11,7 +11,7 @@ export type SavedQuote = { lines: SavedLine[]; review?: CartReview };
 type LiveLine = Omit<CartLine, "image" | "productId" | "available"> & {
   productId: string | null;
   available: 0 | 1;
-  photo: (PhotoMetadata & { id: string }) | null;
+  photo: { id: string; edgeColor: string | null; cropPosition: CropPosition | null } | null;
 };
 export type CartSource = { id: string; mediaOrigin: string };
 
@@ -33,7 +33,12 @@ export function toLine(live: LiveLine, source: CartSource, saved?: SavedLine): C
     ...line,
     productId: live.productId,
     available: !!live.available,
-    image: photo ? catalogImage(photo.id, source.id, source.mediaOrigin, photo) : null,
+    image: photo
+      ? catalogImage(photo.id, source.id, source.mediaOrigin, {
+          edgeColor: photo.edgeColor ?? undefined,
+          cropPosition: photo.cropPosition ?? undefined,
+        })
+      : null,
   };
 }
 

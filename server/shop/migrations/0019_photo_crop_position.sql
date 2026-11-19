@@ -1,0 +1,1 @@
+ALTER TABLE `media` ADD `crop_position` text;

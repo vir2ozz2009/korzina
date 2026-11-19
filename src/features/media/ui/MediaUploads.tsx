@@ -2,13 +2,11 @@ import { useState } from "react";
 import { useToast } from "../../../app/shell/ToastProvider";
 import type { MediaPurpose } from "../../../shared/contracts/media";
 import { errorKind } from "../../../shared/http-error";
-import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { ErrorState } from "../../../ui/ErrorState";
 import { PhotoPicker } from "../../../ui/PhotoPicker";
-import { ProductImage } from "../../../ui/ProductImage";
-import { changeMediaState, mediaLink } from "../api";
 import { useMediaUploads } from "../useMediaUploads";
+import { MediaUploadItem } from "./MediaUploadItem";
 
 export function MediaUploads({ seller, purpose }: { seller: boolean; purpose: MediaPurpose }) {
   const uploads = useMediaUploads(seller, purpose);
@@ -30,38 +28,17 @@ export function MediaUploads({ seller, purpose }: { seller: boolean; purpose: Me
       {uploads.items
         .filter((item) => item.result && item.status === "ready")
         .map(
-          ({ id, name, result }) =>
+          ({ id, name, src, result }) =>
             result && (
-              <div key={id} className="space-y-2">
-                <p role="status" className="text-small">
-                  {name} · загружено {(result.bytes / 1024).toLocaleString("ru", { maximumFractionDigits: 0 })} КБ
-                </p>
-                {result.image && <ProductImage {...result.image} alt={name} shape="tile" className="w-full" />}
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={() =>
-                      void changeMediaState(result.id, seller, "attach")
-                        .then(() => notify("Файл сохранён"))
-                        .catch(setError)
-                    }
-                  >
-                    Сохранить файл
-                  </Button>
-                  {!result.image && (
-                    <Button
-                      variant="secondary"
-                      onClick={() =>
-                        void mediaLink(result.id, seller)
-                          .then(({ url }) => window.open(url, "_blank", "noopener"))
-                          .catch(setError)
-                      }
-                    >
-                      Открыть файл
-                    </Button>
-                  )}
-                </div>
-              </div>
+              <MediaUploadItem
+                key={id}
+                file={result}
+                name={name}
+                src={src}
+                seller={seller}
+                onSaved={() => notify("Файл сохранён")}
+                onError={setError}
+              />
             ),
         )}
       {!!(error || uploads.error) && (

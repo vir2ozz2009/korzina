@@ -2,7 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-import { mediaPurpose, photoMetadataContract } from "../../../src/shared/contracts/media";
+import { cropPositionContract, mediaPurpose, photoMetadataContract } from "../../../src/shared/contracts/media";
 import { ApiError } from "../../../src/shared/errors";
 import { isLocal } from "../../auth/cookies";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
@@ -104,7 +104,14 @@ export const mediaRoutes = new Hono<MediaRouterEnv>()
     "/:id/state",
     authBodyLimit,
     authCommand,
-    zValidator("json", z.strictObject({ action: z.enum(["attach", "delete"]) }), validationFailure),
+    zValidator(
+      "json",
+      z.discriminatedUnion("action", [
+        z.strictObject({ action: z.literal("attach"), cropPosition: cropPositionContract.optional() }),
+        z.strictObject({ action: z.literal("delete") }),
+      ]),
+      validationFailure,
+    ),
     async (c) => {
       const actor = c.get("actor");
       const input = c.req.valid("json");
@@ -118,16 +125,31 @@ export const mediaRoutes = new Hono<MediaRouterEnv>()
           c.env.storage.sql.exec("SELECT 1 FROM orders WHERE proof_media_id=?", record.id).toArray().length
         )
           throw new ApiError("FORBIDDEN", "Чек уже используется в заказе");
+        const cropPosition = input.action === "attach" ? input.cropPosition : undefined;
+        if (cropPosition && record.purpose !== "product")
+          throw new ApiError("VALIDATION", "Кадр настраивается для фото товара или категории");
+        const status = input.action === "attach" ? "attached" : "deleted";
         c.env.db
           .update(media)
           .set({
-            status: input.action === "attach" ? "attached" : "deleted",
+            status,
+            cropPosition,
             expiresAt: input.action === "delete" ? Date.now() + 30 * 86_400_000 : null,
           })
           .where(eq(media.id, record.id))
           .run();
+        if (
+          record.purpose === "product" &&
+          (status !== record.status ||
+            (cropPosition && (cropPosition.x !== record.cropPosition?.x || cropPosition.y !== record.cropPosition?.y)))
+        )
+          c.env.storage.sql.exec("UPDATE catalog_state SET version=version+1 WHERE id=1");
         return {
-          body: presentMedia(findMedia(c.env, record.id), c.env.shop.id, c.env.media.MEDIA_PUBLIC_URL),
+          body: presentMedia(
+            findMedia(c.env, record.id),
+            c.env.shop.id,
+            publicOrigin(c.req.raw, c.env.media.MEDIA_PUBLIC_URL),
+          ),
           status: 200,
         };
       });

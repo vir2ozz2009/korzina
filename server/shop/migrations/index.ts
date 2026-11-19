@@ -17,6 +17,7 @@ import m0015 from "./0015_receiving_seats.sql?raw";
 import m0016 from "./0016_purchase_contact.sql?raw";
 import m0017 from "./0017_checkout.sql?raw";
 import m0018 from "./0018_catalog_availability_order.sql?raw";
+import m0019 from "./0019_photo_crop_position.sql?raw";
 import journal from "./meta/_journal.json";
 
 export const migrations = {
@@ -41,5 +42,6 @@ export const migrations = {
     m0016,
     m0017,
     m0018,
+    m0019,
   },
 };
