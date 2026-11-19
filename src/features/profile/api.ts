@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Cart } from "../../shared/contracts/cart";
 import type { AddressCommand } from "../../shared/contracts/profile";
 import { checkResponse, errorKind } from "../../shared/http-error";
 import { commandHeaders, shopApi, shopKey } from "../../shared/shop-api";
 import { clearClientSession } from "../../shared/shop-session";
 import { saveCartSnapshot } from "../cart";
 import { clearPurchaseSession } from "../checkout";
+import type { ReceivingState } from "../receiving";
 
 const profileKey = ["shop", shopKey, "profile"] as const;
 const addressKey = [...profileKey, "addresses"] as const;
@@ -63,10 +65,23 @@ export function useEditAddress() {
       await checkResponse(response);
       return response.json();
     },
-    onSuccess: (addresses) => {
-      client.setQueryData(addressKey, addresses);
-      for (const key of ["profile", "receiving", "cart"])
-        void client.invalidateQueries({ queryKey: ["shop", shopKey, key] });
+    onSuccess: async ({ revision, addresses, lastUsedAddress }) => {
+      const receivingKey = ["shop", shopKey, "receiving"] as const;
+      const cartKey = ["shop", shopKey, "cart"] as const;
+      await Promise.all([
+        client.cancelQueries({ queryKey: receivingKey, exact: true }),
+        client.cancelQueries({ queryKey: cartKey, exact: true }),
+      ]);
+      client.setQueryData(addressKey, { revision, addresses });
+      client.setQueryData<ReceivingState>(receivingKey, (current) =>
+        current && current.revision <= revision
+          ? { ...current, revision, savedAddresses: addresses, lastUsedAddress }
+          : current,
+      );
+      client.setQueryData<Cart>(cartKey, (current) =>
+        current && current.revision < revision ? { ...current, revision } : current,
+      );
+      void client.invalidateQueries({ queryKey: profileKey, exact: true, refetchType: "none" });
     },
   });
 }

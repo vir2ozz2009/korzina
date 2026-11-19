@@ -1,3 +1,4 @@
+import { setTimeout as delay } from "node:timers/promises";
 import { expect, type Page } from "@playwright/test";
 
 export async function verifyOrderCancellation(page: Page, number: number) {
@@ -70,6 +71,22 @@ export async function verifySavedAddress(page: Page) {
     .first()
     .click();
   await page.getByRole("button", { name: /^Работа/ }).click();
-  await page.getByRole("button", { name: "Сохранить адрес вручную", exact: true }).click();
+  const confirm = page.getByRole("button", { name: "Сохранить адрес вручную", exact: true });
+  const write = async () => {
+    const response = page.waitForResponse(
+      (response) => new URL(response.url()).pathname === "/api/receiving" && response.request().method() === "POST",
+    );
+    await confirm.click();
+    return response;
+  };
+  let response = await write();
+  if (response.status() === 429) {
+    const seconds = Number(response.headers()["retry-after"]);
+    expect(seconds).toBeGreaterThan(0);
+    expect(seconds).toBeLessThanOrEqual(30);
+    await delay(seconds * 1_000);
+    response = await write();
+  }
+  expect(response.ok()).toBe(true);
   await expect(page.getByRole("button", { name: /улица Ле Лой, 45/ })).toBeVisible();
 }

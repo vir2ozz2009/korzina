@@ -95,7 +95,7 @@ export function updateProfileAddress(
       ? undefined
       : current.lastUsedAddress;
   writeReceiving(storage, actor.subject, revision + 1, { ...current, savedAddresses, lastUsedAddress });
-  return { revision: revision + 1, addresses: savedAddresses };
+  return { revision: revision + 1, addresses: savedAddresses, lastUsedAddress };
 }
 
 export function hasTelegramProfile(storage: DurableObjectStorage, subject: string) {
