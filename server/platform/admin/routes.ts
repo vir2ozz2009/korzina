@@ -7,6 +7,7 @@ import { ApiError } from "../../../src/shared/errors";
 import type { AuthSecrets } from "../../auth/config";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
 import { type CommandVariables, idempotency } from "../../middleware/idempotency";
+import { invalidateShopAddress } from "../resolve-shop";
 import { shopContexts } from "../shop-context";
 import { requireAdmin } from "./access";
 import { createDraft, registry, slugAvailability } from "./registry";
@@ -39,12 +40,20 @@ export const adminRoutes = new Hono<{
   .patch("/shops/:id", authBodyLimit, idempotency, zValidator("json", shopChange, validationFailure), async (c) => {
     const id = c.req.param("id");
     const input = c.req.valid("json");
-    if (input.action === "data") await managedShop(c.env.PLATFORM, id);
+    const current =
+      input.action === "data" || input.action === "status" ? await managedShop(c.env.PLATFORM, id) : undefined;
     const locked =
       input.action === "data" ? (await exports.Shop.get(exports.Shop.idFromName(id)).adminShopStats()).finances : false;
     const mutation = { id, actor: c.get("actorId"), command: c.get("command"), version: input.version };
     const result = await changeShop(c.env.PLATFORM, mutation, input, c.env, locked);
     shopContexts.invalidate(id);
+    if (current) {
+      const changedAddress = input.action === "data" && input.slug && input.slug !== current.slug;
+      await Promise.all([
+        invalidateShopAddress(c.env.APP_ENV, current.slug),
+        ...(changedAddress && input.slug ? [invalidateShopAddress(c.env.APP_ENV, input.slug)] : []),
+      ]).catch(() => {});
+    }
     return c.json(result);
   })
   .post("/shops/:id/bot", authBodyLimit, authCommand, zValidator("json", botChange, validationFailure), async (c) => {

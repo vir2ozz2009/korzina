@@ -1,11 +1,12 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import { type ShopDraftInput, slugProblem } from "../../../shared/contracts/admin";
+import { useRef, useState } from "react";
+import type { ShopDraftInput } from "../../../shared/contracts/admin";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { Input } from "../../../ui/Input";
-import { useCreateDraft, useSlugAvailability } from "../api";
+import { useCreateDraft } from "../api";
 import { CountryField } from "./RegionFields";
+import { useSlugCheck } from "./useSlugCheck";
 
 const alphabet = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя";
 const transliteration = [
@@ -59,26 +60,17 @@ function slugFromName(name: string) {
 export function CreateDraftForm() {
   const [draft, setDraft] = useState<ShopDraftInput>({ name: "", slug: "", country: "" });
   const [manual, setManual] = useState(false);
-  const [checked, setChecked] = useState("");
   const command = useRef<{ input: ShopDraftInput; key: string } | undefined>(undefined);
   const navigate = useNavigate();
   const create = useCreateDraft();
-  const invalid = draft.slug ? slugProblem(draft.slug) : undefined;
-  const availability = useSlugAvailability(checked, !!checked && checked === draft.slug && !invalid);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setChecked(draft.slug), 250);
-    return () => window.clearTimeout(timer);
-  }, [draft.slug]);
-  const matched = checked === draft.slug;
-  const available = matched && availability.data?.available === true;
-  const taken = matched && availability.data?.available === false ? availability.data.message : undefined;
+  const check = useSlugCheck(draft.slug);
   const change = (patch: Partial<ShopDraftInput>) => {
     setDraft({ ...draft, ...patch });
     command.current = undefined;
     create.reset();
   };
   function submit() {
-    if (!available || !draft.name.trim() || !draft.country || create.isPending) return;
+    if (!check.available || !draft.name.trim() || !draft.country || create.isPending) return;
     const request = command.current ?? { input: draft, key: crypto.randomUUID() };
     command.current = request;
     create.mutate(request, {
@@ -118,21 +110,15 @@ export function CreateDraftForm() {
           autoCapitalize="none"
           spellCheck={false}
           disabled={create.isPending}
-          error={invalid?.message ?? taken}
-          hint={
-            available
-              ? "Адрес свободен"
-              : draft.slug && !invalid && !taken && !availability.isError
-                ? "Проверяем адрес…"
-                : undefined
-          }
+          error={check.message}
+          hint={check.hint}
           onChange={(event) => {
             setManual(true);
             change({ slug: event.target.value });
           }}
         />
-        {matched && availability.isError && (
-          <Button variant="secondary" onClick={() => void availability.refetch()}>
+        {check.failed && (
+          <Button variant="secondary" onClick={check.retry}>
             Повторить проверку адреса
           </Button>
         )}
@@ -142,7 +128,7 @@ export function CreateDraftForm() {
           full
           type="submit"
           loading={create.isPending}
-          disabled={!available || !draft.name.trim() || !draft.country}
+          disabled={!check.available || !draft.name.trim() || !draft.country}
         >
           Создать
         </Button>

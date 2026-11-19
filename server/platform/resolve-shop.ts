@@ -15,6 +15,21 @@ function remember(key: string, entry: CachedShop) {
   memory.set(key, entry);
 }
 
+const cacheKey = (namespace: string, type: "slug" | "host", value: string) =>
+  `https://shop-resolution.invalid/v4/${namespace}/${type}/${encodeURIComponent(value)}`;
+
+export async function invalidateShopAddress(namespace: string, slug: string) {
+  const suffix = namespace === "production" ? "korzina.app" : "demo.korzina.app";
+  const keys = [cacheKey(namespace, "slug", slug), cacheKey(namespace, "host", `${slug}.${suffix}`)];
+  const cache = await caches.open("shop-resolution");
+  await Promise.all(
+    keys.map((key) => {
+      memory.delete(key);
+      return cache.delete(key);
+    }),
+  );
+}
+
 export async function resolveShop(
   request: Request,
   database: D1Database,
@@ -23,7 +38,7 @@ export async function resolveShop(
 ): Promise<ResolvedShop | undefined> {
   const url = new URL(request.url);
   const slug = isDevelopmentHost(url.hostname) ? (url.searchParams.get("shop") ?? "lavka") : undefined;
-  const key = `https://shop-resolution.invalid/v4/${namespace}/${slug ? `slug/${encodeURIComponent(slug)}` : `host/${url.hostname}`}`;
+  const key = slug ? cacheKey(namespace, "slug", slug) : cacheKey(namespace, "host", url.hostname);
   const hit = fresh ? undefined : memory.get(key);
   if (hit && hit.expires > Date.now()) return hit.shop;
   memory.delete(key);

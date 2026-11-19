@@ -64,6 +64,13 @@
       "when": 1795090880061,
       "tag": "0008_admin_card",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1795092038297,
+      "tag": "0009_platform_retention",
+      "breakpoints": true
     }
   ]
 }

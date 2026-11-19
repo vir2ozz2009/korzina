@@ -31,6 +31,7 @@ export const shopChange = z.discriminatedUnion("action", [
     action: z.literal("data"),
     version,
     name: shopDraftInput.shape.name,
+    slug: shopDraftInput.shape.slug.optional(),
     country: shopDraftInput.shape.country,
     currency: z.string().regex(/^[A-Z]{3}$/),
     timeZone: z.string().min(1).max(64),
