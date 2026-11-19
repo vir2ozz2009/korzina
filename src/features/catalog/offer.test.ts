@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { selectOffer } from "./offer";
+import { selectOffer } from "../../shared/catalog/offer";
 
 it("плитка предлагает минимум только доступных фасовок; в корзине показывает цену, вес и лимит выбранного SKU", () => {
   const first = { id: "one", name: "250 г", priceMinor: 45000, oldPriceMinor: null, stock: 2, available: true };

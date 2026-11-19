@@ -1,6 +1,7 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { CatalogTemplate } from "../../../app/templates/CatalogTemplate";
+import { storefrontProducts } from "../../../shared/catalog/model";
 import type { CatalogFilters as Filters } from "../../../shared/contracts/catalog-list";
 import { readShoppingSearch } from "../../../shared/shopping-search";
 import { Button } from "../../../ui/Button";
@@ -10,7 +11,6 @@ import { StorefrontState } from "../../../ui/StorefrontState";
 import { useCart } from "../../cart";
 import { readFilterParams } from "../filter-params";
 import { useProductList } from "../list-api";
-import { storefrontProducts } from "../model";
 import { useCatalogSearch } from "../search-api";
 import { useSearchHistory } from "../search-history";
 import { CatalogFilters } from "./CatalogFilters";

@@ -91,7 +91,7 @@ export function CartScreen() {
           disabled={checking || pending || query.isError || !!cart?.review}
           removeDisabled={checking || pending}
           onChange={(quantity) => change(line, quantity, currency)}
-          onRemove={() => change(line, 0, currency)}
+          onRemove={() => change(line, 0, currency, true)}
           onOpen={() =>
             void navigate({ to: "/p/$id", params: { id: line.productId }, search: { variant: line.variantId } })
           }

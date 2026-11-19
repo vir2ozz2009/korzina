@@ -2,6 +2,7 @@ import { queryOptions, useMutation, useMutationState, useQuery, useQueryClient }
 import { useEffect } from "react";
 import { bootstrap } from "../../app/bootstrap";
 import { queryPolicy } from "../../app/query-defaults";
+import type { useToast } from "../../app/shell/ToastProvider";
 import type { Cart, CartCommandInput } from "../../shared/contracts/cart";
 import { checkResponse, errorKind, HttpError } from "../../shared/http-error";
 import { commandHeaders, shopApi, shopKey } from "../../shared/shop-api";
@@ -20,12 +21,12 @@ function cartQuery() {
     queryFn: async ({ signal }) => {
       const response = await shopApi.api.cart.$get({}, { init: { signal } });
       await checkResponse(response);
-      return response.json();
+      return (await import("../../shared/contracts/cart")).cartContract.parse(await response.json());
     },
   });
 }
 
-export function useCartData(notify: (message: string) => void) {
+export function useCartData(notify: ReturnType<typeof useToast>) {
   const client = useQueryClient();
   const query = useQuery(cartQuery());
   const mutation = useMutation(
@@ -44,8 +45,18 @@ export function useCartData(notify: (message: string) => void) {
         );
       },
       notify,
+      onRemoved,
     ),
   );
+  function onRemoved({ line, currency }: CartCommand): void {
+    notify("Товар удалён", {
+      label: "Вернуть",
+      run: () => {
+        if (client.getQueryData<Cart>(cartKey)?.lines.some((entry) => entry.variantId === line.variantId)) return;
+        mutation.mutate({ line, currency, quantity: line.quantity, key: crypto.randomUUID() });
+      },
+    });
+  }
   useEffect(() => {
     if (query.data) saveCartSnapshot(query.data);
   }, [query.data]);
@@ -63,7 +74,7 @@ export function useCartData(notify: (message: string) => void) {
 async function sendCart(input: CartCommandInput, key: string): Promise<Cart> {
   const response = await shopApi.api.cart.$post({ json: input }, { headers: commandHeaders(key) });
   await checkResponse(response);
-  return response.json();
+  return (await import("../../shared/contracts/cart")).cartContract.parse(await response.json());
 }
 
 export function useConfirmCart(notify: (message: string) => void) {

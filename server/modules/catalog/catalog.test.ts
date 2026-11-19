@@ -1,6 +1,11 @@
 import { evictDurableObject, runInDurableObject } from "cloudflare:test";
 import { exports } from "cloudflare:workers";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  catalogDocumentContract,
+  catalogOffersContract,
+  catalogProductContract,
+} from "../../../src/shared/contracts/catalog";
 import { setupPlatform } from "../../testing/platform";
 import { seedCatalog } from "./seed";
 import { catalogRequest, catalogSql, catalogStub, resetCatalog } from "./testing";
@@ -8,11 +13,7 @@ import { catalogRequest, catalogSql, catalogStub, resetCatalog } from "./testing
 beforeAll(setupPlatform);
 beforeEach(resetCatalog);
 const live = async (ids = "sku-01,sku-02,sku-08,sku-12,sku-16") =>
-  (await catalogRequest(`live?ids=${ids}`)).json<{
-    catalogVersion: number;
-    hideOutOfStock: boolean;
-    items: { id: string; visible: boolean; available: boolean; stock: number | null; priceMinor: number }[];
-  }>();
+  (await catalogRequest(`live?ids=${ids}`)).json().then(catalogOffersContract.parse);
 
 describe("правила каталога", () => {
   it("сид даёт фасовкам каждого товара уникальные названия и обновляет старые демо-данные", async () => {
@@ -40,11 +41,7 @@ describe("правила каталога", () => {
   it("сид сохраняет фасовки, целые цены VND, нулевой и неограниченный остаток; повторный запуск не сбрасывает изменения", async () => {
     const response = await catalogRequest("products/product-01");
     expect(response.status).toBe(200);
-    const product = await response.json<{
-      currency: string;
-      variants: { id: string; priceMinor: number }[];
-      images: { src: string; edgeColor: string }[];
-    }>();
+    const product = await response.json().then(catalogProductContract.parse);
     expect(product.currency).toBe("VND");
     expect(product.variants).toMatchObject([
       { id: "sku-01", priceMinor: 45000 },
@@ -66,9 +63,9 @@ describe("правила каталога", () => {
     await catalogSql("UPDATE variants SET stock=1 WHERE id='sku-01'");
     await evictDurableObject(catalogStub());
     expect((await live()).items[0].stock).toBe(1);
-    const other = await (await catalogRequest("live?ids=sku-01", "korzina-demo-test2")).json<{
-      items: { stock: number }[];
-    }>();
+    const other = await (await catalogRequest("live?ids=sku-01", "korzina-demo-test2"))
+      .json()
+      .then(catalogOffersContract.parse);
     expect(other.items[0].stock).toBe(2);
   });
 
@@ -77,10 +74,7 @@ describe("правила каталога", () => {
     await catalogSql("UPDATE variants SET photo_id=NULL WHERE id='sku-03'");
     await catalogSql("UPDATE variants SET photo_id='demo-tomato-gallery-2' WHERE id='sku-02'");
     await catalogStub().seedDemoCatalog("korzina-demo-lavka");
-    const product = await (await catalogRequest("products/product-01")).json<{
-      variants: { id: string; photoId: string | null }[];
-      images: { id: string }[];
-    }>();
+    const product = await (await catalogRequest("products/product-01")).json().then(catalogProductContract.parse);
     expect(product.variants.slice(1, 3)).toMatchObject([
       { id: "sku-02", photoId: product.images[1].id },
       { id: "sku-03", photoId: product.images[1].id },
@@ -99,11 +93,7 @@ describe("правила каталога", () => {
     expect((await catalogRequest("products/product-05")).status).toBe(404);
     await catalogSql("UPDATE categories SET visible=0 WHERE id='milk'");
     await catalogSql("UPDATE brands SET visible=0 WHERE id='brand-1'");
-    const document = await (await catalogRequest("document")).json<{
-      categories: { id: string }[];
-      brands: { id: string }[];
-      items: { id: string }[];
-    }>();
+    const document = await (await catalogRequest("document")).json().then(catalogDocumentContract.parse);
     expect(document.categories.some((c) => c.id === "milk")).toBe(false);
     expect(document.brands.some((b) => b.id === "brand-1")).toBe(false);
     expect(document.items.some((p) => ["product-01", "product-05"].includes(p.id))).toBe(false);
@@ -144,7 +134,7 @@ describe("правила каталога", () => {
     const response = await exports.default.fetch(new Request(url));
     expect(response.status).toBe(200);
     expect(response.headers.has("x-korzina-sql")).toBe(false);
-    const document = await response.json<{ catalogVersion: number; items: { id: string }[] }>();
+    const document = await response.json().then(catalogDocumentContract.parse);
     expect(document.items.length).toBeGreaterThan(0);
     const etag = response.headers.get("ETag") as string;
     const same = await exports.default.fetch(
@@ -156,7 +146,9 @@ describe("правила каталога", () => {
     const liveResponse = await exports.default.fetch(
       new Request("https://demo.korzina.app/api/catalog/live?shop=lavka&ids=sku-01"),
     );
-    expect(await liveResponse.json()).toMatchObject({ catalogVersion: document.catalogVersion });
+    expect(catalogOffersContract.parse(await liveResponse.json())).toMatchObject({
+      catalogVersion: document.catalogVersion,
+    });
     expect(liveResponse.headers.get("Cache-Control")).toBe("no-store");
     const invalid = await exports.default.fetch(new Request("https://demo.korzina.app/api/catalog/live?ids="));
     expect(await invalid.json()).toMatchObject({ error: { code: "VALIDATION" } });

@@ -1,8 +1,8 @@
+import { storefrontProducts } from "../../../shared/catalog/model";
 import { EmptyState } from "../../../ui/EmptyState";
 import { ProductTile } from "../../../ui/ProductTile";
 import { StorefrontState } from "../../../ui/StorefrontState";
 import type { useCart } from "../../cart";
-import { storefrontProducts } from "../model";
 import { useShoppingMatches } from "../search-api";
 import { asksForPackSize } from "./search-pack-size";
 import { toTiles } from "./toTiles";

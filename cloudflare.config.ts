@@ -1,4 +1,5 @@
 import { bindings, defineConfig, exports } from "cf/config";
+import * as e2eWorker from "./e2e/worker" with { type: "cf-worker" };
 import * as entrypoint from "./server/index" with { type: "cf-worker" };
 import { environmentResources } from "./server/platform/config.ts";
 
@@ -8,7 +9,7 @@ export default defineConfig(({ mode, isPreview }) => ({
     name: "korzina-demo",
     workersDev: false,
     previewUrls: true,
-    entrypoint,
+    entrypoint: mode === "e2e" && !isPreview ? (e2eWorker as typeof entrypoint) : entrypoint,
     exports: { Shop: exports.durableObject({ storage: "sqlite" }) },
     env: {
       APP_ENV: bindings.text(isPreview ? "preview" : mode === "production" ? "production" : "demo"),

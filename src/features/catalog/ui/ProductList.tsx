@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { lazy, type ReactNode, Suspense, useState } from "react";
 import { CatalogTemplate } from "../../../app/templates/CatalogTemplate";
+import { storefrontProducts } from "../../../shared/catalog/model";
 import {
   type CatalogScope,
   type CatalogFilters as Filters,
@@ -17,7 +18,6 @@ import { ProductTile } from "../../../ui/ProductTile";
 import { useCart } from "../../cart";
 import { readFilterParams } from "../filter-params";
 import { productListKey, useProductList } from "../list-api";
-import { storefrontProducts } from "../model";
 import { CatalogFilters } from "./CatalogFilters";
 import { CatalogTabs } from "./CatalogTabs";
 import { toTiles } from "./toTiles";
@@ -97,7 +97,7 @@ export function ProductList({
           title="0 товаров"
           description="Измените цену или сбросьте фильтры"
           action="Сбросить фильтры"
-          onAction={() => apply({})}
+          onAction={() => apply({ sort: filters.sort })}
         />
       </div>
     );

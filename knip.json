@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["server/index.ts", "cloudflare.config.ts"],
+  "entry": ["server/index.ts", "cloudflare.config.ts", "e2e/worker.ts"],
   "project": ["src/**/*.{ts,tsx,css}", "server/**/*.ts", "scripts/**/*.ts", "*.ts", "e2e/**/*.ts"],
   "drizzle": { "config": ["drizzle.*.config.ts"] }
 }

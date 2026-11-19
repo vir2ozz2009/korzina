@@ -1,9 +1,9 @@
+import { storefrontProducts } from "../../../shared/catalog/model";
 import { Button } from "../../../ui/Button";
 import { Chip } from "../../../ui/Chip";
 import { ProductTile } from "../../../ui/ProductTile";
 import type { useCart } from "../../cart";
 import { useCatalog, useOffers } from "../api";
-import { storefrontProducts } from "../model";
 import { toTiles } from "./toTiles";
 
 const examples = ["Томаты 500 г", "Молоко, хлеб, яйца", "Греческий салат"];

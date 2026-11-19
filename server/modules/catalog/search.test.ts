@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, expect, it } from "vitest";
+import { catalogSearchContract } from "../../../src/shared/contracts/catalog";
 import { assertSqlBudget } from "../../metrics";
 import { setupPlatform } from "../../testing/platform";
-import type { readSearch } from "./search";
 import { catalogRequest, catalogSql, resetCatalog } from "./testing";
 
 beforeAll(setupPlatform);
@@ -10,7 +10,7 @@ const search = async (q: string) => {
   const response = await catalogRequest(`search?q=${encodeURIComponent(q)}`);
   expect(response.status).toBe(200);
   assertSqlBudget(JSON.parse(response.headers.get("x-korzina-sql") ?? "{}"), { sql: 8, rowsWritten: 0 });
-  return response.json<ReturnType<typeof readSearch>>();
+  return response.json().then(catalogSearchContract.parse);
 };
 it("поиск находит регистр, ё/е, опечатку, бренд и категорию; скрытые товары исключены", async () => {
   expect((await search("ТОМАТЫ")).items.some((p) => p.id === "product-01")).toBe(true);

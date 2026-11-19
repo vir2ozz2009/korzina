@@ -34,7 +34,9 @@ function catalogQuery(version?: number) {
         { init: { signal } },
       );
       await checkResponse(response);
-      const data = await response.json();
+      const data = (await import("../../shared/contracts/catalog")).catalogDocumentContract.parse(
+        await response.json(),
+      );
       const image = (value: Parameters<typeof resolveDocumentImage>[0]) =>
         resolveDocumentImage(value, bootstrap?.mediaOrigin ?? "");
       return {
