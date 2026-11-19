@@ -16,6 +16,7 @@ import { Chip } from "../../../ui/Chip";
 import { EmptyState } from "../../../ui/EmptyState";
 import { ProductTile } from "../../../ui/ProductTile";
 import { useCart } from "../../cart";
+import { ActiveOrders } from "../../orders";
 import { readFilterParams } from "../filter-params";
 import { productListKey, useProductList } from "../list-api";
 import { CatalogFilters } from "./CatalogFilters";
@@ -121,6 +122,7 @@ export function ProductList({
         toolbar={
           !unavailable && (
             <>
+              <ActiveOrders />
               {scope === "all" && <CatalogTabs active="/catalog" />}
               {brand && (
                 <div className="flex items-center gap-3 rounded-xl bg-card p-3">

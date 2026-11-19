@@ -76,13 +76,14 @@ export function purchaseDraft(env: Shop, subject: string, kind: "guest" | "teleg
   if (!paymentSettings.methods.length) throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Оплата пока недоступна");
   const lines = cart.lines
     .filter((line) => line.available && line.quantity > 0)
-    .map(({ variantId, productId, name, unit, quantity, priceMinor }) => ({
+    .map(({ variantId, productId, name, unit, quantity, priceMinor, image }) => ({
       variantId,
       productId,
       name,
       unit,
       quantity,
       priceMinor,
+      image,
       totalMinor: multiplyMinor(quantity, priceMinor),
     }));
   if (!lines.length || !cart.currency) throw new ApiError("VALIDATION", "Корзина пуста");

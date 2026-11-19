@@ -11,6 +11,7 @@ import { Button } from "../../../ui/Button";
 import { StoreHeader } from "../../../ui/StoreHeader";
 import { useCart } from "../../cart";
 import { ContactSheet, useContact } from "../../contact";
+import { ActiveOrders } from "../../orders";
 import { useCatalog, useOffers } from "../api";
 import { HomeView } from "./HomeView";
 import { toTiles } from "./toTiles";
@@ -67,6 +68,7 @@ export function HomeScreen() {
           emptyDescription: "Загляните чуть позже — здесь появятся товары.",
         }}
         sections={[
+          <ActiveOrders key="active-orders" />,
           <HomeView
             key="catalog"
             allProductsHref="/catalog"

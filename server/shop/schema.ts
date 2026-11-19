@@ -2,7 +2,15 @@ import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlit
 
 export { carts } from "../modules/cart/schema";
 export { brands, catalogState, categories, productPhotos, products, variants } from "../modules/catalog/schema";
-export { checkoutQuotes, checkoutReceipts, orderOutbox, orders } from "../modules/checkout/schema";
+export {
+  buyerOrderEvents,
+  buyerOrderRevisions,
+  checkoutQuotes,
+  checkoutReceipts,
+  orderOutbox,
+  orderReceiptHistory,
+  orders,
+} from "../modules/checkout/schema";
 export { media, mediaUsage } from "../modules/media/schema";
 
 export const settings = sqliteTable("settings", {

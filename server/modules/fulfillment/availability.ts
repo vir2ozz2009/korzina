@@ -73,13 +73,13 @@ export function reserveTime(
 ) {
   const { methodSchedule, response: availability } = availabilityFor(storage, method, now);
   if (!isAvailable(availability.mode, availability.days, time)) throw unavailableTime();
-  if (!time) return;
+  if (!time) return false;
   const capacity =
     methodSchedule.mode === "day"
       ? methodSchedule.dayCapacity
       : scheduledPeriods(methodSchedule, time.date).find((period) => `${period.start}-${period.end}` === time.slotId)
           ?.capacity;
-  if (capacity === undefined) return;
+  if (capacity === undefined) return false;
   const expiresAt = Date.parse(`${calendarDate(time.date, 2)}T00:00:00Z`);
   const result = storage.sql.exec(
     `INSERT INTO receiving_seats(method,date,slot,booked,expires_at) VALUES(?,?,?,1,?)
@@ -91,4 +91,5 @@ export function reserveTime(
     capacity,
   );
   if (!result.rowsWritten) throw unavailableTime();
+  return true;
 }

@@ -30,6 +30,7 @@ export type CheckoutCommand = z.infer<typeof checkoutInput>;
 export type PaymentSettings = z.infer<typeof paymentSettingsInput>;
 type PurchaseLine = Pick<CartLine, "variantId" | "productId" | "name" | "unit" | "quantity" | "priceMinor"> & {
   totalMinor: number;
+  image?: CartLine["image"];
 };
 export type PurchaseQuote = {
   revision: number;

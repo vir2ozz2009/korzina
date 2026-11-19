@@ -14,6 +14,7 @@ import { ListItem } from "../../../ui/ListItem";
 import { Radio } from "../../../ui/Radio";
 import { StickyFooter } from "../../../ui/StickyFooter";
 import { ContactSheet, useContact } from "../../contact";
+import { orderKeys, rememberBuyer } from "../../orders";
 import { ReceivingTime, useReceiving } from "../../receiving";
 import { type Attempt, usePlaceOrder, useQuote } from "../api";
 import { readAttempt, storeAttempt, storeOrderNumber } from "../session";
@@ -60,6 +61,8 @@ export function PaymentScreen() {
     storeAttempt(next);
     try {
       const order = await place.mutateAsync(next);
+      rememberBuyer(true);
+      void client.invalidateQueries({ queryKey: orderKeys });
       client.setQueryData(["shop", shopKey, "order", order.number], order);
       storeOrderNumber(order.number);
       receipt.complete();

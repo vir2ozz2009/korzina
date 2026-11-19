@@ -5,6 +5,7 @@ import { RateLimiter, rateLimit } from "../middleware/rate-limit";
 import { customerAuth } from "../modules/auth/routes";
 import { cartRoutes } from "../modules/cart/routes";
 import { catalogRoutes } from "../modules/catalog/routes";
+import { buyerOrderRoutes } from "../modules/checkout/buyer-order-routes";
 import { purchaseRoutes } from "../modules/checkout/routes";
 import { diagnostics } from "../modules/diagnostics/routes";
 import { receivingRoutes } from "../modules/fulfillment/routes";
@@ -34,6 +35,7 @@ export function shopRoutes() {
       .route("/cart", cartRoutes)
       .route("/receiving", receivingRoutes)
       .route("/", purchaseRoutes)
+      .route("/orders", buyerOrderRoutes)
       .route("/catalog", catalogRoutes)
       .route("/media", mediaRoutes)
       // Demo/localhost-only availability probe, not the cashback product (A4).

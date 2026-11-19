@@ -64,6 +64,18 @@ const done = createRoute({
   staticData: { template: "feedback", transition: "push", title: "Готово" },
   component: lazyRouteComponent(() => import("../features/checkout/ui/DoneScreen"), "DoneScreen"),
 });
+const orderHistory = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/orders",
+  staticData: { template: "list", transition: "push", title: "Мои заказы" },
+  component: lazyRouteComponent(() => import("../features/orders/ui/OrderListScreen"), "OrderListScreen"),
+});
+const buyerOrder = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/orders/$number",
+  staticData: { template: "order", transition: "push", title: "Заказ" },
+  component: lazyRouteComponent(() => import("../features/orders/ui/OrderScreen"), "OrderScreen"),
+});
 export const shopRoutes = [
   home,
   product.addChildren([details]),
@@ -72,5 +84,7 @@ export const shopRoutes = [
   receiving,
   payment,
   done,
+  orderHistory,
+  buyerOrder,
   ...catalogRoutes,
 ];
