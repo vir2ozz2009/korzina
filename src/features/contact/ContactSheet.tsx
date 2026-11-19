@@ -60,7 +60,11 @@ function LoginContent({
       predicate: ({ queryKey }: { queryKey: readonly unknown[] }) =>
         queryKey[0] === "shop" && queryKey[1] === shopKey && keys.includes(String(queryKey[2])),
     };
-    await client.cancelQueries(filters);
+    // The old guest cookie may already be revoked while a contact request is still in flight.
+    await Promise.all([
+      client.cancelQueries(filters),
+      client.cancelQueries({ queryKey: ["shop", shopKey, "contact"], exact: true }),
+    ]);
     client.removeQueries(filters);
     void client.invalidateQueries({ queryKey: ["shop", shopKey] });
     if (!signal.aborted) {
@@ -143,6 +147,7 @@ function LoginContent({
           <p role="status">Завершите вход в Telegram и вернитесь сюда</p>
           <a
             href={attempt.url}
+            target="_blank"
             rel="noreferrer"
             className="text-label text-primary-strong underline"
             onClick={() => saveTelegramAttempt("contact", { ...attempt, mode: initial })}

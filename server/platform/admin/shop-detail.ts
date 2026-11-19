@@ -3,7 +3,7 @@ import { ApiError } from "../../../src/shared/errors";
 import { flags, resolveFeatures } from "../../../src/shared/flags";
 import { normalizeTheme } from "../../../src/shared/theme-presets";
 import type { AuthSecrets } from "../../auth/config";
-import { invitationToken } from "./invitation-link";
+import { ensureInitialOwnerInvite, invitationToken, type OwnerInvite, readOwnerInvite } from "./invitation-link";
 import { storefrontUrl } from "./registry";
 
 export type ManagedShop = {
@@ -41,33 +41,28 @@ export async function shopDetail(
   request: Request,
   shop: ManagedShop,
   productCount: number,
+  actorId: string,
 ) {
   const { id } = shop;
   const now = Date.now();
   const day = 86_400_000;
   const [invitation, overrides, counts] = await database.withSession("first-primary").batch([
-    database
-      .prepare(`SELECT link_id AS linkId, expires_at AS expiresAt, used_by AS usedBy,
-      replacement_reason AS reason FROM invitations
-      WHERE shop_id=? AND revoked_at IS NULL AND link_id IS NOT NULL ORDER BY rowid DESC LIMIT 1`)
-      .bind(id),
+    readOwnerInvite(database, id),
     database.prepare("SELECT key, enabled FROM feature_overrides WHERE shop_id=?").bind(id),
     database
       .prepare(`SELECT COUNT(*) AS orders30d, COALESCE(SUM(created_at>=?),0) AS orders7d
       FROM platform_order_events WHERE shop_id=? AND created_at>=?`)
       .bind(now - 7 * day, id, now - 30 * day),
   ]);
-  const invite = invitation.results[0] as
-    | {
-        linkId: string;
-        expiresAt: number;
-        usedBy: string | null;
-        reason: string | null;
-      }
-    | undefined;
-  const bot = shop.botUsername ?? env.PLATFORM_BOT_USERNAME;
+  const username = shop.botUsername ?? env.PLATFORM_BOT_USERNAME;
+  const bot = username && /^[a-z][a-z0-9_]{4,31}$/i.test(username) ? username : undefined;
+  const invite =
+    (invitation.results[0] as OwnerInvite | undefined) ??
+    (!shop.ownerAccepted && bot && env.ENCRYPTION_KEY
+      ? await ensureInitialOwnerInvite(database, id, actorId, env.ENCRYPTION_KEY, now)
+      : undefined);
   const url =
-    invite && invite.expiresAt > now && bot && /^[a-z][a-z0-9_]{4,31}$/i.test(bot)
+    invite && invite.expiresAt > now && bot
       ? `https://t.me/${bot}?start=inv_${await invitationToken(invite.linkId, env.ENCRYPTION_KEY)}`
       : null;
   const features = resolveFeatures(
