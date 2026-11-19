@@ -32,7 +32,7 @@ export function ManualAddressStep({
     >
       <ManualAddressFields
         value={address}
-        districts={districts}
+        manual={{ districts }}
         required={required}
         disabled={pending}
         onChange={change}

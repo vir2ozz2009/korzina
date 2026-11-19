@@ -79,6 +79,8 @@ docs/
 
 **Shop DO (SQLite):** `media` (назначение, статус `temp`/`attached`, размер — для лимита и уборки), `settings`, `categories`, `brands`, `products`, `variants(sku, price_minor, stock, visible)`, `customers`, `sessions`, `carts`, `cart_lines`, `orders`, `order_lines`, `order_events`, `payments`, `refunds`, `delivery_zones`, `slots`, `reservations`, `idempotency`, `outbox`. Подробно правила — `docs/DOMAIN.md`. Таблицы добавляются задачами по мере надобности, а не все сразу.
 
+**Данные магазина.** Схему и миграции ведём в Drizzle. Запросы в Shop DO по умолчанию пишем через Drizzle. Сырой `storage.sql.exec` допустим в горячих путях и внутри `transactionSync`, если имена таблиц и колонок сверены со схемой, а бюджет SQL закреплён тестом.
+
 Миграции Drizzle собираются в бандл. DO применяет их при первом запросе после деплоя (`blockConcurrencyWhile`), поэтому выпуск сам «раскатывается» на все магазины.
 
 ## 6. Функции и флаги

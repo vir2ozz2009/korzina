@@ -6,17 +6,29 @@ import { newToken, tokenHash } from "../../auth/tokens";
 import { sessions } from "../../shop/schema";
 
 export const customerTtl = 30 * 86_400;
-export async function readCustomer(db: DrizzleSqliteDODatabase, request: Request, shopId: string) {
+export async function readCustomerWith<T extends Pick<typeof sessions.$inferSelect, "subject" | "kind" | "expiresAt">>(
+  request: Request,
+  shopId: string,
+  find: (sessionId: string) => T | undefined | Promise<T | undefined>,
+) {
   const token = credential(request, customerCookie(shopId));
   if (!token) return undefined;
-  const row = db
-    .select({ subject: sessions.subject, kind: sessions.kind, expiresAt: sessions.expiresAt })
-    .from(sessions)
-    .where(eq(sessions.tokenHash, await tokenHash(token)))
-    .get();
+  const sessionId = await tokenHash(token);
+  const row = await find(sessionId);
   if (!row || row.expiresAt <= Date.now()) throw new ApiError("UNAUTHORIZED", "Сессия недействительна");
-  return { ...row, sessionId: await tokenHash(token) };
+  return { ...row, sessionId };
 }
+
+export function readCustomer(db: DrizzleSqliteDODatabase, request: Request, shopId: string) {
+  return readCustomerWith(request, shopId, (sessionId) =>
+    db
+      .select({ subject: sessions.subject, kind: sessions.kind, expiresAt: sessions.expiresAt })
+      .from(sessions)
+      .where(eq(sessions.tokenHash, sessionId))
+      .get(),
+  );
+}
+
 export async function prepareCustomer(subject = `guest:${crypto.randomUUID()}`, kind: "guest" | "telegram" = "guest") {
   const token = newToken();
   const expiresAt = Date.now() + customerTtl * 1000;

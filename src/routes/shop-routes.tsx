@@ -80,25 +80,25 @@ const favorites = createRoute({
   getParentRoute: () => rootRoute,
   path: "/favorites",
   staticData: { template: "catalog", transition: "push", title: "Избранное" },
-  component: lazyRouteComponent(() => import("../features/favorites/FavoritesScreen"), "FavoritesScreen"),
+  component: lazyRouteComponent(() => import("../features/favorites/ui/FavoritesScreen"), "FavoritesScreen"),
 });
 const profile = createRoute({
   getParentRoute: () => rootRoute,
   path: "/profile",
   staticData: { template: "form", transition: "push", title: "Профиль" },
-  component: lazyRouteComponent(() => import("../features/profile/ProfileScreen"), "ProfileScreen"),
+  component: lazyRouteComponent(() => import("../features/profile/ui/ProfileScreen"), "ProfileScreen"),
 });
 const personalData = createRoute({
   getParentRoute: () => rootRoute,
   path: "/profile/data",
   staticData: { template: "form", transition: "push", title: "Мои данные" },
-  component: lazyRouteComponent(() => import("../features/profile/PersonalDataScreen"), "PersonalDataScreen"),
+  component: lazyRouteComponent(() => import("../features/profile/ui/PersonalDataScreen"), "PersonalDataScreen"),
 });
 const addresses = createRoute({
   getParentRoute: () => rootRoute,
   path: "/profile/addresses",
   staticData: { template: "list", transition: "push", title: "Мои адреса" },
-  component: lazyRouteComponent(() => import("../features/profile/AddressesScreen"), "AddressesScreen"),
+  component: lazyRouteComponent(() => import("../features/profile/ui/AddressesScreen"), "AddressesScreen"),
 });
 export const shopRoutes = [
   home,

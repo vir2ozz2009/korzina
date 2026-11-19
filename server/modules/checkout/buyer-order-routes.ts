@@ -28,7 +28,7 @@ export const buyerOrderRoutes = new Hono<ShopEnv>()
     await next();
     if (!c.res.headers.has("Cache-Control")) c.header("Cache-Control", "private, no-store");
   })
-  .get("/active", async (c) => activeBuyerOrders(c.env.storage, await subject(c.env, c.req.raw), c.req.raw))
+  .get("/active", (c) => activeBuyerOrders(c.env, c.req.raw))
   .get("/", zValidator("query", historyInput, validationFailure), async (c) => {
     const { tab, cursor } = c.req.valid("query");
     return c.json(buyerOrdersPage(c.env.storage, await subject(c.env, c.req.raw), tab, cursor));
