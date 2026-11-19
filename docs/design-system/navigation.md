@@ -158,9 +158,9 @@
 | Контакты | `…/store/contacts` | form | push | [903:60541](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=903-60541) | S6 |
 | Регион, валюта, время | `…/store/region` | form | push | [903:60934](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=903-60934) | S6 |
 | Выбор страны / пояса / валюты | `…/region/country|timezone|currency` | catalog | sheet | [904:59886](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=904-59886) | S6 |
-| Бот магазина | `/seller/settings/bot` | form | push | [916:59971](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=916-59971) | S7 |
+| Настройки уведомлений бота | `/seller/settings/bot` | form | push | [916:59971](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=916-59971) | S7 |
 | Рабочая группа | `…/bot/workgroup` | form | push | [916:61042](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=916-61042) | S7 |
-| События уведомлений | `…/bot/events` | form | push | [916:61489](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=916-61489) | O4 |
+| События уведомлений | `…/bot/events` | form | push | [916:61489](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=916-61489) | S7 |
 | Команда | `/seller/settings/team` | list | push | [928:62804](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=928-62804) | S8 |
 | Добавить сотрудника | `…/team/new` | form | push | [928:61647](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=928-61647) | S8 |
 | Сотрудник | `…/team/$id` | form | push | [928:62907](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=928-62907) | S8 |
@@ -171,23 +171,14 @@
 
 ## Админка платформы
 
-Оболочка: бренд Korzina (не цвет магазина), без вкладок; на телефоне — стек экранов, на десктопе — колонка по центру (отдельный десктоп — A16). Макетов нет: собирать из кита по шаблонам в стиле кабинета продавца и показывать Андрею на холсте MagicPath.
+Из профиля покупателя по D15. Сессия Telegram восстанавливается через B9.
 
-| Экран | Маршрут | Шаблон | Переход | Эталон | Задача |
-|---|---|---|---|---|---|
-| Вход администратора | `/admin/login` | form | none | — | AD1 |
-| Магазины (список, счётчики, поиск) | `/admin` | list | tab-root | стиль 632:49972 | AD1 |
-| Новый магазин · шаг 1 «Магазин» | `/admin/shops/new` | form | push | стиль 903:59118 | AD1 |
-| Новый магазин · шаг 2 «Регион и оформление» | `/admin/shops/new/region` | form | push | стиль 903:60934 | AD1 |
-| Новый магазин · шаг 3 «Владелец» | `/admin/shops/new/owner` | form | push | стиль 928:61647 | AD1 |
-| Магазин создан (ссылка, QR, инструкция) | `/admin/shops/$id/created` | order | replace | стиль 186:11072 | AD1 |
-| Карточка магазина | `/admin/shops/$id` | order | push | стиль 632:51098 | AD2 |
-| Подключение токена администратором | `/admin/shops/$id/bot` | form | push | [916:60122](https://www.figma.com/design/Y8MsoSYwEr373vVvlvXAGJ/?node-id=916-60122) | S7 |
-| Смена статуса (причина, подтверждение) | `/admin/shops/$id/status` | feedback | sheet | — | AD2 |
-| Дополнения магазина | `/admin/shops/$id/features` | list | push | — | AD2 |
-| Владелец и приглашение | `/admin/shops/$id/owner` | form | push | стиль 923:70909 | AD2 |
-| Адрес витрины | `/admin/shops/$id/address` | form | push | — | AD3 |
-| Журнал (общий / магазина) | `/admin/audit`, `/admin/shops/$id/audit` | list | push | — | AD3 |
+| Экран | Маршрут | Шаблон | Переход | Задача |
+|---|---|---|---|---|
+| Админка и раскрываемая форма создания | `/admin` | list | push | AD1 |
+| Карточка с владельцем, ботом, статусом, данными и дополнениями | `/admin/shops/$id` | order | push | AD2, AD3 |
+
+Оба экрана и их состояния заданы в [§9.12](../specs/seller-admin.md#9-решения-андрея-19112026).
 
 ## Сквозные маршруты (проверять целиком)
 
@@ -196,5 +187,5 @@
 3. Рабочий день → ближайший заказ → сборка → к передаче; «назад» возвращает к тому же дню (O3).
 4. Деньги → задача «проверить перевод» → карточка заказа → учёт оплаты → назад в деньги (O5).
 5. Товары → добавить → категория создаётся из формы без потери полей → сохранить → каталог (S2–S3).
-6. Главная кабинета → первый запуск → товары → получение → оплата → бот → открыть магазин (S9).
-7. Админка → новый магазин → ссылка-приглашение → продавец входит → первый запуск → магазин активен; в админке статус «активен» (AD1, S9).
+6. Главная кабинета → первый запуск → товары → получение → оплата → открыть магазин (S9).
+7. Витрина → профиль → «Админка» → форма в реестре → карточка черновика → ссылка-приглашение → чат бота → кабинет нужного магазина (AD1, AD2, S1).
