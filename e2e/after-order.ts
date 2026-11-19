@@ -27,11 +27,18 @@ export async function verifyFavoriteCart(page: Page) {
   await page.getByRole("button", { name: "Избранное", exact: true }).click();
   await expect(page.getByRole("button", { name: "Убрать из избранного", exact: true })).toBeVisible();
   await page.screenshot({ path: "test-results/b12-favorites-390.png", animations: "disabled" });
-  await page.getByRole("button", { name: "Добавить в корзину", exact: true }).click();
-  const variants = page.getByRole("dialog", { name: "Выберите фасовку" });
-  if (await variants.isVisible()) {
-    await variants.getByRole("button", { name: "Добавить в корзину", exact: true }).first().click();
+  const tileOnList = page.locator("article").first();
+  const choices = tileOnList.getByRole("button", { name: /фасовк/ });
+  if (await choices.count()) {
+    await choices.click();
+    const variants = page.getByRole("dialog", { name: "Выберите фасовку" });
+    const add = variants.getByRole("button", { name: "Добавить в корзину", exact: true }).first();
+    await add.click();
+    await expect(add).toHaveCount(0);
     await variants.getByRole("button", { name: "Закрыть", exact: true }).click();
+  } else {
+    await tileOnList.getByRole("button", { name: "Добавить в корзину", exact: true }).click();
+    await expect(tileOnList.getByRole("button", { name: "Добавить одну штуку", exact: true })).toBeVisible();
   }
   await page.getByRole("button", { name: /^Корзина/ }).click();
   await expect(page).toHaveURL(/\/cart/);
