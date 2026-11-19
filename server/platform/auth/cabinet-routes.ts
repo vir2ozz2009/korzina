@@ -21,7 +21,7 @@ const cabinetQuery = z.object({
     .regex(/^[a-z0-9-]{1,63}$/)
     .optional(),
 });
-const cabinetLogin = telegramInput.omit({ bearer: true }).extend(cabinetQuery.shape);
+const cabinetLogin = telegramInput.extend(cabinetQuery.shape);
 
 export const cabinetRoutes = new Hono<{ Bindings: Env & AuthSecrets; Variables: CommandVariables }>()
   .use("*", async (c, next) => {
@@ -53,7 +53,7 @@ export const cabinetRoutes = new Hono<{ Bindings: Env & AuthSecrets; Variables: 
     },
   )
   .post("/telegram", authBodyLimit, authCommand, zValidator("json", cabinetLogin, validationFailure), async (c) => {
-    const { initData, store } = c.req.valid("json");
+    const { initData, store, bearer } = c.req.valid("json");
     const fromPlatform = async () => {
       if (!c.env.PLATFORM_BOT_TOKEN) return undefined;
       try {
@@ -80,6 +80,6 @@ export const cabinetRoutes = new Hono<{ Bindings: Env & AuthSecrets; Variables: 
     const token = shop
       ? await enterCabinet(c.env.PLATFORM, telegramId, shop.id)
       : await telegramSellerSession(c.env.PLATFORM, telegramId);
-    c.header("Set-Cookie", sessionCookie(c.req.raw, sellerCookie, token, sellerTtl));
-    return c.json({ ok: true as const });
+    if (!bearer) c.header("Set-Cookie", sessionCookie(c.req.raw, sellerCookie, token, sellerTtl));
+    return c.json({ ok: true as const, ...(bearer && { token }) });
   });

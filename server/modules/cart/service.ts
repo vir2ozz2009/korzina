@@ -101,7 +101,8 @@ export function removeOrderedLines(
     next.receiving = receiving;
     if (receiving.mode === "delivery") {
       next.lastUsedAddress = receiving;
-      next.savedAddresses = rememberOrderedAddress(next.savedAddresses, receiving);
+      next.savedAddresses = rememberOrderedAddress(selection.savedAddresses, receiving);
+      if (next.savedAddresses !== selection.savedAddresses) next.addressesRevision = cart.revision + 1;
     }
   }
   const extras = cartTotals(cart.lines.filter((line) => !line.available));

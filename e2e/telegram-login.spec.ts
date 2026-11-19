@@ -117,12 +117,14 @@ for (const role of ["buyer", "seller"] as const) {
   });
 }
 
-test("BL-5: Mini App signs in with initData without opening the login sheet", async ({ page }) => {
-  await page.addInitScript(() => {
+const miniAppInitData = "telegram-init-data-fixture";
+
+function stubMiniApp(page: Page) {
+  return page.addInitScript((initData) => {
     const noop = () => {};
     window.Telegram = {
       WebApp: {
-        initData: "telegram-init-data-fixture",
+        initData,
         viewportHeight: 844,
         isExpanded: true,
         colorScheme: "light",
@@ -135,10 +137,14 @@ test("BL-5: Mini App signs in with initData without opening the login sheet", as
         offEvent: noop,
       },
     };
-  });
+  }, miniAppInitData);
+}
+
+test("BL-5: Mini App signs in with initData without opening the login sheet", async ({ page }) => {
+  await stubMiniApp(page);
   let signedIn = false;
   await page.route(/\/api\/auth\/telegram(?:\?|$)/, (route) => {
-    expect(route.request().postDataJSON()).toEqual({ initData: "telegram-init-data-fixture" });
+    expect(route.request().postDataJSON()).toEqual({ initData: miniAppInitData });
     signedIn = true;
     return route.fulfill({ json: { kind: "telegram" } });
   });
@@ -151,4 +157,39 @@ test("BL-5: Mini App signs in with initData without opening the login sheet", as
   await page.goto("/profile?shop=test2");
   await expect(page.getByRole("heading", { name: "Покупатель Mini App" })).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("§9.12: a seller can open the selected shop in Telegram Web without cookies", async ({ page, baseURL }) => {
+  const parent = "https://web.telegram.org/korzina-cabinet-fixture";
+  const cabinetUrl = new URL("/seller?shop=test2&store=test2", baseURL);
+  const token = "c".repeat(64);
+  const shop = { slug: "test2", name: "Второй магазин", status: "active" };
+  let signIns = 0;
+  await stubMiniApp(page);
+  await page.route(parent, (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: `<iframe src="${cabinetUrl.href.replaceAll("&", "&amp;")}" width="375" height="790"></iframe>`,
+    }),
+  );
+  await page.route(/\/api\/seller\/cabinet\/telegram(?:\?|$)/, (route) => {
+    signIns++;
+    expect(route.request().postDataJSON()).toEqual({ initData: miniAppInitData, store: "test2", bearer: true });
+    return route.fulfill({ json: { ok: true, token } });
+  });
+  await page.route(/\/api\/seller\/cabinet(?:\?|$)/, async (route) => {
+    const request = route.request();
+    const authorization = await request.headerValue("authorization");
+    if (authorization !== `Bearer ${token}`)
+      return route.fulfill({ status: 401, json: { error: { code: "UNAUTHORIZED" } } });
+    expect(new URL(request.url()).searchParams.get("store")).toBe("test2");
+    expect((await request.headerValue("cookie")) ?? "").not.toContain("korzina_seller=");
+    return route.fulfill({ json: { telegramId: "100", current: shop, shops: [shop] } });
+  });
+  await page.goto(parent);
+  const cabinet = page.frameLocator("iframe");
+  await expect(cabinet.getByRole("heading", { name: "Второй магазин" }).first()).toBeVisible();
+  await expect(cabinet.getByRole("button", { name: "Открыть витрину" })).toBeVisible();
+  expect(signIns).toBe(1);
+  await page.locator("iframe").screenshot({ path: "test-results/telegram-embedded-cabinet-390.png" });
 });

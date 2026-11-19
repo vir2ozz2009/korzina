@@ -1,6 +1,6 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { ArrowUpRight, ChevronDown, LogOut, MessageCircle, UserRound } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { bootstrap } from "../../../app/bootstrap";
 import { Header } from "../../../app/shell/Header";
 import { QueryBoundary } from "../../../app/shell/QueryBoundary";
@@ -30,6 +30,7 @@ export function CabinetScreen() {
   const { pathname, search } = useRouterState({ select: (state) => state.location });
   const store = typeof search.store === "string" ? search.store : undefined;
   const query = useCabinet(store);
+  const automaticLoginAttempted = useRef(false);
   const logout = useSellerLogout();
   const refetch = query.refetch;
   const refresh = useCallback(() => void refetch(), [refetch]);
@@ -62,7 +63,7 @@ export function CabinetScreen() {
       }
     >
       {needsLogin ? (
-        <CabinetLogin store={store} ready={refresh} />
+        <CabinetLogin store={store} ready={refresh} automaticLoginAttempted={automaticLoginAttempted} />
       ) : denied ? (
         <EmptyState
           title="Нет доступа к магазину"

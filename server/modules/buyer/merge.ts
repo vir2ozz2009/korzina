@@ -47,9 +47,13 @@ function mergeReceiving(storage: DurableObjectStorage, guest: string, account: s
       "ADDRESS_LIMIT",
       "При объединении получится больше 10 адресов. Удалите лишние адреса и повторите.",
     );
+  const addressesChanged =
+    savedAddresses.length !== to.savedAddresses.length ||
+    savedAddresses.some((address, index) => address !== to.savedAddresses[index]);
   writeReceiving(storage, account, revision, {
     ...selection,
     savedAddresses,
+    addressesRevision: addressesChanged ? revision : to.addressesRevision,
     lastUsedAddress: selection.lastUsedAddress ?? to.lastUsedAddress ?? from.lastUsedAddress,
   });
 }

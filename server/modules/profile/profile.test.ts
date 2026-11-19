@@ -27,6 +27,7 @@ it("§9.4 адрес профиля выбирается в корзине, уд
   const add = { action: "save", revision: before.revision, title: "Дом", receiving };
   const saved = await postAuth(path, add, { Cookie: owner });
   expect(saved.status).toBe(200);
+  const { revision: cartRevision } = await saved.json<{ revision: number }>();
   const update = await read(owner);
   const id = update.addresses[0].id;
   expect(update.addresses).toMatchObject([{ title: "Дом", ...receiving }]);
@@ -39,23 +40,54 @@ it("§9.4 адрес профиля выбирается в корзине, уд
   expect(unauthorized.status).toBe(404);
   const select = await postAuth(
     "/api/receiving?shop=lavka",
-    { receiving, expectedRevision: update.revision },
+    { receiving, expectedRevision: cartRevision },
     { Cookie: owner },
   );
   expect(select.status).toBe(200);
-  expect((await postAuth(path, { action: "remove", revision: update.revision, id }, { Cookie: owner })).status).toBe(
-    409,
-  );
-  const remove = await postAuth(
-    path,
-    { action: "remove", revision: (await read(owner)).revision, id },
-    { Cookie: owner },
-  );
+  const remove = await postAuth(path, { action: "remove", revision: update.revision, id }, { Cookie: owner });
   expect(remove.status).toBe(200);
   expect(await (await getAuth("/api/receiving?shop=lavka", { Cookie: owner })).json()).toMatchObject({
     receiving,
     savedAddresses: [],
   });
+});
+
+it("§9.4 · изменение корзины не отменяет сохранение адреса, реальное изменение списка защищено", async () => {
+  await catalogSql(
+    "INSERT OR REPLACE INTO settings(key,value) VALUES('fulfillment',?)",
+    JSON.stringify({ delivery: { mode: "text", tariff: { kind: "free" } } }),
+  );
+  const Cookie = await login();
+  const path = "/api/profile/addresses?shop=lavka";
+  const read = async () => (await getAuth(path, { Cookie })).json<{ revision: number; addresses: SavedAddress[] }>();
+  const cart = async () => (await getAuth("/api/cart?shop=lavka", { Cookie })).json<{ revision: number }>();
+  const before = await read();
+  const addToCart = await postAuth(
+    "/api/cart?shop=lavka",
+    { variantId: "sku-01", quantity: 1, expectedRevision: (await cart()).revision },
+    { Cookie },
+  );
+  expect(addToCart.status).toBe(200);
+  expect(await read()).toEqual(before);
+
+  const save = {
+    action: "save",
+    revision: before.revision,
+    title: "Работа",
+    receiving: { mode: "delivery", address: "45 Lê Lợi", apartment: "7" },
+  };
+  const saved = await postAuth(path, save, { Cookie });
+  expect(saved.status).toBe(200);
+  const address = await read();
+  expect(address.addresses).toMatchObject([{ title: "Работа" }]);
+  expect(await cart()).toMatchObject({
+    revision: address.revision,
+    lines: [{ variantId: "sku-01", quantity: 1 }],
+  });
+  const conflicting = await postAuth(path, { ...save, id: address.addresses[0].id, title: "Изменение" }, { Cookie });
+  expect(conflicting.status).toBe(409);
+  expect(await conflicting.json()).toMatchObject({ error: { code: "VERSION_CONFLICT" } });
+  expect(await read()).toEqual(address);
 });
 
 it("§9.4, §9.5 сохраняет ровно 10 адресов, одиннадцатый не мешает оформить заказ", async () => {
@@ -108,5 +140,5 @@ it("§9.4, §9.5 сохраняет ровно 10 адресов, одиннад
   const order = await buy("checkout", { quoteRevision, payment: "cash" });
   expect(order.status).toBe(201);
   expect(await order.json()).toMatchObject({ receiving: address(11) });
-  expect((await read()).addresses).toEqual(current.addresses);
+  expect(await read()).toMatchObject({ revision: current.revision, addresses: current.addresses });
 });

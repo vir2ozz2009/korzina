@@ -105,13 +105,13 @@ it("§9.4 · профиль продавца читает Telegram из сесс
 it("§9.12 Mini App проверяет подпись Telegram и доступ к указанному магазину", async () => {
   const platformBot = "90006:fixture";
   await membership("90006", "korzina-demo-test2", "employee");
-  const login = async (signedBy: string, store: string) => {
+  const login = async (signedBy: string, store: string, bearer = false) => {
     const initData = await signedInitData(signedBy, { user: JSON.stringify({ id: 90006 }) });
     return app.fetch(
       new Request("https://demo.korzina.app/api/seller/cabinet/telegram", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
-        body: JSON.stringify({ initData, store }),
+        body: JSON.stringify({ initData, store, bearer }),
       }),
       { ...env, PLATFORM_BOT_TOKEN: platformBot },
     );
@@ -123,4 +123,16 @@ it("§9.12 Mini App проверяет подпись Telegram и доступ �
   expect(await (await getAuth("/api/seller/cabinet?store=test2", { Cookie: cookieFrom(found) })).json()).toMatchObject({
     current: { slug: "test2", role: "employee" },
   });
+
+  const embedded = await login(platformBot, "test2", true);
+  expect(embedded.status).toBe(200);
+  expect(embedded.headers.has("Set-Cookie")).toBe(false);
+  const { token } = await embedded.json<{ token: string }>();
+  expect(token).toMatch(/^[a-f0-9]{64}$/);
+  const authorization = { Authorization: `Bearer ${token}` };
+  const read = () => getAuth("/api/seller/cabinet?store=test2", authorization);
+  expect(await (await read()).json()).toMatchObject({ current: { slug: "test2", role: "employee" } });
+  expect((await getAuth("/api/seller/cabinet?store=lavka", authorization)).status).toBe(403);
+  expect((await postAuth("/api/platform/auth/logout", {}, authorization)).status).toBe(200);
+  expect((await read()).status).toBe(401);
 });
