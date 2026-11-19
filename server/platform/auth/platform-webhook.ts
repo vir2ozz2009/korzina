@@ -1,10 +1,13 @@
+import { exports } from "cloudflare:workers";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
 import { ApiError } from "../../../src/shared/errors";
 import type { AuthSecrets } from "../../auth/config";
 import { matchesTelegramSecret, telegramApi } from "../../auth/telegram-api";
+import { demoBuyerExchange } from "../../modules/auth/telegram-exchange";
 import { confirmSellerExchange } from "./browser-exchange";
+import { demoPlatformShop, isDemoTelegramOrigin } from "./demo-telegram";
 import { answerOwnerInvite, invitationPattern } from "./invitation-reply";
 
 export const telegramMessage = z.object({
@@ -36,7 +39,18 @@ export const platformWebhook = new Hono<{ Bindings: Env & AuthSecrets }>().post(
     if (chat.id !== from.id || !text) return c.json({ ok: true });
     const code = /^\/start (seller_[a-f0-9]{48})$/.exec(text)?.[1];
     const raw = invitationPattern.exec(text)?.[1];
-    if (raw) {
+    const purchase = /^\/start (purchase_demo_[a-f0-9]{32})$/.exec(text)?.[1];
+    if (purchase && demoBuyerExchange.test(purchase) && c.env.APP_ENV === "demo" && isDemoTelegramOrigin(c.req.raw)) {
+      const shop = exports.Shop.get(exports.Shop.idFromName(demoPlatformShop));
+      const name = [from.first_name, from.last_name].filter(Boolean).join(" ").slice(0, 100);
+      const accepted = await shop.confirmDemoBuyerTelegram(purchase, String(from.id), name);
+      await telegramApi(token, "sendMessage", {
+        chat_id: chat.id,
+        text: accepted
+          ? "Вход подтверждён. Вернитесь в браузер."
+          : "Ссылка для входа истекла. Начните заново в браузере.",
+      });
+    } else if (raw) {
       await answerOwnerInvite(c.env.PLATFORM, {
         raw,
         from,

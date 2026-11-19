@@ -14,12 +14,19 @@ export default defineConfig(({ mode, isPreview }) => ({
     env: {
       APP_ENV: bindings.text(isPreview ? "preview" : mode === "production" ? "production" : "demo"),
       ASSETS: bindings.assets(),
-      PLATFORM: bindings.d1(environmentResources(isPreview).database),
+      PLATFORM: bindings.d1(
+        !isPreview && mode === "demo"
+          ? { id: environmentResources(false).database.id }
+          : environmentResources(isPreview).database,
+      ),
       MEDIA: bindings.r2({ name: environmentResources(isPreview).media }),
       MEDIA_PUBLIC: bindings.r2({ name: environmentResources(isPreview).publicMedia }),
       IMAGES: bindings.images(),
       MEDIA_PUBLIC_URL: bindings.text(environmentResources(isPreview).publicOrigin),
       MEDIA_SIGNING_KEY: isPreview ? undefined : bindings.secret(),
+      PLATFORM_BOT_USERNAME: !isPreview && mode === "demo" ? bindings.text("korzinaapp_demo_bot") : undefined,
+      PLATFORM_BOT_TOKEN: !isPreview && mode === "demo" ? bindings.secret() : undefined,
+      PLATFORM_BOT_WEBHOOK_SECRET: !isPreview && mode === "demo" ? bindings.secret() : undefined,
     },
     compatibilityDate: "2026-11-16",
     domains: isPreview ? [] : ["demo.korzina.app"],

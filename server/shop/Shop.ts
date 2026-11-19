@@ -12,10 +12,14 @@ import { resolveFeatures } from "../../src/shared/flags";
 import { decryptBotToken } from "../auth/bot-token";
 import type { AuthSecrets } from "../auth/config";
 import { verifyInitData } from "../auth/telegram";
+import { digest } from "../auth/tokens";
 import { RequestMetrics } from "../metrics";
 import { handleError, notFound } from "../middleware/errors";
+import { confirmExchange, demoBuyerExchange } from "../modules/auth/telegram-exchange";
+import { hasTelegramProfile, initTelegramProfile } from "../modules/profile/service";
 import { botCoordinator, changeShopBot, managedBot } from "../platform/admin/shop-bot";
 import type { ShopMutation } from "../platform/admin/shop-change";
+import { demoPlatformShop } from "../platform/auth/demo-telegram";
 import { cleanupSellers, platformCleanupId } from "../platform/cleanup";
 import { applyAdminSettings } from "./admin-settings";
 import { rescheduleCleanup, scheduleCleanup } from "./cleanup";
@@ -156,6 +160,25 @@ export class Shop extends DurableObject<Env> {
         const known = error instanceof ApiError ? error : new ApiError("INTERNAL", "Не удалось настроить бота");
         return { ok: false as const, code: known.code, message: known.message };
       }
+    });
+  }
+
+  async confirmDemoBuyerTelegram(exchange: string, telegramId: string, name: string) {
+    if (
+      this.env.APP_ENV !== "demo" ||
+      !this.ctx.exports.Shop.idFromName(demoPlatformShop).equals(this.ctx.id) ||
+      !demoBuyerExchange.test(exchange) ||
+      !/^[1-9][0-9]{0,15}$/.test(telegramId)
+    )
+      return false;
+    const id = await digest(exchange);
+    const storage = this.ctx.storage;
+    const subject = `telegram:${telegramId}`;
+    return storage.transactionSync(() => {
+      const collision = hasTelegramProfile(storage, subject);
+      if (!confirmExchange(storage, id, subject, collision)) return false;
+      initTelegramProfile(storage, subject, name);
+      return true;
     });
   }
 

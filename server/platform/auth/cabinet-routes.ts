@@ -11,6 +11,7 @@ import { verifyInitData } from "../../auth/telegram";
 import type { CommandVariables } from "../../middleware/idempotency";
 import { browserCodePattern, finishSellerExchange, startSellerExchange } from "./browser-exchange";
 import { enterCabinet, readCabinet } from "./cabinet";
+import { ensureDemoTelegramWebhook, isDemoTelegramOrigin } from "./demo-telegram";
 import { sellerTtl, telegramSellerSession } from "./sessions";
 
 const cabinetQuery = z.object({
@@ -30,6 +31,8 @@ export const cabinetRoutes = new Hono<{ Bindings: Env & AuthSecrets; Variables: 
     c.json(await readCabinet(c.env.PLATFORM, c.req.raw, c.req.valid("query").store)),
   )
   .post("/start", authBodyLimit, authCommand, zValidator("json", emptyInput, validationFailure), async (c) => {
+    if (c.env.APP_ENV === "demo" && isDemoTelegramOrigin(c.req.raw))
+      await ensureDemoTelegramWebhook(c.env.PLATFORM, c.env);
     const { cookie, ...exchange } = await startSellerExchange(c.env.PLATFORM, c.env.PLATFORM_BOT_USERNAME);
     c.header("Set-Cookie", sessionCookie(c.req.raw, cookie.name, cookie.value, cookie.ttl));
     return c.json(exchange, 201);

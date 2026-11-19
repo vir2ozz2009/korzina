@@ -13,6 +13,7 @@ import { handleError } from "../../middleware/errors";
 import { RateLimiter, rateLimit } from "../../middleware/rate-limit";
 import { adminCookie, revokeAdminSession } from "../../platform/admin/access";
 import { managedBot } from "../../platform/admin/shop-bot";
+import { demoPlatformShop, ensureDemoTelegramWebhook, isDemoTelegramOrigin } from "../../platform/auth/demo-telegram";
 import type { ShopEnv } from "../../shop/env";
 import { settings } from "../../shop/schema";
 import { mergeBuyer } from "../buyer/merge";
@@ -91,7 +92,11 @@ export const customerAuth = new Hono<ShopEnv>()
     if (!owner) throw new ApiError("UNAUTHORIZED", "Нужна сессия покупателя");
     if (existing) limitCustomer(c, existing.sessionId);
     const bot = await managedBot(c.env.platform, c.env.shop.id);
-    const result = await startExchange(c.env.storage, owner, bot?.username);
+    const demoBot =
+      c.env.shop.id === demoPlatformShop && isDemoTelegramOrigin(c.req.raw)
+        ? () => ensureDemoTelegramWebhook(c.env.platform, c.env.secrets)
+        : undefined;
+    const result = await startExchange(c.env.storage, owner, bot?.username, demoBot);
     if (prepared) {
       writeCustomer(c.env.db, prepared);
       c.header("Set-Cookie", sessionCookie(c.req.raw, customerCookie(c.env.shop.id), prepared.token, customerTtl));
