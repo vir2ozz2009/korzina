@@ -1,7 +1,11 @@
 const pending =
   "order_number > COALESCE((SELECT CAST(value AS INTEGER) FROM settings WHERE key='platform_order_watermark'),0)";
 
-export const nextPlatformOrder = `(SELECT created_at FROM order_outbox WHERE ${pending} ORDER BY order_number LIMIT 1)`;
+export function hasPendingPlatformOrders(storage: DurableObjectStorage) {
+  return !!storage.sql
+    .exec<{ queued: number }>(`SELECT EXISTS(SELECT 1 FROM order_outbox WHERE ${pending}) AS queued`)
+    .one().queued;
+}
 
 export async function schedulePlatformOrders(storage: DurableObjectStorage) {
   const due = Date.now() + 1000;
@@ -11,13 +15,13 @@ export async function schedulePlatformOrders(storage: DurableObjectStorage) {
 
 export async function publishPlatformOrders(storage: DurableObjectStorage, database?: D1Database) {
   if (!database) return false;
-  const id = storage.sql.exec<{ value: string }>("SELECT value FROM settings WHERE key='shop_id'").toArray()[0]?.value;
-  if (!id) return false;
   const orders = storage.sql
-    .exec<{ order_number: number; created_at: number }>(`
-    SELECT order_number,created_at FROM order_outbox WHERE ${pending} ORDER BY order_number LIMIT 25`)
+    .exec<{ order_number: number; created_at: number; shop_id: string | null }>(`
+    SELECT order_number,created_at,(SELECT value FROM settings WHERE key='shop_id') AS shop_id
+    FROM order_outbox WHERE ${pending} ORDER BY order_number LIMIT 25`)
     .toArray();
-  if (!orders.length) return false;
+  const id = orders[0]?.shop_id;
+  if (!id) return false;
   await database.batch(
     orders.map((order) =>
       database

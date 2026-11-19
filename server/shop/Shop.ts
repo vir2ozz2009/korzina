@@ -22,11 +22,13 @@ import { rescheduleCleanup, scheduleCleanup } from "./cleanup";
 import type { ShopEnv } from "./env";
 import { cleanupShop } from "./maintenance";
 import { migrations } from "./migrations";
+import { hasPendingPlatformOrders, schedulePlatformOrders } from "./order-projection";
 import { shopRoutes } from "./routes";
 import { settings } from "./schema";
 
 export class Shop extends DurableObject<Env> {
   private identity: string | undefined;
+  private pendingOrders = false;
   private settingsSignature: string | undefined;
   private readonly router = new Hono<ShopEnv>()
     .onError(handleError)
@@ -42,11 +44,13 @@ export class Shop extends DurableObject<Env> {
     super(ctx, env);
     ctx.blockConcurrencyWhile(async () => {
       await migrate(drizzle(ctx.storage), migrations);
+      this.pendingOrders = hasPendingPlatformOrders(ctx.storage);
+      if (this.pendingOrders) await schedulePlatformOrders(ctx.storage);
       if (
         !ctx.storage.sql.exec("SELECT value FROM settings WHERE key='cleanup_revision' AND value='AD2'").toArray()
           .length
       ) {
-        await rescheduleCleanup(ctx.storage, false);
+        await rescheduleCleanup(ctx.storage, this.pendingOrders);
         ctx.storage.sql.exec(
           "INSERT INTO settings(key,value) VALUES('cleanup_revision','AD2') ON CONFLICT(key) DO UPDATE SET value=excluded.value",
         );
@@ -111,7 +115,12 @@ export class Shop extends DurableObject<Env> {
       response.status,
       false,
     );
-    if (request.method === "POST" && response.ok && metric.rowsWritten > 0) await scheduleCleanup(this.ctx.storage);
+    if (request.method === "POST" && response.ok && metric.rowsWritten > 0) {
+      if (new URL(request.url).pathname === "/api/checkout") {
+        this.pendingOrders = true;
+        await schedulePlatformOrders(this.ctx.storage);
+      } else await scheduleCleanup(this.ctx.storage);
+    }
     // Only the public Worker can see these; it strips them before returning to the client.
     response.headers.set("x-korzina-sql", JSON.stringify(metric));
     return response;
@@ -195,6 +204,15 @@ export class Shop extends DurableObject<Env> {
       await cleanupSellers(this.env.PLATFORM, this.ctx.storage);
       return;
     }
-    await cleanupShop(this.ctx.storage, this.env);
+    const projectOrders = this.pendingOrders;
+    this.pendingOrders = false;
+    try {
+      const more = await cleanupShop(this.ctx.storage, this.env, Date.now(), projectOrders);
+      this.pendingOrders ||= more;
+      if (this.pendingOrders) await schedulePlatformOrders(this.ctx.storage);
+    } catch (error) {
+      this.pendingOrders ||= projectOrders;
+      throw error;
+    }
   }
 }
