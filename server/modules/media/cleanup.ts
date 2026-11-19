@@ -1,30 +1,47 @@
-import { and, eq, lte, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/durable-sqlite";
-import { settings } from "../../shop/schema";
 import { deleteMediaObjects } from "./objects";
-import { media, mediaUsage } from "./schema";
 
 export { scheduleCleanup as scheduleMediaCleanup } from "../../shop/cleanup";
+
+const batchSize = 50;
+
 export async function cleanupMedia(
   storage: DurableObjectStorage,
   env: Pick<Env, "MEDIA" | "MEDIA_PUBLIC">,
   now = Date.now(),
 ) {
-  const db = drizzle(storage);
-  const shop = db.select().from(settings).where(eq(settings.key, "shop_id")).get();
-  if (!shop) return false;
-  const expired = db.select().from(media).where(lte(media.expiresAt, now)).orderBy(media.expiresAt).limit(50).all();
-  for (const record of expired) {
-    await deleteMediaObjects(env, shop.value, record.id);
-    storage.transactionSync(() => {
-      db.delete(media)
-        .where(and(eq(media.id, record.id), lte(media.expiresAt, now)))
-        .run();
-      db.update(mediaUsage)
-        .set({ bytes: sql`${mediaUsage.bytes} - ${record.bytes}` })
-        .where(eq(mediaUsage.id, 1))
-        .run();
-    });
+  const expired = storage.sql
+    .exec<{ shop: string; id: string }>(
+      `SELECT settings.value AS shop, media.id FROM media
+       JOIN settings ON settings.key='shop_id'
+       WHERE media.expires_at<=? ORDER BY media.expires_at LIMIT ?`,
+      now,
+      batchSize,
+    )
+    .toArray();
+  if (!expired.length) return { processed: false, more: false };
+
+  const removedObjects: string[] = [];
+  try {
+    for (const { shop, id } of expired) {
+      await deleteMediaObjects(env, shop, id);
+      removedObjects.push(id);
+    }
+  } finally {
+    if (removedObjects.length) removeExpiredMediaRows(storage, removedObjects, now);
   }
-  return expired.length === 50;
+  return { processed: true, more: expired.length === batchSize };
+}
+
+function removeExpiredMediaRows(storage: DurableObjectStorage, ids: string[], now: number) {
+  storage.transactionSync(() => {
+    const removed = storage.sql
+      .exec<{ bytes: number }>(
+        "DELETE FROM media WHERE id IN (SELECT value FROM json_each(?)) AND expires_at<=? RETURNING bytes",
+        JSON.stringify(ids),
+        now,
+      )
+      .toArray();
+    const bytes = removed.reduce((sum, row) => sum + row.bytes, 0);
+    storage.sql.exec("UPDATE media_usage SET bytes=bytes-? WHERE id=1", bytes);
+  });
 }
