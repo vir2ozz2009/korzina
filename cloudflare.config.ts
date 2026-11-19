@@ -25,6 +25,7 @@ export default defineConfig(({ mode, isPreview }) => ({
     domains: isPreview ? [] : ["demo.korzina.app"],
     observability: {
       enabled: true,
+      logs: { enabled: true, headSamplingRate: 1, invocationLogs: false },
       traces: { enabled: true, headSamplingRate: 0.01 },
     },
     assets: {
