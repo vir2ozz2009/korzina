@@ -1,4 +1,11 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
+
+async function signalReturn(page: Page) {
+  await page.evaluate(() => {
+    document.dispatchEvent(new Event("visibilitychange"));
+    window.dispatchEvent(new Event("focus"));
+  });
+}
 
 for (const role of ["buyer", "seller"] as const) {
   test(`BL-3/BL-5: ${role} resumes Telegram login and closes the prompt`, async ({ page, context }) => {
@@ -10,8 +17,12 @@ for (const role of ["buyer", "seller"] as const) {
     let confirmed = false;
     let signedIn = false;
     let completions = 0;
-    let openedTabs = 0;
-    context.on("page", () => openedTabs++);
+    let returned: Page | undefined;
+    let staleContactRequested = false;
+    let releaseStaleContact: () => void = () => {};
+    const staleContact = new Promise<void>((resolve) => {
+      releaseStaleContact = resolve;
+    });
 
     // Represent Telegram's HTTPS fallback without contacting the bot or writing to demo data.
     await context.route(telegram, (route) => route.fulfill({ contentType: "text/html", body: "Telegram" }));
@@ -31,9 +42,16 @@ for (const role of ["buyer", "seller"] as const) {
         signedIn ? route.fulfill({ json: { telegramId: "100", current: shop, shops: [shop] } }) : route.fallback(),
       );
     } else {
-      await context.route(/\/api\/auth\/contact(?:\?|$)/, (route) =>
-        route.fulfill({ json: { phone: null, region: "VN", telegramLinked: signedIn } }),
-      );
+      await context.route(/\/api\/auth\/contact(?:\?|$)/, async (route) => {
+        if (returned && route.request().frame().page() === returned && !signedIn) {
+          // A request sent with the old guest cookie can still be pending when login replaces it.
+          staleContactRequested = true;
+          await staleContact;
+          await route.fulfill({ status: 401, json: { error: { code: "UNAUTHORIZED" } } }).catch(() => {});
+          return;
+        }
+        await route.fulfill({ json: { phone: null, region: "VN", telegramLinked: signedIn } });
+      });
       await context.route(/\/api\/profile(?:\?|$)/, (route) =>
         route.fulfill({ json: { name: "Покупатель BL-3", telegramLinked: true, platformAdmin: false } }),
       );
@@ -45,34 +63,57 @@ for (const role of ["buyer", "seller"] as const) {
     const open = page.getByRole(seller ? "button" : "link", { name: "Открыть Telegram" });
     await expect(open).toBeVisible();
     await page.screenshot({ path: `test-results/telegram-login-${role}-390.png`, animations: "disabled" });
-    await open.click();
-    await expect(page).toHaveURL(telegram);
-    await page.goBack();
-    await page.reload();
-    expect(new URL(page.url()).pathname).toBe(seller ? "/seller" : "/profile");
-    await expect(open).toBeVisible();
-    expect(openedTabs).toBe(0);
+    const originalUrl = page.url();
+    if (seller) {
+      await open.click();
+      await expect(page).toHaveURL(telegram);
+      await page.goBack();
+      await page.reload();
+      await expect(page).toHaveURL(originalUrl);
+      returned = page;
+    } else {
+      const opened = context.waitForEvent("page");
+      await open.click();
+      await expect(await opened).toHaveURL(telegram);
+      await expect(page).toHaveURL(originalUrl);
+      await expect(open).toBeVisible();
+      returned = await context.newPage();
+    }
 
-    // Exercise the seller's original tab and the buyer's bot link in a separate tab of the same browser.
-    const returned = seller ? page : await context.newPage();
-    if (!seller) await returned.goto(`${routePath}#telegram-return`);
-    const resumedLink = returned.getByRole(seller ? "button" : "link", { name: "Открыть Telegram" });
-    await expect(resumedLink).toBeVisible();
-    confirmed = true;
-    await returned.evaluate(() => {
-      document.dispatchEvent(new Event("visibilitychange"));
-      window.dispatchEvent(new Event("focus"));
-    });
-    const signedInName = returned
-      .locator("#screen-content")
-      .getByRole("heading", { level: 2, name: seller ? "Магазин BL-3" : "Покупатель BL-3" });
-    await expect(signedInName).toBeVisible({ timeout: 12_000 });
-    await expect(returned.getByRole("status").filter({ hasText: "Вы вошли через Telegram" })).toBeVisible();
-    await expect(returned.getByRole("dialog")).toHaveCount(0);
-    expect(completions).toBe(1);
-    await returned.reload();
-    await expect(signedInName).toBeVisible();
-    await expect(resumedLink).toHaveCount(0);
+    try {
+      if (!seller) {
+        await returned.goto(`${routePath}#telegram-return`);
+        await expect.poll(() => staleContactRequested).toBe(true);
+      }
+      const resumedLink = returned.getByRole(seller ? "button" : "link", { name: "Открыть Telegram" });
+      await expect(resumedLink).toBeVisible();
+      confirmed = true;
+      await signalReturn(returned);
+
+      const name = seller ? "Магазин BL-3" : "Покупатель BL-3";
+      const signedInHeading = (tab: Page) => tab.locator("#screen-content").getByRole("heading", { level: 2, name });
+      const toast = (tab: Page) => tab.getByRole("status").filter({ hasText: "Вы вошли через Telegram" });
+      await expect(signedInHeading(returned)).toBeVisible({ timeout: 12_000 });
+      await expect(toast(returned)).toBeVisible();
+      await expect(returned.getByRole("dialog")).toHaveCount(0);
+      releaseStaleContact();
+
+      if (!seller) {
+        await page.bringToFront();
+        await signalReturn(page);
+        await expect(page).toHaveURL(originalUrl);
+        await expect(toast(page)).toBeVisible();
+        await expect(page.getByRole("dialog")).toHaveCount(0);
+        await expect(signedInHeading(page)).toBeVisible();
+      }
+
+      expect(completions).toBe(1);
+      await returned.reload();
+      await expect(signedInHeading(returned)).toBeVisible();
+      await expect(resumedLink).toHaveCount(0);
+    } finally {
+      releaseStaleContact();
+    }
   });
 }
 

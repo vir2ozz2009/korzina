@@ -61,9 +61,7 @@ export function AdminOwner({ shop }: { shop: AdminShop }) {
         <p className="text-small text-muted-foreground">Ссылка-приглашение</p>
         <p className="break-all text-caption">
           {url ??
-            (invite.expiresAt && invite.expiresAt <= Date.now()
-              ? "Срок ссылки истёк"
-              : "Ссылка появится после настройки бота")}
+            (invite.expiresAt && invite.expiresAt <= Date.now() ? "Срок ссылки истёк" : "Приглашение пока недоступно")}
         </p>
       </div>
       <div className="flex flex-wrap gap-2">

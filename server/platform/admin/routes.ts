@@ -35,7 +35,7 @@ export const adminRoutes = new Hono<{
     const id = c.req.param("id");
     const shop = await managedShop(c.env.PLATFORM, id);
     const stats = await exports.Shop.get(exports.Shop.idFromName(id)).adminShopStats();
-    return c.json(await shopDetail(c.env.PLATFORM, c.env, c.req.raw, shop, stats.products));
+    return c.json(await shopDetail(c.env.PLATFORM, c.env, c.req.raw, shop, stats.products, c.get("actorId")));
   })
   .patch("/shops/:id", authBodyLimit, idempotency, zValidator("json", shopChange, validationFailure), async (c) => {
     const id = c.req.param("id");

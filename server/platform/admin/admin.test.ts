@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { beforeAll, expect, it } from "vitest";
+import { beforeAll, expect, it, vi } from "vitest";
 import { app } from "../../index";
 import { customerTtl } from "../../modules/auth/service";
 import { setupPlatform } from "../../testing/platform";
@@ -10,7 +10,14 @@ beforeAll(setupPlatform);
 const telegramId = "90011";
 const accountId = "admin-fixture";
 const signingKey = "bc".repeat(32);
-const bindings = { ...env, PLATFORM_ADMIN_TELEGRAM_IDS: telegramId, ENCRYPTION_KEY: signingKey };
+const bindings = {
+  ...env,
+  PLATFORM_ADMIN_TELEGRAM_IDS: telegramId,
+  ENCRYPTION_KEY: signingKey,
+  PLATFORM_BOT_USERNAME: "KorzinaFixtureBot",
+  PLATFORM_BOT_TOKEN: "91111:platformfixturetelegram",
+  PLATFORM_BOT_WEBHOOK_SECRET: "trusted-test-webhook",
+};
 const endpoint = "/api/platform/admin/shops";
 
 async function grant() {
@@ -80,6 +87,7 @@ it("§9.5 · §9.7 · §9.10 · §9.12 черновик получает рег�
     country: "VN",
     currency: "VND",
     timeZone: "Asia/Ho_Chi_Minh",
+    invite: { url: expect.stringMatching(/^https:\/\/t\.me\/KorzinaFixtureBot\?start=inv_/) },
   });
   const invites = await env.PLATFORM.prepare("SELECT token_hash,link_id FROM invitations WHERE shop_id=?")
     .bind(id)
@@ -93,6 +101,58 @@ it("§9.5 · §9.7 · §9.10 · §9.12 черновик получает рег�
   expect((await request(endpoint, { ...command, body: { ...input, name: "Изменение" } })).status).toBe(409);
   expect((await request(endpoint, { token, body: { ...input, slug: "korzina-example" } })).status).toBe(409);
   expect((await request(endpoint, { token, body: input })).status).toBe(409);
+});
+
+it("§9.12 существующий магазин без своего бота получает одну ссылку платформы и открывает свой кабинет", async () => {
+  const { token } = await grant();
+  const shopId = "korzina-demo-test2";
+  const path = `${endpoint}/${shopId}`;
+  expect((await request(path)).status).toBe(403);
+  const cards = await Promise.all([request(path, { token }), request(path, { token })]);
+  expect(cards.map(({ status }) => status)).toEqual([200, 200]);
+  const [first, second] = await Promise.all(cards.map((card) => card.json<{ invite: { url: string } }>()));
+  expect(first.invite.url).toMatch(/^https:\/\/t\.me\/KorzinaFixtureBot\?start=inv_[\w-]{43}$/);
+  expect(second.invite.url).toBe(first.invite.url);
+  const invitation = new URL(first.invite.url).searchParams.get("start");
+  const bot = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
+    Response.json({ ok: true, result: true }),
+  );
+  vi.stubGlobal("fetch", bot);
+  try {
+    const response = await app.fetch(
+      new Request("https://demo.korzina.app/api/platform/telegram", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Telegram-Bot-Api-Secret-Token": bindings.PLATFORM_BOT_WEBHOOK_SECRET,
+        },
+        body: JSON.stringify({
+          message: { text: `/start ${invitation}`, chat: { id: 92233, type: "private" }, from: { id: 92233 } },
+        }),
+      }),
+      bindings,
+    );
+    expect(response.status).toBe(200);
+    const sent = JSON.parse(String(bot.mock.calls[0]?.[1]?.body));
+    expect(sent).toMatchObject({
+      text: "Магазин «Второй магазин» ждёт вас",
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              web_app: { url: `https://demo.korzina.app/api/platform/storefront/${shopId}?destination=seller` },
+            },
+          ],
+        ],
+      },
+    });
+  } finally {
+    vi.unstubAllGlobals();
+  }
+  expect(
+    await env.PLATFORM.prepare("SELECT COUNT(*) AS count FROM invitations WHERE shop_id=?").bind(shopId).first(),
+  ).toMatchObject({ count: 1 });
+  expect(await (await request(path, { token })).json()).toMatchObject({ ownerAccepted: true });
 });
 
 it("§4.4 · §9.12 сбой записи события откатывает черновик, адрес и приглашение", async () => {
