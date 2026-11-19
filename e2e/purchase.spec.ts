@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { verifyFavoriteCart, verifyOrderCancellation } from "./after-order";
+import { verifyFavoriteCart, verifyOrderCancellation, verifySavedAddress } from "./after-order";
 
 async function keyboardViewport(page: Page, open: boolean) {
   await page.evaluate((open) => {
@@ -240,4 +240,5 @@ test("B10: товар, доставка и заказ наличными", async
   await expect(page).toHaveURL(/\/\?shop=test2$/);
   await verifyOrderCancellation(page, order.number);
   await verifyFavoriteCart(page);
+  await verifySavedAddress(page);
 });

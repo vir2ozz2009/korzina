@@ -1,9 +1,10 @@
 import { cartTotals } from "../../../src/shared/cart-totals";
 import type { Cart, CartCommandInput } from "../../../src/shared/contracts/cart";
+import { addressKey } from "../../../src/shared/contracts/profile";
 import { ApiError } from "../../../src/shared/errors";
 import { addMinor, multiplyMinor } from "../../../src/shared/money";
 import type { CommandIdentity } from "../../middleware/idempotency";
-import { parseSelection, readReceiving, writeReceiving } from "../fulfillment/service";
+import { parseSelection, readReceiving, rememberOrderedAddress, writeReceiving } from "../fulfillment/service";
 import { type CartSource, reconcileQuote, type SavedQuote, savedQuote, toLine } from "./quote";
 
 type CartState = {
@@ -99,7 +100,10 @@ export function removeOrderedLines(
   if (next.receiving) {
     const { comment: _comment, ...receiving } = next.receiving;
     next.receiving = receiving;
-    if (receiving.mode === "delivery") next.lastUsedAddress = receiving;
+    if (receiving.mode === "delivery") {
+      next.lastUsedAddress = receiving;
+      next.savedAddresses = rememberOrderedAddress(next.savedAddresses, receiving);
+    }
   }
   const extras = cartTotals(cart.lines.filter((line) => !line.available));
   storage.sql.exec(
@@ -149,14 +153,12 @@ export function mergeCustomerCarts(storage: DurableObjectStorage, guest: string,
   const { revision: _revision, ...selection } =
     from.receiving && (!to.receiving || from.receivingUpdatedAt > to.receivingUpdatedAt) ? from : to;
   const seenAddresses = new Set<string>();
-  const savedAddresses = [...selection.savedAddresses, ...to.savedAddresses, ...from.savedAddresses]
-    .filter(({ address, districtId }) => {
-      const key = JSON.stringify([address.toLowerCase(), districtId]);
-      if (seenAddresses.has(key)) return false;
-      seenAddresses.add(key);
-      return true;
-    })
-    .slice(0, 3);
+  const savedAddresses = [...to.savedAddresses, ...from.savedAddresses].filter((address) => {
+    const key = addressKey(address);
+    if (seenAddresses.has(key)) return false;
+    seenAddresses.add(key);
+    return true;
+  });
   writeReceiving(storage, account, revision, {
     ...selection,
     savedAddresses,
@@ -168,9 +170,13 @@ export function mergeCustomerCarts(storage: DurableObjectStorage, guest: string,
   if (phone) storage.sql.exec("UPDATE carts SET phone=? WHERE customer=?", phone, account);
   storage.sql.exec("UPDATE orders SET customer=? WHERE customer=?", account, guest);
   storage.sql.exec(
-    "UPDATE media SET owner=?,request_key='order:'||id WHERE owner=? AND id IN (SELECT proof_media_id FROM orders WHERE customer=?)",
+    `UPDATE media SET owner=?,request_key='order:'||id WHERE owner=? AND id IN (
+       SELECT proof_media_id FROM orders WHERE customer=?
+       UNION ALL SELECT h.media_id FROM order_receipt_history h JOIN orders o ON o.number=h.order_number WHERE o.customer=?
+     )`,
     account,
     guest,
+    account,
     account,
   );
   storage.sql.exec("DELETE FROM carts WHERE customer=?", guest);

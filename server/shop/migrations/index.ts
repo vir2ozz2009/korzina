@@ -20,6 +20,7 @@ import m0018 from "./0018_catalog_availability_order.sql?raw";
 import m0019 from "./0019_photo_crop_position.sql?raw";
 import m0020 from "./0020_buyer_orders.sql?raw";
 import m0021 from "./0021_buyer_favorites.sql?raw";
+import m0022 from "./0022_buyer_profile.sql?raw";
 import journal from "./meta/_journal.json";
 
 export const migrations = {
@@ -47,5 +48,6 @@ export const migrations = {
     m0019,
     m0020,
     m0021,
+    m0022,
   },
 };

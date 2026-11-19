@@ -12,9 +12,9 @@ export function cartSnapshot() {
   }
 }
 
-export function saveCartSnapshot(cart: Cart) {
+export function saveCartSnapshot(cart?: Cart) {
   try {
-    if (cart.lines.length) localStorage.setItem(key, JSON.stringify(cart));
+    if (cart?.lines.length) localStorage.setItem(key, JSON.stringify(cart));
     else localStorage.removeItem(key);
   } catch {
     // A blocked storage area does not prevent server cart access.

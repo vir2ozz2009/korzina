@@ -88,6 +88,18 @@ const profile = createRoute({
   staticData: { template: "form", transition: "push", title: "Профиль" },
   component: lazyRouteComponent(() => import("../features/profile/ProfileScreen"), "ProfileScreen"),
 });
+const personalData = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/profile/data",
+  staticData: { template: "form", transition: "push", title: "Мои данные" },
+  component: lazyRouteComponent(() => import("../features/profile/PersonalDataScreen"), "PersonalDataScreen"),
+});
+const addresses = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/profile/addresses",
+  staticData: { template: "list", transition: "push", title: "Мои адреса" },
+  component: lazyRouteComponent(() => import("../features/profile/AddressesScreen"), "AddressesScreen"),
+});
 export const shopRoutes = [
   home,
   product.addChildren([details]),
@@ -100,5 +112,7 @@ export const shopRoutes = [
   buyerOrder,
   favorites,
   profile,
+  personalData,
+  addresses,
   ...catalogRoutes,
 ];

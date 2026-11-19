@@ -88,6 +88,7 @@ it("подписанный Telegram возврат связывает тольк
       ]),
     );
 
+    expect((await submit("/contact", { phone: "+84912345678", confirmed: true }, origin)).status).toBe(200);
     const started = await submit("/telegram/start", {}, origin);
     const { exchange, url } = await started.json<{ exchange: string; url: string }>();
     expect(new URL(url).searchParams.get("startapp")).toBe(exchange);
@@ -96,7 +97,14 @@ it("подписанный Telegram возврат связывает тольк
     expect((await submit("/telegram/finish", { exchange }, other)).status).toBe(401);
     const initData = await signedInitData(token, { start_param: exchange });
     expect((await submit("/telegram", { initData })).status).toBe(201);
-    const finished = await submit("/telegram/finish", { exchange }, origin);
+    const consent = await submit("/telegram/finish", { exchange }, origin);
+    expect(consent.headers.get("set-cookie")).toBeNull();
+    expect(await consent.json()).toEqual({ pending: false, mergeRequired: true });
+    expect(storage.sql.exec("SELECT customer FROM carts WHERE customer=?", subject).toArray()).toEqual([
+      { customer: subject },
+    ]);
+    expect((await submit("/telegram/finish", { exchange, merge: true }, other)).status).toBe(401);
+    const finished = await submit("/telegram/finish", { exchange, merge: true }, origin);
     expect(finished.status).toBe(200);
     expect(await finished.json()).toMatchObject({ subject: "telegram:12345", kind: "telegram", pending: false });
     expect((await submit("/telegram/finish", { exchange }, origin)).status).toBe(401);

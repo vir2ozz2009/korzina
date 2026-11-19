@@ -24,10 +24,16 @@ export async function verifiedExchange(startParam: string | undefined) {
   return parsed.success ? digest(parsed.data.exchange) : undefined;
 }
 
-export function confirmExchange(storage: DurableObjectStorage, id: string, telegramSubject: string) {
+export function confirmExchange(
+  storage: DurableObjectStorage,
+  id: string,
+  telegramSubject: string,
+  requiresMerge = false,
+) {
   storage.sql.exec(
-    "UPDATE customer_telegram_exchanges SET telegram_subject=? WHERE id=? AND telegram_subject IS NULL AND expires_at>?",
+    "UPDATE customer_telegram_exchanges SET telegram_subject=?,requires_merge=? WHERE id=? AND telegram_subject IS NULL AND expires_at>?",
     telegramSubject,
+    Number(requiresMerge),
     id,
     Date.now(),
   );
@@ -35,13 +41,15 @@ export function confirmExchange(storage: DurableObjectStorage, id: string, teleg
 
 export function findExchange(storage: DurableObjectStorage, id: string, owner: string) {
   const [row] = storage.sql
-    .exec<{ telegram_subject: string | null }>(
-      "SELECT telegram_subject FROM customer_telegram_exchanges WHERE id=? AND owner=? AND expires_at>?",
+    .exec<{ telegram_subject: string | null; requires_merge: number }>(
+      "SELECT telegram_subject,requires_merge FROM customer_telegram_exchanges WHERE id=? AND owner=? AND expires_at>?",
       id,
       owner,
       Date.now(),
     )
     .toArray();
   if (!row) throw new ApiError("AUTH_FAILED", "Время входа через Telegram истекло");
-  return row.telegram_subject;
+  return row.telegram_subject
+    ? { subject: row.telegram_subject, requiresMerge: Boolean(row.requires_merge) }
+    : undefined;
 }

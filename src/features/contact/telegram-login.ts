@@ -37,9 +37,21 @@ export async function finishBrowserLogin(exchange: string, expiresAt: number, si
     );
     await checkResponse(response);
     if (response.status !== 202) {
+      const result = await response.json();
+      if ("mergeRequired" in result) return "merge" as const;
       rememberBuyer(true);
-      return;
+      return "done" as const;
     }
   }
   throw new Error("Время входа через Telegram истекло");
+}
+
+export async function confirmBrowserMerge(exchange: string, signal: AbortSignal) {
+  const response = await shopApi.api.auth.telegram.finish.$post(
+    { json: { exchange, merge: true } },
+    { headers: commandHeaders(), init: { signal } },
+  );
+  await checkResponse(response);
+  if (response.status === 202) throw new Error("Подтвердите вход в Telegram");
+  rememberBuyer(true);
 }

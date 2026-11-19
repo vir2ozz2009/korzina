@@ -63,6 +63,7 @@ export const customerTelegramExchanges = sqliteTable(
     id: text("id").primaryKey(),
     owner: text("owner").notNull(),
     telegramSubject: text("telegram_subject"),
+    requiresMerge: integer("requires_merge").notNull().default(0),
     expiresAt: integer("expires_at").notNull(),
   },
   (table) => [index("customer_telegram_exchange_expiry").on(table.expiresAt)],

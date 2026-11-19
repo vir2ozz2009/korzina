@@ -49,3 +49,12 @@ export function storeOrderNumber(number: number) {
     // The current navigation also passes the order number.
   }
 }
+
+export function clearPurchaseSession() {
+  storeAttempt();
+  try {
+    localStorage.removeItem(key("order"));
+  } catch {
+    // Browser storage is optional.
+  }
+}

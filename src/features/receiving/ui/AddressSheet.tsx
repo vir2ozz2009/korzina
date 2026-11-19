@@ -1,5 +1,6 @@
 import { MapPin } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { addressKey, type SavedAddress } from "../../../shared/contracts/profile";
 import type { DeliveryAddress, Point } from "../../../shared/contracts/receiving";
 import { Button } from "../../../ui/Button";
 import { ListItem } from "../../../ui/ListItem";
@@ -24,11 +25,11 @@ const empty: DeliveryAddress = { mode: "delivery", address: "" };
 const normalize = (address: string) => address.trim().replace(/\s+/g, " ").toLowerCase();
 
 function savedChoices(current: DeliveryAddress | undefined, data: ReceivingState) {
-  const found = new Map<string, DeliveryAddress>();
+  const found = new Map<string, DeliveryAddress | SavedAddress>();
   for (const value of [current, data.lastUsedAddress, ...data.savedAddresses]) {
     if (!value) continue;
-    const key = JSON.stringify([normalize(value.address), value.districtId]);
-    if (!found.has(key)) found.set(key, value);
+    const key = addressKey(value);
+    if (!found.has(key) || "id" in value) found.set(key, value);
   }
   return [...found.values()];
 }
@@ -41,6 +42,7 @@ export function AddressSheet({
   pending,
   close,
   pickup,
+  edit,
 }: {
   current?: DeliveryAddress;
   data: ReceivingState;
@@ -49,15 +51,18 @@ export function AddressSheet({
   pending: boolean;
   close: () => void;
   pickup?: () => void;
+  edit?: boolean;
 }) {
-  const choices = savedChoices(current, data);
+  const choices = edit ? [] : savedChoices(current, data);
   const onMap = data.delivery?.mode === "map";
   const districts = data.delivery?.mode === "districts" ? (data.delivery.districts ?? []) : [];
   const firstEntry = onMap ? "search" : "manual";
-  const [trail, setTrail] = useState<View[]>([choices.length ? "choose" : firstEntry]);
+  const [trail, setTrail] = useState<View[]>([
+    edit && current ? (onMap && current.point ? "review" : "manual") : choices.length ? "choose" : firstEntry,
+  ]);
   const view = trail[trail.length - 1];
-  const [draft, setDraft] = useState<DeliveryAddress>(empty);
-  const [candidate, setCandidate] = useState<DeliveryAddress>();
+  const [draft, setDraft] = useState<DeliveryAddress>(edit ? (current ?? empty) : empty);
+  const [candidate, setCandidate] = useState<DeliveryAddress | undefined>(edit ? current : undefined);
   const [point, setPoint] = useState<Point>();
   const [outside, setOutside] = useState<string[]>([]);
   const [error, setError] = useState("");

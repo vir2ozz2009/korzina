@@ -23,7 +23,7 @@ export async function verifyFavoriteCart(page: Page) {
     .first();
   await tile.getByRole("button", { name: "Добавить в избранное", exact: true }).click();
   await expect(tile.getByRole("button", { name: "Убрать из избранного", exact: true })).toBeVisible();
-  await page.locator("header").getByRole("button", { name: "Войти", exact: true }).click();
+  await page.locator("header").getByRole("button", { name: "Профиль", exact: true }).click();
   await page.getByRole("button", { name: "Избранное", exact: true }).click();
   await expect(page.getByRole("button", { name: "Убрать из избранного", exact: true })).toBeVisible();
   await page.screenshot({ path: "test-results/b12-favorites-390.png", animations: "disabled" });
@@ -43,4 +43,32 @@ export async function verifyFavoriteCart(page: Page) {
   await page.getByRole("button", { name: /^Корзина/ }).click();
   await expect(page).toHaveURL(/\/cart/);
   await expect(page.getByRole("button", { name: /Увеличить|Добавить одну штуку/ }).first()).toBeVisible();
+}
+
+export async function verifySavedAddress(page: Page) {
+  await page.goBack();
+  await expect(page).toHaveURL(/\/favorites/);
+  await page.goBack();
+  await expect(page.getByText("Вошли по номеру на этом устройстве")).toBeVisible();
+  await page.screenshot({ path: "test-results/b13-profile-390.png", animations: "disabled" });
+  await page.getByRole("button", { name: "Мои адреса" }).click();
+  await expect(page.getByRole("button", { name: /28 Lê Lợi/ })).toBeVisible();
+  await page.getByRole("button", { name: "Добавить адрес", exact: true }).click();
+  await page.getByRole("textbox", { name: "Название", exact: true }).fill("Работа");
+  await page.getByRole("button", { name: /Адрес доставки/ }).click();
+  await page.getByRole("searchbox", { name: "Улица, дом, город", exact: true }).fill("улица Ле Лой, 45");
+  await page.getByRole("button", { name: "Сохранить адрес вручную", exact: true }).click();
+  await page.getByRole("textbox", { name: "Квартира", exact: true }).fill("7");
+  await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await expect(page.getByRole("button", { name: /^Работа/ })).toBeVisible();
+  await page.screenshot({ path: "test-results/b13-addresses-390.png", animations: "disabled" });
+  await page.getByRole("button", { name: /^Корзина/ }).click();
+  await expect(page).toHaveURL(/\/cart/);
+  await page
+    .getByRole("button", { name: /Адрес доставки|Условия доставки|Нужно проверить адрес/ })
+    .first()
+    .click();
+  await page.getByRole("button", { name: /^Работа/ }).click();
+  await page.getByRole("button", { name: "Сохранить адрес вручную", exact: true }).click();
+  await expect(page.getByRole("button", { name: /улица Ле Лой, 45/ })).toBeVisible();
 }

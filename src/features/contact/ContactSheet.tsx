@@ -10,7 +10,7 @@ import { Input } from "../../ui/Input";
 import { Sheet } from "../../ui/Sheet";
 import { SkeletonBlock } from "../../ui/SkeletonBlock";
 import { type Contact, useContact, useSavePhone } from "./api";
-import { finishBrowserLogin, startBrowserLogin } from "./telegram-login";
+import { confirmBrowserMerge, finishBrowserLogin, startBrowserLogin } from "./telegram-login";
 
 const regions = new Intl.DisplayNames(["ru"], { type: "region" });
 
@@ -90,9 +90,19 @@ function PhoneForm({ contact, close }: { contact: Contact; close: () => void }) 
   );
 }
 
-function LoginContent({ initial, close }: { initial: "telegram" | "phone"; close: () => void }) {
-  const [phone, setPhone] = useState(initial === "phone" || telegramLaunch);
+function LoginContent({
+  initial,
+  close,
+  setMergeTitle,
+}: {
+  initial: "telegram" | "phone" | "link";
+  close: () => void;
+  setMergeTitle: (value: boolean) => void;
+}) {
+  const [phone, setPhone] = useState(initial === "phone" || (initial !== "link" && telegramLaunch));
   const [state, setState] = useState<"idle" | "opening" | "waiting" | "error">("idle");
+  const [merge, setMerge] = useState<string>();
+  const [merging, setMerging] = useState(false);
   const [url, setUrl] = useState<string>();
   const [message, setMessage] = useState("");
   const login = useRef<AbortController>(null);
@@ -112,9 +122,12 @@ function LoginContent({ initial, close }: { initial: "telegram" | "phone"; close
       setUrl(attempt.url);
       if (popup && !popup.closed) popup.location.replace(attempt.url);
       setState("waiting");
-      await finishBrowserLogin(attempt.exchange, attempt.expiresAt, controller.signal);
-      await client.invalidateQueries({ queryKey: ["shop", shopKey] });
-      if (!controller.signal.aborted) close();
+      const result = await finishBrowserLogin(attempt.exchange, attempt.expiresAt, controller.signal);
+      if (controller.signal.aborted) return;
+      if (result === "merge") {
+        setMerge(attempt.exchange);
+        setMergeTitle(true);
+      } else await complete(controller.signal);
     } catch (error) {
       if (!controller.signal.aborted) {
         if (popup && !popup.closed) popup.close();
@@ -123,6 +136,49 @@ function LoginContent({ initial, close }: { initial: "telegram" | "phone"; close
       }
     }
   }
+
+  async function complete(signal: AbortSignal) {
+    const keys = ["buyer-orders", "order", "favorites", "profile", "receiving", "quote", "purchase-summary"];
+    const filters = {
+      predicate: ({ queryKey }: { queryKey: readonly unknown[] }) =>
+        queryKey[0] === "shop" && queryKey[1] === shopKey && keys.includes(String(queryKey[2])),
+    };
+    await client.cancelQueries(filters);
+    client.removeQueries(filters);
+    await client.invalidateQueries({ queryKey: ["shop", shopKey] });
+    if (!signal.aborted) close();
+  }
+
+  if (merge)
+    return (
+      <div className="space-y-2">
+        <p>Перенесём заказы, адреса и избранное в профиль Telegram.</p>
+        {message && <p role="alert">{message}</p>}
+        <Button
+          full
+          loading={merging}
+          onClick={async () => {
+            const signal = login.current?.signal;
+            if (!signal || merging) return;
+            setMerging(true);
+            setMessage("");
+            try {
+              await confirmBrowserMerge(merge, signal);
+              await complete(signal);
+            } catch (error) {
+              if (!signal.aborted) setMessage(error instanceof Error ? error.message : "Не удалось объединить профили");
+            } finally {
+              if (!signal.aborted) setMerging(false);
+            }
+          }}
+        >
+          Объединить
+        </Button>
+        <Button full variant="secondary" disabled={merging} onClick={close}>
+          Отмена
+        </Button>
+      </div>
+    );
 
   if (phone) {
     if (contact.data) return <PhoneForm contact={contact.data} close={close} />;
@@ -148,31 +204,46 @@ function LoginContent({ initial, close }: { initial: "telegram" | "phone"; close
           {state === "error" ? "Повторить вход" : "Войти через Telegram"}
         </Button>
       )}
-      <button
-        type="button"
-        className="mx-auto block min-h-8 text-caption text-muted-foreground underline"
-        onClick={() => {
-          login.current?.abort();
-          setPhone(true);
-        }}
-      >
-        У меня нет Telegram
-      </button>
+      {initial !== "link" && (
+        <button
+          type="button"
+          className="mx-auto block min-h-8 text-caption text-muted-foreground underline"
+          onClick={() => {
+            login.current?.abort();
+            setPhone(true);
+          }}
+        >
+          У меня нет Telegram
+        </button>
+      )}
     </div>
   );
 }
 
-export function ContactSheet({ mode, close }: { mode: "telegram" | "phone" | undefined; close: () => void }) {
+export function ContactSheet({ mode, close }: { mode: "telegram" | "phone" | "link" | undefined; close: () => void }) {
+  const [merge, setMerge] = useState(false);
   return (
     <Sheet
       form
-      title="Войти в магазин"
+      title={merge ? "Объединить профили?" : mode === "link" ? "Подключить Telegram" : "Войти в магазин"}
       open={!!mode}
       onOpenChange={(open) => {
-        if (!open) close();
+        if (!open) {
+          setMerge(false);
+          close();
+        }
       }}
     >
-      {mode && <LoginContent initial={mode} close={close} />}
+      {mode && (
+        <LoginContent
+          initial={mode}
+          setMergeTitle={setMerge}
+          close={() => {
+            setMerge(false);
+            close();
+          }}
+        />
+      )}
     </Sheet>
   );
 }

@@ -1,6 +1,5 @@
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, User } from "lucide-react";
 import { Avatar } from "./Avatar";
-import { Button } from "./Button";
 import { IconButton } from "./IconButton";
 import type { StoreHeaderProps } from "./StoreHeader";
 
@@ -16,16 +15,11 @@ export function StoreHeaderActions({
           <MessageSquare size={22} />
         </IconButton>
       )}
-      {onProfile &&
-        (profile ? (
-          <IconButton aria-label="Профиль" background="card" onClick={onProfile}>
-            <Avatar {...profile} />
-          </IconButton>
-        ) : (
-          <Button variant="secondary" className="px-3" onClick={onProfile}>
-            Войти
-          </Button>
-        ))}
+      {onProfile && (
+        <IconButton aria-label="Профиль" background="card" onClick={onProfile}>
+          {profile ? <Avatar {...profile} /> : <User size={22} />}
+        </IconButton>
+      )}
     </>
   );
 }

@@ -45,3 +45,9 @@ export function hasBuyerMarker() {
     return false;
   }
 }
+
+export function clearClientSession() {
+  guest = undefined;
+  telegram = undefined;
+  rememberBuyer(false);
+}

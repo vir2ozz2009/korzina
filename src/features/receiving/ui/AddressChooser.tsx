@@ -1,4 +1,5 @@
 import { MapPin, Plus } from "lucide-react";
+import { addressKey, type SavedAddress } from "../../../shared/contracts/profile";
 import type { DeliveryAddress } from "../../../shared/contracts/receiving";
 import { Button } from "../../../ui/Button";
 import { ListItem } from "../../../ui/ListItem";
@@ -11,7 +12,7 @@ export function AddressChooser({
   pickup,
   create,
 }: {
-  addresses: DeliveryAddress[];
+  addresses: (DeliveryAddress | SavedAddress)[];
   current?: DeliveryAddress;
   pending: boolean;
   select: (address: DeliveryAddress) => void;
@@ -22,9 +23,15 @@ export function AddressChooser({
     <>
       {addresses.map((address) => (
         <ListItem
-          key={JSON.stringify([address.address, address.districtId])}
-          title={address.address}
-          subtitle={address === current ? "Текущий адрес" : undefined}
+          key={addressKey(address)}
+          title={"title" in address && address.title ? address.title : address.address}
+          subtitle={
+            "title" in address && address.title
+              ? address.address
+              : current && addressKey(address) === addressKey(current)
+                ? "Текущий адрес"
+                : undefined
+          }
           icon={<MapPin size={20} />}
           onClick={pending ? undefined : () => select(address)}
         />
