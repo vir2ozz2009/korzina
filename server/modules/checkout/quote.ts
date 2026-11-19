@@ -98,6 +98,7 @@ export function purchaseDraft(env: Shop, subject: string, kind: "guest" | "teleg
     revision: cart.revision,
     currency: cart.currency,
     lines,
+    ...(cart.adjustments.length ? { adjustments: cart.adjustments } : {}),
     itemsMinor,
     deliveryMinor,
     totalMinor: addMinor(itemsMinor, deliveryMinor),

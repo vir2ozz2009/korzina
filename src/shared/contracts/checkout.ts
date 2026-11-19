@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { CartLine } from "./cart";
+import type { CartAdjustment, CartLine } from "./cart";
 import type { Receiving, ReceivingAvailability } from "./receiving";
 import type { TimeChoice } from "./receiving-time";
 
@@ -35,6 +35,7 @@ export type PurchaseQuote = {
   revision: number;
   currency: string;
   lines: PurchaseLine[];
+  adjustments?: CartAdjustment[];
   itemsMinor: number;
   deliveryMinor: number;
   totalMinor: number;

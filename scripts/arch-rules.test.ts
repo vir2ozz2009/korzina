@@ -25,9 +25,17 @@ describe("архитектурные ограничения", () => {
     [feature, "const major = value / 100;"],
     [feature, "const minor = 100 * value;"],
     [feature, "const formatted = value.toFixed(2);"],
-    ["server/long.ts", "const x = 1;\n".repeat(251)],
+    ["scripts/long.ts", "const x = 1;\n".repeat(251)],
   ])("отклоняет нарушение в %s: %s", (path, content) => {
-    expect(inspectSource({ path, content })).not.toHaveLength(0);
+    expect(inspectSource({ path, content }).errors).not.toHaveLength(0);
+  });
+
+  it.each(["src/long.ts", "server/long.ts"])("предупреждает о длине файла %s", (path) => {
+    const content = "const x = 1;\n".repeat(251);
+    expect(inspectSource({ path, content })).toEqual({
+      errors: [],
+      warnings: [`${path}: длина 251 строк, максимум 250`],
+    });
   });
 
   it.each([
@@ -44,6 +52,6 @@ describe("архитектурные ограничения", () => {
     ["src/styles/tokens.css", ":root { --primary: #ff335f; }"],
     ["server/index.ts", "const x = 1;\n".repeat(250)],
   ])("разрешает корректный код в %s", (path, content) => {
-    expect(inspectSource({ path, content })).toEqual([]);
+    expect(inspectSource({ path, content })).toEqual({ errors: [], warnings: [] });
   });
 });

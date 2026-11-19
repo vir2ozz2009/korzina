@@ -11,6 +11,7 @@ import type { ShopEnv } from "../../shop/env";
 import { removeOrderedLines } from "../cart/service";
 import { reserveTime } from "../fulfillment/availability";
 import { loadQuote, purchaseDraft } from "./quote";
+import { quoteTerms } from "./quote-terms";
 
 type Shop = ShopEnv["Bindings"];
 type Actor = { subject: string; kind: "guest" | "telegram" };
@@ -83,7 +84,7 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
     const { snapshot, cart, storedReceiving } = purchaseDraft(env, subject, actor.kind, now, false);
     if (!snapshot.paymentSettings.methods.includes(input.payment))
       throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Этот способ оплаты недоступен");
-    if (JSON.stringify(previous) !== JSON.stringify(snapshot))
+    if (JSON.stringify(quoteTerms(previous)) !== JSON.stringify(quoteTerms(snapshot)))
       throw new ApiError("QUOTE_CHANGED", "Условия заказа изменились", {
         beforeMinor: previous.totalMinor,
         afterMinor: snapshot.totalMinor,
