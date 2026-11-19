@@ -12,6 +12,7 @@ const MapPreview = lazy(() => import("./AddressMap").then(({ AddressMap }) => ({
 
 export function AddressMapStep({
   address,
+  useTypedAddress,
   change,
   point,
   setPoint,
@@ -23,6 +24,7 @@ export function AddressMapStep({
   pickup,
 }: {
   address: string;
+  useTypedAddress: boolean;
   change: (address: string) => void;
   point?: Point;
   setPoint: (point: Point) => void;
@@ -46,7 +48,9 @@ export function AddressMapStep({
     if (mapAddress && rejected && result.reason === "outside") rememberOutside(mapAddress);
   }, [mapAddress, rejected, rememberOutside, result]);
 
-  const finalAddress = mapAddress ?? address.trim();
+  const waitingForName = !useTypedAddress && name.isPending;
+  const needsText = useTypedAddress || !mapAddress;
+  const finalAddress = needsText ? address.trim() : mapAddress;
   return (
     <>
       <p className="text-meta text-muted-foreground">Коснитесь нужного места или переместите метку.</p>
@@ -80,14 +84,14 @@ export function AddressMapStep({
       {point && mapAddress && <p className="text-label break-words">{mapAddress}</p>}
       {accepted && point && (
         <>
-          {name.isPending && (
+          {waitingForName && (
             <p role="status" className="text-meta">
               Ищем адрес по точке…
             </p>
           )}
-          {!name.isPending && !mapAddress && (
+          {!waitingForName && needsText && (
             <>
-              <p className="text-meta">Добавьте улицу, дом или ориентир для курьера.</p>
+              {!useTypedAddress && <p className="text-meta">Добавьте улицу, дом или ориентир для курьера.</p>}
               <TextArea
                 label="Адрес для курьера"
                 value={address}
@@ -97,12 +101,14 @@ export function AddressMapStep({
               />
             </>
           )}
-          {!name.isPending && (
+          {!waitingForName && (
             <Button
               full
               disabled={!finalAddress || locating || check.isFetching}
               loading={pending}
-              onClick={() => save(finalAddress, point)}
+              onClick={() => {
+                if (finalAddress) save(finalAddress, point);
+              }}
             >
               Подтвердить адрес
             </Button>

@@ -1,61 +1,86 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Point } from "../../../shared/contracts/receiving";
 
-const toPoint = ({ coords }: GeolocationPosition): Point => ({ lat: coords.latitude, lon: coords.longitude });
+type LocationRequest = { select: boolean };
+
+function locationMessage(error: GeolocationPositionError) {
+  if (error.code === error.PERMISSION_DENIED)
+    return "Разрешите геопозицию для этого сайта или отметьте точку на карте.";
+  if (error.code === error.TIMEOUT)
+    return "Не успели определить геопозицию. Попробуйте ещё раз или отметьте точку на карте.";
+  return "Сейчас геопозиция недоступна. Попробуйте ещё раз или отметьте точку на карте.";
+}
 
 export function useMapLocation(initialPoint: Point | undefined, select: (point: Point) => void) {
   const [center, setCenter] = useState(initialPoint);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState("");
-  const request = useRef(0);
-  const hasInitialPoint = useRef(!!initialPoint);
+  const request = useRef<LocationRequest>(undefined);
+  const interacted = useRef(!!initialPoint);
+  const onSelect = useRef(select);
+  onSelect.current = select;
 
-  useEffect(() => {
-    const current = ++request.current;
-    if (!hasInitialPoint.current) {
-      navigator.geolocation?.getCurrentPosition(
-        (position) => {
-          if (request.current === current) setCenter(toPoint(position));
-        },
-        () => {},
-        { maximumAge: 60_000, timeout: 6000 },
-      );
+  const start = useCallback((selectPoint: boolean) => {
+    if (selectPoint) {
+      interacted.current = true;
+      setLocationError("");
     }
-    return () => {
-      request.current++;
-    };
+    if (!navigator.geolocation) {
+      if (selectPoint) setLocationError("Геопозиция недоступна в этом браузере. Отметьте точку на карте.");
+      return;
+    }
+    if (selectPoint) setLocating(true);
+    if (request.current) {
+      if (selectPoint) request.current.select = true;
+      return;
+    }
+
+    const current: LocationRequest = { select: selectPoint };
+    request.current = current;
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        if (request.current !== current) return;
+        request.current = undefined;
+        if (interacted.current && !current.select) return;
+        const point = { lat: coords.latitude, lon: coords.longitude };
+        setCenter(point);
+        if (current.select) {
+          setLocating(false);
+          onSelect.current(point);
+        }
+      },
+      (error) => {
+        if (request.current !== current) return;
+        request.current = undefined;
+        if (current.select) {
+          setLocating(false);
+          setLocationError(locationMessage(error));
+        }
+      },
+      { timeout: 15_000 },
+    );
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    // Only a button press should ask for a new permission.
+    void navigator.permissions?.query({ name: "geolocation" }).then(
+      ({ state }) => {
+        if (active && state === "granted" && !interacted.current) start(false);
+      },
+      () => {},
+    );
+    return () => {
+      active = false;
+      request.current = undefined;
+    };
+  }, [start]);
+
   function pick(point: Point) {
-    request.current++;
+    interacted.current = true;
     setLocationError("");
     select(point);
   }
 
-  function locate() {
-    if (!navigator.geolocation) {
-      setLocationError("Геопозиция недоступна. Отметьте точку на карте.");
-      return;
-    }
-    const current = ++request.current;
-    setLocating(true);
-    setLocationError("");
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        if (request.current !== current) return;
-        const point = toPoint(position);
-        setLocating(false);
-        setCenter(point);
-        select(point);
-      },
-      () => {
-        if (request.current !== current) return;
-        setLocating(false);
-        setLocationError("Не удалось определить геопозицию. Отметьте точку на карте.");
-      },
-      { timeout: 6000 },
-    );
-  }
-
-  return { center, locating, locationError, locate, pick };
+  return { center, locating, locationError, locate: () => start(true), pick };
 }

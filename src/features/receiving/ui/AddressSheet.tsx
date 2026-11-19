@@ -7,10 +7,10 @@ import { Sheet } from "../../../ui/Sheet";
 import { usePointDelivery } from "../address-api";
 import type { ReceivingState } from "../api";
 import { AddressChooser } from "./AddressChooser";
-import { AddressReviewStatus, ManualDeliveryStatus } from "./AddressDelivery";
-import { ManualAddressFields } from "./AddressFields";
+import { AddressReviewStatus } from "./AddressDelivery";
 import { AddressMapStep } from "./AddressMapStep";
 import { AddressSearch } from "./AddressSearch";
+import { ManualAddressStep } from "./ManualAddressStep";
 
 type View = "choose" | "search" | "manual" | "map" | "review";
 const titles: Record<View, string> = {
@@ -170,34 +170,21 @@ export function AddressSheet({
           />
         )}
         {view === "manual" && (
-          <form
-            className="space-y-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              saveManual();
-            }}
-          >
-            <ManualAddressFields
-              value={draft}
-              districts={districts}
-              required={onMap ? [] : data.requiredDetails}
-              disabled={pending}
-              onChange={change}
-            />
-            {onMap && <ManualDeliveryStatus />}
-            <Button full type="submit" loading={pending} disabled={!draft.address.trim()}>
-              {onMap ? "Сохранить адрес вручную" : "Сохранить адрес"}
-            </Button>
-            {pickup && !onMap && (
-              <Button full variant="secondary" disabled={pending} onClick={pickup}>
-                Выбрать самовывоз
-              </Button>
-            )}
-          </form>
+          <ManualAddressStep
+            address={draft}
+            districts={districts}
+            required={onMap ? [] : data.requiredDetails}
+            pending={pending}
+            change={change}
+            save={saveManual}
+            map={onMap ? () => open("map") : undefined}
+            pickup={onMap ? undefined : pickup}
+          />
         )}
         {view === "map" && (
           <AddressMapStep
             address={draft.address}
+            useTypedAddress={trail.at(-2) === "manual"}
             change={(address) => change({ ...draft, address })}
             point={point}
             setPoint={(next) => {
@@ -209,7 +196,14 @@ export function AddressSheet({
             pending={pending}
             other={another}
             pickup={pickup}
-            save={(address, selected) => void saveAddress({ mode: "delivery", address, point: selected })}
+            save={(address, selected) =>
+              void saveAddress({
+                ...(normalize(draft.address) === normalize(address) ? draft : empty),
+                address,
+                point: selected,
+                acceptedWithoutPoint: undefined,
+              })
+            }
           />
         )}
         {view === "review" && candidate && (

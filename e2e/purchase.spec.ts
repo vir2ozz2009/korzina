@@ -64,10 +64,13 @@ test("B10: товар, доставка и заказ наличными", async
   await expect(page.getByRole("button", { name: "Войти через Telegram" })).toHaveCount(0);
   await page.context().grantPermissions(["geolocation"]);
   await page.context().setGeolocation({ latitude: 48.8566, longitude: 2.3522 });
+  let namedPoint = false;
   await page.route("**/api/receiving/geocode?**", async (route) => {
     const input = route.request().postDataJSON();
     if (input.type === "reverse" && input.point.lat > 15) {
       await route.fulfill({ json: { results: [{ address: "136 Hồ Xuân Hương, Дананг", ...input.point }] } });
+    } else if (input.type === "reverse" && namedPoint) {
+      await route.fulfill({ json: { results: [{ address: "45 Lê Lợi, Хошимин", ...input.point }] } });
     } else if (input.type === "reverse") {
       await route.fulfill({ status: 404, json: { error: { code: "ADDRESS_NOT_FOUND", message: "Адрес не найден" } } });
     } else {
@@ -97,8 +100,8 @@ test("B10: товар, доставка и заказ наличными", async
   await expect(search.getByRole("button", { name: "Сохранить адрес вручную" })).toHaveCount(0);
 
   await street.fill("28 Lê Lợi, Хошимин");
-  await search.getByRole("button", { name: "Указать на карте" }).click();
   await page.context().setGeolocation({ latitude: 10.7769, longitude: 106.7009 });
+  await search.getByRole("button", { name: "Указать на карте" }).click();
   await map.getByRole("button", { name: "Определить мою позицию" }).click();
   await expect(map.getByText("Доставка доступна", { exact: true })).toBeVisible();
   await expect(map.getByText(/25\s000/)).toBeVisible();
@@ -127,6 +130,28 @@ test("B10: товар, доставка и заказ наличными", async
   await expect(savedAddress).toBeVisible();
   await expect(orderTotals.getByText("Согласуем после заказа")).toBeVisible();
   await page.screenshot({ path: "test-results/cart-address-390.png", animations: "disabled" });
+  await savedAddress.click();
+  await chooser.getByRole("button", { name: /28 Lê Lợi, Хошимин.*Текущий адрес/ }).click();
+  const manual = page.getByRole("dialog", { name: "Ввести адрес вручную" });
+  await expect(manual.getByRole("textbox", { name: "Адрес доставки" })).toHaveValue("28 Lê Lợi, Хошимин");
+  await page.screenshot({ path: "test-results/checkout-address-manual-to-map-390.png", animations: "disabled" });
+  await page.context().clearPermissions();
+  await manual.getByRole("button", { name: "Указать на карте" }).click();
+  const locate = map.getByRole("button", { name: "Определить мою позицию" });
+  await locate.click();
+  await expect(map.getByText(/Разрешите геопозицию для этого сайта/)).toBeVisible();
+
+  namedPoint = true;
+  await page.context().setGeolocation({ latitude: 10.777, longitude: 106.701 });
+  await page.context().grantPermissions(["geolocation"]);
+  await locate.click();
+  await expect(map.getByText("45 Lê Lợi, Хошимин", { exact: true })).toBeVisible();
+  await expect(map.getByRole("textbox", { name: "Адрес для курьера" })).toHaveValue("28 Lê Lợi, Хошимин");
+  await page.screenshot({ path: "test-results/checkout-address-manual-pin-390.png", animations: "disabled" });
+  await map.getByRole("button", { name: "Подтвердить адрес" }).click();
+  await expect(map).toBeHidden();
+  await expect(page.getByRole("button", { name: /28 Lê Lợi, Хошимин.*Адрес доставки/ })).toBeVisible();
+  await expect(orderTotals.getByText(/25\s000/)).toBeVisible();
   await page.getByRole("button", { name: /^Продолжить/ }).click();
   await expect(page).toHaveURL(/checkout\/receiving\?shop=test2/);
   await page.getByRole("button", { name: /^Выбрать время/ }).click();
