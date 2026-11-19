@@ -61,7 +61,10 @@ export const memberships = sqliteTable(
     permissions: text("permissions").notNull().default("[]"),
     revokedAt: integer("revoked_at"),
   },
-  (table) => [primaryKey({ columns: [table.shopId, table.accountId] })],
+  (table) => [
+    primaryKey({ columns: [table.shopId, table.accountId] }),
+    index("memberships_account_idx").on(table.accountId),
+  ],
 );
 export const sellerSessions = sqliteTable(
   "seller_sessions",
@@ -90,3 +93,15 @@ export const demoSeedQueue = sqliteTable("demo_seed_queue", {
     .references(() => shops.id),
   requestedAt: text("requested_at").notNull(),
 });
+
+export const sellerExchanges = sqliteTable(
+  "seller_exchanges",
+  {
+    id: text("id").primaryKey(),
+    proofHash: text("proof_hash").notNull(),
+    telegramId: text("telegram_id"),
+    completedWith: text("completed_with"),
+    expiresAt: integer("expires_at").notNull(),
+  },
+  (table) => [index("seller_exchanges_expiry_idx").on(table.expiresAt)],
+);

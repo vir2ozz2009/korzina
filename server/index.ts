@@ -11,6 +11,8 @@ import { guestCart } from "./modules/cart/guest";
 import { catalogGateway } from "./modules/catalog/gateway";
 import { localPublicMedia } from "./modules/media/local-public";
 import { sellerAccess } from "./platform/auth/access-routes";
+import { cabinetRoutes } from "./platform/auth/cabinet-routes";
+import { platformWebhook } from "./platform/auth/platform-webhook";
 import { platformAuth } from "./platform/auth/routes";
 import { shopContexts } from "./platform/shop-context";
 import { forwardToShop } from "./shop/forward";
@@ -44,7 +46,9 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
     localPublicMedia(c.req.raw, c.env, c.req.param("shop"), c.req.param("id"), c.req.param("name")),
   )
   .route("/platform/auth", platformAuth)
+  .route("/platform/telegram", platformWebhook)
   .route("/seller/access", sellerAccess)
+  .route("/seller/cabinet", cabinetRoutes)
   .get("/shop", async (c) => {
     c.header("Cache-Control", "no-store");
     return c.json(await shopContexts.read(c.req.raw, c.env));

@@ -1,4 +1,5 @@
 import { createRoute, createRouter, lazyRouteComponent } from "@tanstack/react-router";
+import { sellerRoutes } from "../routes/cabinet-routes";
 import { rootRoute } from "../routes/root";
 import { shopRoutes } from "../routes/shop-routes";
 import { createQueryClient } from "./query-defaults";
@@ -8,7 +9,7 @@ export const queryClient = createQueryClient();
 // Compile-time boundary: production never emits these screens or their imports.
 const routes = import.meta.env.DEV_SCREENS ? createDevRoutes() : [];
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([...shopRoutes, ...routes]),
+  routeTree: rootRoute.addChildren([...shopRoutes, ...sellerRoutes, ...routes]),
   context: { qc: queryClient },
   defaultPreload: "intent",
   defaultPreloadStaleTime: 0,
