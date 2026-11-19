@@ -1,6 +1,7 @@
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { lazy, Suspense, type TouchEvent, useEffect, useRef } from "react";
 import { CartProvider } from "../../features/cart";
+import { FavoritesProvider } from "../../features/favorites";
 import { FeatureProvider } from "../../shared/useFeature";
 import { EmptyState } from "../../ui/EmptyState";
 import { bootstrap } from "../bootstrap";
@@ -57,34 +58,36 @@ export function AppShell() {
     <FeatureProvider shop={bootstrap}>
       <ToastProvider>
         <CartProvider>
-          <ShopNavigation>
-            <TelegramBridge />
-            <div
-              className={`mx-auto min-h-(--app-height) max-w-(--content-max) overflow-x-clip pt-(--safe-top) pl-(--safe-left) pr-(--safe-right) pb-[calc(var(--tab-height)+var(--safe-bottom))] ${seller ? "[--tab-height:var(--seller-tab-height)]" : ""}`}
-              data-seller={seller}
-              onTouchStart={(event) => {
-                const touch = event.touches[0];
-                start.current = touch?.clientX < 24 ? { x: touch.clientX, y: touch.clientY } : null;
-              }}
-              onTouchEnd={endSwipe}
-            >
-              <Transition>
-                {bootstrap && bootstrap.status !== "active" ? (
-                  <EmptyState title="Магазин временно закрыт" description="Загляните позже." />
-                ) : (
-                  <Outlet />
+          <FavoritesProvider>
+            <ShopNavigation>
+              <TelegramBridge />
+              <div
+                className={`mx-auto min-h-(--app-height) max-w-(--content-max) overflow-x-clip pt-(--safe-top) pl-(--safe-left) pr-(--safe-right) pb-[calc(var(--tab-height)+var(--safe-bottom))] ${seller ? "[--tab-height:var(--seller-tab-height)]" : ""}`}
+                data-seller={seller}
+                onTouchStart={(event) => {
+                  const touch = event.touches[0];
+                  start.current = touch?.clientX < 24 ? { x: touch.clientX, y: touch.clientY } : null;
+                }}
+                onTouchEnd={endSwipe}
+              >
+                <Transition>
+                  {bootstrap && bootstrap.status !== "active" ? (
+                    <EmptyState title="Магазин временно закрыт" description="Загляните позже." />
+                  ) : (
+                    <Outlet />
+                  )}
+                </Transition>
+                {seller && (
+                  <Suspense fallback={<div className="min-h-16" />}>
+                    <SellerTabs />
+                  </Suspense>
                 )}
-              </Transition>
-              {seller && (
-                <Suspense fallback={<div className="min-h-16" />}>
-                  <SellerTabs />
-                </Suspense>
-              )}
-              {floating && !keyboardOpen && bootstrap?.status === "active" && (
-                <ShopActions compact={path.startsWith("/p/")} search={path !== "/search"} />
-              )}
-            </div>
-          </ShopNavigation>
+                {floating && !keyboardOpen && bootstrap?.status === "active" && (
+                  <ShopActions compact={path.startsWith("/p/")} search={path !== "/search"} />
+                )}
+              </div>
+            </ShopNavigation>
+          </FavoritesProvider>
         </CartProvider>
       </ToastProvider>
     </FeatureProvider>

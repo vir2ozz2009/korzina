@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { checkResponse } from "../../shared/http-error";
 import { commandHeaders, shopApi, shopKey } from "../../shared/shop-api";
-import { ensureShopSession } from "../../shared/shop-session";
+import { ensureShopSession, rememberBuyer } from "../../shared/shop-session";
 
 const contactKey = ["shop", shopKey, "contact"] as const;
 
@@ -31,6 +31,7 @@ export function useSavePhone() {
       return response.json();
     },
     onSuccess: async (contact) => {
+      rememberBuyer(true);
       const current = client.getQueryData<Contact>(contactKey);
       if (current) client.setQueryData(contactKey, { ...current, ...contact });
       await Promise.all([

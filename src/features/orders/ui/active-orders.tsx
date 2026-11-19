@@ -4,11 +4,12 @@ import { telegramLaunch } from "../../../app/telegram/launch";
 import type { OrderStage } from "../../../shared/contracts/buyer-order";
 import type { TimeChoice } from "../../../shared/contracts/receiving-time";
 import { errorKind } from "../../../shared/http-error";
+import { hasBuyerMarker } from "../../../shared/shop-session";
 import { Button } from "../../../ui/Button";
 import { ListItem } from "../../../ui/ListItem";
 import { useContact } from "../../contact";
 import { formatDay } from "../../receiving";
-import { hasBuyerMarker, useActiveOrders } from "../api";
+import { useActiveOrders } from "../api";
 
 export const orderStages: Record<OrderStage, string> = {
   placed: "Оформлен",

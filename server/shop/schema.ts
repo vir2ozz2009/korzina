@@ -11,6 +11,7 @@ export {
   orderReceiptHistory,
   orders,
 } from "../modules/checkout/schema";
+export { favorites } from "../modules/favorites/schema";
 export { media, mediaUsage } from "../modules/media/schema";
 
 export const settings = sqliteTable("settings", {

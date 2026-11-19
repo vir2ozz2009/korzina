@@ -8,13 +8,14 @@ import type { CheckoutCommand, QuoteResponse } from "../../../shared/contracts/c
 import { HttpError } from "../../../shared/http-error";
 import { formatMinor } from "../../../shared/money";
 import { shopKey } from "../../../shared/shop-api";
+import { rememberBuyer } from "../../../shared/shop-session";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { ListItem } from "../../../ui/ListItem";
 import { Radio } from "../../../ui/Radio";
 import { StickyFooter } from "../../../ui/StickyFooter";
 import { ContactSheet, useContact } from "../../contact";
-import { orderKeys, rememberBuyer } from "../../orders";
+import { orderKeys } from "../../orders";
 import { ReceivingTime, useReceiving } from "../../receiving";
 import { type Attempt, usePlaceOrder, useQuote } from "../api";
 import { readAttempt, storeAttempt, storeOrderNumber } from "../session";

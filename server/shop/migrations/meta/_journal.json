@@ -148,6 +148,13 @@
       "when": 1795070728028,
       "tag": "0020_buyer_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1795070878208,
+      "tag": "0021_buyer_favorites",
+      "breakpoints": true
     }
   ]
 }
