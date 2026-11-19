@@ -29,19 +29,23 @@ export const domains = sqliteTable("domains", {
     .references(() => shops.id),
 });
 
-export const invitations = sqliteTable("invitations", {
-  tokenHash: text("token_hash").primaryKey(),
-  shopId: text("shop_id")
-    .notNull()
-    .references(() => shops.id),
-  expiresAt: integer("expires_at").notNull(),
-  linkId: text("link_id").unique(),
-  platformAllowed: integer("platform_allowed", { mode: "boolean" }).notNull().default(false),
-  usedBy: text("used_by"),
-  redeemedId: text("redeemed_id"),
-  revokedAt: integer("revoked_at"),
-  replacementReason: text("replacement_reason"),
-});
+export const invitations = sqliteTable(
+  "invitations",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    shopId: text("shop_id")
+      .notNull()
+      .references(() => shops.id),
+    expiresAt: integer("expires_at").notNull(),
+    linkId: text("link_id").unique(),
+    platformAllowed: integer("platform_allowed", { mode: "boolean" }).notNull().default(false),
+    usedBy: text("used_by"),
+    redeemedId: text("redeemed_id"),
+    revokedAt: integer("revoked_at"),
+    replacementReason: text("replacement_reason"),
+  },
+  (table) => [index("invitations_expiry_idx").on(table.expiresAt), index("invitations_shop_idx").on(table.shopId)],
+);
 
 export type PlatformShop = Pick<typeof shops.$inferSelect, "id" | "slug" | "name" | "status" | "plan" | "createdAt">;
 

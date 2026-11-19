@@ -1,13 +1,15 @@
 import type { ShopChange } from "../../../src/shared/contracts/admin";
 import { ApiError } from "../../../src/shared/errors";
-import { isFeatureKey } from "../../../src/shared/flags";
+import { flags, isFeatureKey } from "../../../src/shared/flags";
 import { currencyCodes, timeZones } from "../../../src/shared/region-data";
 import { THEME_PRESETS, validateCustomColor } from "../../../src/shared/theme-presets";
 import type { AuthSecrets } from "../../auth/config";
 import { telegramApi } from "../../auth/telegram-api";
 import type { CommandIdentity } from "../../middleware/idempotency";
+import { scheduleSellerCleanup } from "../cleanup";
 import { auditEvent, platformReplay } from "./commands";
 import { prepareOwnerInvite } from "./invitation-link";
+import { slugAvailability } from "./registry";
 import { type ManagedShop, managedShop } from "./shop-detail";
 
 type PreparedChange = {
@@ -39,7 +41,7 @@ export async function commitShopChange(database: D1Database, mutation: ShopMutat
     if ((await managedShop(database, id)).version !== version) throw stale();
     throw error;
   }
-  await change.afterCommit?.().catch(() => {});
+  await Promise.all([scheduleSellerCleanup().catch(() => {}), change.afterCommit?.().catch(() => {})]);
   return result;
 }
 
@@ -111,11 +113,22 @@ async function inviteChange(
   };
 }
 
-function featureChange(database: D1Database, shop: ManagedShop, key: string, enabled: boolean): PreparedChange {
+async function featureChange(
+  database: D1Database,
+  shop: ManagedShop,
+  key: string,
+  enabled: boolean,
+): Promise<PreparedChange> {
   if (!isFeatureKey(key)) throw new ApiError("VALIDATION", "Дополнение не найдено");
+  const value = await database
+    .withSession("first-primary")
+    .prepare("SELECT enabled FROM feature_overrides WHERE shop_id=? AND key=?")
+    .bind(shop.id, key)
+    .first<{ enabled: number }>();
+  const from = value ? !!value.enabled : (flags.find((flag) => flag.key === key)?.default ?? false);
   return {
     action: "shop.feature",
-    changed: { key, enabled },
+    changed: { key, from, to: enabled },
     statements: [
       database
         .prepare(`INSERT INTO feature_overrides(shop_id,key,enabled) VALUES(?,?,?)
@@ -125,12 +138,18 @@ function featureChange(database: D1Database, shop: ManagedShop, key: string, ena
   };
 }
 
-function dataChange(
+async function validateAddress(database: D1Database, next: string) {
+  const status = await slugAvailability(database, next);
+  if (!status.available) throw new ApiError(status.code, status.message);
+}
+
+async function dataChange(
   database: D1Database,
   shop: ManagedShop,
   input: Extract<ShopChange, { action: "data" }>,
   currencyLocked: boolean,
-): PreparedChange {
+  appEnv: string,
+): Promise<PreparedChange> {
   const { name, country, currency, timeZone, theme } = input;
   if (!currencyCodes.includes(currency) || !timeZones.includes(timeZone))
     throw new ApiError("VALIDATION", "Проверьте валюту и часовой пояс");
@@ -138,14 +157,37 @@ function dataChange(
     throw new ApiError("VALIDATION", "Проверьте цвет оформления");
   if (currencyLocked && shop.currency && shop.currency !== currency)
     throw new ApiError("CURRENCY_LOCKED", "Валюта закреплена после первой финансовой операции");
+  const slug = input.slug ?? shop.slug;
+  if (slug !== shop.slug && shop.status !== "draft")
+    throw new ApiError("SLUG_LOCKED", "Адрес можно изменить только в черновике");
+  const statements = [
+    database
+      .prepare("UPDATE shops SET name=?,slug=?,country=?,currency=?,time_zone=?,theme=? WHERE id=?")
+      .bind(name, slug, country, currency, timeZone, JSON.stringify(theme), shop.id),
+  ];
+  if (slug !== shop.slug) {
+    await validateAddress(database, slug);
+    const suffix = appEnv === "production" ? "korzina.app" : "demo.korzina.app";
+    statements.push(
+      database
+        .prepare("UPDATE domains SET host=? WHERE shop_id=? AND host=?")
+        .bind(`${slug}.${suffix}`, shop.id, `${shop.slug}.${suffix}`),
+    );
+  }
   return {
     action: "shop.data",
-    changed: { name, country, currency, timeZone, theme },
-    statements: [
-      database
-        .prepare("UPDATE shops SET name=?,country=?,currency=?,time_zone=?,theme=? WHERE id=?")
-        .bind(name, country, currency, timeZone, JSON.stringify(theme), shop.id),
-    ],
+    changed: {
+      from: {
+        name: shop.name,
+        slug: shop.slug,
+        country: shop.country,
+        currency: shop.currency,
+        timeZone: shop.timeZone,
+        theme: shop.theme && JSON.parse(shop.theme),
+      },
+      to: { name, slug, country, currency, timeZone, theme },
+    },
+    statements,
   };
 }
 
@@ -153,7 +195,7 @@ export async function changeShop(
   database: D1Database,
   mutation: ShopMutation,
   input: ShopChange,
-  secrets: AuthSecrets,
+  secrets: AuthSecrets & Pick<Env, "APP_ENV">,
   currencyLocked: boolean,
 ) {
   const state = await prepareShopChange(database, mutation);
@@ -169,8 +211,15 @@ export async function changeShop(
     case "invite":
       return commitShopChange(database, mutation, await inviteChange(database, shop, secrets, input.reason));
     case "feature":
-      return commitShopChange(database, mutation, featureChange(database, shop, input.key, input.enabled));
+      return commitShopChange(database, mutation, await featureChange(database, shop, input.key, input.enabled));
     case "data":
-      return commitShopChange(database, mutation, dataChange(database, shop, input, currencyLocked));
+      try {
+        const prepared = await dataChange(database, shop, input, currencyLocked, secrets.APP_ENV);
+        return await commitShopChange(database, mutation, prepared);
+      } catch (error) {
+        if (!(error instanceof ApiError) && input.slug && input.slug !== shop.slug)
+          await validateAddress(database, input.slug);
+        throw error;
+      }
   }
 }

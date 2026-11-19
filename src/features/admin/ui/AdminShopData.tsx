@@ -8,6 +8,7 @@ import { ThemePicker } from "../../../ui/ThemePicker";
 import type { AdminShop } from "../api";
 import { CountryField, countryName, timeZoneName } from "./RegionFields";
 import { useShopCommand } from "./useShopCommand";
+import { useSlugCheck } from "./useSlugCheck";
 
 const currencyNames = new Intl.DisplayNames("ru", { type: "currency" });
 const currencies = currencyCodes.map((value) => ({ value, label: `${value} · ${currencyNames.of(value) ?? value}` }));
@@ -50,9 +51,10 @@ function InlineSelect({
   );
 }
 
-type Form = { name: string; country: string; currency: string; timeZone: string; theme: ShopTheme };
+type Form = { name: string; slug: string; country: string; currency: string; timeZone: string; theme: ShopTheme };
 const fromShop = (shop: AdminShop): Form => ({
   name: shop.name,
+  slug: shop.slug,
   country: shop.country ?? "",
   currency: shop.currency ?? "",
   timeZone: shop.timeZone ?? "",
@@ -62,6 +64,7 @@ const fromShop = (shop: AdminShop): Form => ({
 export function AdminShopData({ shop }: { shop: AdminShop }) {
   const [form, setForm] = useState<Form>();
   const command = useShopCommand(shop.id);
+  const address = useSlugCheck(form?.slug ?? shop.slug, shop.slug);
   const themeLabel =
     "custom" in shop.theme
       ? shop.theme.custom
@@ -93,7 +96,22 @@ export function AdminShopData({ shop }: { shop: AdminShop }) {
             value={form.name}
             onChange={(event) => change({ name: event.target.value })}
           />
-          <Input label="Адрес витрины" value={shop.slug} readOnly />
+          <Input
+            label="Адрес витрины"
+            value={form.slug}
+            readOnly={shop.status !== "draft"}
+            maxLength={30}
+            autoCapitalize="none"
+            spellCheck={false}
+            error={address.message}
+            hint={address.hint}
+            onChange={(event) => change({ slug: event.target.value })}
+          />
+          {address.failed && (
+            <Button variant="secondary" onClick={address.retry}>
+              Повторить проверку адреса
+            </Button>
+          )}
           <CountryField
             country={form.country}
             change={(country) => {
@@ -120,7 +138,7 @@ export function AdminShopData({ shop }: { shop: AdminShop }) {
             <Button
               type="submit"
               loading={command.pending}
-              disabled={!form.name.trim() || !form.country || !form.currency || !form.timeZone}
+              disabled={!form.name.trim() || !form.country || !form.currency || !form.timeZone || !address.available}
             >
               Сохранить
             </Button>
