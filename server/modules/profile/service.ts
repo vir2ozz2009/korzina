@@ -1,4 +1,5 @@
-import { type AddressCommand, addressKey, type SavedAddress } from "../../../src/shared/contracts/profile";
+import { addressKey } from "../../../src/shared/address-key";
+import type { AddressCommand, SavedAddress } from "../../../src/shared/contracts/profile";
 import { ApiError } from "../../../src/shared/errors";
 import { contactRegion, savePhone } from "../auth/contact";
 import {

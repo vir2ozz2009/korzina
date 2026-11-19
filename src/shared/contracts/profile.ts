@@ -2,16 +2,6 @@ import { z } from "zod";
 import { type DeliveryAddress, receivingInput } from "./receiving";
 
 export type SavedAddress = DeliveryAddress & { id: string; title: string };
-export function addressKey(value: DeliveryAddress) {
-  return JSON.stringify([
-    value.address.toLowerCase().trim().replace(/\s+/gu, " "),
-    value.districtId,
-    value.apartment,
-    value.entrance,
-    value.floor,
-    value.intercom,
-  ]);
-}
 const revision = z.number().int().nonnegative();
 export const profileInput = z.strictObject({
   revision,

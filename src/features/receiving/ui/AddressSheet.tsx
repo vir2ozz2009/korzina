@@ -1,6 +1,7 @@
 import { MapPin } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { addressKey, type SavedAddress } from "../../../shared/contracts/profile";
+import { addressKey } from "../../../shared/address-key";
+import type { SavedAddress } from "../../../shared/contracts/profile";
 import type { DeliveryAddress, Point } from "../../../shared/contracts/receiving";
 import { Button } from "../../../ui/Button";
 import { ListItem } from "../../../ui/ListItem";

@@ -1,6 +1,6 @@
+import { addressKey } from "../../../src/shared/address-key";
 import { cartTotals } from "../../../src/shared/cart-totals";
 import type { Cart, CartCommandInput } from "../../../src/shared/contracts/cart";
-import { addressKey } from "../../../src/shared/contracts/profile";
 import { ApiError } from "../../../src/shared/errors";
 import { addMinor, multiplyMinor } from "../../../src/shared/money";
 import type { CommandIdentity } from "../../middleware/idempotency";

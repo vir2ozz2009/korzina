@@ -1,4 +1,5 @@
-import { addressKey, type SavedAddress } from "../../../src/shared/contracts/profile";
+import { addressKey } from "../../../src/shared/address-key";
+import type { SavedAddress } from "../../../src/shared/contracts/profile";
 import {
   type DeliveryAddress,
   type DeliveryTariff,
