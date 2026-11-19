@@ -11,13 +11,13 @@ import { shopKey } from "../../../shared/shop-api";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { ListItem } from "../../../ui/ListItem";
-import { Radio } from "../../../ui/Radio";
 import { StickyFooter } from "../../../ui/StickyFooter";
 import { ContactSheet, useContact } from "../../contact";
 import { ReceivingTime, useReceiving } from "../../receiving";
 import { type Attempt, usePlaceOrder, useQuote } from "../api";
 import { readAttempt, storeAttempt, storeOrderNumber } from "../session";
 import { PaymentHelp, QuoteChange, TransferInstruction } from "./PaymentExtras";
+import { PaymentMethodPicker } from "./PaymentMethodPicker";
 import { PurchaseTotals } from "./PurchaseTotals";
 import { ReceiptField } from "./ReceiptField";
 import { useReceipt } from "./useReceipt";
@@ -28,7 +28,7 @@ export function PaymentScreen() {
   const receiving = useReceiving();
   const contact = useContact();
   const receipt = useReceipt();
-  const [method, setMethod] = useState<CheckoutCommand["payment"] | undefined>(() =>
+  const [selected, selectMethod] = useState<CheckoutCommand["payment"] | undefined>(() =>
     receipt.draft?.bound ? "transfer" : undefined,
   );
   const [timeOpen, setTimeOpen] = useState(false);
@@ -41,7 +41,6 @@ export function PaymentScreen() {
   const readyReceiving = !!receiving.data?.receiving;
   const query = useQuote(receiving.data?.revision, contact.data, !attempt && readyContact && readyReceiving);
   const quote = query.data;
-  const selected = method ?? quote?.paymentSettings.methods[0];
   const available = selected && quote?.paymentSettings.methods.includes(selected);
   const busy = !!attempt || place.isPending || receipt.pending;
   const needsAccept = !!(before && quote && before.quoteRevision !== quote.quoteRevision);
@@ -197,19 +196,12 @@ export function PaymentScreen() {
                   }}
                 />
               )}
-              <Card>
-                <h2 className="text-title-3">Способ оплаты</h2>
-                <fieldset aria-label="Способ оплаты" disabled={busy}>
-                  {quote.paymentSettings.methods.map((item) => (
-                    <Radio
-                      key={item}
-                      name="payment"
-                      checked={item === selected}
-                      label={item === "cash" ? "Наличные" : "Перевод"}
-                      onChange={() => setMethod(item)}
-                    />
-                  ))}
-                </fieldset>
+              <PaymentMethodPicker
+                available={quote.paymentSettings.methods}
+                selected={available ? selected : undefined}
+                disabled={busy}
+                select={selectMethod}
+              >
                 {selected === "transfer" && available && (
                   <>
                     <TransferInstruction key={quote.paymentSettings.qrSrc} {...quote.paymentSettings} />
@@ -220,7 +212,7 @@ export function PaymentScreen() {
                     />
                   </>
                 )}
-              </Card>
+              </PaymentMethodPicker>
               <ContactSheet mode={contactOpen ? "phone" : undefined} close={() => setContactOpen(false)} />
             </>
           )}
