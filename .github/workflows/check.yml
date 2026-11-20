@@ -19,26 +19,58 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Classify pull request changes
+        id: scope
+        shell: bash
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          changed_files="$RUNNER_TEMP/check-changed-files"
+          git diff --no-renames --name-only -z "$PR_BASE_SHA...$PR_HEAD_SHA" > "$changed_files"
+          full_check=false
+          if [[ ! -s "$changed_files" ]]; then
+            full_check=true
+          fi
+          while IFS= read -r -d '' path; do
+            case "$path" in
+              docs/*|AGENTS.md) ;;
+              *) full_check=true; break ;;
+            esac
+          done < "$changed_files"
+          printf 'full_check=%s\n' "$full_check" >> "$GITHUB_OUTPUT"
+          if [[ "$full_check" == false ]]; then
+            echo 'Documentation-only pull request. Check completed without tests.'
+          fi
       - uses: actions/setup-node@v4
+        if: steps.scope.outputs.full_check == 'true'
         with:
           node-version-file: .node-version
           cache: npm
       - run: node scripts/check-pr-size.ts
+        if: steps.scope.outputs.full_check == 'true'
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       - run: npm ci
+        if: steps.scope.outputs.full_check == 'true'
       - run: npm run check
+        if: steps.scope.outputs.full_check == 'true'
       - run: npx playwright install --with-deps chromium
+        if: steps.scope.outputs.full_check == 'true'
       - run: npm run platform:setup -- --local --seed
+        if: steps.scope.outputs.full_check == 'true'
       - run: node scripts/built-demo-smoke.ts
+        if: steps.scope.outputs.full_check == 'true'
       - run: node scripts/wait-for-preview.ts
+        if: steps.scope.outputs.full_check == 'true'
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       - run: npm run test:e2e -- --grep-invert @home-cart
+        if: steps.scope.outputs.full_check == 'true'
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.scope.outputs.full_check == 'true'
         with:
           name: pr-browser-result
           path: test-results/
