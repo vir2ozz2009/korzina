@@ -1,7 +1,15 @@
+import type { CatalogCategorySize } from "../../../src/shared/contracts/catalog";
 import { documentImage } from "./images";
 import { mediaJsonSql } from "./queries";
 
-type NavigationRow = { id: string; name: string; parentId: string | null; photo: string | null; hasProducts: number };
+type NavigationRow = {
+  id: string;
+  name: string;
+  parentId: string | null;
+  photo: string | null;
+  hasProducts: number;
+  tileSize: CatalogCategorySize | null;
+};
 const visibleProduct = `p.published=1 AND p.visible=1 AND EXISTS(SELECT 1 FROM variants v WHERE v.product_id=p.id AND v.visible=1)`;
 const ownPhoto = `(SELECT ${mediaJsonSql} FROM media m WHERE m.id=n.photoId AND m.ready=1 AND m.status='attached')`;
 const productPhoto = (condition: string) => `(SELECT ${mediaJsonSql} FROM products p
@@ -10,13 +18,13 @@ const productPhoto = (condition: string) => `(SELECT ${mediaJsonSql} FROM produc
 const categoryProducts = "p.category_id IN (SELECT id FROM descendants WHERE root=n.id)";
 
 export const categoriesSql = `WITH RECURSIVE navigation AS (
-  SELECT id,name,parent_id AS parentId,photo_id AS photoId,position FROM categories WHERE visible=1 AND parent_id IS NULL AND id<>'__uncategorized__'
-  UNION ALL SELECT c.id,c.name,c.parent_id,c.photo_id,c.position FROM categories c JOIN navigation n ON c.parent_id=n.id WHERE c.visible=1),
+  SELECT id,name,parent_id AS parentId,photo_id AS photoId,position,tile_size AS tileSize FROM categories WHERE visible=1 AND parent_id IS NULL AND id<>'__uncategorized__'
+  UNION ALL SELECT c.id,c.name,c.parent_id,c.photo_id,c.position,c.tile_size FROM categories c JOIN navigation n ON c.parent_id=n.id WHERE c.visible=1),
   descendants(root,id) AS (SELECT id,id FROM navigation UNION ALL SELECT d.root,n.id FROM navigation n JOIN descendants d ON n.parentId=d.id)
-  SELECT n.id,n.name,n.parentId,EXISTS(SELECT 1 FROM products p WHERE ${visibleProduct} AND ${categoryProducts}) AS hasProducts,
+  SELECT n.id,n.name,n.parentId,n.tileSize,EXISTS(SELECT 1 FROM products p WHERE ${visibleProduct} AND ${categoryProducts}) AS hasProducts,
   COALESCE(${ownPhoto},${productPhoto(categoryProducts)}) AS photo FROM navigation n ORDER BY n.position,n.id`;
 export const brandsSql = `WITH navigation AS (SELECT id,name,photo_id AS photoId,position FROM brands WHERE visible=1)
-  SELECT n.id,n.name,NULL AS parentId,EXISTS(SELECT 1 FROM products p WHERE ${visibleProduct} AND p.brand_id=n.id) AS hasProducts,
+  SELECT n.id,n.name,NULL AS parentId,NULL AS tileSize,EXISTS(SELECT 1 FROM products p WHERE ${visibleProduct} AND p.brand_id=n.id) AS hasProducts,
   COALESCE(${ownPhoto},${productPhoto("p.brand_id=n.id")}) AS photo FROM navigation n ORDER BY n.position,n.id`;
 
 export function readNavigation(storage: DurableObjectStorage, shopId: string) {
@@ -24,8 +32,9 @@ export function readNavigation(storage: DurableObjectStorage, shopId: string) {
     storage.sql
       .exec<NavigationRow>(sql)
       .toArray()
-      .map(({ photo, hasProducts, ...row }) => ({
+      .map(({ photo, hasProducts, tileSize, ...row }) => ({
         ...row,
+        ...(tileSize && { tileSize }),
         hasProducts: Boolean(hasProducts),
         image: documentImage(photo, shopId),
       }));

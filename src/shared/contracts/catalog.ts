@@ -48,10 +48,13 @@ const offer = z.object({
 });
 export type CatalogOffer = z.infer<typeof offer>;
 
+const categorySize = z.enum(["1x1", "2x1", "1x2", "2x2"]);
+export type CatalogCategorySize = z.infer<typeof categorySize>;
 const section = z.object({
   id,
   name: z.string(),
   parentId: id.nullable(),
+  tileSize: categorySize.optional(),
   hasProducts: z.boolean(),
   image: catalogImageContract.nullable(),
 });

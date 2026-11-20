@@ -12,10 +12,10 @@ import { catalogVersion, sellerProduct } from "./products-read";
 
 type Shop = ShopEnv["Bindings"];
 const notFound = () => new ApiError("NOT_FOUND", "Товар не найден");
-function requireRevision(revision: number, expected: number | undefined) {
+export function requireRevision(revision: number, expected: number | undefined) {
   if (revision !== expected) throw new ApiError("VERSION_CONFLICT", "Данные изменились", { revision });
 }
-function requireGroup(storage: DurableObjectStorage, table: "categories" | "brands", id: string) {
+export function requireGroup(storage: DurableObjectStorage, table: "categories" | "brands", id: string) {
   if (id === uncategorizedId || !storage.sql.exec(`SELECT 1 FROM ${table} WHERE id=?`, id).toArray().length)
     throw new ApiError("VALIDATION", "Выберите существующий раздел", {
       field: table === "brands" ? "brandId" : "categoryId",

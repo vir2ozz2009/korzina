@@ -46,19 +46,24 @@ export function selectionConditions(input: CatalogListInput) {
   for (const category of [input.scope.startsWith("category:") ? input.scope.slice(9) : undefined, input.cat]) {
     if (!category) continue;
     clauses.push(`p.category_id IN (WITH RECURSIVE subtree(id) AS (
-      SELECT id FROM categories WHERE id=? AND visible=1
+      SELECT id FROM categories WHERE id=? AND visible=1 AND NOT EXISTS(
+        WITH RECURSIVE ancestors(id,parent_id,visible) AS (
+          SELECT id,parent_id,visible FROM categories WHERE id=?
+          UNION SELECT c.id,c.parent_id,c.visible FROM categories c JOIN ancestors a ON a.parent_id=c.id
+        ) SELECT 1 FROM ancestors WHERE visible=0
+      )
       UNION SELECT c.id FROM categories c JOIN subtree s ON c.parent_id=s.id WHERE c.visible=1
     ) SELECT id FROM subtree)`);
-    params.push(category);
+    params.push(category, category);
   }
   if (input.scope.startsWith("brand:")) {
-    clauses.push("p.brand_id=?");
+    clauses.push("p.brand_id IN (SELECT id FROM brands WHERE id=? AND visible=1)");
     params.push(input.scope.slice(6));
   }
   if (input.brands) {
     const ids = [...new Set(input.brands.split(",").filter(Boolean))];
     if (ids.length) {
-      clauses.push(`p.brand_id IN (${ids.map(() => "?").join(",")})`);
+      clauses.push(`p.brand_id IN (SELECT id FROM brands WHERE visible=1 AND id IN (${ids.map(() => "?").join(",")}))`);
       params.push(...ids);
     }
   }

@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { categoryMosaic } from "../../../shared/catalog/mosaic";
+import type { CatalogCategorySize } from "../../../shared/contracts/catalog";
 import { BrandTile } from "../../../ui/BrandTile";
 import { CategoryRail } from "../../../ui/CategoryRail";
 import { CategoryTile } from "../../../ui/CategoryTile";
@@ -9,7 +11,7 @@ import { SectionHeader } from "../../../ui/SectionHeader";
 export interface HomeViewProps {
   onAllProducts?: () => void;
   allProductsHref?: string;
-  categories: { id: string; name: string; image?: ProductImageValue }[];
+  categories: { id: string; name: string; image?: ProductImageValue; tileSize?: CatalogCategorySize }[];
   products: (ProductTileProps & { id: string })[];
   moreProducts?: ReactNode;
   brands: { id: string; name: string; image?: ProductImageValue | null }[];
@@ -29,14 +31,14 @@ export function HomeView({
         <section className="space-y-2">
           <SectionHeader title="Категории" href="/categories" />
           <CategoryRail>
-            {categories.map((category, index) => (
+            {categoryMosaic(categories).map(({ category, size, column, row }) => (
               <CategoryTile
                 key={category.id}
                 {...category}
                 href={`/c/${encodeURIComponent(category.id)}`}
-                size={index % 4 === 0 || index % 4 === 3 ? "2x1" : "1x1"}
-                column={[1, 3, 1, 2][index % 4] + Math.floor(index / 4) * 3}
-                row={[1, 1, 2, 2][index % 4]}
+                size={size}
+                column={column}
+                row={row}
               />
             ))}
           </CategoryRail>
