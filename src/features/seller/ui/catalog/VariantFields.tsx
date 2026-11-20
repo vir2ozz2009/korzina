@@ -34,8 +34,7 @@ export function variantDraft(currency: string, row?: SellerVariant): VariantDraf
   };
 }
 
-export function variantInput(row: VariantDraft, currency: string, multiple: boolean) {
-  if (multiple && !row.name.trim()) throw new Error("Укажите название каждой фасовки");
+export function variantInput(row: VariantDraft, currency: string) {
   const priceMinor = parseMinorInput(row.price, currency);
   const oldPriceMinor = row.oldPrice ? parseMinorInput(row.oldPrice, currency) : null;
   if (priceMinor === undefined || oldPriceMinor === undefined) throw new Error("Укажите корректную цену");
