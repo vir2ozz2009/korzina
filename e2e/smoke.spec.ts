@@ -3,6 +3,8 @@ import { checkContent } from "./content";
 import { cartClick } from "./home-cart";
 import { expectCategoryFrames, expectSquarePhotos } from "./photo-frames";
 
+const isCart = (url: URL) => url.pathname === "/api/cart";
+
 async function checkWidths(page: Page, screen?: "home" | "product") {
   if (screen) await checkContent(page, screen);
   for (const width of [360, 412]) {
@@ -69,7 +71,7 @@ test("витрина своего магазина → фасовка/корзи
     releaseFirst = resolve;
   });
   const revisions: number[] = [];
-  await page.route("**/api/cart?**", async (route) => {
+  await page.route(isCart, async (route) => {
     if (route.request().method() === "POST") {
       revisions.push(route.request().postDataJSON().expectedRevision);
       if (revisions.length === 1) await held;
@@ -78,7 +80,10 @@ test("витрина своего магазина → фасовка/корзи
   });
   // This variant has room for the later quantity changes even when demo stock is low on the first pack.
   const tomatoPack = variants.locator("div.rounded-lg").filter({ has: page.getByText("500 г", { exact: true }) });
+  const guest = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/auth/guest");
   await tomatoPack.getByRole("button", { name: "Добавить в корзину", exact: true }).click();
+  const session = await guest;
+  expect(session.ok(), `Сессия покупателя перед записью корзины: HTTP ${session.status()}`).toBe(true);
   await expect.poll(() => revisions.length).toBe(1);
   await page.goBack();
   await expect(variants).toHaveCount(0);
@@ -139,7 +144,7 @@ test("витрина своего магазина → фасовка/корзи
   const holdCheck = new Promise<void>((resolve) => {
     finishCheck = resolve;
   });
-  await page.route("**/api/cart?shop=test2", async (route) => {
+  await page.route(isCart, async (route) => {
     if (route.request().method() === "GET") await holdCheck;
     await route.continue();
   });
