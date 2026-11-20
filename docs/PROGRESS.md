@@ -10,7 +10,7 @@
 Порядок — `docs/specs/README.md` «Стандартный порядок блока». Карточки S2, S3 сверены, решения Андрея 20.11.2026 — в `docs/tasks/S2.md`.
 
 - [x] Подготовлена [спецификация каталога продавца](specs/seller-catalog.md) по S2 и S3. Андрей подтвердил [ответы §11 на вопросы §10](specs/seller-catalog.md#11-ответы-андрея-на-10-20112026).
-- [x] Собран [холст «Блок 6 · Каталог продавца»](https://designs.magicpath.ai/v1/calmly-path-7720), ревизия `474482842018152448`, main `7abf0d8`. [Отчёт и проверки](progress/seller-catalog-canvas.md). **СТОП:** «Одобряю холст».
+- [x] Обновлён [холст «Блок 6 · Каталог продавца»](https://designs.magicpath.ai/v1/calmly-path-7720) по §12. Ревизия `474494543119683584`, main `f08c82f`. [Отчёт и проверки](progress/seller-catalog-canvas.md#правки-12). **СТОП:** «Одобряю холст».
 - [ ] Сервер S2 → S3, затем экраны, demo, smoke.
 - [ ] **СТОП:** чек-лист локальной проверки `docs/progress/seller-catalog-local-check.md` → «➡️ Локальный Codex».
 
