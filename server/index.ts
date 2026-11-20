@@ -5,7 +5,7 @@ import { isDevelopmentHost } from "./development";
 import { serveHtml } from "./html";
 import { handleError, notFound } from "./middleware/errors";
 import { apiMetrics } from "./middleware/metrics";
-import { RateLimiter, rateLimit } from "./middleware/rate-limit";
+import { apiRateLimit } from "./middleware/rate-limit";
 import { requestId } from "./middleware/request-id";
 import { guestCart } from "./modules/cart/guest";
 import { catalogGateway } from "./modules/catalog/gateway";
@@ -41,10 +41,7 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
   .onError(handleError)
   .use("*", requestId)
   .use("*", apiMetrics)
-  .use(
-    "*",
-    rateLimit(new RateLimiter(), (request) => request.headers.get("CF-Connecting-IP") ?? "local"),
-  )
+  .use("*", apiRateLimit)
   .get("/health", (c) => c.json({ ok: true }))
   .get("/media-public/:shop/:id/:name", (c) =>
     localPublicMedia(c.req.raw, c.env, c.req.param("shop"), c.req.param("id"), c.req.param("name")),

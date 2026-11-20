@@ -39,7 +39,7 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium
       - run: node scripts/wait-for-demo.ts
       - run: npm run test:e2e -- --grep-invert @home-cart
         env:
