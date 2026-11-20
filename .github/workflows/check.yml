@@ -11,12 +11,8 @@ concurrency:
   group: check-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 jobs:
-  suite:
+  check:
     if: github.event.pull_request.draft == false && startsWith(github.head_ref, 'task/')
-    strategy:
-      fail-fast: false
-      matrix:
-        scenario: [storefront, purchase]
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:
@@ -28,41 +24,22 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: node scripts/check-pr-size.ts
-        if: matrix.scenario == 'storefront'
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       - run: npm ci
       - run: npm run check
-        if: matrix.scenario == 'storefront'
-      # The Ubuntu runner already has Chromium's shared libraries.
-      - run: npx playwright install chromium
+      - run: npx playwright install --with-deps chromium
       - run: npm run platform:setup -- --local --seed
-        if: matrix.scenario == 'storefront'
       - run: node scripts/built-demo-smoke.ts
-        if: matrix.scenario == 'storefront'
       - run: node scripts/wait-for-preview.ts
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      # B10 and the storefront use separate runner IPs for the demo API rate limit.
-      - run: npm run test:e2e -- --grep-invert '@home-cart|B10:'
-        if: matrix.scenario == 'storefront'
-      - run: npm run test:e2e -- --grep 'B10:'
-        if: matrix.scenario == 'purchase'
+      - run: npm run test:e2e -- --grep-invert @home-cart
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: pr-browser-result-${{ matrix.scenario }}
+          name: pr-browser-result
           path: test-results/
           retention-days: 7
-
-  check:
-    if: always() && github.event.pull_request.draft == false && startsWith(github.head_ref, 'task/')
-    needs: suite
-    runs-on: ubuntu-latest
-    timeout-minutes: 1
-    steps:
-      - run: test "$SUITE_RESULT" = success
-        env:
-          SUITE_RESULT: ${{ needs.suite.result }}

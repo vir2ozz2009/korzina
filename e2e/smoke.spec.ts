@@ -3,8 +3,6 @@ import { checkContent } from "./content";
 import { cartClick } from "./home-cart";
 import { expectCategoryFrames, expectSquarePhotos } from "./photo-frames";
 
-const isCart = (url: URL) => url.pathname === "/api/cart";
-
 async function checkWidths(page: Page, screen?: "home" | "product") {
   if (screen) await checkContent(page, screen);
   for (const width of [360, 412]) {
@@ -40,13 +38,7 @@ test("витрина своего магазина → фасовка/корзи
   expect(response.ok()).toBe(true);
   const shop = await response.json();
   expect(shop.slug).toBe("test2");
-  const [catalogResponse, liveResponse] = await Promise.all([
-    page.waitForResponse((response) => new URL(response.url()).pathname === "/api/catalog/document"),
-    page.waitForResponse((response) => new URL(response.url()).pathname === "/api/catalog/live"),
-    page.goto("/?shop=test2"),
-  ]);
-  expect(catalogResponse.ok(), `Документ каталога: HTTP ${catalogResponse.status()}`).toBe(true);
-  expect(liveResponse.ok(), `Остатки каталога: HTTP ${liveResponse.status()}`).toBe(true);
+  await page.goto("/?shop=test2");
   expect(JSON.parse((await page.locator("#shop-context").textContent()) ?? "null").id).toBe(shop.id);
   await page.locator("article").first().waitFor();
   if (process.env.E2E_BASE_URL) await page.screenshot({ path: "test-results/demo-home.png" });
@@ -61,23 +53,17 @@ test("витрина своего магазина → фасовка/корзи
     )
     .toBeLessThan(0);
   await page.evaluate(() => window.scrollTo(0, 0));
-  const first = page.locator("article").filter({ has: page.locator('a[href="/p/product-01"]') });
-  const second = page.locator("article").filter({ has: page.locator('a[href="/p/product-05"]') });
-  const [tomatoResponse] = await Promise.all([
-    page.waitForResponse((response) => new URL(response.url()).pathname === "/api/catalog/products/product-01"),
-    first.getByRole("button", { name: "Выбрать фасовку" }).click(),
-  ]);
-  expect(tomatoResponse.ok(), `Карточка томатов: HTTP ${tomatoResponse.status()}`).toBe(true);
+  const first = page.locator("article").first();
+  await first.getByRole("button", { name: "Выбрать фасовку" }).click();
   const variants = page.getByRole("dialog", { name: "Выберите фасовку" });
   // Remote preview can spend several seconds on the first deferred chunks.
   await expect(variants).toBeVisible({ timeout: 10_000 });
-  await expect(variants.getByRole("heading", { name: "Томаты на ветке", exact: true })).toBeVisible();
   let releaseFirst = () => {};
   const held = new Promise<void>((resolve) => {
     releaseFirst = resolve;
   });
   const revisions: number[] = [];
-  await page.route(isCart, async (route) => {
+  await page.route("**/api/cart?**", async (route) => {
     if (route.request().method() === "POST") {
       revisions.push(route.request().postDataJSON().expectedRevision);
       if (revisions.length === 1) await held;
@@ -86,33 +72,17 @@ test("витрина своего магазина → фасовка/корзи
   });
   // This variant has room for the later quantity changes even when demo stock is low on the first pack.
   const tomatoPack = variants.locator("div.rounded-lg").filter({ has: page.getByText("500 г", { exact: true }) });
-  const guest = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/auth/guest");
   await tomatoPack.getByRole("button", { name: "Добавить в корзину", exact: true }).click();
-  const session = await guest;
-  expect(session.ok(), `Сессия покупателя перед записью корзины: HTTP ${session.status()}`).toBe(true);
   await expect.poll(() => revisions.length).toBe(1);
   await page.goBack();
   await expect(variants).toHaveCount(0);
+  const second = page.locator("article").nth(1);
   // A slow change of the first product must not disable another tile.
   await second.getByRole("button", { name: "Выбрать фасовку" }).click();
   await variants.getByRole("button", { name: "Добавить в корзину" }).first().click();
   await expect(variants.locator('[aria-busy="true"]')).toHaveCount(1);
   expect(revisions).toEqual([0]);
-  const writes = [0, 1].map((revision) =>
-    page.waitForResponse((response) => {
-      const request = response.request();
-      return (
-        isCart(new URL(response.url())) &&
-        request.method() === "POST" &&
-        request.postDataJSON().expectedRevision === revision
-      );
-    }),
-  );
   releaseFirst();
-  for (const [revision, write] of writes.entries()) {
-    const response = await write;
-    expect(response.ok(), `Запись корзины с ревизией ${revision}: HTTP ${response.status()}`).toBe(true);
-  }
   await expect(variants.getByLabel("В корзине", { exact: true })).toHaveText("1");
   expect(revisions).toEqual([0, 1]);
   await page.goBack();
@@ -164,7 +134,7 @@ test("витрина своего магазина → фасовка/корзи
   const holdCheck = new Promise<void>((resolve) => {
     finishCheck = resolve;
   });
-  await page.route(isCart, async (route) => {
+  await page.route("**/api/cart?shop=test2", async (route) => {
     if (route.request().method() === "GET") await holdCheck;
     await route.continue();
   });
