@@ -1,11 +1,16 @@
-import { expect, test } from "@playwright/test";
+import { type BrowserContext, expect, test } from "@playwright/test";
 
 test("Блок 6: товар с новой категорией сохраняется, витрина обновляется, пауза сохраняет остаток", async ({
   browser,
   baseURL,
 }) => {
   test.skip(!baseURL?.startsWith("http://127.0.0.1"), "Тест использует локальную сессию продавца");
-  const seller = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
+  const viewport = { width: 390, height: 844 };
+  const seller = await browser.newContext({
+    baseURL,
+    viewport,
+    extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.83" },
+  });
   const buyer = await browser.newContext({ baseURL });
   try {
     expect((await seller.request.post("/__e2e/test2/seller")).status()).toBe(204);
@@ -68,7 +73,83 @@ test("Блок 6: товар с новой категорией сохраняе
     await expect(tile).toHaveAttribute("data-size", wasLarge ? "1x1" : "2x2");
     await page.getByRole("button", { name: "Сохранить", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Ещё" })).toBeVisible();
+    const editor = await browser.newContext({
+      baseURL,
+      viewport,
+      storageState: await seller.storageState(),
+      extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.84" },
+    });
+    try {
+      await checkProductEditor(editor, { id: product.id, name });
+    } finally {
+      await editor.close();
+    }
   } finally {
     await Promise.all([seller.close(), buyer.close()]);
   }
 });
+
+async function checkProductEditor(seller: BrowserContext, product: { id: string; name: string }) {
+  const page = await seller.newPage();
+  const search = new URLSearchParams({ shop: "test2", store: "test2", q: product.name });
+  await page.goto(`/seller/products?${search}`);
+  const productRow = page.getByRole("button", { name: new RegExp(product.name) });
+  const save = page.getByRole("button", { name: "Сохранить", exact: true });
+  await test.step("06 · повторное открытие берёт сохранённый режим и ревизию", async () => {
+    await productRow.click();
+    await expect(page.getByRole("radio", { name: "Автоматически" })).toBeChecked();
+    const detail = `**/api/seller/catalog/products/${product.id}?*`;
+    let releaseRefresh = () => {};
+    const refresh = new Promise<void>((resolve) => {
+      releaseRefresh = resolve;
+    });
+    await page.route(detail, async (route) => {
+      if (route.request().method() === "GET") await refresh;
+      await route.continue();
+    });
+    try {
+      const manual = page.getByRole("radio", { name: "Выбрать вручную" });
+      await manual.check();
+      await save.click();
+      await productRow.click();
+      await expect(manual.or(page.locator('main [aria-busy="true"]')).first()).toBeAttached();
+      releaseRefresh();
+      await expect(manual).toBeChecked({ timeout: 2000 });
+      await page.getByRole("radio", { name: "Выключены" }).check();
+      await save.click();
+      await expect(productRow).toBeVisible();
+      const saved = await seller.request.get(`/api/seller/catalog/products/${product.id}?store=test2`);
+      expect(await saved.json()).toMatchObject({ recommendations: "off" });
+    } finally {
+      releaseRefresh();
+      await page.unroute(detail);
+    }
+  });
+  await test.step("11 · пустое и повторяющееся названия отмечаются в поле фасовки", async () => {
+    await productRow.click();
+    const variantName = page.getByRole("textbox", { name: "Название фасовки" });
+    await expect(page.getByRole("textbox", { name: "Цена", exact: true })).toBeVisible();
+    await expect(variantName).toHaveCount(0);
+    await page.getByRole("button", { name: "Фасовка", exact: true }).click();
+    await page.getByLabel("Цена", { exact: true }).fill("30000");
+    await page.getByRole("switch", { name: "Без лимита" }).check();
+    const done = page.getByRole("button", { name: "Готово", exact: true });
+    await done.click();
+    await save.click();
+    await expect(variantName).toHaveAttribute("aria-invalid", "true", { timeout: 2000 });
+    await variantName.fill("Бутылка");
+    await done.click();
+    await page.getByRole("button", { name: /Название фасовки/ }).click();
+    await variantName.fill(" бутылка ");
+    await done.click();
+    await save.click();
+    await expect(variantName).toHaveAttribute("aria-invalid", "true");
+    await expect(variantName).toHaveValue(" бутылка ");
+    await variantName.fill("Большая");
+    await done.click();
+    await save.click();
+    await expect(productRow).toBeVisible();
+    const saved = await seller.request.get(`/api/seller/catalog/products/${product.id}?store=test2`);
+    expect(await saved.json()).toMatchObject({ variants: [{ name: "Бутылка" }, { name: "Большая" }] });
+  });
+}

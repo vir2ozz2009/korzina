@@ -2,6 +2,7 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "../../../../app/shell/ToastProvider";
 import type { SellerProduct, SellerProductInput, SellerStockInput } from "../../../../shared/contracts/seller-catalog";
+import { HttpError } from "../../../../shared/http-error";
 import { Button } from "../../../../ui/Button";
 import { Card } from "../../../../ui/Card";
 import { Dialog } from "../../../../ui/Dialog";
@@ -43,7 +44,7 @@ export function ProductEditor({
     () => initial?.variants.map((row) => variantDraft(currency, row)) ?? [variantDraft(currency)],
   );
   const [initialVariants] = useState(variants);
-  const [editing, setEditing] = useState<{ index: number; value: VariantDraft }>();
+  const [editing, setEditing] = useState<{ index: number; value: VariantDraft; nameError?: string }>();
   const [pause, setPause] = useState<SellerProductInput["pause"]>();
   const [modal, setModal] = useState<Modal>();
   const [error, setError] = useState("");
@@ -71,6 +72,11 @@ export function ProductEditor({
   function patchVariant(index: number, update: Partial<VariantDraft>) {
     setVariants((current) => current.map((row, i) => (i === index ? { ...row, ...update } : row)));
     setError("");
+  }
+  function showVariantNameError(index: number, message: string) {
+    setError("");
+    save.reset();
+    setEditing({ index, value: variants[index], nameError: message });
   }
   function pickStatus(status: typeof text.status) {
     if (status === text.status) return;
@@ -102,7 +108,12 @@ export function ProductEditor({
     }
     try {
       if (!text.name.trim()) throw new Error("Введите название");
-      const pack = variants.map((row) => variantInput(row, currency, variants.length > 1));
+      const unnamed = variants.length > 1 ? variants.findIndex((row) => !row.name.trim()) : -1;
+      if (unnamed !== -1) {
+        showVariantNameError(unnamed, "Укажите название фасовки");
+        return;
+      }
+      const pack = variants.map((row) => variantInput(row, currency));
       setError("");
       save.mutate(
         {
@@ -117,6 +128,15 @@ export function ProductEditor({
           },
         },
         {
+          onError: (error) => {
+            if (!(error instanceof HttpError)) return;
+            const { details } = error;
+            if (!details || typeof details !== "object" || !("index" in details)) return;
+            const { index } = details;
+            if (typeof index !== "number" || !variants[index]) return;
+            if (error.code === "DUPLICATE_VARIANT_NAME" || ("field" in details && details.field === "variantName"))
+              showVariantNameError(index, error.message);
+          },
           onSuccess: (result) => {
             if (result.conflicts.length) {
               setBaseline(result.product);
@@ -178,7 +198,14 @@ export function ProductEditor({
             multiple
             disabled={disabled}
             sale
-            patch={(patch) => setEditing({ ...editing, value: { ...editing.value, ...patch } })}
+            error={editing.nameError}
+            patch={(patch) =>
+              setEditing({
+                ...editing,
+                value: { ...editing.value, ...patch },
+                nameError: patch.name === undefined ? editing.nameError : undefined,
+              })
+            }
           />
           <div className="grid grid-cols-2 gap-2">
             <Button variant="secondary" onClick={() => setEditing(undefined)}>

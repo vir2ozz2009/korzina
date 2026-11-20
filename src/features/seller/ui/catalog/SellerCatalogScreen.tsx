@@ -206,6 +206,7 @@ function CatalogContent({
   if (type === "products")
     return id ? (
       <ProductRoute
+        key={`${store}:${id}`}
         store={store}
         id={id}
         currency={currency}
@@ -226,10 +227,13 @@ function CatalogContent({
 type EditorRoute = { store: string; id: string; canWrite: boolean; storefront: string; frame: CatalogFrame };
 function ProductRoute({ id, frame, ...props }: EditorRoute & { currency: string }) {
   const query = useCatalogProduct(props.store, id === "new" ? undefined : id);
+  // An editor takes its draft and revision from its first snapshot.
+  const [needsRefresh] = useState(query.isStale);
   if (id === "new") return <ProductEditor {...props} frame={frame} />;
-  if (query.data && !query.isError) return <ProductEditor {...props} frame={frame} initial={query.data} />;
+  if (query.data && !query.isError && (!needsRefresh || query.isFetchedAfterMount))
+    return <ProductEditor {...props} frame={frame} initial={query.data} />;
   return frame(
-    <QueryBoundary query={query} template="form">
+    <QueryBoundary query={{ ...query, data: undefined, isPending: !query.isError }} template="form">
       {() => null}
     </QueryBoundary>,
   );
