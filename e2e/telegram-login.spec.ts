@@ -165,8 +165,10 @@ test("BL-5: Mini App signs in with initData without opening the login sheet", as
 });
 
 test("§9.12: a seller can open the selected shop in Telegram Web without cookies", async ({ page, baseURL }) => {
-  const parent = "https://web.telegram.org/korzina-cabinet-fixture";
   const cabinetUrl = new URL("/seller?shop=test2&store=test2", baseURL);
+  // Chromium blocks public origins from framing loopback. Keep the fixture cross-site locally too.
+  const parentOrigin = cabinetUrl.hostname === "127.0.0.1" ? "http://localhost" : "https://web.telegram.org";
+  const parent = `${parentOrigin}/korzina-cabinet-fixture`;
   const token = "c".repeat(64);
   const shop = {
     slug: "test2",

@@ -27,19 +27,22 @@ describe("лимит запросов", () => {
     expect(await response.json()).toMatchObject({ error: { code: "RATE_LIMITED" } });
   });
   it.each([
-    ["production", 120],
-    ["demo", 120],
-    ["preview", 240],
-  ] as const)("BL-8 · %s ограничивает общий API после %i запросов с одного IP", async (APP_ENV, limit) => {
-    const app = new Hono<{ Bindings: Pick<Env, "APP_ENV"> }>()
+    { APP_ENV: "production", LOCAL_E2E: "1", limit: 120 },
+    { APP_ENV: "demo", LOCAL_E2E: "0", limit: 120 },
+    { APP_ENV: "preview", LOCAL_E2E: "0", limit: 240 },
+    { APP_ENV: "demo", LOCAL_E2E: "1", limit: 240 },
+  ] as const)("BL-8 · $APP_ENV (LOCAL_E2E=$LOCAL_E2E) ограничивает API после $limit запросов", async (testCase) => {
+    const { APP_ENV, LOCAL_E2E, limit } = testCase;
+    const bindings = { APP_ENV, LOCAL_E2E };
+    const app = new Hono<{ Bindings: typeof bindings }>()
       .onError(handleError)
       .use("*", apiRateLimit)
       .get("/", (c) => c.body(null, 204));
-    const headers = { "CF-Connecting-IP": `test-client-${APP_ENV}` };
+    const headers = { "CF-Connecting-IP": `test-client-${APP_ENV}-${LOCAL_E2E}` };
     for (let count = 0; count < limit; count++) {
-      expect((await app.request("/", { headers }, { APP_ENV })).status).toBe(204);
+      expect((await app.request("/", { headers }, bindings)).status).toBe(204);
     }
-    const response = await app.request("/", { headers }, { APP_ENV });
+    const response = await app.request("/", { headers }, bindings);
     expect(response.status).toBe(429);
     expect(await response.json()).toMatchObject({ error: { code: "RATE_LIMITED" } });
   });

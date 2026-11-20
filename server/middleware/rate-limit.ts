@@ -40,8 +40,10 @@ export function rateLimit(limiter: RateLimiter, identity: (request: Request) => 
 const clientIp = (request: Request) => request.headers.get("CF-Connecting-IP") ?? "local";
 const standardApiLimit = rateLimit(new RateLimiter(), clientIp);
 // The browser suite shares a single runner IP and reached 138 API requests in a minute.
-const previewApiLimit = rateLimit(new RateLimiter(240), clientIp);
+const browserSuiteApiLimit = rateLimit(new RateLimiter(240), clientIp);
 
-export const apiRateLimit = createMiddleware<{ Bindings: Pick<Env, "APP_ENV"> }>((c, next) =>
-  (c.env.APP_ENV === "preview" ? previewApiLimit : standardApiLimit)(c, next),
-);
+export const apiRateLimit = createMiddleware<{ Bindings: Pick<Env, "APP_ENV" | "LOCAL_E2E"> }>((c, next) => {
+  const { APP_ENV, LOCAL_E2E } = c.env;
+  const browserSuite = APP_ENV === "preview" || (APP_ENV === "demo" && LOCAL_E2E === "1");
+  return (browserSuite ? browserSuiteApiLimit : standardApiLimit)(c, next);
+});
