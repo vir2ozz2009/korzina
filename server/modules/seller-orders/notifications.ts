@@ -3,6 +3,7 @@ import { decryptBotToken } from "../../auth/bot-token";
 import type { AuthSecrets } from "../../auth/config";
 import { TelegramRequestError, telegramApi } from "../../auth/telegram-api";
 import { managedBot } from "../../platform/admin/shop-bot";
+import { calendarDate, scheduleClock } from "../fulfillment/schedule";
 
 type Queued = {
   event_key: string;
@@ -71,7 +72,7 @@ export async function sendOrderNotifications(storage: DurableObjectStorage, env:
       const claim = storage.sql.exec("DELETE FROM order_notification_outbox WHERE event_key=?", event.event_key);
       if (!claim.rowsWritten || !token) continue;
       try {
-        await telegramApi(token, "sendMessage", telegramMessage(storage, origin, shop, event));
+        await telegramApi(token, "sendMessage", telegramMessage(storage, origin, shop, event, now));
       } catch (error) {
         if (error instanceof TelegramRequestError && error.retryable && event.attempts < 7) {
           storage.sql.exec(
@@ -102,7 +103,13 @@ export async function sendOrderNotifications(storage: DurableObjectStorage, env:
   }
 }
 
-function telegramMessage(storage: DurableObjectStorage, origin: string, shop: string, event: Queued) {
+export function telegramMessage(
+  storage: DurableObjectStorage,
+  origin: string,
+  shop: string,
+  event: Queued,
+  now: number,
+) {
   const number = event.order_number;
   const amount = formatMinor(event.amount, event.currency);
   const ref = `по заказу №${number}`;
@@ -111,14 +118,38 @@ function telegramMessage(storage: DurableObjectStorage, origin: string, shop: st
   if (event.kind === "refund") return { chat_id, text: `Магазин вернёт вам ${amount} ${ref}` };
   if (event.kind === "paid") return { chat_id, text: `Оплата ${ref} подтверждена` };
   const order = storage.sql
-    .exec<{ receiving_at: string }>("SELECT receiving_at FROM seller_order_index WHERE number=?", number)
+    .exec<{ date: string | null; start: string | null; method: string; timeZone: string }>(
+      `SELECT json_extract(snapshot,'$.time.date') AS date,
+        substr(json_extract(snapshot,'$.time.slotId'),1,5) AS start,
+        json_extract(snapshot,'$.receiving.mode') AS method,
+        COALESCE(
+          (SELECT json_extract(value,'$.timeZone') FROM settings WHERE key='receiving_schedule'),
+          (SELECT json_extract(value,'$.timeZone') FROM settings WHERE key='admin_settings'),
+          'Asia/Ho_Chi_Minh'
+        ) AS timeZone
+      FROM orders WHERE number=?`,
+      number,
+    )
     .one();
   const url = new URL(`/api/platform/storefront/${encodeURIComponent(shop)}`, origin);
   url.searchParams.set("destination", "seller");
   url.searchParams.set("order", String(number));
+  const method = order.method === "delivery" ? "Доставка" : "Самовывоз";
+  const receiving = [order.start || "Время согласуем", method];
+  if (order.date) receiving.unshift(receivingDate(order.date, order.timeZone, now));
   return {
     chat_id,
-    text: `Новый заказ №${number} · ${amount} · ${order.receiving_at ? order.receiving_at.replace("T", " ") : "Время согласуем"}`,
+    text: `Новый заказ №${number} · ${amount}\n${receiving.join(" · ")}`,
     reply_markup: { inline_keyboard: [[{ text: "Открыть", web_app: { url: url.href } }]] },
   };
+}
+
+const dayAndMonth = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", timeZone: "UTC" });
+const weekday = new Intl.DateTimeFormat("ru-RU", { weekday: "short", timeZone: "UTC" });
+
+function receivingDate(date: string, timeZone: string, now: number) {
+  const { today } = scheduleClock(timeZone, now);
+  const epoch = Date.parse(`${date}T00:00:00Z`);
+  const day = date === today ? "Сегодня" : date === calendarDate(today, 1) ? "Завтра" : weekday.format(epoch);
+  return `${day[0].toLocaleUpperCase("ru-RU")}${day.slice(1)}, ${dayAndMonth.format(epoch)}`;
 }
