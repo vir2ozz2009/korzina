@@ -1,3 +1,4 @@
+import { runInDurableObject } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { beforeAll, expect, it } from "vitest";
 import type { SellerOrder, SellerOrderCommand, SellerOrderPage } from "../../../src/shared/contracts/seller-order";
@@ -7,6 +8,7 @@ import { placeFixtureOrder, proof, signIn, snapshot } from "../../testing/orders
 import { setupPlatform } from "../../testing/platform";
 import { catalogSql, catalogStub } from "../catalog/testing";
 import { mediaPrefix } from "../media/objects";
+import { telegramMessage } from "./notifications";
 
 const shop = "korzina-demo-lavka";
 beforeAll(setupPlatform);
@@ -185,4 +187,41 @@ it("§9.4, D18: поздний тариф после полной оплаты �
       balance: { debtMinor: payee === "shop" ? 3000 : 0 },
     });
   }
+});
+
+it("§3.5: «Новый заказ» отделяет сумму от даты, времени и способа получения в поясе магазина", async () => {
+  const { number } = await fixture();
+  await runInDurableObject(catalogStub(), (_instance, { storage }) => {
+    storage.sql.exec(
+      "UPDATE settings SET value=json_set(value,'$.timeZone','America/Los_Angeles') WHERE key='receiving_schedule'",
+    );
+    // The shop is still on 20 November after midnight UTC.
+    const now = Date.parse("2026-11-21T03:30:00Z");
+    const event = {
+      event_key: `new:${number}:990000001`,
+      kind: "new",
+      order_number: number,
+      recipient: "990000001",
+      amount: 151000,
+      currency: "VND",
+      attempts: 0,
+    };
+    const cases = [
+      [{ date: "2026-11-20", slotId: "10:00-12:00" }, "delivery", "Сегодня, 20 ноября · 10:00 · Доставка"],
+      [{ date: "2026-11-21", slotId: "10:00-12:00" }, "delivery", "Завтра, 21 ноября · 10:00 · Доставка"],
+      [{ date: "2026-11-27", slotId: "15:30-17:00" }, "pickup", "Пт, 27 ноября · 15:30 · Самовывоз"],
+      [{ date: "2026-11-21" }, "pickup", "Завтра, 21 ноября · Время согласуем · Самовывоз"],
+      [null, "delivery", "Время согласуем · Доставка"],
+    ] as const;
+    for (const [time, method, deliveryLine] of cases) {
+      storage.sql.exec(
+        "UPDATE orders SET snapshot=json_set(snapshot,'$.time',json(?),'$.receiving.mode',?) WHERE number=?",
+        JSON.stringify(time),
+        method,
+        number,
+      );
+      const message = telegramMessage(storage, "https://demo.korzina.app", shop, event, now);
+      expect(message.text).toBe(`Новый заказ №${number} · 151\u00a0000\u00a0₫\n${deliveryLine}`);
+    }
+  });
 });
