@@ -84,6 +84,8 @@ export const shoppingSearchContract = z.object({
 
 export const catalogProductContract = tile.omit({ image: true, variants: true }).extend({
   description: z.string(),
+  ingredients: z.string().optional(),
+  storageNotes: z.string().optional(),
   brandName: z.string().nullable(),
   catalogVersion: z.number().int(),
   currency: z.string(),

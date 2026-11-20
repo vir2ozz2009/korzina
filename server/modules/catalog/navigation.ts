@@ -10,7 +10,7 @@ const productPhoto = (condition: string) => `(SELECT ${mediaJsonSql} FROM produc
 const categoryProducts = "p.category_id IN (SELECT id FROM descendants WHERE root=n.id)";
 
 export const categoriesSql = `WITH RECURSIVE navigation AS (
-  SELECT id,name,parent_id AS parentId,photo_id AS photoId,position FROM categories WHERE visible=1 AND parent_id IS NULL
+  SELECT id,name,parent_id AS parentId,photo_id AS photoId,position FROM categories WHERE visible=1 AND parent_id IS NULL AND id<>'__uncategorized__'
   UNION ALL SELECT c.id,c.name,c.parent_id,c.photo_id,c.position FROM categories c JOIN navigation n ON c.parent_id=n.id WHERE c.visible=1),
   descendants(root,id) AS (SELECT id,id FROM navigation UNION ALL SELECT d.root,n.id FROM navigation n JOIN descendants d ON n.parentId=d.id)
   SELECT n.id,n.name,n.parentId,EXISTS(SELECT 1 FROM products p WHERE ${visibleProduct} AND ${categoryProducts}) AS hasProducts,

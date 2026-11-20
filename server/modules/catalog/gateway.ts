@@ -23,7 +23,7 @@ export const catalogGateway = createMiddleware<{ Bindings: Env }>(async (c) => {
   if (c.req.method === "GET" && c.req.path === "/api/catalog/document") {
     const parsed = catalogPageInput.safeParse(c.req.query());
     if (!parsed.success) throw new ApiError("VALIDATION", "Некорректные параметры каталога");
-    return cachedDocument(c.req.raw, parsed.data, c.env.APP_ENV, shop.id, load);
+    return cachedDocument(c.req.raw, parsed.data, c.env.APP_ENV, shop.id, load, true);
   }
   return load();
 });
