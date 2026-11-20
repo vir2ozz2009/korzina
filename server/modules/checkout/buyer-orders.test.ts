@@ -1,8 +1,10 @@
 import { beforeAll, expect, it } from "vitest";
 import type { OrderSnapshot } from "../../../src/shared/contracts/checkout";
-import { cookieFrom, getAuth, postAuth } from "../../testing/auth";
+import type { SellerTransition } from "../../../src/shared/contracts/seller-order";
+import { cookieFrom, getAuth, postAuth, sellerFixture } from "../../testing/auth";
 import { setupPlatform } from "../../testing/platform";
 import { catalogSql } from "../catalog/testing";
+import { nextOrderStage } from "../seller-orders/transition";
 
 beforeAll(setupPlatform);
 
@@ -175,4 +177,91 @@ it("§9.1 оформленный и принятый заказы активны
       { number: completed, stage: "completed" },
     ],
   });
+});
+
+it("§9.1 и §9.2: откат после выдачи сохраняет факт выдачи и автора; отмена требует выбора товара", async () => {
+  const owner = await signIn(snapshot.phone ?? "");
+  const seller = await sellerFixture("korzina-demo-lavka");
+  const order = await placeFixtureOrder(owner.subject, await proof(owner.subject, "attached"));
+  const step = (body: SellerTransition, key = crypto.randomUUID()) =>
+    postAuth(`/api/seller/orders/${order}/transition?store=lavka`, body, {
+      ...seller.headers,
+      "Idempotency-Key": key,
+    });
+  expect((await step({ action: "accept", expectedRevision: 0 })).status).toBe(200);
+  expect((await step({ action: "markReady", expectedRevision: 1 })).status).toBe(400);
+  expect((await step({ action: "markReady", expectedRevision: 1, confirmIncomplete: true })).status).toBe(200);
+  expect((await step({ action: "handOver", expectedRevision: 2 })).status).toBe(409);
+  expect((await step({ action: "markPickedUp", expectedRevision: 2 })).status).toBe(200);
+  const reverted = await step({ action: "rollback", expectedRevision: 3, reason: "Проверка выдачи" });
+  expect(await reverted.json()).toMatchObject({
+    stage: "ready",
+    handedOff: true,
+    paymentStatus: "pending_review",
+    events: [
+      { actor: seller.accountId, reason: "Проверка выдачи", createdAt: expect.any(Number) },
+      ...Array.from({ length: 3 }, () => expect.any(Object)),
+    ],
+  });
+  const buyer = await getAuth(`/api/orders/${order}?shop=lavka`, { Cookie: owner.Cookie });
+  expect(await buyer.json()).toMatchObject({ canCancel: false, version: 4 });
+  const cancel = { action: "cancel", expectedRevision: 4, reason: "Покупатель отказался" } as const;
+  expect((await step(cancel)).status).toBe(400);
+  const key = crypto.randomUUID();
+  const result = await step({ ...cancel, returnStock: false }, key);
+  expect(result.status).toBe(200);
+  expect(await (await step({ ...cancel, returnStock: false }, key)).json()).toEqual(await result.json());
+  expect(await catalogSql("SELECT COUNT(*) AS count FROM buyer_order_events WHERE order_number=?", order)).toEqual([
+    { count: 5 },
+  ]);
+  expect(await catalogSql("SELECT stage FROM seller_order_index WHERE number=?", order)).toEqual([
+    { stage: "cancelled" },
+  ]);
+});
+
+it("§4.3: одновременное принятие заказа даёт один переход и конфликт, чужой магазин закрыт", async () => {
+  const owner = await signIn(snapshot.phone ?? "");
+  const order = await placeFixtureOrder(owner.subject, await proof(owner.subject, "attached"));
+  const [first, second, stranger] = await Promise.all([
+    sellerFixture("korzina-demo-lavka"),
+    sellerFixture("korzina-demo-lavka"),
+    sellerFixture("korzina-demo-test2"),
+  ]);
+  const write = (headers: HeadersInit) =>
+    postAuth(`/api/seller/orders/${order}/transition?store=lavka`, { expectedRevision: 0, action: "accept" }, headers);
+  expect((await write(stranger.headers)).status).toBe(403);
+  const results = await Promise.all([write(first.headers), write(second.headers)]);
+  expect(results.map((result) => result.status).sort()).toEqual([200, 409]);
+  expect(await catalogSql("SELECT version FROM orders WHERE number=?", order)).toEqual([{ version: 1 }]);
+});
+
+it("§9.0 и §9.1: переходы доставки и самовывоза используют существующие этапы B11", () => {
+  const stages = ["placed", "accepted", "ready", "handed", "completed", "cancelled"] as const;
+  const actions = ["accept", "markReady", "handOver", "markPickedUp", "complete", "rollback", "cancel"] as const;
+  const common: Record<string, string> = {
+    "placed/accept": "accepted",
+    "accepted/markReady": "ready",
+    "accepted/rollback": "placed",
+    "ready/rollback": "accepted",
+  };
+  const branches: Record<"delivery" | "pickup", Record<string, string>> = {
+    delivery: {
+      "ready/handOver": "handed",
+      "handed/complete": "completed",
+      "handed/rollback": "ready",
+      "completed/rollback": "handed",
+    },
+    pickup: { "ready/markPickedUp": "completed", "completed/rollback": "ready" },
+  };
+  for (const method of ["delivery", "pickup"] as const) {
+    for (const stage of stages) {
+      for (const action of actions) {
+        const key = `${stage}/${action}`;
+        const result =
+          action === "cancel" && stage !== "cancelled" ? "cancelled" : (common[key] ?? branches[method][key]);
+        if (result) expect(nextOrderStage(stage, method, action)).toBe(result);
+        else expect(() => nextOrderStage(stage, method, action)).toThrow("Действие больше недоступно");
+      }
+    }
+  }
 });

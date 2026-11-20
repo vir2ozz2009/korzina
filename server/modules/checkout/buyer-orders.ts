@@ -6,7 +6,6 @@ import type {
   OrderSummary,
   PaymentState,
 } from "../../../src/shared/contracts/buyer-order";
-import type { OrderSnapshot } from "../../../src/shared/contracts/checkout";
 import type { TimeChoice } from "../../../src/shared/contracts/receiving-time";
 import { ApiError } from "../../../src/shared/errors";
 import { digest } from "../../auth/tokens";
@@ -14,9 +13,10 @@ import { revisionResponse } from "../../revisions";
 import type { ShopEnv } from "../../shop/env";
 import { sessions } from "../../shop/schema";
 import { readCustomerWith } from "../auth/service";
+import type { ReservedOrder } from "./order-reservation";
 import { buyerOrderRevisions } from "./schema";
 
-type OrderRow = {
+export type OrderRow = {
   number: number;
   created_at: number;
   status: OrderStage;
@@ -24,6 +24,7 @@ type OrderRow = {
   version: number;
   proof_media_id: string | null;
   snapshot: string;
+  fulfillment_state: string;
 };
 
 function isActiveOrder(stage: OrderStage) {
@@ -33,7 +34,7 @@ function isActiveOrder(stage: OrderStage) {
 export function buyerOrderRow(storage: DurableObjectStorage, customer: string, number: number) {
   const [row] = storage.sql
     .exec<OrderRow>(
-      "SELECT number,created_at,status,payment_status,version,proof_media_id,snapshot FROM orders WHERE customer=? AND number=?",
+      "SELECT number,created_at,status,payment_status,version,proof_media_id,snapshot,fulfillment_state FROM orders WHERE customer=? AND number=?",
       customer,
       number,
     )
@@ -43,7 +44,7 @@ export function buyerOrderRow(storage: DurableObjectStorage, customer: string, n
 }
 
 export function unpackOrder(row: OrderRow) {
-  return JSON.parse(row.snapshot) as OrderSnapshot & { seatReserved?: boolean; reservedStock?: string[] };
+  return JSON.parse(row.snapshot) as ReservedOrder;
 }
 
 export function buyerOrder(row: OrderRow): BuyerOrder {
@@ -55,7 +56,7 @@ export function buyerOrder(row: OrderRow): BuyerOrder {
     stage: row.status,
     version: row.version,
     paymentStatus: row.payment_status,
-    canCancel: isActiveOrder(row.status) && row.status !== "handed",
+    canCancel: isActiveOrder(row.status) && row.status !== "handed" && !JSON.parse(row.fulfillment_state).handedOff,
     canReplaceProof: row.status !== "cancelled" && row.payment_status === "pending_review",
     ...(row.status === "cancelled" && row.payment_status === "confirmed" ? { refundMinor: snapshot.totalMinor } : {}),
   };

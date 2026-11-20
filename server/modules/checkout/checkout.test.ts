@@ -138,8 +138,8 @@ it("чек связывается один раз с исходной суммо
   );
   expect(response.status).toBe(201);
   const metrics: SqlMetrics = JSON.parse(response.headers.get("x-korzina-sql") ?? "null");
-  // The active-order revision adds a row and a primary-key index entry on the first order.
-  assertSqlBudget(metrics, { sql: 15, rowsRead: 32, rowsWritten: 19 });
+  // The seller projection and revision are updated by the same INSERT as the new order.
+  assertSqlBudget(metrics, { sql: 15, rowsRead: 35, rowsWritten: 22 });
   expect(await response.json()).toMatchObject({
     paymentStatus: "pending_review",
     totalMinor: 135000,

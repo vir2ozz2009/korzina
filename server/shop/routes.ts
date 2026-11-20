@@ -12,6 +12,7 @@ import { favoritesRoutes } from "../modules/favorites/routes";
 import { receivingRoutes } from "../modules/fulfillment/routes";
 import { mediaRoutes } from "../modules/media/routes";
 import { profileRoutes } from "../modules/profile/routes";
+import { sellerOrderRoutes } from "../modules/seller-orders/routes";
 import { revisionResponse } from "../revisions";
 import type { ShopEnv } from "./env";
 import { readPublicSettings } from "./public-settings";
@@ -38,6 +39,7 @@ export function shopRoutes() {
       .route("/receiving", receivingRoutes)
       .route("/", purchaseRoutes)
       .route("/orders", buyerOrderRoutes)
+      .route("/seller/orders", sellerOrderRoutes)
       .route("/favorites", favoritesRoutes)
       .route("/profile", profileRoutes)
       .route("/catalog", catalogRoutes)

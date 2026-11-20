@@ -17,6 +17,7 @@ import { cabinetRoutes } from "./platform/auth/cabinet-routes";
 import { platformWebhook } from "./platform/auth/platform-webhook";
 import { platformAuth } from "./platform/auth/routes";
 import { shopWebhook } from "./platform/auth/shop-webhook";
+import { sellerOrderGateway } from "./platform/seller-order-gateway";
 import { shopContexts } from "./platform/shop-context";
 import { forwardToShop } from "./shop/forward";
 import { shopRoutes } from "./shop/routes";
@@ -66,6 +67,7 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
   .use("/quote", forwarding)
   .use("/checkout/*", forwarding)
   .use("/orders/*", forwarding)
+  .use("/seller/orders/*", sellerOrderGateway)
   .use("/favorites/*", forwarding)
   .use("/profile/*", forwarding)
   .use("/media/*", forwarding)
