@@ -5,8 +5,9 @@ import { Header } from "../../../app/shell/Header";
 import { Screen } from "../../../app/shell/Screen";
 import { useToast } from "../../../app/shell/ToastProvider";
 import type { OrderStage } from "../../../shared/contracts/buyer-order";
+import { formatReceivingTime, shopDateTime } from "../../../shared/datetime";
 import { errorKind, HttpError } from "../../../shared/http-error";
-import { buyerOrderSearch } from "../../../shared/shop-api";
+import { buyerOrderSearch, shopTimeZone } from "../../../shared/shop-api";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { EmptyState } from "../../../ui/EmptyState";
@@ -17,7 +18,7 @@ import { StatusPill } from "../../../ui/StatusPill";
 import { PurchaseTotals, useShopContacts } from "../../checkout";
 import { ContactSheet } from "../../contact";
 import { useBuyerOrder, useOrderChange } from "../api";
-import { buyerStageLabel, orderTime } from "./active-orders";
+import { buyerStageLabel } from "./active-orders";
 import { OrderPayment } from "./OrderPayment";
 import { OrderProofSheet } from "./OrderProofSheet";
 import { RepeatSheet } from "./RepeatSheet";
@@ -80,7 +81,7 @@ export function OrderScreen() {
         <>
           {query.isError && (
             <p role="status">
-              Обновлено {new Date(query.dataUpdatedAt).toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" })}
+              Обновлено {shopDateTime(query.dataUpdatedAt, shopTimeZone).time}
               <Button variant="ghost" onClick={() => void query.refetch()}>
                 Повторить
               </Button>
@@ -112,7 +113,9 @@ export function OrderScreen() {
           <ListItem
             title={order.receiving.mode === "delivery" ? "Доставка" : "Самовывоз"}
             icon={order.receiving.mode === "delivery" ? <Bike size={22} /> : <Store size={22} />}
-            subtitle={[address, orderTime(order.time)].filter(Boolean).join(" · ")}
+            subtitle={[address, order.time && formatReceivingTime(order.time, shopTimeZone)]
+              .filter(Boolean)
+              .join(" · ")}
           />
           <Card className="space-y-3">
             <h2 className="text-title-3">Состав заказа</h2>

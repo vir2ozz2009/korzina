@@ -1,4 +1,5 @@
 import type { SellerOrder, SellerOrderEvent } from "../../../src/shared/contracts/seller-order";
+import { defaultShopTimeZone } from "../../../src/shared/datetime";
 import { ApiError } from "../../../src/shared/errors";
 import type { Seller } from "../../auth/roles";
 import { type OrderRow, unpackOrder } from "../checkout/buyer-orders";
@@ -19,7 +20,7 @@ export function sellerOrder(
   storage: DurableObjectStorage,
   number: number,
   actor: Seller,
-  timeZone = "Asia/Ho_Chi_Minh",
+  timeZone = defaultShopTimeZone,
 ): SellerOrder {
   const row = sellerOrderRow(storage, number);
   const { seatReserved: _seat, reservedStock: _stock, customerNameKey: _nameKey, ...snapshot } = unpackOrder(row);

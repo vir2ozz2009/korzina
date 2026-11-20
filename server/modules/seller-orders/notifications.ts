@@ -1,10 +1,11 @@
+import { formatShopDay } from "../../../src/shared/datetime";
 import { formatMinor } from "../../../src/shared/money";
 import { decryptBotToken } from "../../auth/bot-token";
 import type { AuthSecrets } from "../../auth/config";
 import { TelegramRequestError, telegramApi } from "../../auth/telegram-api";
 import { managedBot } from "../../platform/admin/shop-bot";
 import { storefrontUrl } from "../../platform/storefront-url";
-import { calendarDate, scheduleClock } from "../fulfillment/schedule";
+import { shopTimeZoneSql } from "../../shop/time-zone";
 
 type Queued = {
   event_key: string;
@@ -140,11 +141,7 @@ export function telegramMessage(
       `SELECT json_extract(snapshot,'$.time.date') AS date,
         substr(json_extract(snapshot,'$.time.slotId'),1,5) AS start,
         json_extract(snapshot,'$.receiving.mode') AS method,
-        COALESCE(
-          (SELECT json_extract(value,'$.timeZone') FROM settings WHERE key='receiving_schedule'),
-          (SELECT json_extract(value,'$.timeZone') FROM settings WHERE key='admin_settings'),
-          'Asia/Ho_Chi_Minh'
-        ) AS timeZone
+        ${shopTimeZoneSql} AS timeZone
       FROM orders WHERE number=?`,
       number,
     )
@@ -154,7 +151,7 @@ export function telegramMessage(
   url.searchParams.set("order", String(number));
   const method = order.method === "delivery" ? "Доставка" : "Самовывоз";
   const receiving = [order.start || "Время согласуем", method];
-  if (order.date) receiving.unshift(receivingDate(order.date, order.timeZone, now));
+  if (order.date) receiving.unshift(formatShopDay(order.date, order.timeZone, now));
   return {
     chat_id,
     text: `Новый заказ №${number} · ${amount}\n${receiving.join(" · ")}`,
@@ -164,14 +161,4 @@ export function telegramMessage(
 
 function orderKeyboard(url: URL, text: string) {
   return { inline_keyboard: [[{ text, web_app: { url: url.href } }]] };
-}
-
-const dayAndMonth = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", timeZone: "UTC" });
-const weekday = new Intl.DateTimeFormat("ru-RU", { weekday: "short", timeZone: "UTC" });
-
-function receivingDate(date: string, timeZone: string, now: number) {
-  const { today } = scheduleClock(timeZone, now);
-  const epoch = Date.parse(`${date}T00:00:00Z`);
-  const day = date === today ? "Сегодня" : date === calendarDate(today, 1) ? "Завтра" : weekday.format(epoch);
-  return `${day[0].toLocaleUpperCase("ru-RU")}${day.slice(1)}, ${dayAndMonth.format(epoch)}`;
 }

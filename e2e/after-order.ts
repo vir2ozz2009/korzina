@@ -37,13 +37,24 @@ export async function verifyFavoriteCart(page: Page) {
     .locator("article")
     .filter({ has: page.getByRole("button", { name: "Добавить в корзину", exact: true }) })
     .first();
-  await tile.getByRole("button", { name: "Добавить в избранное", exact: true }).click();
-  await expect(tile.getByRole("button", { name: "Убрать из избранного", exact: true })).toBeVisible();
+  const removeFavorite = tile.getByRole("button", { name: "Убрать из избранного", exact: true });
+  const addFavorite = tile.getByRole("button", { name: "Добавить в избранное", exact: true });
+  await expect(addFavorite.or(removeFavorite)).toBeEnabled();
+  const wasFavorite = await removeFavorite.isVisible();
+  if (wasFavorite) await removeFavorite.click();
+  const name = await tile.getByRole("link").first().getAttribute("aria-label");
+  if (!name) throw new Error("The product tile must have a name");
+  await addFavorite.click();
+  await expect(removeFavorite).toBeVisible();
   await page.locator("header").getByRole("button", { name: "Профиль", exact: true }).click();
   await page.getByRole("button", { name: "Избранное", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Убрать из избранного", exact: true })).toBeVisible();
+  const tileOnList = page
+    .locator("article")
+    .filter({ has: page.getByRole("link", { name, exact: true }) })
+    .first();
+  const removeOnList = tileOnList.getByRole("button", { name: "Убрать из избранного", exact: true });
+  await expect(removeOnList).toBeVisible();
   await page.screenshot({ path: "test-results/b12-favorites-390.png", animations: "disabled" });
-  const tileOnList = page.locator("article").first();
   const choices = tileOnList.getByRole("button", { name: /фасовк/ });
   if (await choices.count()) {
     await choices.click();
@@ -55,6 +66,10 @@ export async function verifyFavoriteCart(page: Page) {
   } else {
     await tileOnList.getByRole("button", { name: "Добавить в корзину", exact: true }).click();
     await expect(tileOnList.getByRole("button", { name: "Добавить одну штуку", exact: true })).toBeVisible();
+  }
+  if (!wasFavorite) {
+    await removeOnList.click();
+    await expect(tileOnList).toHaveCount(0);
   }
   await page.getByRole("button", { name: /^Корзина/ }).click();
   await expect(page).toHaveURL(/\/cart/);

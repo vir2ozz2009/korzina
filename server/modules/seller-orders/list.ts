@@ -36,7 +36,7 @@ export function orderListRevision(storage: DurableObjectStorage) {
 
 export function sellerOrders(storage: DurableObjectStorage, input: SellerOrdersQuery, timeZone: string) {
   const rev = orderListRevision(storage);
-  if (input.rev === rev && !input.cursor) return { rev, unchanged: true as const };
+  if (input.rev === rev && !input.cursor) return { rev, timeZone, unchanged: true as const };
   const search = input.search?.toLocaleLowerCase("ru") ?? "";
   const method = input.method ?? "";
   const completed = input.tab === "completed";

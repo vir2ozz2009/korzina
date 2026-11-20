@@ -1,5 +1,6 @@
 import { Copy, Phone } from "lucide-react";
 import type { SellerOrder } from "../../../../shared/contracts/seller-order";
+import { formatReceivingTime } from "../../../../shared/datetime";
 import { formatMinor } from "../../../../shared/money";
 import { Button } from "../../../../ui/Button";
 import { Card } from "../../../../ui/Card";
@@ -7,7 +8,7 @@ import { Checkbox } from "../../../../ui/Checkbox";
 import { ProductRow } from "../../../../ui/ProductRow";
 import { methodLabel, PaymentPill, StagePill, StageProgress } from "./OrderIndicators";
 import { paymentLabel } from "./OrderPaymentSheet";
-import { dayLabel, type OrderAction } from "./order-actions";
+import type { OrderAction } from "./order-actions";
 
 export function OrderDetails({
   order,
@@ -98,13 +99,7 @@ export function OrderDetails({
       <Card>
         <h2 className="text-title-3">Получение</h2>
         <p className="text-label">{methodLabel[receiving.mode]}</p>
-        <p>
-          {order.time
-            ? [dayLabel(order.time.date, order.timeZone), order.time.slotId?.replace("-", "–")]
-                .filter(Boolean)
-                .join(" · ")
-            : "Время согласуем"}
-        </p>
+        <p>{order.time ? formatReceivingTime(order.time, order.timeZone) : "Время согласуем"}</p>
         {address && (
           <>
             <p>{address}</p>

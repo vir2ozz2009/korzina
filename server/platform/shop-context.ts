@@ -50,6 +50,7 @@ export class ShopContextCache {
     const value = shopContextContract.parse({
       ...shop,
       name: settings.name,
+      timeZone: settings.timeZone,
       theme: settings.theme,
       features,
       adminSettings,

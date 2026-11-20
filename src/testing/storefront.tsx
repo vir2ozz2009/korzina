@@ -46,7 +46,10 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-export function storefront(path: string, handler: (url: URL, init?: RequestInit) => Response | Promise<Response>) {
+export async function storefront(
+  path: string,
+  handler: (url: URL, init?: RequestInit) => Response | Promise<Response>,
+) {
   vi.stubGlobal(
     "fetch",
     vi.fn((url: URL, init?: RequestInit) => handler(new URL(url), init)),
@@ -59,6 +62,8 @@ export function storefront(path: string, handler: (url: URL, init?: RequestInit)
     context: { qc },
     defaultPendingMinMs: 0,
   });
+  // Load the route chunk before testing how the mounted screen handles its API requests.
+  await router.load();
   render(
     <QueryClientProvider client={qc}>
       <RouterProvider router={router} />

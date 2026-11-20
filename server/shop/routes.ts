@@ -31,6 +31,7 @@ export function shopRoutes() {
           ...c.env.shop,
           name: settings.name ?? c.env.shop.name,
           theme: settings.theme,
+          timeZone: settings.timeZone,
           features: c.env.features,
         });
       })

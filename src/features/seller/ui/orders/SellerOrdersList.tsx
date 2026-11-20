@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { QueryBoundary } from "../../../../app/shell/QueryBoundary";
 import { sellerHistory } from "../../../../app/shell/tab-history";
 import type { SellerOrderPage, SellerOrderSummary, SellerOrdersQuery } from "../../../../shared/contracts/seller-order";
+import { formatShopDay, shopDateTime } from "../../../../shared/datetime";
 import { Button } from "../../../../ui/Button";
 import { Card } from "../../../../ui/Card";
 import { Checkbox } from "../../../../ui/Checkbox";
@@ -17,7 +18,6 @@ import { sellerOrderSearch } from "../../order-search";
 import { moreSellerOrders, useSellerOrderCommand, useSellerOrderList } from "../../orders-api";
 import { methodLabel, stages } from "./OrderIndicators";
 import { OrderListCard } from "./OrderListCard";
-import { dayLabel, zonedDay } from "./order-actions";
 import { SellerOrdersShell } from "./SellerOrdersShell";
 
 export function SellerOrdersList() {
@@ -146,7 +146,7 @@ function OrderList({ store }: { store: string }) {
                           {stage.section} · {page.counts[rows[0].stage]}
                         </>
                       ) : (
-                        dayLabel(key, page.timeZone)
+                        formatShopDay(key, page.timeZone)
                       )}
                     </h2>
                     {rows.map((order) => (
@@ -237,7 +237,8 @@ function OrderList({ store }: { store: string }) {
 function groupOrders(orders: SellerOrderSummary[], tab: "active" | "completed", timeZone: string) {
   const groups = new Map<string, SellerOrderSummary[]>();
   for (const order of orders) {
-    const key = tab === "active" ? order.stage : order.receivingAt.slice(0, 10) || zonedDay(order.createdAt, timeZone);
+    const key =
+      tab === "active" ? order.stage : order.receivingAt.slice(0, 10) || shopDateTime(order.createdAt, timeZone).date;
     const rows = groups.get(key);
     if (rows) rows.push(order);
     else groups.set(key, [order]);

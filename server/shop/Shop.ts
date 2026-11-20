@@ -89,10 +89,10 @@ export class Shop extends DurableObject<Env> {
           storage.transactionSync(() => db.insert(settings).values({ key: "shop_id", value: shop.id }).run());
         this.identity = shop.id;
       }
-      let timeZone: string | undefined;
+      let timeZone = typeof data.timeZone === "string" ? data.timeZone : undefined;
       if (data.adminSettings) {
         const configured = shopContextContract.shape.adminSettings.parse(data.adminSettings);
-        timeZone = configured?.timeZone;
+        timeZone ??= configured?.timeZone;
         const signature = JSON.stringify(configured);
         if (configured && signature !== this.settingsSignature) {
           applyAdminSettings(storage, configured);
