@@ -116,11 +116,8 @@ it("§9.5, §9.7, §12: счётчики всего магазина и филь
     orders: [{ number: other, stage: "accepted" }],
   });
   expect(all.orders.find((entry) => entry.number === number)?.stage).toBe("placed");
-  expect(await (await list(`&rev=${all.rev}`)).json()).toEqual({
-    rev: all.rev,
-    timeZone: "Asia/Ho_Chi_Minh",
-    unchanged: true,
-  });
+  const { rev, timeZone } = all;
+  expect(await (await list(`&rev=${rev}`)).json()).toEqual({ rev, timeZone, unchanged: true });
   const metadata = { id: shop, slug: "lavka", name: "Тест", status: "active", plan: "base", createdAt: 0 };
   const direct = (path: string) =>
     catalogStub().fetch(
