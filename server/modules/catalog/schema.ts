@@ -17,11 +17,16 @@ export const categories = sqliteTable(
     id: text("id").primaryKey(),
     name: text("name").notNull(),
     parentId: text("parent_id"),
+    tileSize: text("tile_size", { enum: ["1x1", "2x1", "1x2", "2x2"] }),
     visible: integer("visible", { mode: "boolean" }).notNull().default(true),
     position: integer("position").notNull().default(0),
+    revision: integer("revision").notNull().default(0),
     photoId: text("photo_id").references(() => media.id),
   },
-  (t) => [index("categories_navigation_idx").on(t.visible, t.id)],
+  (t) => [
+    index("categories_navigation_idx").on(t.visible, t.id),
+    index("categories_parent_order_idx").on(t.parentId, t.position, t.id),
+  ],
 );
 
 export const brands = sqliteTable(
@@ -31,6 +36,7 @@ export const brands = sqliteTable(
     name: text("name").notNull(),
     visible: integer("visible", { mode: "boolean" }).notNull().default(true),
     position: integer("position").notNull().default(0),
+    revision: integer("revision").notNull().default(0),
     photoId: text("photo_id").references(() => media.id),
   },
   (t) => [index("brands_navigation_idx").on(t.visible, t.id)],

@@ -126,3 +126,43 @@ export type SellerStockConflict = {
   purchased: number;
   bought?: number;
 };
+
+const sellerGroupKind = z.enum(["categories", "brands"]);
+export type SellerGroupKind = z.infer<typeof sellerGroupKind>;
+const categoryTileSize = z.enum(["1x1", "2x1", "1x2", "2x2"]);
+export const sellerGroupParams = sellerCatalogId.extend({ kind: sellerGroupKind });
+export const sellerGroupListParams = z.object({ kind: sellerGroupKind });
+export const sellerGroupInput = z.strictObject({
+  expectedRevision: integer.optional(),
+  name: z.string().trim().min(1).max(120),
+  visible: z.boolean(),
+  parentId: id.nullable(),
+  photo: sellerPhotoInput.nullable(),
+});
+export type SellerGroupInput = z.infer<typeof sellerGroupInput>;
+export const sellerGroupDelete = z.strictObject({ revision: integer, transferTo: id.nullable().optional() });
+export type SellerGroupDelete = z.infer<typeof sellerGroupDelete>;
+export const sellerCategoryOrder = z.strictObject({
+  parentId: id.nullable(),
+  mosaic: z.boolean().default(false),
+  categories: z
+    .array(productRevision.extend({ tileSize: categoryTileSize.optional() }))
+    .min(1)
+    .max(200)
+    .refine((categories) => new Set(categories.map((category) => category.id)).size === categories.length),
+});
+export type SellerCategoryOrder = z.infer<typeof sellerCategoryOrder>;
+export type SellerGroup = {
+  id: string;
+  name: string;
+  visible: boolean;
+  onStorefront: boolean;
+  hasStorefrontProducts: boolean;
+  revision: number;
+  position: number;
+  parentId: string | null;
+  tileSize: z.infer<typeof categoryTileSize> | null;
+  hasProducts: boolean;
+  photo: SellerPhoto | null;
+  image: CatalogImage | null;
+};

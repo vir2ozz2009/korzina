@@ -4,7 +4,12 @@ import { bodyLimit } from "hono/body-limit";
 import {
   sellerBulkInput,
   sellerCatalogId,
+  sellerCategoryOrder,
   sellerCopyInput,
+  sellerGroupDelete,
+  sellerGroupInput,
+  sellerGroupListParams,
+  sellerGroupParams,
   sellerProductInput,
   sellerProductQuery,
   sellerStockInput,
@@ -15,6 +20,8 @@ import { readSeller, type Seller } from "../../auth/roles";
 import { executeCommand } from "../../shop/commands";
 import type { ShopEnv } from "../../shop/env";
 import { confirmCatalogStock, runCatalogBulk } from "./bulk";
+import { sellerGroup, sellerGroups } from "./groups-read";
+import { deleteGroup, reorderCategories, saveGroup } from "./groups-write";
 import { catalogVersion, sellerProduct, sellerProducts } from "./products-read";
 import { copySellerProduct, saveSellerProduct } from "./products-write";
 
@@ -53,6 +60,16 @@ export const sellerCatalogRoutes = new Hono<CatalogEnv>()
     return c.json({ revision, ...sellerProducts(c.env.storage, c.env.shop.id, c.req.valid("query"), revision) });
   })
   .get("/products/:id", idParam, (c) => c.json(sellerProduct(c.env.storage, c.env.shop.id, c.req.valid("param").id)))
+  .get("/groups/:kind", zValidator("param", sellerGroupListParams, validationFailure), (c) =>
+    c.json({
+      groups: sellerGroups(c.env.storage, c.env.shop.id, c.req.valid("param").kind),
+      revision: catalogVersion(c.env.storage),
+    }),
+  )
+  .get("/groups/:kind/:id", zValidator("param", sellerGroupParams, validationFailure), (c) => {
+    const { kind, id } = c.req.valid("param");
+    return c.json(sellerGroup(c.env.storage, c.env.shop.id, kind, id));
+  })
   .use(
     "*",
     bodyLimit({
@@ -77,4 +94,32 @@ export const sellerCatalogRoutes = new Hono<CatalogEnv>()
   )
   .post("/products/:id/stock", idParam, zValidator("json", sellerStockInput, validationFailure), (c) =>
     command(c, () => confirmCatalogStock(c.env, c.req.valid("param").id, c.req.valid("json"))),
+  )
+  .post("/category-order", zValidator("json", sellerCategoryOrder, validationFailure), (c) =>
+    command(c, () => reorderCategories(c.env, c.req.valid("json"))),
+  )
+  .post(
+    "/groups/:kind",
+    zValidator("param", sellerGroupListParams, validationFailure),
+    zValidator("json", sellerGroupInput, validationFailure),
+    (c) =>
+      command(c, () => saveGroup(c.env, c.get("seller").accountId, c.req.valid("param").kind, c.req.valid("json"))),
+  )
+  .post(
+    "/groups/:kind/:id",
+    zValidator("param", sellerGroupParams, validationFailure),
+    zValidator("json", sellerGroupInput, validationFailure),
+    (c) => {
+      const { kind, id } = c.req.valid("param");
+      return command(c, () => saveGroup(c.env, c.get("seller").accountId, kind, c.req.valid("json"), id));
+    },
+  )
+  .post(
+    "/groups/:kind/:id/delete",
+    zValidator("param", sellerGroupParams, validationFailure),
+    zValidator("json", sellerGroupDelete, validationFailure),
+    (c) => {
+      const { kind, id } = c.req.valid("param");
+      return command(c, () => deleteGroup(c.env, kind, id, c.req.valid("json")));
+    },
   );

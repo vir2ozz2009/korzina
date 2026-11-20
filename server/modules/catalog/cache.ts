@@ -1,6 +1,6 @@
 import type { CatalogPageInput } from "../../../src/shared/contracts/catalog";
 
-const documentFormat = "availability-order-v1";
+const documentFormat = "category-mosaic-v2";
 
 function matches(request: Request, etag: string) {
   return request.headers

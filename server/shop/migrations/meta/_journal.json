@@ -197,6 +197,13 @@
       "when": 1795179475837,
       "tag": "0027_seller_products",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "6",
+      "when": 1795180179217,
+      "tag": "0028_seller_sections",
+      "breakpoints": true
     }
   ]
 }
