@@ -46,6 +46,14 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+export async function preloadStorefrontRoutes(...paths: string[]) {
+  await Promise.all(
+    routes.shopRoutes
+      .filter((route) => "path" in route.options && paths.includes(route.options.path))
+      .map((route) => route.options.component?.preload?.()),
+  );
+}
+
 export async function storefront(
   path: string,
   handler: (url: URL, init?: RequestInit) => Response | Promise<Response>,
