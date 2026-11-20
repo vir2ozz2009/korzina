@@ -53,11 +53,17 @@ test("витрина своего магазина → фасовка/корзи
     )
     .toBeLessThan(0);
   await page.evaluate(() => window.scrollTo(0, 0));
-  const first = page.locator("article").first();
-  await first.getByRole("button", { name: "Выбрать фасовку" }).click();
+  const first = page.locator("article").filter({ has: page.locator('a[href="/p/product-01"]') });
+  const second = page.locator("article").filter({ has: page.locator('a[href="/p/product-05"]') });
+  const [tomatoResponse] = await Promise.all([
+    page.waitForResponse((response) => new URL(response.url()).pathname === "/api/catalog/products/product-01"),
+    first.getByRole("button", { name: "Выбрать фасовку" }).click(),
+  ]);
+  expect(tomatoResponse.ok(), `Карточка томатов: HTTP ${tomatoResponse.status()}`).toBe(true);
   const variants = page.getByRole("dialog", { name: "Выберите фасовку" });
   // Remote preview can spend several seconds on the first deferred chunks.
   await expect(variants).toBeVisible({ timeout: 10_000 });
+  await expect(variants.getByRole("heading", { name: "Томаты на ветке", exact: true })).toBeVisible();
   let releaseFirst = () => {};
   const held = new Promise<void>((resolve) => {
     releaseFirst = resolve;
@@ -76,7 +82,6 @@ test("витрина своего магазина → фасовка/корзи
   await expect.poll(() => revisions.length).toBe(1);
   await page.goBack();
   await expect(variants).toHaveCount(0);
-  const second = page.locator("article").nth(1);
   // A slow change of the first product must not disable another tile.
   await second.getByRole("button", { name: "Выбрать фасовку" }).click();
   await variants.getByRole("button", { name: "Добавить в корзину" }).first().click();
