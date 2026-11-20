@@ -29,7 +29,8 @@ const base = (url: URL) => {
   }
 };
 
-beforeAll(() => preloadStorefrontRoutes(["/search", "/cart", "/checkout/receiving", "/checkout/done"]));
+// Load the screens before starting the timed interaction tests.
+beforeAll(() => preloadStorefrontRoutes("/search", "/cart", "/checkout/receiving", "/checkout/done"));
 
 it("П1: плавающая корзина видна в каталоге, скрывается при клавиатуре, в корзине, оформлении и заказе", async () => {
   const previousViewport = window.visualViewport;
