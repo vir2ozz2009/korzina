@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
-import { expect, it } from "vitest";
+import { beforeAll, expect, it } from "vitest";
 import { cartContract } from "../../../shared/contracts/cart";
 import { catalogListContract, catalogProductContract, catalogSearchContract } from "../../../shared/contracts/catalog";
 import { catalog, filledCart, list, offers, product, storefront } from "../../../testing/storefront";
@@ -20,6 +20,16 @@ const base = (url: URL) => {
       return new Response(null, { status: 404 });
   }
 };
+
+beforeAll(async () => {
+  // Load the screens before starting the timed interaction tests.
+  await Promise.all([
+    import("./SearchScreen"),
+    import("../../cart/ui/CartScreen"),
+    import("../../receiving/ui/ReceivingScreen"),
+    import("../../checkout/ui/DoneScreen"),
+  ]);
+});
 
 it("П1: плавающая корзина видна в каталоге, скрывается при клавиатуре, в корзине, оформлении и заказе", async () => {
   const previousViewport = window.visualViewport;
