@@ -1,5 +1,5 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import { House, MoreHorizontal, Package } from "lucide-react";
+import { Boxes, House, MoreHorizontal, Package } from "lucide-react";
 import { useEffect } from "react";
 
 import { useSellerOrderBadge } from "../../features/seller/orders-api";
@@ -9,6 +9,7 @@ import { sellerHistory, sellerTab } from "./tab-history";
 const tabs = [
   { path: "/seller", title: "Главная", Icon: House },
   { path: "/seller/orders", title: "Заказы", Icon: Package },
+  { path: "/seller/products", title: "Товары", Icon: Boxes },
   { path: "/seller/more", title: "Ещё", Icon: MoreHorizontal },
 ];
 export function SellerTabs({ store = "", account }: { store?: string; account?: string }) {
@@ -23,7 +24,7 @@ export function SellerTabs({ store = "", account }: { store?: string; account?: 
   return (
     <nav
       aria-label="Кабинет продавца"
-      className="fixed bottom-0 left-1/2 z-30 w-full max-w-(--content-max) -translate-x-1/2 pb-(--safe-bottom) grid grid-cols-3 border-t border-border bg-card"
+      className="fixed bottom-0 left-1/2 z-30 w-full max-w-(--content-max) -translate-x-1/2 pb-(--safe-bottom) grid grid-cols-4 border-t border-border bg-card"
     >
       {tabs.map(({ path, title, Icon }) => (
         <button

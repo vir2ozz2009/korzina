@@ -27,7 +27,13 @@ export interface UploadInput {
   onProgress: (progress: number) => void;
   onPrepared: (blob: Blob) => void;
 }
-function sendFile(url: URL, body: Blob, input: UploadInput, metadata: PhotoMetadata): Promise<UploadedMedia> {
+function sendFile(
+  url: URL,
+  body: Blob,
+  input: UploadInput,
+  metadata: PhotoMetadata,
+  headers: Record<string, string>,
+): Promise<UploadedMedia> {
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
     const abort = () => {
@@ -42,6 +48,7 @@ function sendFile(url: URL, body: Blob, input: UploadInput, metadata: PhotoMetad
     request.open("POST", url);
     request.responseType = "json";
     request.setRequestHeader("Idempotency-Key", input.key);
+    for (const [key, value] of Object.entries(headers)) request.setRequestHeader(key, value);
     request.setRequestHeader("X-Photo-Metadata", JSON.stringify(metadata));
     request.upload.onprogress = (event) => {
       if (event.lengthComputable) input.onProgress((95 * event.loaded) / event.total);
@@ -67,7 +74,7 @@ function sendFile(url: URL, body: Blob, input: UploadInput, metadata: PhotoMetad
     request.send(body);
   });
 }
-export function useUpload(seller: boolean) {
+export function useUpload(seller: boolean, context?: { store: string; headers: Record<string, string> }) {
   const qc = useQueryClient();
   const prepared = useRef(new WeakMap<File, Promise<{ body: Blob; metadata: PhotoMetadata }>>());
   return useMutation({
@@ -99,16 +106,14 @@ export function useUpload(seller: boolean) {
       const { body, metadata } = result;
       if (input.signal.aborted) throw new DOMException("Загрузка отменена", "AbortError");
       input.onPrepared(body);
-      return sendFile(
-        apiForShop(shop(), seller).api.media.upload.$url({
-          query: { shop: shop(), ...(seller ? { as: "seller" } : {}), purpose: input.purpose },
-        }),
-        body,
-        input,
-        metadata,
-      );
+      const store = context?.store;
+      const url = apiForShop(store ?? shop(), seller).api.media.upload.$url({
+        query: { shop: store ?? shop(), ...(seller ? { as: "seller" } : {}), purpose: input.purpose },
+      });
+      if (seller && store) url.searchParams.set("store", store);
+      return sendFile(url, body, input, metadata, context?.headers ?? {});
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["media", shop(), "usage"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["media", context?.store ?? shop(), "usage"] }),
   });
 }
 export async function mediaLink(id: string, seller: boolean) {
@@ -122,10 +127,25 @@ export async function changeMediaState(
   action: "attach" | "delete",
   key: string = crypto.randomUUID(),
   cropPosition?: CropPosition,
+  context?: { store: string; headers: Record<string, string> },
 ) {
+  const body = action === "attach" ? { action, cropPosition } : { action };
+  const headers = { "Idempotency-Key": key, ...context?.headers };
+  if (context && seller) {
+    const url = apiForShop(context.store, seller).api.media[":id"].state.$url({ param: { id } });
+    url.searchParams.set("store", context.store);
+    url.searchParams.set("as", "seller");
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...headers },
+      body: JSON.stringify(body),
+    });
+    await checkResponse(response);
+    return response.json();
+  }
   const response = await apiForShop(shop(), seller).api.media[":id"].state.$post(
-    { param: { id }, json: action === "attach" ? { action, cropPosition } : { action } },
-    { headers: { "Idempotency-Key": key } },
+    { param: { id }, json: body },
+    { headers },
   );
   await checkResponse(response);
   return response.json();

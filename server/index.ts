@@ -71,7 +71,9 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
   .use("/seller/orders/*", sellerOrderGateway)
   .use("/favorites/*", forwarding)
   .use("/profile/*", forwarding)
-  .use("/media/*", forwarding)
+  .use("/media/*", (c, next) =>
+    c.req.query("as") === "seller" && c.req.query("store") ? sellerOrderGateway(c, next) : forwarding(c, next),
+  )
   .use("/catalog/*", catalogGateway)
   .use("/shop", forwarding)
   .use("/diagnostics/*", forwarding)
