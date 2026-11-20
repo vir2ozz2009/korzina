@@ -36,12 +36,14 @@ export function useSellerOrderList(store: string, selection: ListSelection) {
     enabled: !!store,
     queryFn: async ({ signal }): Promise<SellerOrderPage> => {
       const previous = client.getQueryData<SellerOrderPage>(key);
-      const result: SellerOrderPage | { unchanged: true } = await (
+      const result: SellerOrderPage | { unchanged: true; timeZone?: string } = await (
         await request(store, "", { ...selection, rev: previous?.rev }, { signal })
       ).json();
       if ("unchanged" in result) {
         if (!previous) throw new Error("Список недоступен");
-        return previous;
+        return result.timeZone && result.timeZone !== previous.timeZone
+          ? { ...previous, timeZone: result.timeZone }
+          : previous;
       }
       client.setQueryData(badgeKey(store), { rev: result.rev, count: result.newlyPlaced });
       return result;

@@ -1,20 +1,19 @@
-import { inArray } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import type { DrizzleSqliteDODatabase } from "drizzle-orm/durable-sqlite";
 import { normalizeTheme } from "../../src/shared/theme-presets";
-import { settings } from "./schema";
+import { shopTimeZoneSql } from "./time-zone";
 
 export function readPublicSettings(db: DrizzleSqliteDODatabase) {
-  const rows = db
-    .select()
-    .from(settings)
-    .where(inArray(settings.key, ["display_name", "theme"]))
-    .all();
-  const values = new Map(rows.map((row) => [row.key, row.value]));
+  const row = db.get<{ name: string | null; theme: string | null; timeZone: string }>(sql`
+    SELECT (SELECT value FROM settings WHERE key='display_name') AS name,
+      (SELECT value FROM settings WHERE key='theme') AS theme,
+      ${sql.raw(shopTimeZoneSql)} AS timeZone
+  `);
   let theme: unknown;
   try {
-    theme = JSON.parse(values.get("theme") ?? "null");
+    theme = JSON.parse(row.theme ?? "null");
   } catch {
     theme = null;
   }
-  return { name: values.get("display_name"), theme: normalizeTheme(theme) };
+  return { name: row.name, theme: normalizeTheme(theme), timeZone: row.timeZone };
 }

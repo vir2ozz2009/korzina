@@ -21,3 +21,5 @@
 |---|---|---|
 | BL-3 | 19.11.2026 | [PR #92](https://github.com/vir2ozz2009/korzina/pull/92). Андрей подтвердил проверку на телефонах. |
 | BL-5 | 19.11.2026 | [PR #97](https://github.com/vir2ozz2009/korzina/pull/97), [PR #98](https://github.com/vir2ozz2009/korzina/pull/98). Проверено на iPhone и в Telegram Web при приёмке блока 4. |
+| BL-6 | 20.11.2026 | [PR #116](https://github.com/vir2ozz2009/korzina/pull/116). Замеры до и после в описании PR. |
+| BL-7 | 20.11.2026 | [PR #117](https://github.com/vir2ozz2009/korzina/pull/117). Единое форматирование по поясу магазина в витрине, кабинете и Telegram. |

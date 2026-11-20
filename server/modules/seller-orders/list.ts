@@ -15,6 +15,19 @@ const active = "'placed','accepted','ready','handed'";
 const closed = "'completed','cancelled'";
 const limit = 20;
 
+function searchFilter(search: string) {
+  if (!search) return { where: "", values: [] };
+  const number = /^(?:№\s*)?(\d+)$/u.exec(search)?.[1];
+  const phone = `instr(${normalizedPhone},?) > 0`;
+  if (number) {
+    if (number.length <= 3) return { where: "number=?", values: [number] };
+    return { where: `(number=? OR ${phone})`, values: [number, number] };
+  }
+  const name = "instr(name_key,?) > 0";
+  const digits = search.startsWith("№") ? "" : search.replace(/\D/gu, "");
+  return digits ? { where: `(${name} OR ${phone})`, values: [search, digits] } : { where: name, values: [search] };
+}
+
 export function orderListRevision(storage: DurableObjectStorage) {
   return storage.sql
     .exec<{ rev: number }>("SELECT CAST(value AS INTEGER) AS rev FROM settings WHERE key='seller_orders_revision'")
@@ -23,27 +36,20 @@ export function orderListRevision(storage: DurableObjectStorage) {
 
 export function sellerOrders(storage: DurableObjectStorage, input: SellerOrdersQuery, timeZone: string) {
   const rev = orderListRevision(storage);
-  if (input.rev === rev && !input.cursor) return { rev, unchanged: true as const };
+  if (input.rev === rev && !input.cursor) return { rev, timeZone, unchanged: true as const };
   const search = input.search?.toLocaleLowerCase("ru") ?? "";
   const method = input.method ?? "";
   const completed = input.tab === "completed";
   const debt = completed && input.debt === "1";
   const fingerprint = JSON.stringify([input.tab, method, debt, search]);
+  const match = searchFilter(search);
   const query = [
     `stage IN (${completed ? closed : active})`,
     ...(method ? ["method=?"] : []),
     ...(debt ? ["debt_minor>0"] : []),
-    ...(search
-      ? [
-          `(instr(CAST(number AS TEXT),?) > 0 OR instr(name_key,?) > 0 OR (? <> '' AND instr(${normalizedPhone},?) > 0))`,
-        ]
-      : []),
+    ...(match.where ? [match.where] : []),
   ].join(" AND ");
-  const digits = search.startsWith("№") ? "" : search.replace(/\D/gu, "");
-  const filters = [
-    ...(method ? [method] : []),
-    ...(search ? [search.replace(/^№\s*/u, ""), search, digits, digits] : []),
-  ];
+  const filters = [...(method ? [method] : []), ...match.values];
   let after: [number, string, number] | undefined;
   if (input.cursor) {
     const parsed = cursorInput.safeParse(JSON.parse(readCursor(input.cursor)));

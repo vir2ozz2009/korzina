@@ -27,7 +27,7 @@ it("П1: плавающая корзина видна в каталоге, ск�
   Object.assign(viewport, { height: innerHeight, scale: 1, offsetTop: 0 });
   Object.defineProperty(window, "visualViewport", { configurable: true, value: viewport });
   try {
-    const router = storefront("/search", base);
+    const router = await storefront("/search", base);
     await screen.findByRole("button", { name: /^Корзина/ });
     const input = await screen.findByRole("textbox", { name: "Поиск товаров" });
     act(() => {
@@ -55,7 +55,7 @@ it("П1: плавающая корзина видна в каталоге, ск�
 
 it("§9.3: счётчик фасовок открывает шторку, закончившуюся фасовку можно уменьшить", async () => {
   const commands: unknown[] = [];
-  storefront("/", (url, init) => {
+  await storefront("/", (url, init) => {
     if (url.pathname === "/api/auth/guest") return Response.json({ kind: "guest" });
     if (url.pathname === "/api/catalog/products/product-01")
       return Response.json(
@@ -80,7 +80,7 @@ it("§9.3: счётчик фасовок открывает шторку, зак
 });
 
 it("П3: сброс пустой выборки сохраняет сортировку", async () => {
-  storefront("/catalog?sort=price-asc&max=1", (url) =>
+  await storefront("/catalog?sort=price-asc&max=1", (url) =>
     url.pathname === "/api/catalog/page"
       ? Response.json(url.searchParams.has("max") ? catalogListContract.parse({ ...list, count: 0, items: [] }) : list)
       : base(url),
@@ -91,7 +91,7 @@ it("П3: сброс пустой выборки сохраняет сортир�
 });
 
 it("§7.5: поиск сообщает, сколько товаров показано из общего числа", async () => {
-  storefront("/search?q=томаты", (url) =>
+  await storefront("/search?q=томаты", (url) =>
     url.pathname === "/api/catalog/search"
       ? Response.json(catalogSearchContract.parse({ ...list, count: 19, preferred: {}, suggestion: null }))
       : base(url),
@@ -101,7 +101,7 @@ it("§7.5: поиск сообщает, сколько товаров показ
 
 it("§6: ошибка следующей страницы оставляет товары и позволяет повторить загрузку", async () => {
   let attempts = 0;
-  storefront("/", (url) => {
+  await storefront("/", (url) => {
     if (url.pathname === "/api/catalog/document") {
       if (!url.searchParams.has("after")) return Response.json({ ...catalog, next: "product-01" });
       if (++attempts === 1) return Promise.reject(new TypeError("Network error"));

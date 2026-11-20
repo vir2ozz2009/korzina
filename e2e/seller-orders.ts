@@ -1,6 +1,7 @@
 import { type APIRequestContext, type Browser, expect } from "@playwright/test";
 import type { OrderResult, QuoteResponse } from "../src/shared/contracts/checkout";
 import type { AvailabilityDay } from "../src/shared/contracts/receiving-time";
+import type { SellerOrder } from "../src/shared/contracts/seller-order";
 
 function pdfReceipt() {
   const stream = "BT /F1 18 Tf 28 142 Td (Korzina test receipt) Tj 0 -27 Td (Payment received) Tj ET";
@@ -70,9 +71,10 @@ async function placePickup(request: APIRequestContext, transfer: boolean) {
 
 export async function verifySellerOrders(browser: Browser, baseURL: string) {
   const viewport = { width: 390, height: 844 };
+  const timezoneId = "America/Los_Angeles";
   const [buyer, seller] = await Promise.all([
-    browser.newContext({ baseURL, viewport, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.81" } }),
-    browser.newContext({ baseURL, viewport, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.82" } }),
+    browser.newContext({ baseURL, viewport, timezoneId, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.81" } }),
+    browser.newContext({ baseURL, viewport, timezoneId, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.82" } }),
   ]);
   try {
     const page = await buyer.newPage();
@@ -91,15 +93,42 @@ export async function verifySellerOrders(browser: Browser, baseURL: string) {
     const order = await placePickup(page.request, true);
     await signal;
     await cabinet.getByRole("searchbox", { name: "Номер, имя или телефон" }).fill(`№${order.number}`);
-    await expect(cabinet.getByRole("button", { name: `Открыть заказ №${order.number}` })).toBeVisible();
+    const orderButton = cabinet.getByRole("button", { name: `Открыть заказ №${order.number}`, exact: true });
+    const orderCard = orderButton.locator("..");
+    await expect(orderButton).toBeVisible();
     await cabinet.screenshot({ path: "test-results/seller-orders-390.png", animations: "disabled" });
-    await cabinet.getByRole("button", { name: "Принять", exact: true }).click();
-    await cabinet.getByRole("button", { name: "Открыть сборку" }).click();
+    await orderCard.getByRole("button", { name: "Принять", exact: true }).click();
+    const slot = order.time?.slotId;
+    if (!order.time || !slot) throw new Error("Demo pickup must have a scheduled interval");
+    // Just after midnight in the shop. The browser in Los Angeles is still on the previous day.
+    const now = Date.parse(`${order.time.date}T00:30:00+07:00`);
+    const telegram = await seller.request.post(`/__e2e/test2/order-message?number=${order.number}&now=${now}`);
+    expect(telegram.ok()).toBe(true);
+    const [day, start] = (await telegram.text()).split("\n")[1].split(" · ");
+    expect(day).toMatch(/^Сегодня, /);
+    const [startAt, endAt] = slot.split("-");
+    expect(start).toBe(startAt);
+    const receiving = `${day} · ${start}–${endAt}`;
+    await cabinet.clock.setFixedTime(now);
+    await orderCard.getByRole("button", { name: "Открыть сборку" }).click();
+    await expect(cabinet.getByText(receiving, { exact: true })).toBeVisible();
+    await cabinet.clock.setFixedTime(Date.now());
     await cabinet.getByRole("button", { name: "Отметить все собранными" }).click();
     await expect(cabinet.getByText("Собрано 1 из 1")).toBeVisible();
     await cabinet.getByRole("button", { name: "Сборка завершена" }).click();
     await cabinet.getByRole("button", { name: "Проверить перевод" }).click();
-    await cabinet.getByRole("button", { name: "Последний чек" }).click();
+    const detailsResponse = await seller.request.get(`/api/seller/orders/${order.number}?store=test2`);
+    expect(detailsResponse.ok()).toBe(true);
+    const details: SellerOrder = await detailsResponse.json();
+    expect(details.timeZone).toBe("Asia/Ho_Chi_Minh");
+    const receiptDate = new Intl.DateTimeFormat("ru-RU", {
+      timeZone: details.timeZone,
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(details.receipts[0].createdAt);
+    const latestReceipt = cabinet.getByRole("button", { name: "Последний чек" });
+    await expect(latestReceipt).toContainText(receiptDate);
+    await latestReceipt.click();
     const receipt = cabinet.getByLabel("Документ чека");
     await expect(receipt).toHaveAttribute("data", /^blob:/);
     const bytes = await receipt.evaluate(async (element) =>
@@ -120,8 +149,11 @@ export async function verifySellerOrders(browser: Browser, baseURL: string) {
     await cabinet.screenshot({ path: "test-results/seller-history-390.png", animations: "disabled" });
     await cabinet.getByRole("button", { name: "Выдать заказ", exact: true }).click();
     await cabinet.getByRole("button", { name: "Подтвердить", exact: true }).click();
+    await page.clock.setFixedTime(now);
     await page.goto(`/orders/${order.number}?shop=test2`);
     await expect(page.getByRole("heading", { name: "Выдан", exact: true })).toBeVisible();
+    await expect(page.getByText(receiving, { exact: false })).toBeVisible();
+    await page.clock.setFixedTime(Date.now());
     const debt = await placePickup(page.request, false);
     await cabinet.goto(`/seller/orders/${debt.number}?store=test2&shop=test2`);
     await cabinet.getByRole("button", { name: "Принять", exact: true }).click();
@@ -138,8 +170,15 @@ export async function verifySellerOrders(browser: Browser, baseURL: string) {
     await page.goto("/?shop=test2");
     await expect(page.getByRole("button", { name: /Доплатите/ })).toBeVisible();
     await page.getByRole("button", { name: /Доплатите/ }).click();
+    await expect(page).toHaveURL(new RegExp(`/orders/${debt.number}\\?shop=test2$`));
     await expect(page.getByRole("heading", { name: "Выдан", exact: true })).toBeVisible();
     await expect(page.getByText(/Доплатите/)).toBeVisible();
+    await cabinet.goto("/seller?store=test2");
+    const storefront = new URL("/?shop=test2", baseURL);
+    await expect(cabinet.getByText(storefront.href, { exact: true })).toBeVisible();
+    await cabinet.screenshot({ path: "test-results/seller-storefront-390.png", animations: "disabled" });
+    await cabinet.getByRole("button", { name: "Открыть витрину", exact: true }).click();
+    await expect(cabinet).toHaveURL(storefront.href);
   } finally {
     await Promise.all([buyer.close(), seller.close()]);
   }

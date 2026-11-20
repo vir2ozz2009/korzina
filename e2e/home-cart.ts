@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 export function captureApi(page: Page) {
   const errors: string[] = [];
@@ -79,12 +79,12 @@ export async function openCart(page: Page, api: ReturnType<typeof captureApi>, r
   expect(api.receivingStartedInParallel()).toBe(true);
 }
 
-export async function cartClick(page: Page, name: RegExp | string) {
+export async function cartClick(page: Page, name: RegExp | string, scope: Locator | Page = page) {
   const [response] = await Promise.all([
     page.waitForResponse(
       (response) => new URL(response.url()).pathname === "/api/cart" && response.request().method() === "POST",
     ),
-    page.getByRole("button", { name }).click(),
+    scope.getByRole("button", { name }).click(),
   ]);
   expect(response.ok()).toBe(true);
 }

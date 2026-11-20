@@ -6,6 +6,7 @@ import { Header } from "../../../app/shell/Header";
 import { QueryBoundary } from "../../../app/shell/QueryBoundary";
 import { Screen } from "../../../app/shell/Screen";
 import { HttpError } from "../../../shared/http-error";
+import { buyerOrderSearch } from "../../../shared/shop-api";
 import { Avatar } from "../../../ui/Avatar";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
@@ -47,7 +48,7 @@ export function ProfileScreen() {
                   <ListItem
                     title="Мои заказы"
                     icon={<Package size={22} />}
-                    onClick={() => void navigate({ to: "/orders" })}
+                    onClick={() => void navigate({ to: "/orders", search: buyerOrderSearch })}
                   />
                   <ListItem
                     title="Избранное"

@@ -37,18 +37,3 @@ export function rollbackStage(stage: OrderStage, delivery: boolean): OrderStage 
 export function isHandoff(action: OrderAction): action is Handoff {
   return action === "handOver" || action === "markPickedUp" || action === "complete";
 }
-
-export function zonedDay(date: number, timeZone: string) {
-  return new Intl.DateTimeFormat("sv-SE", { timeZone, dateStyle: "short" }).format(date);
-}
-
-export function dayLabel(day: string, timeZone: string) {
-  const today = zonedDay(Date.now(), timeZone);
-  if (day === today) return "Сегодня";
-  const tomorrow = new Date(`${today}T12:00:00Z`);
-  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-  if (day === tomorrow.toISOString().slice(0, 10)) return "Завтра";
-  return new Intl.DateTimeFormat("ru-RU", { timeZone: "UTC", weekday: "short", day: "numeric", month: "long" }).format(
-    new Date(`${day}T12:00:00Z`),
-  );
-}

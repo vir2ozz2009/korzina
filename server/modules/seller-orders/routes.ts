@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { orderNumberInput } from "../../../src/shared/contracts/buyer-order";
 import { sellerOrderCommand, sellerOrdersQuery } from "../../../src/shared/contracts/seller-order";
+import { defaultShopTimeZone } from "../../../src/shared/datetime";
 import { ApiError } from "../../../src/shared/errors";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
 import { readSeller, type Seller } from "../../auth/roles";
@@ -28,7 +29,7 @@ export const sellerOrderRoutes = new Hono<SellerOrderEnv>()
     await next();
   })
   .get("/", zValidator("query", sellerOrdersQuery, validationFailure), (c) =>
-    c.json(sellerOrders(c.env.storage, c.req.valid("query"), c.env.timeZone ?? "Asia/Ho_Chi_Minh")),
+    c.json(sellerOrders(c.env.storage, c.req.valid("query"), c.env.timeZone ?? defaultShopTimeZone)),
   )
   .get(
     "/:number/receipts/:id",

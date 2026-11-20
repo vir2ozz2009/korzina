@@ -29,7 +29,7 @@ export const cabinetRoutes = new Hono<{ Bindings: Env & AuthSecrets; Variables: 
     await next();
   })
   .get("/", zValidator("query", cabinetQuery, validationFailure), async (c) =>
-    c.json(await readCabinet(c.env.PLATFORM, c.req.raw, c.req.valid("query").store)),
+    c.json(await readCabinet(c.env.PLATFORM, c.req.raw, c.env.APP_ENV, c.req.valid("query").store)),
   )
   .post("/start", authBodyLimit, authCommand, zValidator("json", telegramStartInput, validationFailure), async (c) => {
     const returnUrl = telegramReturnUrl(c.req.raw, c.req.valid("json").returnPath ?? "/seller", true);

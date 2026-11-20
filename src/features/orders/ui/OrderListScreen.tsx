@@ -3,8 +3,10 @@ import { useState } from "react";
 import { Header } from "../../../app/shell/Header";
 import { QueryBoundary } from "../../../app/shell/QueryBoundary";
 import { Screen } from "../../../app/shell/Screen";
+import { formatShopDate } from "../../../shared/datetime";
 import { errorKind } from "../../../shared/http-error";
 import { formatMinor } from "../../../shared/money";
+import { buyerOrderSearch, shopTimeZone } from "../../../shared/shop-api";
 import { Button } from "../../../ui/Button";
 import { Chip } from "../../../ui/Chip";
 import { EmptyState } from "../../../ui/EmptyState";
@@ -19,7 +21,7 @@ export function OrderListScreen() {
   const navigate = useNavigate();
   const query = useBuyerOrders(tab);
   const rows = query.data?.pages.flatMap((page) => page.orders) ?? [];
-  const home = () => void navigate({ to: "/" });
+  const home = () => void navigate({ to: "/", search: buyerOrderSearch });
   const emptyTitle = tab === "active" ? "Активных заказов нет" : "Завершённых заказов нет";
   return (
     <Screen template="list" header={<Header title="Мои заказы" />}>
@@ -42,9 +44,15 @@ export function OrderListScreen() {
                 <ListItem
                   key={item.number}
                   title={`Заказ №${item.number}`}
-                  subtitle={`${new Date(item.createdAt).toLocaleDateString("ru")} · ${buyerStageLabel(item.stage, item.method)}`}
+                  subtitle={`${formatShopDate(item.createdAt, shopTimeZone)} · ${buyerStageLabel(item.stage, item.method)}`}
                   value={formatMinor(item.totalMinor, item.currency)}
-                  onClick={() => void navigate({ to: "/orders/$number", params: { number: String(item.number) } })}
+                  onClick={() =>
+                    void navigate({
+                      to: "/orders/$number",
+                      search: buyerOrderSearch,
+                      params: { number: String(item.number) },
+                    })
+                  }
                 />
               ))}
               {query.hasNextPage && (

@@ -38,7 +38,7 @@ it("§3.1: открытие корзины ждёт ответа, повтор �
   const first = reply();
   const retry = reply();
   let reads = 0;
-  const router = storefront("/cart", (url) => {
+  const router = await storefront("/cart", (url) => {
     if (url.pathname !== "/api/cart") return purchaseSupport(url);
     if (++reads === 1) return first.promise;
     if (reads === 2) return Promise.reject(new TypeError("Network error"));
@@ -61,7 +61,7 @@ it("§3.1: открытие корзины ждёт ответа, повтор �
 it("§3.1: удаление можно отменить, а на время пересчёта количество и продолжение блокируются", async () => {
   const commands: unknown[] = [];
   const increase = reply();
-  storefront("/cart", async (url, init) => {
+  await storefront("/cart", async (url, init) => {
     if (url.pathname !== "/api/cart") return purchaseSupport(url);
     if (init?.method !== "POST") return Response.json(filledCart);
     const input = cartCommandInput.parse(JSON.parse(String(init.body)));

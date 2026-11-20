@@ -1,5 +1,21 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { expect, type Page } from "@playwright/test";
+import { cartContract } from "../src/shared/contracts/cart";
+
+export async function verifyBuyerOrderReload(page: Page, number: number) {
+  const heading = page.getByRole("heading", { name: `Заказ №${number}`, exact: true });
+  await page.getByRole("button", { name: "Открыть заказ", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/orders/${number}\\?shop=test2$`));
+  await page.reload();
+  await expect(heading).toBeVisible();
+  await expect(page.getByText("Магазин скоро возьмёт заказ в работу")).toBeVisible();
+  await page.screenshot({ path: "test-results/b11-shop-reload-390.png", animations: "disabled" });
+  await page.getByRole("button", { name: "Мои заказы", exact: true }).click();
+  await expect(page).toHaveURL(/\/orders\?shop=test2$/);
+  await page.getByRole("button", { name: new RegExp(`^Заказ №${number}\\b`) }).click();
+  await expect(page).toHaveURL(new RegExp(`/orders/${number}\\?shop=test2$`));
+  await expect(heading).toBeVisible();
+}
 
 export async function verifyOrderCancellation(page: Page, number: number) {
   const activeOrder = page
@@ -18,28 +34,38 @@ export async function verifyOrderCancellation(page: Page, number: number) {
 }
 
 export async function verifyFavoriteCart(page: Page) {
-  const tile = page
-    .locator("article")
-    .filter({ has: page.getByRole("button", { name: "Добавить в корзину", exact: true }) })
-    .first();
-  await tile.getByRole("button", { name: "Добавить в избранное", exact: true }).click();
-  await expect(tile.getByRole("button", { name: "Убрать из избранного", exact: true })).toBeVisible();
+  // The checkout fixture has an unlimited 350 г variant, independent of the stock of other demo products.
+  const product = page.locator('a[href="/p/product-17"]');
+  const tile = page.locator("article").filter({ has: product });
+  const removeFavorite = tile.getByRole("button", { name: "Убрать из избранного", exact: true });
+  const addFavorite = tile.getByRole("button", { name: "Добавить в избранное", exact: true });
+  await expect(addFavorite.or(removeFavorite)).toBeEnabled();
+  const wasFavorite = await removeFavorite.isVisible();
+  if (wasFavorite) await removeFavorite.click();
+  await addFavorite.click();
+  await expect(removeFavorite).toBeVisible();
   await page.locator("header").getByRole("button", { name: "Профиль", exact: true }).click();
   await page.getByRole("button", { name: "Избранное", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Убрать из избранного", exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/favorites(?:\?|$)/);
+  await expect(removeFavorite).toBeVisible();
   await page.screenshot({ path: "test-results/b12-favorites-390.png", animations: "disabled" });
-  const tileOnList = page.locator("article").first();
-  const choices = tileOnList.getByRole("button", { name: /фасовк/ });
-  if (await choices.count()) {
-    await choices.click();
-    const variants = page.getByRole("dialog", { name: "Выберите фасовку" });
-    const add = variants.getByRole("button", { name: "Добавить в корзину", exact: true }).first();
-    await add.click();
-    await expect(add).toHaveCount(0);
-    await variants.getByRole("button", { name: "Закрыть", exact: true }).click();
-  } else {
-    await tileOnList.getByRole("button", { name: "Добавить в корзину", exact: true }).click();
-    await expect(tileOnList.getByRole("button", { name: "Добавить одну штуку", exact: true })).toBeVisible();
+  await tile.getByRole("button", { name: "Выбрать фасовку", exact: true }).click();
+  const variants = page.getByRole("dialog", { name: "Выберите фасовку" });
+  const pack = variants.locator("div.rounded-lg").filter({ has: page.getByText("350 г", { exact: true }) });
+  const added = page.waitForResponse(
+    (response) => new URL(response.url()).pathname === "/api/cart" && response.request().method() === "POST",
+  );
+  await pack.getByRole("button", { name: "Добавить в корзину", exact: true }).click();
+  const response = await added;
+  expect(response.ok()).toBe(true);
+  expect(cartContract.parse(await response.json()).lines).toContainEqual(
+    expect.objectContaining({ productId: "product-17", variantId: "sku-20", quantity: 1 }),
+  );
+  await expect(pack.getByLabel("В корзине", { exact: true })).toHaveText("1");
+  await variants.getByRole("button", { name: "Закрыть", exact: true }).click();
+  if (!wasFavorite) {
+    await removeFavorite.click();
+    await expect(tile).toHaveCount(0);
   }
   await page.getByRole("button", { name: /^Корзина/ }).click();
   await expect(page).toHaveURL(/\/cart/);

@@ -2,11 +2,12 @@ import { Navigate, useNavigate, useSearch } from "@tanstack/react-router";
 import { Check, MapPin, Store } from "lucide-react";
 import { Header } from "../../../app/shell/Header";
 import { Screen } from "../../../app/shell/Screen";
+import { formatReceivingTime } from "../../../shared/datetime";
 import { formatMinor } from "../../../shared/money";
+import { buyerOrderSearch, shopTimeZone } from "../../../shared/shop-api";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { ListItem } from "../../../ui/ListItem";
-import { formatDay } from "../../receiving";
 import { useOrder } from "../api";
 import { readAttempt, readOrderNumber } from "../session";
 import { PurchaseTotals } from "./PurchaseTotals";
@@ -27,9 +28,7 @@ export function DoneScreen() {
       : order?.fulfillment.mode === "pickup"
         ? order.fulfillment.pickup.address
         : undefined;
-  const time = order?.time
-    ? [formatDay(order.time.date), order.time.slotId?.replace("-", "–")].filter(Boolean).join(", ")
-    : "Время согласует магазин";
+  const time = order?.time ? formatReceivingTime(order.time, shopTimeZone) : "Время согласует магазин";
   const transfer = order?.transferReview;
   return (
     <Screen
@@ -63,9 +62,15 @@ export function DoneScreen() {
           <PurchaseTotals {...order} done />
           <ListItem
             title="Открыть заказ"
-            onClick={() => void navigate({ to: "/orders/$number", params: { number: String(order.number) } })}
+            onClick={() =>
+              void navigate({
+                to: "/orders/$number",
+                search: buyerOrderSearch,
+                params: { number: String(order.number) },
+              })
+            }
           />
-          <ListItem title="Мои заказы" onClick={() => void navigate({ to: "/orders" })} />
+          <ListItem title="Мои заказы" onClick={() => void navigate({ to: "/orders", search: buyerOrderSearch })} />
           {transfer && (transfer.credentialsChanged || transfer.differenceMinor !== 0) && (
             <Card>
               {transfer.differenceMinor !== 0 && (

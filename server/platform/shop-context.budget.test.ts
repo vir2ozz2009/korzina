@@ -34,14 +34,22 @@ describe("контекст магазина, изоляция и бюджет п
         "INSERT INTO settings(key,value) VALUES ('theme',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
         JSON.stringify({ custom: "#f8c537" }),
       );
+      ctx.storage.sql.exec(
+        "UPDATE settings SET value=json_set(value,'$.timeZone','America/Los_Angeles') WHERE key='receiving_schedule'",
+      );
     });
     expect((await cache.read(request("lavka"), env)).theme).toEqual(initial.theme);
     now += 1;
     const enabled = await cache.read(request("lavka"), env);
-    expect(enabled).toMatchObject({ features: { cashback: true }, theme: { custom: "#f8c537" } });
+    expect(enabled).toMatchObject({
+      features: { cashback: true },
+      theme: { custom: "#f8c537" },
+      timeZone: "America/Los_Angeles",
+    });
     expect(await cache.read(request("test2"), env)).toMatchObject({
       features: { cashback: false },
       theme: { preset: "raspberry" },
+      timeZone: "Asia/Ho_Chi_Minh",
     });
     const off = featureStatement("lavka", "cashback", false);
     await env.PLATFORM.prepare(off.sql)

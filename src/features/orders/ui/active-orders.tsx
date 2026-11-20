@@ -2,14 +2,14 @@ import { useNavigate } from "@tanstack/react-router";
 import { Package } from "lucide-react";
 import { telegramLaunch } from "../../../app/telegram/launch";
 import type { OrderStage } from "../../../shared/contracts/buyer-order";
-import type { TimeChoice } from "../../../shared/contracts/receiving-time";
+import { formatReceivingTime, shopDateTime } from "../../../shared/datetime";
 import { errorKind } from "../../../shared/http-error";
 import { formatMinor } from "../../../shared/money";
+import { buyerOrderSearch, shopTimeZone } from "../../../shared/shop-api";
 import { hasBuyerMarker } from "../../../shared/shop-session";
 import { Button } from "../../../ui/Button";
 import { ListItem } from "../../../ui/ListItem";
 import { useContact } from "../../contact";
-import { formatDay } from "../../receiving";
 import { useActiveOrders } from "../api";
 
 const orderStages: Record<OrderStage, string> = {
@@ -24,9 +24,6 @@ export function buyerStageLabel(stage: OrderStage, method?: "delivery" | "pickup
   if (stage === "ready" && method === "delivery") return "Собираем";
   if (stage === "completed" && method) return method === "pickup" ? "Выдан" : "Доставлен";
   return orderStages[stage];
-}
-export function orderTime(time: TimeChoice | null) {
-  return time ? [formatDay(time.date), time.slotId?.replace("-", "–")].filter(Boolean).join(", ") : undefined;
 }
 export function ActiveOrders() {
   const contact = useContact(false);
@@ -47,7 +44,9 @@ export function ActiveOrders() {
             variant="soft"
             className="justify-start"
             subtitle={`Заказ №${number}`}
-            onClick={() => void navigate({ to: "/orders/$number", params: { number: String(number) } })}
+            onClick={() =>
+              void navigate({ to: "/orders/$number", search: buyerOrderSearch, params: { number: String(number) } })
+            }
           >
             Доплатите {formatMinor(debtMinor, currency)}
           </Button>
@@ -56,14 +55,18 @@ export function ActiveOrders() {
             key={number}
             title={`Заказ №${number}`}
             icon={<Package size={22} />}
-            subtitle={[buyerStageLabel(stage, method), orderTime(time)].filter(Boolean).join(" · ")}
-            onClick={() => void navigate({ to: "/orders/$number", params: { number: String(number) } })}
+            subtitle={[buyerStageLabel(stage, method), time && formatReceivingTime(time, shopTimeZone)]
+              .filter(Boolean)
+              .join(" · ")}
+            onClick={() =>
+              void navigate({ to: "/orders/$number", search: buyerOrderSearch, params: { number: String(number) } })
+            }
           />
         ),
       )}
       {query.isError && (
         <div role="status">
-          Обновлено {new Date(query.dataUpdatedAt).toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" })}
+          Обновлено {shopDateTime(query.dataUpdatedAt, shopTimeZone).time}
           <Button variant="ghost" onClick={() => void query.refetch()}>
             Повторить
           </Button>

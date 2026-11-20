@@ -3,8 +3,8 @@ import { ApiError } from "../../../src/shared/errors";
 import { flags, resolveFeatures } from "../../../src/shared/flags";
 import { normalizeTheme } from "../../../src/shared/theme-presets";
 import type { AuthSecrets } from "../../auth/config";
+import { storefrontUrl } from "../storefront-url";
 import { ensureInitialOwnerInvite, invitationToken, type OwnerInvite, readOwnerInvite } from "./invitation-link";
-import { storefrontUrl } from "./registry";
 
 export type ManagedShop = {
   id: string;
@@ -76,7 +76,7 @@ export async function shopDetail(
     ...shop,
     ownerAccepted: !!shop.ownerAccepted,
     theme: normalizeTheme(shop.theme ? JSON.parse(shop.theme) : undefined),
-    storefrontUrl: storefrontUrl(request, env.APP_ENV, shop.slug),
+    storefrontUrl: storefrontUrl(request.url, env.APP_ENV, shop.slug),
     invite: { url, replacing: !!invite?.reason && !invite.usedBy, expiresAt: invite?.expiresAt ?? null },
     flags: flags.map(({ key, description }) => ({ key, description, enabled: features[key] })),
     productCount,

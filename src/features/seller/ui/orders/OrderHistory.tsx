@@ -1,4 +1,5 @@
 import type { RecordedPayment, SellerOrder } from "../../../../shared/contracts/seller-order";
+import { formatShopTimestamp } from "../../../../shared/datetime";
 import { formatMinor } from "../../../../shared/money";
 import { Card } from "../../../../ui/Card";
 import { paymentLabel } from "./OrderPaymentSheet";
@@ -27,7 +28,6 @@ export function OrderHistory({ order }: { order: SellerOrder }) {
   if (!order.events.length) return null;
   const money = (value: RecordedPayment) =>
     `${paymentLabel[value.method]} · ${formatMinor(value.amountMinor, order.currency)}`;
-  const time = new Intl.DateTimeFormat("ru-RU", { timeZone: order.timeZone, dateStyle: "short", timeStyle: "short" });
   return (
     <Card>
       <details>
@@ -42,7 +42,10 @@ export function OrderHistory({ order }: { order: SellerOrder }) {
               <li key={event.id} className="border-b border-border pb-2 last:border-0">
                 <p className="text-label">{eventLabel[event.event] ?? event.event}</p>
                 <p className="text-meta text-muted-foreground">
-                  <time dateTime={new Date(event.createdAt).toISOString()}>{time.format(event.createdAt)}</time> ·{" "}
+                  <time dateTime={new Date(event.createdAt).toISOString()}>
+                    {formatShopTimestamp(event.createdAt, order.timeZone)}
+                  </time>{" "}
+                  ·{" "}
                   <span title={event.actor}>
                     {event.actor.startsWith("guest:") || event.event === "order.cancelled"
                       ? "Покупатель"
