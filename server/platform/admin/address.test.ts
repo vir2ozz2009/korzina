@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { beforeAll, expect, it, vi } from "vitest";
 import * as cleanup from "../cleanup";
-import { shopStatements } from "../create-shop";
+import { shopRecord, shopStatements } from "../create-shop";
 import platform from "../migrations/0000_platform.sql?raw";
 import auth from "../migrations/0001_awesome_hedge_knight.sql?raw";
 import registry from "../migrations/0007_admin_registry.sql?raw";
@@ -10,21 +10,19 @@ import { changeShop } from "./shop-change";
 import { managedShop } from "./shop-detail";
 
 const database = env.PLATFORM;
-const bindings = { APP_ENV: "demo" };
+const bindings = { APP_ENV: "demo" } satisfies Pick<Env, "APP_ENV">;
 const actor = "address-test";
-const id = "draft-shop";
+const draft = shopRecord("draft-cheese", "Сыр");
+const { id } = draft;
 const command = () => ({ key: crypto.randomUUID(), fingerprint: crypto.randomUUID() });
 
 beforeAll(async () => {
   const migrations = [platform, auth, registry, adminCard].flatMap((sql) => sql.split("--> statement-breakpoint"));
-  const draft = shopStatements(
-    { id, slug: "draft-cheese", name: "Сыр", createdAt: 0 },
-    "draft",
-    "draft-cheese.demo.korzina.app",
-  );
   await database.batch([
     ...migrations.map((sql) => database.prepare(sql)),
-    ...draft.map(({ sql, params }) => database.prepare(sql).bind(...params)),
+    ...shopStatements(draft, "draft", "draft-cheese.demo.korzina.app").map(({ sql, params }) =>
+      database.prepare(sql).bind(...params),
+    ),
     database.prepare("INSERT INTO shops (id,slug,name,created_at) VALUES ('occupied-shop','test2','Занят',0)"),
     database.prepare(`CREATE TRIGGER fail_address_audit BEFORE INSERT ON platform_audit WHEN new.action='shop.data'
     BEGIN SELECT RAISE(ABORT,'audit failure fixture'); END`),
@@ -69,7 +67,7 @@ it("§9.7 · §9.10 · §9.12 адрес меняется только у чер
   const result = await changeShop(database, renamed, { ...data, slug: "fresh-cheese" }, bindings, false);
   expect(await changeShop(database, renamed, { ...data, slug: "fresh-cheese" }, bindings, false)).toEqual(result);
   expect(result.version).toBe(1);
-  const [after, audit] = await database.batch<{ changed: string }>([
+  const [after, audit] = await database.batch<{ host?: string; changed?: string }>([
     domains,
     database.prepare("SELECT changed FROM platform_audit WHERE shop_id=? AND action='shop.data'").bind(id),
   ]);
