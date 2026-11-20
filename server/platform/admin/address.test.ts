@@ -1,11 +1,11 @@
 import { env } from "cloudflare:workers";
 import { beforeAll, expect, it } from "vitest";
-import { setupPlatform } from "../../testing/platform";
+import { setupPlatformDatabase } from "../../testing/platform";
 import { createDraft } from "./registry";
 import { changeShop } from "./shop-change";
 import { managedShop } from "./shop-detail";
 
-beforeAll(setupPlatform);
+beforeAll(setupPlatformDatabase);
 const database = env.PLATFORM;
 const bindings = { ...env, ENCRYPTION_KEY: "af".repeat(32) };
 const actor = "address-test";

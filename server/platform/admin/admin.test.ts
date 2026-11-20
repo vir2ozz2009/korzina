@@ -2,11 +2,11 @@ import { env } from "cloudflare:workers";
 import { beforeAll, expect, it, vi } from "vitest";
 import { app } from "../../index";
 import { customerTtl } from "../../modules/auth/service";
-import { setupPlatform } from "../../testing/platform";
+import { setupPlatformDatabase } from "../../testing/platform";
 import { openAdminSession } from "./access";
 import { invitationToken } from "./invitation-link";
 
-beforeAll(setupPlatform);
+beforeAll(setupPlatformDatabase);
 const telegramId = "90011";
 const accountId = "admin-fixture";
 const signingKey = "bc".repeat(32);

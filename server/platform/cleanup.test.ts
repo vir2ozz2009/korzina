@@ -1,10 +1,10 @@
 import { runInDurableObject } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
 import { beforeAll, expect, it, vi } from "vitest";
-import { setupPlatform } from "../testing/platform";
+import { setupPlatformDatabase } from "../testing/platform";
 import { cleanupSellers, platformCleanupId, scheduleSellerCleanup } from "./cleanup";
 
-beforeAll(setupPlatform);
+beforeAll(setupPlatformDatabase);
 it("координатор убирает только истёкшие seller_sessions и входы; ограниченные порции и снятие аларма после последней записи", async () => {
   const now = Date.now();
   await env.PLATFORM.prepare("INSERT INTO accounts(id) VALUES('cleanup-account')").run();

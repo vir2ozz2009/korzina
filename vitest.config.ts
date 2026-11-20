@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    maxWorkers: 3,
+    maxWorkers: 5,
     projects: [
       {
         test: {
@@ -23,7 +23,33 @@ export default defineConfig({
       },
       {
         plugins: [cloudflareTest({ config: true, remoteBindings: false })],
-        test: { name: "api", include: ["server/**/*.test.ts"] },
+        test: {
+          name: "api",
+          include: ["server/**/*.test.ts"],
+          // Bundle the dependencies used by each isolated Workers test file.
+          deps: {
+            optimizer: {
+              ssr: {
+                enabled: true,
+                include: [
+                  "@hono/zod-validator",
+                  "drizzle-orm",
+                  "drizzle-orm/durable-sqlite",
+                  "drizzle-orm/durable-sqlite/migrator",
+                  "drizzle-orm/sqlite-core",
+                  "hono",
+                  "hono/body-limit",
+                  "hono/client",
+                  "hono/factory",
+                  "hono/http-exception",
+                  "hono/route",
+                  "zod",
+                  "zod/mini",
+                ],
+              },
+            },
+          },
+        },
       },
     ],
   },
