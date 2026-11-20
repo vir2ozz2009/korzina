@@ -46,6 +46,22 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+function storefrontRouter(path: string) {
+  const qc = createQueryClient();
+  qc.setDefaultOptions({ queries: { ...qc.getDefaultOptions().queries, retry: false } });
+  return createRouter({
+    routeTree: root.rootRoute.addChildren(routes.shopRoutes),
+    history: createMemoryHistory({ initialEntries: [path] }),
+    context: { qc },
+    defaultPendingMinMs: 0,
+  });
+}
+
+export async function preloadStorefrontRoutes(paths: (keyof ReturnType<typeof storefrontRouter>["routesByPath"])[]) {
+  const router = storefrontRouter("/");
+  await Promise.all(paths.map((path) => router.loadRouteChunk(router.routesByPath[path])));
+}
+
 export async function storefront(
   path: string,
   handler: (url: URL, init?: RequestInit) => Response | Promise<Response>,
@@ -54,14 +70,8 @@ export async function storefront(
     "fetch",
     vi.fn((url: URL, init?: RequestInit) => handler(new URL(url), init)),
   );
-  const qc = createQueryClient();
-  qc.setDefaultOptions({ queries: { ...qc.getDefaultOptions().queries, retry: false } });
-  const router = createRouter({
-    routeTree: root.rootRoute.addChildren(routes.shopRoutes),
-    history: createMemoryHistory({ initialEntries: [path] }),
-    context: { qc },
-    defaultPendingMinMs: 0,
-  });
+  const router = storefrontRouter(path);
+  const { qc } = router.options.context;
   // Load the route chunk before testing how the mounted screen handles its API requests.
   await router.load();
   render(
