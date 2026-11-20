@@ -20,6 +20,7 @@ export async function cachedDocument(
   namespace: string,
   shopId: string,
   load: () => Promise<Response>,
+  freshDiscovery = false,
 ) {
   const cache = await caches.open("catalog-documents");
   const page = new URLSearchParams({ limit: String(input.limit) });
@@ -30,7 +31,7 @@ export async function cachedDocument(
   if (input.brand) page.set("brand", input.brand);
   const key = (version: string) =>
     `https://catalog.invalid/${documentFormat}/${encodeURIComponent(namespace)}/${encodeURIComponent(shopId)}/${version}?${page}`;
-  const hit = await cache.match(key(String(input.version ?? "current")));
+  const hit = input.version || !freshDiscovery ? await cache.match(key(String(input.version ?? "current"))) : undefined;
   if (hit) {
     const headers = new Headers(hit.headers);
     headers.set("Cache-Control", "public, no-cache");
@@ -53,7 +54,7 @@ export async function cachedDocument(
   });
   const cached = new Response(response.clone().body, { headers });
   await cache.put(key(version), cached.clone());
-  if (!input.version) {
+  if (!input.version && !freshDiscovery) {
     cached.headers.set("Cache-Control", "public, max-age=30");
     await cache.put(key("current"), cached);
   }

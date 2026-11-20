@@ -113,7 +113,7 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
       `WITH ordered AS (
          SELECT json_extract(value,'$.variantId') AS id, json_extract(value,'$.quantity') AS quantity FROM json_each(?)
        )
-       UPDATE variants SET stock=stock-ordered.quantity FROM ordered
+       UPDATE variants SET stock=stock-ordered.quantity, stock_revision=stock_revision+1, purchased=purchased+ordered.quantity FROM ordered
        WHERE variants.id=ordered.id AND variants.stock IS NOT NULL`,
       JSON.stringify(stock),
     );

@@ -30,7 +30,7 @@ export function readCartState(
       (SELECT json_group_array(json_object(
         'variantId',w.variant_id,'productId',p.id,'name',p.name,'unit',v.name,'quantity',w.quantity,
         'priceMinor',v.price_minor,'stock',v.stock,
-        'available',COALESCE(v.visible AND v.product_available AND (v.stock IS NULL OR v.stock>0),0),
+        'available',COALESCE(v.visible AND v.product_available AND NOT v.product_paused AND v.sale_pause IS NULL AND (v.stock IS NULL OR v.stock>0),0),
         'photo',CASE WHEN m.id IS NOT NULL THEN json_object('id',m.id,'edgeColor',m.edge_color,'cropPosition',json(m.crop_position)) END))
       FROM (SELECT json_extract(j.value,'$.variantId') AS variant_id,json_extract(j.value,'$.quantity') AS quantity
             FROM json_each(COALESCE(c.lines,'[]')) j

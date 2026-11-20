@@ -28,6 +28,7 @@ type LiveRow = Row &
     priceMinor: number;
     visible: number;
     productAvailable: number;
+    paused: number;
   };
 
 function asTiles(rows: TileRow[], shopId: string): CatalogTile[] {
@@ -110,7 +111,9 @@ export function readLive(storage: DurableObjectStorage, ids: string[], includeSo
           visible: false,
           available: false,
         };
-      const available = Boolean(row.visible && row.productAvailable && (row.stock === null || row.stock > 0));
+      const available = Boolean(
+        row.visible && row.productAvailable && !row.paused && (row.stock === null || row.stock > 0),
+      );
       return {
         id: row.id,
         productId: row.productId,
@@ -131,6 +134,11 @@ export function readProduct(storage: DurableObjectStorage, id: string, shopId: s
         id: string;
         name: string;
         description: string;
+        ingredients: string;
+        storageNotes: string;
+        recommendations: "auto" | "manual" | "off";
+        recommendationIds: string;
+        salePause: number | null;
         categoryId: string;
         brandId: string | null;
         brandName: string | null;
@@ -142,9 +150,9 @@ export function readProduct(storage: DurableObjectStorage, id: string, shopId: s
     >(productSql, id)
     .toArray()[0];
   if (!row) throw new ApiError("NOT_FOUND", "Товар больше недоступен");
-  const variants = (JSON.parse(row.variants) as Variant[]).map((v) => ({
+  const variants = (JSON.parse(row.variants) as (Variant & { paused: number })[]).map(({ paused, ...v }) => ({
     ...v,
-    available: v.stock === null || v.stock > 0,
+    available: row.salePause === null && !paused && (v.stock === null || v.stock > 0),
   }));
   if (!variants.length || (row.hideOutOfStock && variants.every((v) => !v.available)))
     throw new ApiError("NOT_FOUND", "Товар больше недоступен");
@@ -162,10 +170,12 @@ export function readProduct(storage: DurableObjectStorage, id: string, shopId: s
     id: row.id,
     name: row.name,
     description: row.description,
+    ingredients: row.ingredients,
+    storageNotes: row.storageNotes,
     categoryId: row.categoryId,
     brandId: row.brandName ? row.brandId : null,
     brandName: row.brandName,
-    recommendations: readRecommendations(storage, row.categoryId, id, shopId),
+    recommendations: readRecommendations(storage, shopId, row),
     catalogVersion: row.catalogVersion,
     currency: row.currency,
     variants: row.hideOutOfStock ? variants.filter((v) => v.available) : variants,

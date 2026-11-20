@@ -16,6 +16,7 @@ import { RequestMetrics } from "../metrics";
 import { handleError, notFound } from "../middleware/errors";
 import { extendCustomerVisit } from "../modules/auth/service";
 import { confirmBrowserBuyer, demoBuyerExchange, shopBuyerExchange } from "../modules/auth/telegram-exchange";
+import { expireSalePauses, nextSaleDeadline } from "../modules/catalog/sale-pause";
 import { signalSellerOrders } from "../modules/seller-orders/live";
 import { sendOrderNotifications } from "../modules/seller-orders/notifications";
 import { botCoordinator, changeShopBot, managedBot } from "../platform/admin/shop-bot";
@@ -33,6 +34,7 @@ import { settings } from "./schema";
 
 export class Shop extends DurableObject<Env> {
   private identity: string | undefined;
+  private saleDeadline: number | null = null;
   private pendingOrders = false;
   private settingsSignature: string | undefined;
   private readonly router = new Hono<ShopEnv>()
@@ -49,6 +51,7 @@ export class Shop extends DurableObject<Env> {
     super(ctx, env);
     ctx.blockConcurrencyWhile(async () => {
       await migrate(drizzle(ctx.storage), migrations);
+      this.saleDeadline = nextSaleDeadline(ctx.storage);
       this.pendingOrders = hasPendingPlatformOrders(ctx.storage);
       if (this.pendingOrders) await schedulePlatformOrders(ctx.storage);
       if (
@@ -60,7 +63,21 @@ export class Shop extends DurableObject<Env> {
           "INSERT INTO settings(key,value) VALUES('cleanup_revision','AD2') ON CONFLICT(key) DO UPDATE SET value=excluded.value",
         );
       }
+      await this.scheduleSaleDeadline();
     });
+  }
+
+  private async scheduleSaleDeadline() {
+    if (this.saleDeadline === null) return;
+    const current = await this.ctx.storage.getAlarm();
+    if (this.saleDeadline !== null && (current === null || current > this.saleDeadline))
+      await this.ctx.storage.setAlarm(this.saleDeadline);
+  }
+
+  private expireSales() {
+    const now = Date.now();
+    if (this.saleDeadline !== null && this.saleDeadline <= now)
+      this.saleDeadline = expireSalePauses(this.ctx.storage, now);
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -99,6 +116,7 @@ export class Shop extends DurableObject<Env> {
           this.settingsSignature = signature;
         }
       }
+      this.expireSales();
       response = await this.router.fetch(request, {
         shop,
         timeZone,
@@ -139,7 +157,13 @@ export class Shop extends DurableObject<Env> {
         this.ctx.waitUntil(signalSellerOrders(this.ctx, this.env.PLATFORM, Number(orderChange[1])));
         await schedulePlatformOrders(this.ctx.storage);
         await scheduleCleanup(this.ctx.storage);
-      } else await scheduleCleanup(this.ctx.storage);
+      } else {
+        await scheduleCleanup(this.ctx.storage);
+        if (path.startsWith("/api/seller/catalog/")) {
+          this.saleDeadline = nextSaleDeadline(this.ctx.storage);
+          await this.scheduleSaleDeadline();
+        }
+      }
     }
     // Only the public Worker can see these; it strips them before returning to the client.
     response.headers.set("x-korzina-sql", JSON.stringify(metric));
@@ -244,10 +268,12 @@ export class Shop extends DurableObject<Env> {
     const projectOrders = this.pendingOrders;
     this.pendingOrders = false;
     try {
+      this.expireSales();
       const more = await cleanupShop(this.ctx.storage, this.env, Date.now(), projectOrders);
       this.pendingOrders ||= more;
       if (this.pendingOrders) await schedulePlatformOrders(this.ctx.storage);
       await sendOrderNotifications(this.ctx.storage, this.env);
+      await this.scheduleSaleDeadline();
     } catch (error) {
       this.pendingOrders ||= projectOrders;
       throw error;

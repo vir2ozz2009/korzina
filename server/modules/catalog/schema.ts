@@ -5,6 +5,7 @@ import { media } from "../media/schema";
 export const catalogState = sqliteTable("catalog_state", {
   id: integer("id").primaryKey(),
   version: integer("version").notNull().default(1),
+  sellerStockVersion: integer("seller_stock_version").notNull().default(0),
   selectionVersion: integer("selection_version").notNull().default(1),
   currency: text("currency").notNull().default("RUB"),
   hideOutOfStock: integer("hide_out_of_stock", { mode: "boolean" }).notNull().default(false),
@@ -45,6 +46,14 @@ export const products = sqliteTable(
       .notNull()
       .references(() => categories.id),
     brandId: text("brand_id").references(() => brands.id),
+    ingredients: text("ingredients").notNull().default(""),
+    storageNotes: text("storage_notes").notNull().default(""),
+    revision: integer("revision").notNull().default(0),
+    salePause: integer("sale_pause"),
+    recommendations: text("recommendations", { enum: ["auto", "manual", "off"] })
+      .notNull()
+      .default("auto"),
+    recommendationIds: text("recommendation_ids", { mode: "json" }).$type<string[]>().notNull().default(sql`'[]'`),
     availablePrice: integer("available_price"),
     catalogSoldOut: integer("catalog_sold_out").generatedAlwaysAs(sql`available_price IS NULL`),
     hasCatalogOffer: integer("has_catalog_offer").notNull().default(0),
@@ -52,6 +61,7 @@ export const products = sqliteTable(
     visible: integer("visible", { mode: "boolean" }).notNull().default(true),
   },
   (t) => [
+    index("products_sale_pause_idx").on(t.salePause).where(sql`${t.salePause}>0`),
     index("products_storefront_idx").on(t.published, t.visible, t.id),
     index("products_category_idx").on(t.published, t.visible, t.categoryId, t.id),
     index("products_brand_idx").on(t.published, t.visible, t.brandId, t.id),
@@ -95,12 +105,17 @@ export const variants = sqliteTable(
     priceMinor: integer("price_minor").notNull(),
     oldPriceMinor: integer("old_price_minor"),
     stock: integer("stock"),
+    stockRevision: integer("stock_revision").notNull().default(0),
+    purchased: integer("purchased").notNull().default(0),
+    salePause: integer("sale_pause"),
+    productPaused: integer("product_paused", { mode: "boolean" }).notNull().default(false),
     visible: integer("visible", { mode: "boolean" }).notNull().default(true),
     // B1: maintained by SQL triggers; live reads need no product JOIN per SKU.
     productAvailable: integer("product_available", { mode: "boolean" }).notNull().default(false),
     photoId: text("photo_id").references(() => media.id),
   },
   (t) => [
+    index("variants_sale_pause_idx").on(t.salePause).where(sql`${t.salePause}>0`),
     index("variants_product_idx").on(t.productId, t.visible, t.position),
     check("variants_price_check", sql`${t.priceMinor} BETWEEN 0 AND 9007199254740991`),
     check(
