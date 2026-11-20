@@ -3,6 +3,7 @@ import { env } from "cloudflare:workers";
 import { beforeAll, expect, it } from "vitest";
 import type { SellerOrder, SellerOrderCommand, SellerOrderPage } from "../../../src/shared/contracts/seller-order";
 import { assertSqlBudget, type SqlMetrics } from "../../metrics";
+import { storefrontUrl } from "../../platform/storefront-url";
 import { getAuth, postAuth, sellerFixture } from "../../testing/auth";
 import { placeFixtureOrder, proof, signIn, snapshot } from "../../testing/orders";
 import { setupPlatform } from "../../testing/platform";
@@ -198,13 +199,11 @@ it("§3.5: «Новый заказ» отделяет сумму от даты, 
     // The shop is still on 20 November after midnight UTC.
     const now = Date.parse("2026-11-21T03:30:00Z");
     const event = {
-      event_key: `new:${number}:990000001`,
       kind: "new",
       order_number: number,
       recipient: "990000001",
       amount: 151000,
       currency: "VND",
-      attempts: 0,
     };
     const cases = [
       [{ date: "2026-11-20", slotId: "10:00-12:00" }, "delivery", "Сегодня, 20 ноября · 10:00 · Доставка"],
@@ -222,6 +221,30 @@ it("§3.5: «Новый заказ» отделяет сумму от даты, 
       );
       const message = telegramMessage(storage, "https://demo.korzina.app", shop, event, now);
       expect(message.text).toBe(`Новый заказ №${number} · 151\u00a0000\u00a0₫\n${deliveryLine}`);
+    }
+  });
+});
+
+it("§13.1: кнопки в Telegram открывают заказ покупателя в нужном магазине", async () => {
+  await runInDurableObject(catalogStub(), (_instance, { storage }) => {
+    const origin = "https://preview.example.com";
+    for (const [appEnv, url] of [
+      ["preview", "https://preview.example.com/orders/9?shop=test2"],
+      ["production", "https://test2.korzina.app/orders/9"],
+    ] as const) {
+      const storefront = storefrontUrl(origin, appEnv, "test2");
+      for (const kind of ["debt", "refund", "paid"]) {
+        const event = {
+          kind,
+          order_number: 9,
+          recipient: "990000033",
+          amount: 3000,
+          currency: "VND",
+        };
+        expect(telegramMessage(storage, origin, shop, event, 0, storefront).reply_markup).toEqual({
+          inline_keyboard: [[{ text: "Открыть заказ", web_app: { url } }]],
+        });
+      }
     }
   });
 });

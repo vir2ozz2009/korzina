@@ -5,6 +5,7 @@ import { app } from "../../index";
 import { catalogSql } from "../../modules/catalog/testing";
 import { cookieFrom, getAuth, postAuth, signedInitData } from "../../testing/auth";
 import { setupPlatform } from "../../testing/platform";
+import { storefrontUrl } from "../storefront-url";
 import { confirmSellerExchange, startSellerExchange } from "./browser-exchange";
 import { telegramSellerSession } from "./sessions";
 
@@ -57,8 +58,8 @@ it("§9.9 · §9.12 подтверждённый Telegram и членство т
   const cabinet = (store: string) => getAuth(`/api/seller/cabinet?store=${store}`, headers);
   expect(await (await cabinet("lavka")).json()).toMatchObject({
     telegramId: "90001",
-    current: { slug: "lavka", role: "owner" },
-    shops: [{ id: shop }],
+    current: { slug: "lavka", role: "owner", storefrontUrl: "https://demo.korzina.app/?shop=lavka" },
+    shops: [{ id: shop, storefrontUrl: "https://demo.korzina.app/?shop=lavka" }],
   });
   expect((await cabinet("test2")).status).toBe(403);
   await env.PLATFORM.prepare(
@@ -68,6 +69,18 @@ it("§9.9 · §9.12 подтверждённый Telegram и членство т
     .run();
   expect((await cabinet("lavka")).status).toBe(403);
   expect(await (await profile(owner)).json()).toMatchObject({ sellerCabinet: false });
+});
+
+it("§13.3: адрес витрины использует origin стенда или поддомен магазина на prod", () => {
+  expect(storefrontUrl("https://demo.korzina.app/seller?store=test2", "demo", "test2")).toBe(
+    "https://demo.korzina.app/?shop=test2",
+  );
+  expect(storefrontUrl("https://preview.example.com/admin/shops/test2", "preview", "test2")).toBe(
+    "https://preview.example.com/?shop=test2",
+  );
+  expect(storefrontUrl("https://admin.korzina.app/admin/shops/test2", "production", "test2")).toBe(
+    "https://test2.korzina.app/",
+  );
 });
 
 it("§9.1 · §9.12 запасной Telegram-вход привязан к исходному браузеру и используется один раз", async () => {

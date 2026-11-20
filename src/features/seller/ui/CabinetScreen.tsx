@@ -1,7 +1,6 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { ArrowUpRight, ChevronDown, LogOut, MessageCircle, UserRound } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
-import { bootstrap } from "../../../app/bootstrap";
 import { Header } from "../../../app/shell/Header";
 import { QueryBoundary } from "../../../app/shell/QueryBoundary";
 import { Screen } from "../../../app/shell/Screen";
@@ -19,12 +18,6 @@ import { useCabinet, useSellerLogout } from "../api";
 import { CabinetLogin } from "./CabinetLogin";
 
 const statusNames: Record<string, string> = { draft: "Черновик", active: "Открыт", paused: "Пауза" };
-
-function storefront(slug: string) {
-  return bootstrap?.slug === slug
-    ? `/${location.search.includes("shop=") ? `?shop=${encodeURIComponent(slug)}` : ""}`
-    : `https://${slug}.${import.meta.env.DEV_SCREENS ? "demo." : ""}korzina.app/`;
-}
 
 export function CabinetScreen() {
   const { pathname, search } = useRouterState({ select: (state) => state.location });
@@ -99,7 +92,7 @@ export function CabinetScreen() {
                       <Avatar name={shop.name} />
                       <div className="min-w-0 flex-1">
                         <h2 className="text-title-2">{shop.name}</h2>
-                        <p className="mt-1 break-all text-small text-muted-foreground">{shop.slug}.korzina.app</p>
+                        <p className="mt-1 break-all text-small text-muted-foreground">{shop.storefrontUrl}</p>
                       </div>
                       <StatusPill
                         tone={shop.status === "active" ? "success" : shop.status === "paused" ? "warning" : "neutral"}
@@ -114,7 +107,7 @@ export function CabinetScreen() {
                   <ListItem
                     title="Открыть витрину"
                     icon={<ArrowUpRight size={21} />}
-                    onClick={() => location.assign(storefront(shop.slug))}
+                    onClick={() => location.assign(shop.storefrontUrl)}
                   />
                 </>
               ) : (
@@ -134,7 +127,7 @@ export function CabinetScreen() {
                     <ListItem
                       key={item.id}
                       title={item.name}
-                      subtitle={`${item.slug}.korzina.app`}
+                      subtitle={item.storefrontUrl}
                       value={item.id === current?.id ? "Выбран" : undefined}
                       onClick={() => {
                         setSheet(undefined);

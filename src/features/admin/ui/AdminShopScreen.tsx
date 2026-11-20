@@ -31,7 +31,7 @@ export function AdminShopScreen() {
                   <AdminStatus status={shop.status} />
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="min-w-0 break-all text-caption text-muted-foreground">{shop.slug}.korzina.app</p>
+                  <p className="min-w-0 break-all text-caption text-muted-foreground">{shop.storefrontUrl}</p>
                   <Button
                     variant="secondary"
                     icon={<ExternalLink size={17} />}

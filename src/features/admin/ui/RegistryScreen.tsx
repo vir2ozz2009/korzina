@@ -56,7 +56,7 @@ export function RegistryScreen() {
                   <div className="flex items-start gap-2">
                     <div className="min-w-0 flex-1">
                       <h2 className="text-title-3">{shop.name}</h2>
-                      <p className="break-all text-caption text-muted-foreground">{shop.slug}.korzina.app</p>
+                      <p className="break-all text-caption text-muted-foreground">{shop.storefrontUrl}</p>
                     </div>
                     <AdminStatus status={shop.status} />
                     <ChevronRight size={19} className="shrink-0 text-muted-foreground" aria-hidden />

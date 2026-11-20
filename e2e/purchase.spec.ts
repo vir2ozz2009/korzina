@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { verifyFavoriteCart, verifyOrderCancellation, verifySavedAddress } from "./after-order";
+import { verifyBuyerOrderReload, verifyFavoriteCart, verifyOrderCancellation, verifySavedAddress } from "./after-order";
 import { verifySellerOrders } from "./seller-orders";
 
 async function keyboardViewport(page: Page, open: boolean) {
@@ -238,6 +238,8 @@ test("B10: товар, доставка и заказ наличными", async
   await page.reload();
   await expect(page.getByRole("heading", { name: `Заказ №${order.number}` })).toBeVisible();
   await page.screenshot({ path: "test-results/purchase-done-390.png", animations: "disabled" });
+  await test.step("§13.1: после открытия заказа и перезагрузки остаётся магазин test2", () =>
+    verifyBuyerOrderReload(page, order.number));
   await page.getByRole("button", { name: "К покупкам" }).click();
   await expect(page).toHaveURL(/\/\?shop=test2$/);
   await verifyOrderCancellation(page, order.number);

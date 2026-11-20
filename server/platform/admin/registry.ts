@@ -6,6 +6,7 @@ import type { AuthSecrets } from "../../auth/config";
 import type { CommandIdentity } from "../../middleware/idempotency";
 import { scheduleSellerCleanup } from "../cleanup";
 import { shopRecord, shopStatements } from "../create-shop";
+import { storefrontUrl } from "../storefront-url";
 import { auditEvent, commandResult, platformReplay } from "./commands";
 import { prepareOwnerInvite } from "./invitation-link";
 
@@ -21,14 +22,6 @@ type RegistryShop = {
   ownerAccepted: number;
   orders7d: number;
 };
-
-export function storefrontUrl(request: Request, appEnv: string, slug: string) {
-  const incoming = new URL(request.url);
-  const url = new URL("/", incoming);
-  if (appEnv !== "production") url.searchParams.set("shop", slug);
-  else url.hostname = `${slug}.korzina.app`;
-  return url.href;
-}
 
 export async function registry(database: D1Database, request: Request, appEnv: string) {
   const result = await database
@@ -47,7 +40,7 @@ export async function registry(database: D1Database, request: Request, appEnv: s
     .all<RegistryShop>();
   return result.results.map((shop) => ({
     ...shop,
-    storefrontUrl: storefrontUrl(request, appEnv, shop.slug),
+    storefrontUrl: storefrontUrl(request.url, appEnv, shop.slug),
     botConnected: !!shop.botConnected,
     ownerAccepted: !!shop.ownerAccepted,
   }));
