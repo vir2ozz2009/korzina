@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { verifyFavoriteCart, verifyOrderCancellation, verifySavedAddress } from "./after-order";
+import { verifySellerOrders } from "./seller-orders";
 
 async function keyboardViewport(page: Page, open: boolean) {
   await page.evaluate((open) => {
@@ -16,8 +17,9 @@ async function keyboardViewport(page: Page, open: boolean) {
   }, open);
 }
 
-test("B10: товар, доставка и заказ наличными", async ({ page }) => {
-  test.setTimeout(105_000);
+test("B10: товар, доставка и заказ наличными", async ({ page, browser, baseURL }) => {
+  const local = !!baseURL && new URL(baseURL).hostname === "127.0.0.1";
+  test.setTimeout(local ? 145_000 : 105_000);
   page.setDefaultTimeout(12_000);
   await page.goto("/p/product-17?shop=test2&variant=sku-20");
   const cartWrite = () =>
@@ -241,4 +243,12 @@ test("B10: товар, доставка и заказ наличными", async
   await verifyOrderCancellation(page, order.number);
   await verifyFavoriteCart(page);
   await verifySavedAddress(page);
+  if (local && baseURL) {
+    const buyer = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
+    try {
+      await verifySellerOrders(await buyer.newPage(), baseURL);
+    } finally {
+      await buyer.close();
+    }
+  }
 });

@@ -15,6 +15,7 @@ export async function forwardToShop(
   const upstream = await exports.Shop.get(exports.Shop.idFromName(context.id)).fetch(
     new Request(c.req.raw, { headers }),
   );
+  if (upstream.status === 101) return upstream;
   const response = new Response(upstream.body, upstream);
   response.headers.set("Cache-Control", "no-store");
   return response;

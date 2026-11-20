@@ -11,7 +11,7 @@ import { EmptyState } from "../../../ui/EmptyState";
 import { ListItem } from "../../../ui/ListItem";
 import { ContactSheet } from "../../contact";
 import { useBuyerOrders } from "../api";
-import { orderStages } from "./active-orders";
+import { buyerStageLabel } from "./active-orders";
 
 export function OrderListScreen() {
   const [tab, setTab] = useState<"active" | "completed">("active");
@@ -42,7 +42,7 @@ export function OrderListScreen() {
                 <ListItem
                   key={item.number}
                   title={`Заказ №${item.number}`}
-                  subtitle={`${new Date(item.createdAt).toLocaleDateString("ru")} · ${orderStages[item.stage]}`}
+                  subtitle={`${new Date(item.createdAt).toLocaleDateString("ru")} · ${buyerStageLabel(item.stage, item.method)}`}
                   value={formatMinor(item.totalMinor, item.currency)}
                   onClick={() => void navigate({ to: "/orders/$number", params: { number: String(item.number) } })}
                 />

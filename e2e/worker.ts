@@ -1,10 +1,13 @@
 import { exports } from "cloudflare:workers";
 import worker, { Shop as Store } from "../server";
+import { sellerCookie, sessionCookie } from "../server/auth/cookies";
+import { newToken, tokenHash } from "../server/auth/tokens";
 import catalog from "../server/demo-catalog.json";
 
 export { app } from "../server";
 
 const path = "/__e2e/test2/tomatoes";
+const sellerPath = "/__e2e/test2/seller";
 const shopId = "korzina-demo-test2";
 
 export class Shop extends Store {
@@ -23,7 +26,7 @@ export class Shop extends Store {
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url);
-    if (url.pathname !== path) return worker.fetch(request, env, ctx);
+    if (url.pathname !== path && url.pathname !== sellerPath) return worker.fetch(request, env, ctx);
     if (
       url.hostname !== "127.0.0.1" ||
       request.method !== "POST" ||
@@ -31,6 +34,26 @@ export default {
       env.APP_ENV !== "demo"
     )
       return new Response(null, { status: 404 });
+    if (url.pathname === sellerPath) {
+      const account = "e2e-seller";
+      const token = newToken();
+      await env.PLATFORM.batch([
+        env.PLATFORM.prepare("INSERT OR IGNORE INTO accounts(id,telegram_id) VALUES(?,'990000001')").bind(account),
+        env.PLATFORM.prepare("INSERT OR IGNORE INTO memberships(shop_id,account_id,role) VALUES(?,?,'owner')").bind(
+          shopId,
+          account,
+        ),
+        env.PLATFORM.prepare("INSERT INTO seller_sessions(token_hash,account_id,expires_at) VALUES(?,?,?)").bind(
+          await tokenHash(token),
+          account,
+          Date.now() + 300_000,
+        ),
+      ]);
+      return new Response(null, {
+        status: 204,
+        headers: { "Set-Cookie": sessionCookie(request, sellerCookie, token, 300) },
+      });
+    }
     const change = await request.text();
     if (change !== "change" && change !== "restore") return new Response(null, { status: 400 });
     const namespace = exports.Shop as unknown as DurableObjectNamespace<Shop>;

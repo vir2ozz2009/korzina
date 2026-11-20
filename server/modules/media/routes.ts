@@ -122,7 +122,13 @@ export const mediaRoutes = new Hono<MediaRouterEnv>()
         if (
           record.purpose === "receipt" &&
           record.status === "attached" &&
-          c.env.storage.sql.exec("SELECT 1 FROM orders WHERE proof_media_id=?", record.id).toArray().length
+          c.env.storage.sql
+            .exec(
+              "SELECT 1 FROM orders WHERE proof_media_id=? UNION ALL SELECT 1 FROM order_receipt_history WHERE media_id=? LIMIT 1",
+              record.id,
+              record.id,
+            )
+            .toArray().length
         )
           throw new ApiError("FORBIDDEN", "Чек уже используется в заказе");
         const cropPosition = input.action === "attach" ? input.cropPosition : undefined;

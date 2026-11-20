@@ -22,6 +22,9 @@ export class TabHistory {
     const href = root === activeRoot ? root : (this.stacks.get(root)?.at(-1) ?? root);
     return { href, top: root === activeRoot ? 0 : (this.positions.get(href) ?? 0) };
   }
+  position(href: string) {
+    return this.positions.get(href) ?? 0;
+  }
   back(href: string) {
     const root = sellerTab(href);
     const stack = this.stacks.get(root) ?? [root, href];

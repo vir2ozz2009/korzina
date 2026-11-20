@@ -11,7 +11,8 @@ export const publicShop = new Hono<{ Bindings: Env }>().get("/:id", async (c) =>
   c.header("Cache-Control", "no-store");
   const url = new URL(storefrontUrl(c.req.raw, c.env.APP_ENV, row.slug));
   if (c.req.query("destination") === "seller") {
-    url.pathname = "/seller";
+    const order = c.req.query("order");
+    url.pathname = order && /^[1-9]\d{0,14}$/u.test(order) ? `/seller/orders/${order}` : "/seller";
     url.searchParams.set("store", row.slug);
   }
   return c.redirect(url.href, 302);

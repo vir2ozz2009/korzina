@@ -1,14 +1,19 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import { House, MoreHorizontal } from "lucide-react";
+import { House, MoreHorizontal, Package } from "lucide-react";
 import { useEffect } from "react";
 
+import { useSellerOrderBadge } from "../../features/seller/orders-api";
+import { useSellerOrdersLive } from "../../features/seller/useSellerOrdersLive";
 import { sellerHistory, sellerTab } from "./tab-history";
 
 const tabs = [
   { path: "/seller", title: "Главная", Icon: House },
+  { path: "/seller/orders", title: "Заказы", Icon: Package },
   { path: "/seller/more", title: "Ещё", Icon: MoreHorizontal },
 ];
-export function SellerTabs() {
+export function SellerTabs({ store = "", account }: { store?: string; account?: string }) {
+  const badge = useSellerOrderBadge(store);
+  useSellerOrdersLive(store, account);
   const router = useRouter();
   const location = useRouterState({ select: (state) => state.location });
   const active = sellerTab(location.pathname);
@@ -18,7 +23,7 @@ export function SellerTabs() {
   return (
     <nav
       aria-label="Кабинет продавца"
-      className="fixed bottom-0 left-1/2 z-30 w-full max-w-(--content-max) -translate-x-1/2 pb-(--safe-bottom) grid grid-cols-2 border-t border-border bg-card"
+      className="fixed bottom-0 left-1/2 z-30 w-full max-w-(--content-max) -translate-x-1/2 pb-(--safe-bottom) grid grid-cols-3 border-t border-border bg-card"
     >
       {tabs.map(({ path, title, Icon }) => (
         <button
@@ -31,7 +36,7 @@ export function SellerTabs() {
             const { href, top } = sellerHistory.destination(path, active);
             const url = new URL(href, window.location.origin);
             for (const key of ["shop", "store"]) {
-              const current = new URLSearchParams(location.searchStr).get(key);
+              const current = key === "store" ? store : new URLSearchParams(location.searchStr).get(key);
               if (current) url.searchParams.set(key, current);
               else url.searchParams.delete(key);
             }
@@ -39,7 +44,14 @@ export function SellerTabs() {
             requestAnimationFrame(() => window.scrollTo({ top, behavior: "instant" }));
           }}
         >
-          <Icon size={22} />
+          <span className="relative">
+            <Icon size={22} aria-hidden="true" />
+            {path === "/seller/orders" && !!badge.data?.count && (
+              <span className="absolute -right-2 -top-1 rounded-pill bg-status-danger px-1 text-micro text-status-danger-foreground">
+                {badge.data.count}
+              </span>
+            )}
+          </span>
           {title}
         </button>
       ))}

@@ -14,9 +14,11 @@ import type { ShopEnv } from "../../shop/env";
 import { sessions } from "../../shop/schema";
 import { readCustomerWith } from "../auth/service";
 import type { ReservedOrder } from "./order-reservation";
+import { orderBalance, orderFinance, orderWorkflow } from "./order-workflow";
 import { buyerOrderRevisions } from "./schema";
 
 export type OrderRow = {
+  customer: string;
   number: number;
   created_at: number;
   status: OrderStage;
@@ -34,7 +36,7 @@ function isActiveOrder(stage: OrderStage) {
 export function buyerOrderRow(storage: DurableObjectStorage, customer: string, number: number) {
   const [row] = storage.sql
     .exec<OrderRow>(
-      "SELECT number,created_at,status,payment_status,version,proof_media_id,snapshot,fulfillment_state FROM orders WHERE customer=? AND number=?",
+      "SELECT customer,number,created_at,status,payment_status,version,proof_media_id,snapshot,fulfillment_state FROM orders WHERE customer=? AND number=?",
       customer,
       number,
     )
@@ -48,17 +50,27 @@ export function unpackOrder(row: OrderRow) {
 }
 
 export function buyerOrder(row: OrderRow): BuyerOrder {
-  const { seatReserved: _seat, reservedStock: _stock, ...snapshot } = unpackOrder(row);
+  const { seatReserved: _seat, reservedStock: _stock, customerNameKey: _nameKey, ...snapshot } = unpackOrder(row);
+  const work = orderWorkflow(row);
+  const finance = orderFinance(work, snapshot, row.payment_status);
+  const { debtMinor, refundMinor } = orderBalance(finance, snapshot.totalMinor, row.status);
+  const payment = finance.latestPayment?.method ?? snapshot.payment;
   return {
     ...snapshot,
+    payment,
     number: row.number,
     createdAt: row.created_at,
     stage: row.status,
     version: row.version,
     paymentStatus: row.payment_status,
-    canCancel: isActiveOrder(row.status) && row.status !== "handed" && !JSON.parse(row.fulfillment_state).handedOff,
-    canReplaceProof: row.status !== "cancelled" && row.payment_status === "pending_review",
-    ...(row.status === "cancelled" && row.payment_status === "confirmed" ? { refundMinor: snapshot.totalMinor } : {}),
+    canCancel: isActiveOrder(row.status) && row.status !== "handed" && !work.handedOff,
+    canReplaceProof:
+      row.status !== "cancelled" &&
+      (row.payment_status === "pending_review" ||
+        row.payment_status === "rejected" ||
+        (debtMinor > 0 && payment === "transfer")),
+    ...(debtMinor > 0 && { debtMinor }),
+    ...(refundMinor > 0 && { refundMinor }),
   };
 }
 
@@ -69,6 +81,8 @@ type SummaryRow = {
   time: string | null;
   total: number;
   currency: string;
+  debt: number | null;
+  method: "delivery" | "pickup" | null;
 };
 const toTime = (value: string | null) => (value ? (JSON.parse(value) as TimeChoice) : null);
 const scope = {
@@ -97,15 +111,23 @@ export async function activeBuyerOrders({ db, storage, shop }: ShopEnv["Bindings
   const revision = `1.${session.cacheKey}.${session.revision ?? 0}`;
   return revisionResponse(request, revision, () => {
     const rows = storage.sql
-      .exec<Pick<SummaryRow, "number" | "status" | "time">>(
-        `SELECT number,status,json_extract(snapshot,'$.time') AS time
-       FROM orders WHERE customer=? AND ${scope.active} ORDER BY number DESC`,
+      .exec<Pick<SummaryRow, "number" | "status" | "time" | "debt" | "currency" | "method">>(
+        `SELECT number,status,json_extract(snapshot,'$.time') AS time,
+        json_extract(fulfillment_state,'$.debtMinor') AS debt,json_extract(snapshot,'$.currency') AS currency,
+        json_extract(snapshot,'$.receiving.mode') AS method
+       FROM orders WHERE customer=? AND (${scope.active} OR (status='completed' AND json_extract(fulfillment_state,'$.debtMinor')>0)) ORDER BY number DESC`,
         session.subject,
       )
       .toArray();
     return {
       count: rows.length,
-      orders: rows.map((row) => ({ number: row.number, stage: row.status, time: toTime(row.time) })),
+      orders: rows.map((row) => ({
+        number: row.number,
+        stage: row.status,
+        time: toTime(row.time),
+        ...(row.method && { method: row.method }),
+        ...(row.debt && { debtMinor: row.debt, currency: row.currency }),
+      })),
     };
   });
 }
@@ -130,8 +152,8 @@ export function buyerOrdersPage(
   const rows = storage.sql
     .exec<SummaryRow>(
       `SELECT number,created_at,status,json_extract(snapshot,'$.time') AS time,
-     json_extract(snapshot,'$.totalMinor') AS total,json_extract(snapshot,'$.currency') AS currency
-     FROM orders WHERE customer=? AND ${scope[tab]} ${before === null ? "" : "AND number < ?"}
+     json_extract(snapshot,'$.totalMinor') AS total,json_extract(snapshot,'$.currency') AS currency,
+     json_extract(snapshot,'$.receiving.mode') AS method FROM orders WHERE customer=? AND ${scope[tab]} ${before === null ? "" : "AND number < ?"}
      ORDER BY number DESC LIMIT 21`,
       customer,
       ...(before === null ? [] : [before]),
@@ -144,6 +166,7 @@ export function buyerOrdersPage(
     time: toTime(row.time),
     totalMinor: row.total,
     currency: row.currency,
+    ...(row.method && { method: row.method }),
   }));
   return { orders, ...(rows.length > 20 ? { cursor: `${tab}.${orders[19].number}` } : {}) };
 }

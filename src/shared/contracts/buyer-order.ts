@@ -22,6 +22,7 @@ export type OrderSummary = {
   createdAt: number;
   stage: OrderStage;
   time: TimeChoice | null;
+  method?: "delivery" | "pickup";
   totalMinor: number;
   currency: string;
 };
@@ -32,9 +33,19 @@ export type BuyerOrder = Omit<OrderResult, "paymentStatus"> &
     canCancel: boolean;
     canReplaceProof: boolean;
     refundMinor?: number;
+    debtMinor?: number;
   };
 export type ActiveOrders =
-  | { rev: string; data: { orders: Pick<OrderSummary, "number" | "stage" | "time">[]; count: number } }
+  | {
+      rev: string;
+      data: {
+        orders: (Pick<OrderSummary, "number" | "stage" | "time" | "method"> & {
+          debtMinor?: number;
+          currency?: string;
+        })[];
+        count: number;
+      };
+    }
   | { rev: string; unchanged: true };
 export type BuyerOrdersPage = { orders: OrderSummary[]; cursor?: string };
 type RepeatLine = {

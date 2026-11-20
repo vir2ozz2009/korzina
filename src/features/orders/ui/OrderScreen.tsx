@@ -16,7 +16,7 @@ import { StatusPill } from "../../../ui/StatusPill";
 import { PurchaseTotals, useShopContacts } from "../../checkout";
 import { ContactSheet } from "../../contact";
 import { useBuyerOrder, useOrderChange } from "../api";
-import { orderStages, orderTime } from "./active-orders";
+import { buyerStageLabel, orderTime } from "./active-orders";
 import { OrderPayment } from "./OrderPayment";
 import { OrderProofSheet } from "./OrderProofSheet";
 import { RepeatSheet } from "./RepeatSheet";
@@ -87,7 +87,7 @@ export function OrderScreen() {
           )}
           <Card className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-title-2">{orderStages[order.stage]}</h2>
+              <h2 className="text-title-2">{buyerStageLabel(order.stage, order.receiving.mode)}</h2>
               <StatusPill
                 tone={order.stage === "cancelled" ? "danger" : order.stage === "completed" ? "success" : "primary"}
               >
@@ -135,7 +135,7 @@ export function OrderScreen() {
           </Button>
           {order.canReplaceProof && (
             <Button full variant="secondary" disabled={disabled} onClick={() => setSheet("proof")}>
-              Заменить подтверждение оплаты
+              {order.debtMinor ? "Прислать чек" : "Заменить подтверждение оплаты"}
             </Button>
           )}
           {order.canCancel && (
