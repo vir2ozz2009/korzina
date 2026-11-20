@@ -102,7 +102,7 @@ export function OrderScreen() {
                     <div
                       className={`mb-1 h-1 rounded-pill ${index <= stages.indexOf(order.stage) ? "bg-primary" : "bg-border"}`}
                     />
-                    {orderStages[stage]}
+                    {buyerStageLabel(stage, order.receiving.mode)}
                   </li>
                 ))}
               </ol>

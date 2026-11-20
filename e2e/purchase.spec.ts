@@ -243,12 +243,5 @@ test("B10: товар, доставка и заказ наличными", async
   await verifyOrderCancellation(page, order.number);
   await verifyFavoriteCart(page);
   await verifySavedAddress(page);
-  if (local && baseURL) {
-    const buyer = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
-    try {
-      await verifySellerOrders(await buyer.newPage(), baseURL);
-    } finally {
-      await buyer.close();
-    }
-  }
+  if (local && baseURL) await verifySellerOrders(browser, baseURL);
 });

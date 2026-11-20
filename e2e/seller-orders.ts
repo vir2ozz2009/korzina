@@ -1,4 +1,4 @@
-import { type APIRequestContext, expect, type Page } from "@playwright/test";
+import { type APIRequestContext, type Browser, expect } from "@playwright/test";
 import type { OrderResult, QuoteResponse } from "../src/shared/contracts/checkout";
 import type { AvailabilityDay } from "../src/shared/contracts/receiving-time";
 
@@ -68,18 +68,14 @@ async function placePickup(request: APIRequestContext, transfer: boolean) {
   return write<OrderResult>("/api/checkout", { quoteRevision, payment: "transfer", proofMediaId: document.id });
 }
 
-export async function verifySellerOrders(page: Page, baseURL: string) {
-  await page.context().setExtraHTTPHeaders({ "CF-Connecting-IP": "192.0.2.81" });
-  const seller = await page
-    .context()
-    .browser()
-    ?.newContext({
-      baseURL,
-      viewport: { width: 390, height: 844 },
-      extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.82" },
-    });
-  if (!seller) throw new Error("Нет контекста продавца");
+export async function verifySellerOrders(browser: Browser, baseURL: string) {
+  const viewport = { width: 390, height: 844 };
+  const [buyer, seller] = await Promise.all([
+    browser.newContext({ baseURL, viewport, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.81" } }),
+    browser.newContext({ baseURL, viewport, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.82" } }),
+  ]);
   try {
+    const page = await buyer.newPage();
     expect((await seller.request.post("/__e2e/test2/seller")).status()).toBe(204);
     const cabinet = await seller.newPage();
     const live = cabinet.waitForEvent("websocket", {
@@ -145,6 +141,6 @@ export async function verifySellerOrders(page: Page, baseURL: string) {
     await expect(page.getByRole("heading", { name: "Выдан", exact: true })).toBeVisible();
     await expect(page.getByText(/Доплатите/)).toBeVisible();
   } finally {
-    await seller.close();
+    await Promise.all([buyer.close(), seller.close()]);
   }
 }

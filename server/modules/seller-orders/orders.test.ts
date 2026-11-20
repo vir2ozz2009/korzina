@@ -133,3 +133,56 @@ it("§9.5, §9.7, §12: счётчики всего магазина и филь
   const index = await catalogSql("SELECT stage,revision FROM seller_order_index WHERE number=?", other);
   expect(index).toEqual([{ stage: "accepted", revision: 1 }]);
 });
+
+it("§9.6 и §10.9: уведомления покупателя ставятся в outbox один раз, гость уведомления не получает", async () => {
+  const { number, call } = await fixture();
+  await catalogSql(
+    "UPDATE orders SET customer='telegram:990000033',snapshot=json_set(snapshot,'$.telegramLinked',json('true')) WHERE number=?",
+    number,
+  );
+  const input = { action: "recordPayment", method: "transfer", amountMinor: 40000 } as const;
+  const key = crypto.randomUUID();
+  expect((await call(input, 0, key)).status).toBe(200);
+  expect((await call(input, 0, key)).status).toBe(200);
+  expect((await call({ ...input, amountMinor: 9000 }, 1)).status).toBe(200);
+  expect((await call({ ...input, amountMinor: 2000 }, 2)).status).toBe(200);
+  const events = await catalogSql(
+    "SELECT kind,recipient,amount FROM order_notification_outbox WHERE order_number=? ORDER BY rowid",
+    number,
+  );
+  expect(events).toEqual([
+    { kind: "debt", recipient: "990000033", amount: 9000 },
+    { kind: "paid", recipient: "990000033", amount: 0 },
+    { kind: "refund", recipient: "990000033", amount: 2000 },
+  ]);
+  const guest = await fixture();
+  expect((await guest.call(input, 0)).status).toBe(200);
+  expect(
+    await catalogSql("SELECT event_key FROM order_notification_outbox WHERE order_number=?", guest.number),
+  ).toEqual([]);
+});
+
+it("§9.4, D18: поздний тариф после полной оплаты создаёт одну доплату магазину или сумму курьеру", async () => {
+  const shopPay = await fixture();
+  const courierPay = await fixture();
+  for (const [order, payee] of [
+    [shopPay, "shop"],
+    [courierPay, "courier"],
+  ] as const) {
+    const delivery = { mode: "delivery", available: true, tariff: "after_order", feeMinor: null, payee };
+    await catalogSql(
+      "UPDATE orders SET snapshot=json_set(snapshot,'$.receiving',json(?),'$.fulfillment',json(?)) WHERE number=?",
+      JSON.stringify({ mode: "delivery", address: "Тестовый адрес" }),
+      JSON.stringify(delivery),
+      order.number,
+    );
+    expect((await order.call({ action: "recordPayment", method: "cash", amountMinor: 49000 }, 0)).status).toBe(200);
+    const updated = await order.call({ action: "setDeliveryFee", amountMinor: 3000 }, 1);
+    expect(await updated.json()).toMatchObject({
+      deliveryAssigned: true,
+      fulfillment: { feeMinor: 3000, payee },
+      totalMinor: payee === "shop" ? 52000 : 49000,
+      balance: { debtMinor: payee === "shop" ? 3000 : 0 },
+    });
+  }
+});

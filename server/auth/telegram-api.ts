@@ -1,7 +1,13 @@
 import { ApiError } from "../../src/shared/errors";
 
+export class TelegramRequestError extends ApiError {
+  constructor(public readonly retryable = false) {
+    super("AUTH_UNAVAILABLE", "Telegram временно недоступен");
+  }
+}
+
 export async function telegramApi(token: string, method: string, body: object): Promise<unknown> {
-  const unavailable = () => new ApiError("AUTH_UNAVAILABLE", "Telegram временно недоступен");
+  const unavailable = () => new TelegramRequestError();
   try {
     const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
       method: "POST",
@@ -10,7 +16,10 @@ export async function telegramApi(token: string, method: string, body: object): 
       signal: AbortSignal.timeout(5000),
     });
     if (response.status === 401 || response.status === 404) throw new ApiError("AUTH_FAILED", "Токен не подошёл");
-    if (!response.ok) throw unavailable();
+    if (!response.ok) {
+      const error = await response.json<{ ok?: boolean }>().catch(() => undefined);
+      throw new TelegramRequestError(response.status === 429 || (response.status >= 500 && error?.ok === false));
+    }
     const payload: unknown = await response.json();
     if (!payload || typeof payload !== "object" || !("ok" in payload) || payload.ok !== true || !("result" in payload))
       throw unavailable();

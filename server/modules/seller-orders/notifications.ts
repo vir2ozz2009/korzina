@@ -1,7 +1,7 @@
 import { formatMinor } from "../../../src/shared/money";
 import { decryptBotToken } from "../../auth/bot-token";
 import type { AuthSecrets } from "../../auth/config";
-import { telegramApi } from "../../auth/telegram-api";
+import { TelegramRequestError, telegramApi } from "../../auth/telegram-api";
 import { managedBot } from "../../platform/admin/shop-bot";
 
 type Queued = {
@@ -67,19 +67,27 @@ export async function sendOrderNotifications(storage: DurableObjectStorage, env:
     const token = bot?.token ? await decryptBotToken(bot.token, shop, env.ENCRYPTION_KEY) : env.PLATFORM_BOT_TOKEN;
     const origin = env.APP_ENV === "production" ? "https://korzina.app" : "https://demo.korzina.app";
     for (const event of queue) {
+      // Claim before contacting Telegram: sendMessage has no idempotency key.
+      const claim = storage.sql.exec("DELETE FROM order_notification_outbox WHERE event_key=?", event.event_key);
+      if (!claim.rowsWritten || !token) continue;
       try {
-        if (token) await telegramApi(token, "sendMessage", telegramMessage(storage, origin, shop, event));
-        storage.sql.exec("DELETE FROM order_notification_outbox WHERE event_key=?", event.event_key);
-      } catch {
-        if (event.attempts >= 7) {
-          storage.sql.exec("DELETE FROM order_notification_outbox WHERE event_key=?", event.event_key);
-          console.warn("Не удалось доставить уведомление о заказе");
-        } else {
+        await telegramApi(token, "sendMessage", telegramMessage(storage, origin, shop, event));
+      } catch (error) {
+        if (error instanceof TelegramRequestError && error.retryable && event.attempts < 7) {
           storage.sql.exec(
-            "UPDATE order_notification_outbox SET attempts=attempts+1,due_at=? WHERE event_key=?",
-            now + Math.min(3_600_000, 10_000 * 2 ** event.attempts),
+            `INSERT INTO order_notification_outbox(event_key,kind,order_number,recipient,amount,currency,due_at,attempts)
+             VALUES(?,?,?,?,?,?,?,?)`,
             event.event_key,
+            event.kind,
+            event.order_number,
+            event.recipient,
+            event.amount,
+            event.currency,
+            now + Math.min(3_600_000, 10_000 * 2 ** event.attempts),
+            event.attempts + 1,
           );
+        } else {
+          console.warn("Не удалось подтвердить доставку уведомления о заказе");
         }
       }
     }
