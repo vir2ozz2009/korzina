@@ -1,5 +1,6 @@
 import { appendFileSync } from "node:fs";
 import { setTimeout } from "node:timers/promises";
+import { publishedAssetsReady } from "./published-assets.ts";
 
 const { GITHUB_TOKEN, GITHUB_REPOSITORY, PR_NUMBER, PR_HEAD_SHA, GITHUB_ENV, GITHUB_HEAD_REF } = process.env;
 if (!GITHUB_TOKEN || !GITHUB_REPOSITORY || !PR_NUMBER || !PR_HEAD_SHA || !GITHUB_ENV)
@@ -28,11 +29,16 @@ while (true) {
   if (slug && slug.length <= 50) urls.push(`https://${slug}-korzina-demo.vir2ozz2009.workers.dev`);
   for (const url of new Set(urls)) {
     try {
-      const page = await fetch(`${url}/?shop=test2`, { signal: AbortSignal.timeout(10_000) });
+      const documentUrl = `${url}/?shop=test2`;
+      const page = await fetch(documentUrl, { signal: AbortSignal.timeout(10_000) });
       const html = await page.text();
       const revision = /<meta[^>]*name="build-revision"[^>]*content="([a-f0-9]+)"/.exec(html)?.[1];
       console.log(`Preview revision: ${revision ?? "missing"}; expected ${PR_HEAD_SHA}`);
       if (!page.ok || revision !== PR_HEAD_SHA) continue;
+      if (!(await publishedAssetsReady(documentUrl, html))) {
+        console.log("Preview static files are still publishing.");
+        continue;
+      }
       appendFileSync(GITHUB_ENV, `E2E_BASE_URL=${url}\n`);
       console.log(`Preview ready for ${PR_HEAD_SHA}: ${url}`);
       process.exit(0);

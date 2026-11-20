@@ -38,6 +38,7 @@ export function ProductScreen() {
   const unavailable = query.error instanceof HttpError && query.error.status === 404;
   const title = data ? "Korzina" : name;
   const details = data?.description.trim();
+  const hasDetails = details || data?.ingredients?.trim() || data?.storageNotes?.trim();
   const selectedPhoto = variant?.photoId ? data?.images.findIndex((image) => image.id === variant.photoId) : undefined;
   const share = async () => {
     const url = new URL(`/p/${encodeURIComponent(id)}`, window.location.origin);
@@ -154,14 +155,17 @@ export function ProductScreen() {
                     ))}
                   </fieldset>
                 )}
+                {!variant.available && <p className="text-small text-muted-foreground">Нет в наличии</p>}
                 {variant.available && variant.stock !== null && variant.stock > 0 && variant.stock <= 5 && (
                   <p className="text-small text-muted-foreground">Всего доступно {variant.stock} шт.</p>
                 )}
               </>
             )}
-            {details && (
+            {hasDetails && (
               <>
-                <p className="line-clamp-3 whitespace-pre-line text-body text-foreground-body">{details}</p>
+                {details && (
+                  <p className="line-clamp-3 whitespace-pre-line text-body text-foreground-body">{details}</p>
+                )}
                 <Link to="/p/$id/details" params={{ id }} className="text-primary-text">
                   Подробнее о товаре ›
                 </Link>

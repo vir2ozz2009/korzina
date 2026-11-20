@@ -1,0 +1,180 @@
+import { useState } from "react";
+import type { SellerProductInput, SellerVariant } from "../../../../shared/contracts/seller-catalog";
+import { minorInput, parseMinorInput } from "../../../../shared/money";
+import { Button } from "../../../../ui/Button";
+import { Input } from "../../../../ui/Input";
+import { Sheet } from "../../../../ui/Sheet";
+import { Switch } from "../../../../ui/Switch";
+
+export type VariantDraft = {
+  key: string;
+  id?: string;
+  name: string;
+  price: string;
+  oldPrice: string;
+  stock: string;
+  unlimited: boolean;
+  visible: boolean;
+  pause?: "tomorrow" | "manual" | "resume";
+  salePause: number | null;
+  baseline?: SellerProductInput["variants"][number]["stockBaseline"];
+};
+export function variantDraft(currency: string, row?: SellerVariant): VariantDraft {
+  return {
+    key: row?.id ?? crypto.randomUUID(),
+    id: row?.id,
+    name: row?.name ?? "",
+    price: row ? minorInput(row.priceMinor, currency) : "",
+    oldPrice: row?.oldPriceMinor == null ? "" : minorInput(row.oldPriceMinor, currency),
+    stock: row?.stock == null ? "" : String(row.stock),
+    unlimited: row?.stock === null,
+    visible: row?.visible ?? true,
+    salePause: row?.salePause ?? null,
+    baseline: row ? { stock: row.stock, revision: row.stockRevision, purchased: row.purchased } : undefined,
+  };
+}
+
+export function variantInput(row: VariantDraft, currency: string, multiple: boolean) {
+  if (multiple && !row.name.trim()) throw new Error("Укажите название каждой фасовки");
+  const priceMinor = parseMinorInput(row.price, currency);
+  const oldPriceMinor = row.oldPrice ? parseMinorInput(row.oldPrice, currency) : null;
+  if (priceMinor === undefined || oldPriceMinor === undefined) throw new Error("Укажите корректную цену");
+  if (!row.unlimited && (!/^\d+$/u.test(row.stock) || !Number.isSafeInteger(Number(row.stock))))
+    throw new Error("Укажите остаток целым числом от 0 или выберите «Без лимита»");
+  return {
+    id: row.id,
+    name: row.name,
+    priceMinor,
+    oldPriceMinor,
+    visible: row.visible,
+    stock: row.unlimited ? null : Number(row.stock),
+    stockBaseline: row.baseline,
+    pause: row.pause,
+  };
+}
+
+export function VariantFields({
+  row,
+  patch,
+  multiple,
+  disabled,
+  sale,
+  error,
+}: {
+  row: VariantDraft;
+  patch: (draft: Partial<VariantDraft>) => void;
+  multiple: boolean;
+  disabled: boolean;
+  sale?: boolean;
+  error?: string;
+}) {
+  const [showPause, setShowPause] = useState(false);
+  const inSale =
+    row.visible &&
+    (row.unlimited || Number(row.stock) > 0) &&
+    (row.pause === "resume" || (!row.pause && row.salePause === null));
+  return (
+    <>
+      {multiple && (
+        <Input
+          label="Название фасовки"
+          value={row.name}
+          maxLength={120}
+          disabled={disabled}
+          error={error}
+          onChange={(event) => patch({ name: event.target.value })}
+        />
+      )}
+      <Input
+        label="Цена"
+        value={row.price}
+        inputMode="decimal"
+        disabled={disabled}
+        onChange={(event) => patch({ price: event.target.value })}
+      />
+      <Input
+        label="Старая цена"
+        value={row.oldPrice}
+        inputMode="decimal"
+        disabled={disabled}
+        onChange={(event) => patch({ oldPrice: event.target.value })}
+      />
+      <Input
+        label="Остаток"
+        value={row.stock}
+        inputMode="numeric"
+        disabled={disabled || row.unlimited}
+        onChange={(event) => patch({ stock: event.target.value })}
+      />
+      <Switch
+        label="Без лимита"
+        checked={row.unlimited}
+        disabled={disabled}
+        onChange={(event) => patch({ unlimited: event.target.checked })}
+      />
+      {multiple && (
+        <Switch
+          label="Показывать фасовку"
+          checked={row.visible}
+          disabled={disabled}
+          onChange={(event) => patch({ visible: event.target.checked })}
+        />
+      )}
+      {sale && row.visible && (
+        <Switch
+          label="В продаже"
+          checked={inSale}
+          disabled={disabled}
+          onChange={() => {
+            if (inSale) setShowPause(true);
+            else if (row.unlimited || Number(row.stock) > 0) patch({ pause: "resume" });
+            else setShowPause(true);
+          }}
+        />
+      )}
+      {showPause && (
+        <Sheet open title={inSale ? "Снять с продажи" : "Сколько есть?"} onOpenChange={setShowPause} form>
+          <div className="space-y-2">
+            {inSale ? (
+              (["tomorrow", "manual"] as const).map((duration) => (
+                <Button
+                  key={duration}
+                  full
+                  variant="secondary"
+                  onClick={() => {
+                    patch({ pause: duration });
+                    setShowPause(false);
+                  }}
+                >
+                  {duration === "tomorrow" ? "До завтра" : "Пока не верну"}
+                </Button>
+              ))
+            ) : (
+              <>
+                <Input
+                  label="Количество"
+                  value={row.stock}
+                  inputMode="numeric"
+                  onChange={(event) => patch({ stock: event.target.value })}
+                />
+                <Button variant="secondary" onClick={() => patch({ unlimited: true })}>
+                  Без лимита
+                </Button>
+                <Button
+                  full
+                  disabled={!row.unlimited && !(Number(row.stock) > 0)}
+                  onClick={() => {
+                    patch({ pause: "resume" });
+                    setShowPause(false);
+                  }}
+                >
+                  Вернуть в продажу
+                </Button>
+              </>
+            )}
+          </div>
+        </Sheet>
+      )}
+    </>
+  );
+}

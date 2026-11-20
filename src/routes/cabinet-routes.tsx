@@ -5,6 +5,18 @@ const sellerScreen = lazyRouteComponent(() => import("../features/seller/ui/Cabi
 const search = (input: Record<string, unknown>): { store?: string } => ({
   store: typeof input.store === "string" && /^[a-z0-9-]{1,63}$/.test(input.store) ? input.store : undefined,
 });
+const catalog = lazyRouteComponent(
+  () => import("../features/seller/ui/catalog/SellerCatalogScreen"),
+  "SellerCatalogScreen",
+);
+const catalogSearch = (input: Record<string, unknown>) => ({
+  ...search(input),
+  ...Object.fromEntries(
+    ["q", "filter", "parent", "category", "brand"].flatMap((key) =>
+      typeof input[key] === "string" ? [[key, input[key]]] : [],
+    ),
+  ),
+});
 const list = lazyRouteComponent(() => import("../features/seller/ui/orders/SellerOrdersList"), "SellerOrdersList");
 const order = lazyRouteComponent(() => import("../features/seller/ui/orders/SellerOrderScreen"), "SellerOrderScreen");
 const listSearch = (
@@ -23,7 +35,28 @@ const orderSearch = (input: Record<string, unknown>) => ({
   ...search(input),
   action: input.action === "next" || input.action === "packing" ? input.action : undefined,
 });
+const catalogRoutes = [
+  ["/seller/products", "Товары", true],
+  ["/seller/products/new", "Новый товар", false],
+  ["/seller/products/$id", "Редактировать товар", false],
+  ["/seller/categories", "Категории", true],
+  ["/seller/categories/new", "Новая категория", false],
+  ["/seller/categories/$id", "Редактировать категорию", false],
+  ["/seller/brands", "Бренды", true],
+  ["/seller/brands/new", "Новый бренд", false],
+  ["/seller/brands/$id", "Редактировать бренд", false],
+  ["/seller/showcase", "Витрина", false],
+] as const;
 export const sellerRoutes = [
+  ...catalogRoutes.map(([path, title, root]) =>
+    createRoute({
+      getParentRoute: () => rootRoute,
+      path,
+      validateSearch: catalogSearch,
+      staticData: { template: root ? "list" : "form", transition: root ? "tab" : "push", title, root },
+      component: catalog,
+    }),
+  ),
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/seller/orders",

@@ -14,8 +14,12 @@ type Pending = {
   result?: UploadedMedia;
   deleteKey?: string;
 };
-export function useMediaUploads(seller: boolean, purpose: MediaPurpose) {
-  const upload = useUpload(seller);
+export function useMediaUploads(
+  seller: boolean,
+  purpose: MediaPurpose,
+  context?: { store: string; headers: Record<string, string> },
+) {
+  const upload = useUpload(seller, context);
   const [items, setItems] = useState<Item[]>([]);
   const [error, setError] = useState<unknown>();
   const pending = useRef(new Map<string, Pending>());
@@ -80,6 +84,7 @@ export function useMediaUploads(seller: boolean, purpose: MediaPurpose) {
     });
     setItems((items) => [...items, ...added]);
     for (const item of added) void start(item.id);
+    return added.map((item) => item.id);
   }
   async function remove(id: string) {
     setError(undefined);
@@ -89,7 +94,7 @@ export function useMediaUploads(seller: boolean, purpose: MediaPurpose) {
     try {
       if (entry.result) {
         entry.deleteKey ??= crypto.randomUUID();
-        await changeMediaState(entry.result.id, seller, "delete", entry.deleteKey);
+        await changeMediaState(entry.result.id, seller, "delete", entry.deleteKey, undefined, context);
       }
       if (entry.preview) URL.revokeObjectURL(entry.preview);
       pending.current.delete(id);

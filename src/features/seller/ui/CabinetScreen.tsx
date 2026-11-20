@@ -1,5 +1,5 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { ArrowUpRight, ChevronDown, LogOut, MessageCircle, UserRound } from "lucide-react";
+import { ArrowUpRight, ChevronDown, LogOut, MessageCircle, Store, UserRound } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { Header } from "../../../app/shell/Header";
 import { QueryBoundary } from "../../../app/shell/QueryBoundary";
@@ -78,6 +78,15 @@ export function CabinetScreen() {
                 />
               ) : more ? (
                 <>
+                  <ListItem
+                    title="Витрина"
+                    icon={<Store size={20} />}
+                    onClick={() =>
+                      void navigate({
+                        href: `/seller/showcase${shop ? `?store=${encodeURIComponent(shop.slug)}` : ""}`,
+                      })
+                    }
+                  />
                   <ListItem
                     title="Профиль продавца"
                     icon={<UserRound size={20} />}

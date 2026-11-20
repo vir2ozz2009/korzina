@@ -16,9 +16,24 @@ export function DetailsScreen() {
           {(product) => (
             <div className="space-y-3">
               <h2 className="text-title-3">{product.name}</h2>
-              <p className="whitespace-pre-line text-body text-foreground-body">
-                {product.description || "Магазин пока не добавил описание."}
-              </p>
+              {product.description && (
+                <p className="whitespace-pre-line text-body text-foreground-body">{product.description}</p>
+              )}
+              {product.ingredients && (
+                <section>
+                  <h3 className="text-label">Состав</h3>
+                  <p className="whitespace-pre-line text-body">{product.ingredients}</p>
+                </section>
+              )}
+              {product.storageNotes && (
+                <section>
+                  <h3 className="text-label">Хранение</h3>
+                  <p className="whitespace-pre-line text-body">{product.storageNotes}</p>
+                </section>
+              )}
+              {!product.description && !product.ingredients && !product.storageNotes && (
+                <p>Магазин пока не добавил описание.</p>
+              )}
             </div>
           )}
         </QueryBoundary>

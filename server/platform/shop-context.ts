@@ -1,5 +1,6 @@
 import { type ShopContext, shopContextContract } from "../../src/shared/contracts/shop-context";
 import { ApiError } from "../../src/shared/errors";
+import { publicMediaOrigin } from "../modules/media/public-origin";
 import { forwardToShop } from "../shop/forward";
 import { applyDemoSeed } from "./demo-seed";
 import { readFeatures } from "./features";
@@ -35,9 +36,11 @@ export class ShopContextCache {
             theme: shop.theme ? JSON.parse(shop.theme) : undefined,
           })
         : undefined;
+    const mediaOrigin =
+      env.MEDIA_PUBLIC_URL === undefined ? undefined : publicMediaOrigin(request, env.MEDIA_PUBLIC_URL);
     const hit = this.entries.get(shop.id);
     if (hit && hit.expires > this.now() && JSON.stringify(hit.value.adminSettings) === JSON.stringify(adminSettings))
-      return { ...hit.value, status: shop.status };
+      return { ...hit.value, status: shop.status, mediaOrigin };
     this.entries.delete(shop.id);
     await applyDemoSeed(env.PLATFORM, env.APP_ENV, shop.id);
     const features = await readFeatures(env.PLATFORM, shop.id);
@@ -54,7 +57,7 @@ export class ShopContextCache {
       theme: settings.theme,
       features,
       adminSettings,
-      mediaOrigin: env.MEDIA_PUBLIC_URL,
+      mediaOrigin,
     });
     if (this.entries.size >= 500) this.entries.delete(this.entries.keys().next().value as string);
     this.entries.set(shop.id, { value, expires: started + CONTEXT_TTL });
