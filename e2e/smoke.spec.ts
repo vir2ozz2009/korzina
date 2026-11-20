@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { checkContent } from "./content";
+import { cartClick } from "./home-cart";
 import { expectCategoryFrames, expectSquarePhotos } from "./photo-frames";
 
 async function checkWidths(page: Page, screen?: "home" | "product") {
@@ -69,7 +70,9 @@ test("витрина своего магазина → фасовка/корзи
     }
     await route.continue();
   });
-  await variants.getByRole("button", { name: "Добавить в корзину" }).first().click();
+  // This variant has room for the later quantity changes even when demo stock is low on the first pack.
+  const tomatoPack = variants.locator("div.rounded-lg").filter({ has: page.getByText("500 г", { exact: true }) });
+  await tomatoPack.getByRole("button", { name: "Добавить в корзину", exact: true }).click();
   await expect.poll(() => revisions.length).toBe(1);
   await page.goBack();
   await expect(variants).toHaveCount(0);
@@ -121,9 +124,9 @@ test("витрина своего магазина → фасовка/корзи
   await expectSquarePhotos(tomato.locator("[data-product-photo]"));
   const quantity = tomato.getByLabel("Количество", { exact: true });
   await expect(quantity).toHaveText("1");
-  await tomato.getByRole("button", { name: "Увеличить количество" }).click();
+  await cartClick(page, "Увеличить количество", tomato);
   await expect(quantity).toHaveText("2");
-  await tomato.getByRole("button", { name: "Уменьшить количество" }).click();
+  await cartClick(page, "Уменьшить количество", tomato);
   await expect(tomato.getByRole("button", { name: "Увеличить количество" })).toBeEnabled();
   await expect(quantity).toHaveText("1");
 

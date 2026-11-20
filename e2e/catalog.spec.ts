@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { catalogDocumentContract } from "../src/shared/contracts/catalog";
 import { checkContent } from "./content";
 import { captureApi, cartClick, openCart, openHome } from "./home-cart";
 
@@ -10,11 +11,22 @@ test("B3: категории → подкатегория → товар → н�
     if (new URL(response.url()).pathname.startsWith("/api/") && response.status() >= 400)
       errors.push(`${response.status()} ${response.url()}`);
   });
-  await page.goto("/?shop=test2");
-  const category = page.locator('a[href="/c/home"]');
+  const [catalogResponse, home] = await Promise.all([
+    page.waitForResponse((response) => new URL(response.url()).pathname === "/api/catalog/document"),
+    page.goto("/?shop=test2"),
+  ]);
+  expect(home?.ok(), "Главная магазина test2 должна открываться").toBe(true);
+  expect(catalogResponse.ok(), `Каталог test2: HTTP ${catalogResponse.status()}`).toBe(true);
+  const catalog = catalogDocumentContract.parse(await catalogResponse.json());
+  const root = catalog.categories.find(({ id }) => id === "home");
+  if (!root || root.parentId !== null || !root.hasProducts)
+    throw new Error("В каталоге test2 нужна видимая корневая категория home с товарами");
+  const category = page.locator('a[href="/c/home"], a[href^="/c/home?"]');
   await category.scrollIntoViewIfNeeded();
+  await expect(category).toHaveAccessibleName(root.name);
   const homeScroll = await page.evaluate(() => scrollY);
   await category.click();
+  await expect(page).toHaveURL(/\/c\/home(?:\?|$)/);
   await expect(page.locator("article")).toHaveCount(3);
   await checkContent(page, "catalog");
   await page.screenshot({ path: "test-results/category-390.png", animations: "disabled" });
@@ -22,7 +34,7 @@ test("B3: категории → подкатегория → товар → н�
     await page.setViewportSize({ width, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   }
-  // Small height makes the real two-product demo category scrollable, without fake API data.
+  // Small height makes the real demo category scrollable.
   await page.setViewportSize({ width: 390, height: 300 });
   await page.evaluate(() => scrollTo(0, 400));
   await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0);
@@ -51,7 +63,7 @@ test("B3: категории → подкатегория → товар → н�
   await expect.poll(() => page.evaluate(() => scrollY)).toBeCloseTo(homeScroll, 0);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/categories?shop=test2");
-  await expect(page.locator('a[href="/c/home"]')).toBeVisible();
+  await expect(category).toBeVisible();
   await expect(page.getByRole("button", { name: "Все товары ›" })).toBeVisible();
   await expect(page.locator('a[href="/c/empty"],a[href^="/c/home-"]')).toHaveCount(0);
   await page.screenshot({ path: "test-results/categories-390.png", animations: "disabled" });
