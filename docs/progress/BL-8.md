@@ -5,4 +5,12 @@
 - **Chromium.** Check, E2E и Demo smoke скачивают версию Chromium из Playwright без `apt`. В журнале зависшего запуска Check не дошёл до скачивания браузера. [Лог Check](https://github.com/vir2ozz2009/korzina/actions/runs/44717017342/job/136222890808)
 - **Локальный сценарий Telegram Web.** Chromium блокирует вложение loopback-страницы с внешнего origin. Локальная фикстура открывает кабинет `127.0.0.1` из `localhost`, сохраняя проверку cross-site iframe и входа без cookies.
 
-Критерий закрытия BL-8 — три зелёных Check подряд на PR с кодом.
+Все три Check на ревизии `b1a7173` PR #137 прошли. В каждом прогоне Chromium установился без apt, а на превью прошли 9 сценариев. Локально прошли `check:fast`, 289 тестов Vitest и все 12 сценариев Chromium.
+
+| Прогон | `npm run check` | Тест адреса |
+|---|---:|---:|
+| [Первый](https://github.com/vir2ozz2009/korzina/actions/runs/44776230034/job/136426832573) | 57 с | 75 мс |
+| [Второй](https://github.com/vir2ozz2009/korzina/actions/runs/44776230034/job/136428954016) | 45 с | 102 мс |
+| [Третий](https://github.com/vir2ozz2009/korzina/actions/runs/44776230034/job/136430863208) | 46 с | 62 мс |
+
+В прежних успешных прогонах #131 тест адреса занимал 3,4–3,7 с. [Лог Check #131](https://github.com/vir2ozz2009/korzina/actions/runs/44746327486/job/136322479380)
