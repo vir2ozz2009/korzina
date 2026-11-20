@@ -28,7 +28,8 @@ jobs:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       - run: npm ci
       - run: npm run check
-      - run: npx playwright install --with-deps chromium
+      # The Ubuntu runner already has Chromium's shared libraries.
+      - run: npx playwright install chromium
       - run: npm run platform:setup -- --local --seed
       - run: node scripts/built-demo-smoke.ts
       - run: node scripts/wait-for-preview.ts
