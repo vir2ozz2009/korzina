@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { handleError, notFound } from "../middleware/errors";
 import { requireFeature } from "../middleware/feature";
-import { RateLimiter, rateLimit } from "../middleware/rate-limit";
 import { customerAuth } from "../modules/auth/routes";
 import { cartRoutes } from "../modules/cart/routes";
 import { catalogRoutes } from "../modules/catalog/routes";
@@ -22,10 +21,7 @@ export function shopRoutes() {
   return (
     new Hono<ShopEnv>()
       .onError(handleError)
-      .use(
-        "*",
-        rateLimit(new RateLimiter(), (request) => request.headers.get("x-korzina-client") ?? "local"),
-      )
+      // Public ingress is rate-limited by the Worker. A catalog page may make several private Shop reads.
       .get("/shop", async (c) => {
         const settings = readPublicSettings(c.env.db);
         return c.json({

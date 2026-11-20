@@ -17,6 +17,7 @@ import { handleError, notFound } from "../middleware/errors";
 import { extendCustomerVisit } from "../modules/auth/service";
 import { confirmBrowserBuyer, demoBuyerExchange, shopBuyerExchange } from "../modules/auth/telegram-exchange";
 import { expireSalePauses, nextSaleDeadline } from "../modules/catalog/sale-pause";
+import { publicMediaOrigin } from "../modules/media/public-origin";
 import { signalSellerOrders } from "../modules/seller-orders/live";
 import { sendOrderNotifications } from "../modules/seller-orders/notifications";
 import { botCoordinator, changeShopBot, managedBot } from "../platform/admin/shop-bot";
@@ -126,7 +127,12 @@ export class Shop extends DurableObject<Env> {
         object: this.ctx,
         secrets: this.env as Env & AuthSecrets,
         platform: this.env.PLATFORM,
-        media: this.env,
+        media: {
+          MEDIA: this.env.MEDIA,
+          MEDIA_PUBLIC: this.env.MEDIA_PUBLIC,
+          IMAGES: this.env.IMAGES,
+          MEDIA_PUBLIC_URL: publicMediaOrigin(request, this.env.MEDIA_PUBLIC_URL),
+        },
         matchedRoute: (path) => {
           route = path;
         },

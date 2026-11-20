@@ -57,11 +57,14 @@ export const sellerProductInput = z.strictObject({
 export type SellerProductInput = z.infer<typeof sellerProductInput>;
 
 const changedStock = z.strictObject({ id, stock, revision: integer });
-export const sellerStockInput = z
-  .array(changedStock)
-  .min(1)
-  .max(20)
-  .refine((edits) => new Set(edits.map((edit) => edit.id)).size === edits.length);
+const stockEdits = (max: number) =>
+  z
+    .array(changedStock)
+    .min(1)
+    .max(max)
+    .refine((edits) => new Set(edits.map((edit) => edit.id)).size === edits.length);
+export const sellerStockInput = stockEdits(20);
+const bulkStockInput = stockEdits(32 * 20);
 export type SellerStockInput = z.infer<typeof sellerStockInput>;
 export const sellerBulkInput = z.strictObject({
   products: z
@@ -71,11 +74,11 @@ export const sellerBulkInput = z.strictObject({
     .refine((products) => new Set(products.map((product) => product.id)).size === products.length),
   action: z.discriminatedUnion("kind", [
     z.strictObject({ kind: z.literal("pause"), duration: saleDuration, variantId: id.optional() }),
-    z.strictObject({ kind: z.literal("resume"), stock: sellerStockInput.optional(), variantId: id.optional() }),
+    z.strictObject({ kind: z.literal("resume"), stock: bulkStockInput.optional(), variantId: id.optional() }),
     z.strictObject({ kind: z.literal("hide") }),
     z.strictObject({ kind: z.literal("show") }),
     z.strictObject({ kind: z.literal("category"), categoryId: id.nullable() }),
-    z.strictObject({ kind: z.literal("stock"), variants: sellerStockInput }),
+    z.strictObject({ kind: z.literal("stock"), variants: bulkStockInput }),
     z.strictObject({ kind: z.literal("delete") }),
   ]),
 });

@@ -4,7 +4,6 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { cropPositionContract, mediaPurpose, photoMetadataContract } from "../../../src/shared/contracts/media";
 import { ApiError } from "../../../src/shared/errors";
-import { isLocal } from "../../auth/cookies";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
 import { handleError } from "../../middleware/errors";
 import { digest } from "../../middleware/idempotency";
@@ -15,13 +14,12 @@ import { scheduleMediaCleanup } from "./cleanup";
 import { readUpload } from "./content";
 import { mediaPrefix } from "./objects";
 import { presentMedia } from "./presentation";
+import { publicMediaOrigin } from "./public-origin";
 import { media } from "./schema";
 import { findMedia, storageUsage, uploadMedia } from "./service";
 import { signMedia, verifyMedia } from "./signing";
 
 type MediaRouterEnv = ShopEnv & { Variables: ShopEnv["Variables"] & { actor: MediaActor } };
-const publicOrigin = (request: Request, remote: string) =>
-  isLocal(request) ? `${new URL(request.url).origin}/api/media-public` : remote;
 export const mediaRoutes = new Hono<MediaRouterEnv>()
   .onError(handleError)
   .use("*", async (c, next) => {
@@ -63,7 +61,7 @@ export const mediaRoutes = new Hono<MediaRouterEnv>()
       fingerprint,
       metadata,
     );
-    return c.json(presentMedia(record, c.env.shop.id, publicOrigin(c.req.raw, c.env.media.MEDIA_PUBLIC_URL)), 201);
+    return c.json(presentMedia(record, c.env.shop.id, publicMediaOrigin(c.req.raw, c.env.media.MEDIA_PUBLIC_URL)), 201);
   })
   .get("/:id/link", async (c) => {
     const record = findMedia(c.env, c.req.param("id"));
@@ -154,7 +152,7 @@ export const mediaRoutes = new Hono<MediaRouterEnv>()
           body: presentMedia(
             findMedia(c.env, record.id),
             c.env.shop.id,
-            publicOrigin(c.req.raw, c.env.media.MEDIA_PUBLIC_URL),
+            publicMediaOrigin(c.req.raw, c.env.media.MEDIA_PUBLIC_URL),
           ),
           status: 200,
         };

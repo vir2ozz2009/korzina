@@ -25,6 +25,11 @@ const failures: Record<string, string> = {
   VISIBILITY_REQUIRED: "Проверьте видимость товара и фасовок",
   STOCK_REQUIRED: "Укажите остаток",
 };
+function stockVariants(row: SellerProduct, step: Step) {
+  if (step === "stock") return row.variants;
+  const visible = row.variants.filter((variant) => variant.visible);
+  return row.status !== "hidden" && visible.every((variant) => variant.stock === 0) ? visible : [];
+}
 export function CatalogActions({
   store,
   rows,
@@ -78,11 +83,7 @@ export function CatalogActions({
     try {
       const list = await Promise.all(rows.map((row) => fetchCatalogProduct(store, row.id)));
       setProducts(list);
-      const selected = list.flatMap((row) =>
-        row.variants
-          .filter((variant) => next === "stock" || (variant.visible && variant.stock === 0))
-          .map((variant) => variant.id),
-      );
+      const selected = list.flatMap((row) => stockVariants(row, next).map((variant) => variant.id));
       setIds(selected);
       if (next === "resume" && !selected.length) apply({ kind: "resume" });
     } catch (error) {
@@ -103,11 +104,7 @@ export function CatalogActions({
     void Promise.all(rows.map((row) => fetchCatalogProduct(store, row.id, controller.signal)))
       .then((list) => {
         setProducts(list);
-        setIds(
-          list.flatMap((row) =>
-            row.variants.filter((variant) => variant.visible && variant.stock === 0).map((variant) => variant.id),
-          ),
-        );
+        setIds(list.flatMap((row) => stockVariants(row, "resume").map((variant) => variant.id)));
       })
       .catch((error) => {
         if (!controller.signal.aborted)
@@ -247,19 +244,17 @@ export function CatalogActions({
         ) : (
           <>
             {products.flatMap((row) =>
-              row.variants
-                .filter((variant) => step === "stock" || (variant.visible && variant.stock === 0))
-                .map((variant) => (
-                  <Checkbox
-                    key={variant.id}
-                    label={[row.name, variant.name].filter(Boolean).join(" · ")}
-                    disabled={busy}
-                    checked={ids.includes(variant.id)}
-                    onChange={(event) =>
-                      setIds(event.target.checked ? [...ids, variant.id] : ids.filter((id) => id !== variant.id))
-                    }
-                  />
-                )),
+              stockVariants(row, step).map((variant) => (
+                <Checkbox
+                  key={variant.id}
+                  label={[row.name, variant.name].filter(Boolean).join(" · ")}
+                  disabled={busy}
+                  checked={ids.includes(variant.id)}
+                  onChange={(event) =>
+                    setIds(event.target.checked ? [...ids, variant.id] : ids.filter((id) => id !== variant.id))
+                  }
+                />
+              )),
             )}
             <Input
               label="Остаток"
