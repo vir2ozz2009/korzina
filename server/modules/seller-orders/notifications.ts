@@ -3,6 +3,7 @@ import { decryptBotToken } from "../../auth/bot-token";
 import type { AuthSecrets } from "../../auth/config";
 import { TelegramRequestError, telegramApi } from "../../auth/telegram-api";
 import { managedBot } from "../../platform/admin/shop-bot";
+import { storefrontUrl } from "../../platform/storefront-url";
 import { calendarDate, scheduleClock } from "../fulfillment/schedule";
 
 type Queued = {
@@ -67,12 +68,20 @@ export async function sendOrderNotifications(storage: DurableObjectStorage, env:
     const bot = await managedBot(env.PLATFORM, shop);
     const token = bot?.token ? await decryptBotToken(bot.token, shop, env.ENCRYPTION_KEY) : env.PLATFORM_BOT_TOKEN;
     const origin = env.APP_ENV === "production" ? "https://korzina.app" : "https://demo.korzina.app";
+    const buyerSlug =
+      token && queue.some(({ kind }) => kind !== "new")
+        ? await env.PLATFORM.withSession("first-primary")
+            .prepare("SELECT slug FROM shops WHERE id=?")
+            .bind(shop)
+            .first<string>("slug")
+        : null;
+    const buyerStorefront = buyerSlug ? storefrontUrl(origin, env.APP_ENV, buyerSlug) : undefined;
     for (const event of queue) {
       // Claim before contacting Telegram: sendMessage has no idempotency key.
       const claim = storage.sql.exec("DELETE FROM order_notification_outbox WHERE event_key=?", event.event_key);
       if (!claim.rowsWritten || !token) continue;
       try {
-        await telegramApi(token, "sendMessage", telegramMessage(storage, origin, shop, event, now));
+        await telegramApi(token, "sendMessage", telegramMessage(storage, origin, shop, event, now, buyerStorefront));
       } catch (error) {
         if (error instanceof TelegramRequestError && error.retryable && event.attempts < 7) {
           storage.sql.exec(
@@ -107,16 +116,25 @@ export function telegramMessage(
   storage: DurableObjectStorage,
   origin: string,
   shop: string,
-  event: Queued,
+  event: Omit<Queued, "event_key" | "attempts">,
   now: number,
+  buyerStorefront?: string,
 ) {
   const number = event.order_number;
   const amount = formatMinor(event.amount, event.currency);
   const ref = `по заказу №${number}`;
   const chat_id = event.recipient;
-  if (event.kind === "debt") return { chat_id, text: `Доплатите ${amount} ${ref}` };
-  if (event.kind === "refund") return { chat_id, text: `Магазин вернёт вам ${amount} ${ref}` };
-  if (event.kind === "paid") return { chat_id, text: `Оплата ${ref} подтверждена` };
+  if (event.kind !== "new") {
+    const url = buyerStorefront ? new URL(buyerStorefront) : undefined;
+    if (url) url.pathname = `/orders/${number}`;
+    const text =
+      event.kind === "debt"
+        ? `Доплатите ${amount} ${ref}`
+        : event.kind === "refund"
+          ? `Магазин вернёт вам ${amount} ${ref}`
+          : `Оплата ${ref} подтверждена`;
+    return { chat_id, text, ...(url && { reply_markup: orderKeyboard(url, "Открыть заказ") }) };
+  }
   const order = storage.sql
     .exec<{ date: string | null; start: string | null; method: string; timeZone: string }>(
       `SELECT json_extract(snapshot,'$.time.date') AS date,
@@ -140,8 +158,12 @@ export function telegramMessage(
   return {
     chat_id,
     text: `Новый заказ №${number} · ${amount}\n${receiving.join(" · ")}`,
-    reply_markup: { inline_keyboard: [[{ text: "Открыть", web_app: { url: url.href } }]] },
+    reply_markup: orderKeyboard(url, "Открыть"),
   };
+}
+
+function orderKeyboard(url: URL, text: string) {
+  return { inline_keyboard: [[{ text, web_app: { url: url.href } }]] };
 }
 
 const dayAndMonth = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", timeZone: "UTC" });

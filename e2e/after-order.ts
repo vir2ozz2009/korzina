@@ -1,6 +1,21 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { expect, type Page } from "@playwright/test";
 
+export async function verifyBuyerOrderReload(page: Page, number: number) {
+  const heading = page.getByRole("heading", { name: `Заказ №${number}`, exact: true });
+  await page.getByRole("button", { name: "Открыть заказ", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/orders/${number}\\?shop=test2$`));
+  await page.reload();
+  await expect(heading).toBeVisible();
+  await expect(page.getByText("Магазин скоро возьмёт заказ в работу")).toBeVisible();
+  await page.screenshot({ path: "test-results/b11-shop-reload-390.png", animations: "disabled" });
+  await page.getByRole("button", { name: "Мои заказы", exact: true }).click();
+  await expect(page).toHaveURL(/\/orders\?shop=test2$/);
+  await page.getByRole("button", { name: new RegExp(`^Заказ №${number}\\b`) }).click();
+  await expect(page).toHaveURL(new RegExp(`/orders/${number}\\?shop=test2$`));
+  await expect(heading).toBeVisible();
+}
+
 export async function verifyOrderCancellation(page: Page, number: number) {
   const activeOrder = page
     .getByRole("region", { name: "Активные заказы" })

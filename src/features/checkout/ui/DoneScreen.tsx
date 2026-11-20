@@ -3,6 +3,7 @@ import { Check, MapPin, Store } from "lucide-react";
 import { Header } from "../../../app/shell/Header";
 import { Screen } from "../../../app/shell/Screen";
 import { formatMinor } from "../../../shared/money";
+import { buyerOrderSearch } from "../../../shared/shop-api";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { ListItem } from "../../../ui/ListItem";
@@ -63,9 +64,15 @@ export function DoneScreen() {
           <PurchaseTotals {...order} done />
           <ListItem
             title="Открыть заказ"
-            onClick={() => void navigate({ to: "/orders/$number", params: { number: String(order.number) } })}
+            onClick={() =>
+              void navigate({
+                to: "/orders/$number",
+                search: buyerOrderSearch,
+                params: { number: String(order.number) },
+              })
+            }
           />
-          <ListItem title="Мои заказы" onClick={() => void navigate({ to: "/orders" })} />
+          <ListItem title="Мои заказы" onClick={() => void navigate({ to: "/orders", search: buyerOrderSearch })} />
           {transfer && (transfer.credentialsChanged || transfer.differenceMinor !== 0) && (
             <Card>
               {transfer.differenceMinor !== 0 && (

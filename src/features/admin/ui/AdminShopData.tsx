@@ -152,7 +152,7 @@ export function AdminShopData({ shop }: { shop: AdminShop }) {
           <dt>Название</dt>
           <dd>{shop.name}</dd>
           <dt>Адрес витрины</dt>
-          <dd className="break-all">{shop.slug}.korzina.app</dd>
+          <dd className="break-all">{shop.storefrontUrl}</dd>
           <dt>Страна</dt>
           <dd>{shop.country ? countryName(shop.country) : "—"}</dd>
           <dt>Валюта</dt>

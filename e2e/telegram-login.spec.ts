@@ -8,7 +8,7 @@ async function signalReturn(page: Page) {
 }
 
 for (const role of ["buyer", "seller"] as const) {
-  test(`BL-3/BL-5: ${role} resumes Telegram login and closes the prompt`, async ({ page, context }) => {
+  test(`BL-3/BL-5: ${role} resumes Telegram login and closes the prompt`, async ({ page, context, baseURL }) => {
     const seller = role === "seller";
     const routePath = seller ? "/seller?shop=test2" : "/profile?shop=test2";
     const authPath = seller ? "/api/seller/cabinet" : "/api/auth/telegram";
@@ -37,7 +37,12 @@ for (const role of ["buyer", "seller"] as const) {
       return route.fulfill({ status: signedIn ? 200 : 202, json: { pending: !signedIn } });
     });
     if (seller) {
-      const shop = { slug: "test2", name: "Магазин BL-3", status: "active" };
+      const shop = {
+        slug: "test2",
+        name: "Магазин BL-3",
+        status: "active",
+        storefrontUrl: new URL("/?shop=test2", baseURL).href,
+      };
       await context.route(/\/api\/seller\/cabinet(?:\?|$)/, (route) =>
         signedIn ? route.fulfill({ json: { telegramId: "100", current: shop, shops: [shop] } }) : route.fallback(),
       );
@@ -163,7 +168,12 @@ test("§9.12: a seller can open the selected shop in Telegram Web without cookie
   const parent = "https://web.telegram.org/korzina-cabinet-fixture";
   const cabinetUrl = new URL("/seller?shop=test2&store=test2", baseURL);
   const token = "c".repeat(64);
-  const shop = { slug: "test2", name: "Второй магазин", status: "active" };
+  const shop = {
+    slug: "test2",
+    name: "Второй магазин",
+    status: "active",
+    storefrontUrl: new URL("/?shop=test2", cabinetUrl).href,
+  };
   let signIns = 0;
   await stubMiniApp(page);
   await page.route(parent, (route) =>

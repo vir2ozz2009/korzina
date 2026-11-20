@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { ApiError } from "../../../src/shared/errors";
-import { storefrontUrl } from "./registry";
+import { storefrontUrl } from "../storefront-url";
 
 export const publicShop = new Hono<{ Bindings: Env }>().get("/:id", async (c) => {
   const row = await c.env.PLATFORM.withSession("first-primary")
@@ -9,7 +9,7 @@ export const publicShop = new Hono<{ Bindings: Env }>().get("/:id", async (c) =>
     .first<{ slug: string }>();
   if (!row) throw new ApiError("SHOP_NOT_FOUND", "Магазин не найден");
   c.header("Cache-Control", "no-store");
-  const url = new URL(storefrontUrl(c.req.raw, c.env.APP_ENV, row.slug));
+  const url = new URL(storefrontUrl(c.req.url, c.env.APP_ENV, row.slug));
   if (c.req.query("destination") === "seller") {
     const order = c.req.query("order");
     url.pathname = order && /^[1-9]\d{0,14}$/u.test(order) ? `/seller/orders/${order}` : "/seller";

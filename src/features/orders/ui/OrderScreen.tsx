@@ -6,6 +6,7 @@ import { Screen } from "../../../app/shell/Screen";
 import { useToast } from "../../../app/shell/ToastProvider";
 import type { OrderStage } from "../../../shared/contracts/buyer-order";
 import { errorKind, HttpError } from "../../../shared/http-error";
+import { buyerOrderSearch } from "../../../shared/shop-api";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { EmptyState } from "../../../ui/EmptyState";
@@ -33,7 +34,7 @@ export function OrderScreen() {
   const contacts = useShopContacts(sheet === "contacts");
   const close = () => setSheet(undefined);
   const attempt = useRef<{ key: string; expectedVersion: number }>(undefined);
-  const home = () => void navigate({ to: "/" });
+  const home = () => void navigate({ to: "/", search: buyerOrderSearch });
   const header = <Header title={`Заказ №${raw}`} />;
   if (
     !Number.isSafeInteger(number) ||
@@ -155,7 +156,7 @@ export function OrderScreen() {
           <Button full disabled={disabled} onClick={() => setSheet("repeat")}>
             Повторить заказ
           </Button>
-          <Button full variant="ghost" onClick={() => void navigate({ to: "/orders" })}>
+          <Button full variant="ghost" onClick={() => void navigate({ to: "/orders", search: buyerOrderSearch })}>
             Мои заказы
           </Button>
           <Button full variant="ghost" onClick={home}>

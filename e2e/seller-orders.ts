@@ -91,10 +91,12 @@ export async function verifySellerOrders(browser: Browser, baseURL: string) {
     const order = await placePickup(page.request, true);
     await signal;
     await cabinet.getByRole("searchbox", { name: "Номер, имя или телефон" }).fill(`№${order.number}`);
-    await expect(cabinet.getByRole("button", { name: `Открыть заказ №${order.number}` })).toBeVisible();
+    const orderButton = cabinet.getByRole("button", { name: `Открыть заказ №${order.number}`, exact: true });
+    const orderCard = orderButton.locator("..");
+    await expect(orderButton).toBeVisible();
     await cabinet.screenshot({ path: "test-results/seller-orders-390.png", animations: "disabled" });
-    await cabinet.getByRole("button", { name: "Принять", exact: true }).click();
-    await cabinet.getByRole("button", { name: "Открыть сборку" }).click();
+    await orderCard.getByRole("button", { name: "Принять", exact: true }).click();
+    await orderCard.getByRole("button", { name: "Открыть сборку" }).click();
     await cabinet.getByRole("button", { name: "Отметить все собранными" }).click();
     await expect(cabinet.getByText("Собрано 1 из 1")).toBeVisible();
     await cabinet.getByRole("button", { name: "Сборка завершена" }).click();
@@ -138,8 +140,15 @@ export async function verifySellerOrders(browser: Browser, baseURL: string) {
     await page.goto("/?shop=test2");
     await expect(page.getByRole("button", { name: /Доплатите/ })).toBeVisible();
     await page.getByRole("button", { name: /Доплатите/ }).click();
+    await expect(page).toHaveURL(new RegExp(`/orders/${debt.number}\\?shop=test2$`));
     await expect(page.getByRole("heading", { name: "Выдан", exact: true })).toBeVisible();
     await expect(page.getByText(/Доплатите/)).toBeVisible();
+    await cabinet.goto("/seller?store=test2");
+    const storefront = new URL("/?shop=test2", baseURL);
+    await expect(cabinet.getByText(storefront.href, { exact: true })).toBeVisible();
+    await cabinet.screenshot({ path: "test-results/seller-storefront-390.png", animations: "disabled" });
+    await cabinet.getByRole("button", { name: "Открыть витрину", exact: true }).click();
+    await expect(cabinet).toHaveURL(storefront.href);
   } finally {
     await Promise.all([buyer.close(), seller.close()]);
   }
