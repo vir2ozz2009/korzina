@@ -13,6 +13,7 @@ export default defineConfig(({ mode, isPreview }) => ({
     exports: { Shop: exports.durableObject({ storage: "sqlite" }) },
     env: {
       APP_ENV: bindings.text(isPreview ? "preview" : mode === "production" ? "production" : "demo"),
+      LOCAL_E2E: bindings.text(mode === "e2e" && !isPreview ? "1" : "0"),
       ASSETS: bindings.assets(),
       PLATFORM: bindings.d1(
         !isPreview && mode === "demo"

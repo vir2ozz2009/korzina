@@ -43,7 +43,7 @@ jobs:
           node-version-file: .node-version
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium
       - if: github.event_name == 'pull_request'
         run: npm run test:e2e -- --grep @home-cart
       - if: github.event_name != 'pull_request'
