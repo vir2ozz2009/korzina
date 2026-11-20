@@ -3,8 +3,9 @@ import { formatMinor } from "../../../shared/money";
 import { Card } from "../../../ui/Card";
 
 function paymentText(order: BuyerOrder) {
+  if (order.refundMinor) return `Магазин вернёт вам ${formatMinor(order.refundMinor, order.currency)}`;
+  if (order.debtMinor) return `Доплатите ${formatMinor(order.debtMinor, order.currency)}`;
   if (order.stage === "cancelled") {
-    if (order.refundMinor !== undefined) return `К возврату ${formatMinor(order.refundMinor, order.currency)}`;
     if (order.paymentStatus === "pending_review") return "Оплата на проверке. Если деньги поступили, магазин их вернёт";
     return "Оплата не требуется";
   }

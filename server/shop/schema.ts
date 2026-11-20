@@ -7,6 +7,7 @@ export {
   buyerOrderRevisions,
   checkoutQuotes,
   checkoutReceipts,
+  orderNotificationOutbox,
   orderOutbox,
   orderReceiptHistory,
   orders,

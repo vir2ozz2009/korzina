@@ -3,10 +3,12 @@ import { api } from "../../shared/api";
 import { checkResponse } from "../../shared/http-error";
 import { commandHeaders, shopApi } from "../../shared/shop-api";
 
+import { sellerOrderSearch } from "./order-search";
+
 const cabinetKey = ["seller", "cabinet"] as const;
 // Cross-site Telegram Web frames cannot use the ordinary browser session cookie.
 let embeddedSession: string | undefined;
-const sessionHeaders = (): Record<string, string> =>
+export const sellerSessionHeaders = (): Record<string, string> =>
   embeddedSession ? { Authorization: `Bearer ${embeddedSession}` } : {};
 
 export function useCabinet(store?: string) {
@@ -15,7 +17,7 @@ export function useCabinet(store?: string) {
     queryFn: async ({ signal }) => {
       const response = await api.api.seller.cabinet.$get(
         { query: { store } },
-        { headers: sessionHeaders(), init: { signal } },
+        { headers: sellerSessionHeaders(), init: { signal } },
       );
       await checkResponse(response);
       return response.json();
@@ -55,14 +57,17 @@ export function useSellerLogout() {
     mutationFn: async () => {
       const response = await api.api.platform.auth.logout.$post(
         { json: {} },
-        { headers: { ...commandHeaders(), ...sessionHeaders() } },
+        { headers: { ...commandHeaders(), ...sellerSessionHeaders() } },
       );
       await checkResponse(response);
     },
     onSuccess: async () => {
       embeddedSession = undefined;
+      sellerOrderSearch.clear();
       await client.cancelQueries({ queryKey: cabinetKey });
       client.removeQueries({ queryKey: cabinetKey });
+      await client.cancelQueries({ queryKey: ["seller-orders"] });
+      client.removeQueries({ queryKey: ["seller-orders"] });
     },
   });
 }

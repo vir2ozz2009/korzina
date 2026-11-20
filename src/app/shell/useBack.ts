@@ -7,9 +7,17 @@ export function useBack(fallback = "/") {
   return () => {
     const href = router.state.location.href;
     if (href.startsWith("/seller")) {
-      void import("./tab-history").then(({ sellerHistory, sellerTab }) => {
-        if (router.state.location.pathname !== sellerTab(href))
-          void router.navigate({ to: sellerHistory.back(href), replace: true });
+      void import("./tab-history").then(async ({ sellerHistory, sellerTab }) => {
+        if (router.state.location.pathname === sellerTab(href)) return;
+        const target = new URL(sellerHistory.back(href), window.location.origin);
+        const current = new URL(href, window.location.origin);
+        for (const key of ["shop", "store"]) {
+          const value = current.searchParams.get(key);
+          if (value && !target.searchParams.has(key)) target.searchParams.set(key, value);
+        }
+        const destination = target.pathname + target.search;
+        await router.navigate({ href: destination, replace: true, resetScroll: false });
+        requestAnimationFrame(() => window.scrollTo({ top: sellerHistory.position(destination), behavior: "instant" }));
       });
       return;
     }

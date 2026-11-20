@@ -4,6 +4,7 @@ import { executeCommand } from "../../shop/commands";
 import type { ShopEnv } from "../../shop/env";
 import { buyerOrder, buyerOrderRow, unpackOrder } from "./buyer-orders";
 import { releaseOrderReservation } from "./order-reservation";
+import { orderBalance, orderFinance, orderWorkflow } from "./order-workflow";
 
 type Shop = ShopEnv["Bindings"];
 function checkVersion(actual: number, expected: number) {
@@ -30,15 +31,38 @@ export function cancelBuyerOrder(
         current,
       );
     checkVersion(row.version, expected);
-    releaseOrderReservation(storage, unpackOrder(row), true);
-    storage.sql.exec("UPDATE orders SET status='cancelled',version=version+1 WHERE number=?", number);
+    const snapshot = unpackOrder(row);
+    const work = orderWorkflow(row);
+    const finance = orderFinance(work, snapshot, row.payment_status);
+    const { refundMinor } = orderBalance(finance, snapshot.totalMinor, "cancelled");
+    releaseOrderReservation(storage, snapshot, true);
+    const fulfillment_state = JSON.stringify({ ...work, finance, refundMinor, debtMinor: 0 });
+    storage.sql.exec(
+      "UPDATE orders SET status='cancelled',version=version+1,fulfillment_state=? WHERE number=?",
+      fulfillment_state,
+      number,
+    );
     storage.sql.exec(
       "INSERT INTO buyer_order_events(order_number,actor,event,created_at) VALUES(?,?,'order.cancelled',?)",
       number,
       customer,
       Date.now(),
     );
-    return { status: 200, body: buyerOrder({ ...row, status: "cancelled", version: row.version + 1 }) };
+    const telegramId = snapshot.telegramLinked && /^telegram:(\d+)$/u.exec(customer)?.[1];
+    if (telegramId && refundMinor)
+      storage.sql.exec(
+        "INSERT OR IGNORE INTO order_notification_outbox(event_key,kind,order_number,recipient,amount,currency,due_at) VALUES(?,'refund',?,?,?,?,?)",
+        `buyer-cancel:${number}`,
+        number,
+        telegramId,
+        refundMinor,
+        snapshot.currency,
+        Date.now(),
+      );
+    return {
+      status: 200,
+      body: buyerOrder({ ...row, fulfillment_state, status: "cancelled", version: row.version + 1 }),
+    };
   }).body;
 }
 
@@ -71,7 +95,14 @@ export function replaceBuyerProof(
         row.proof_media_id,
         now,
       );
-    storage.sql.exec("UPDATE orders SET proof_media_id=?,version=version+1 WHERE number=?", mediaId, number);
-    return { status: 200, body: buyerOrder({ ...row, proof_media_id: mediaId, version: row.version + 1 }) };
+    storage.sql.exec(
+      "UPDATE orders SET proof_media_id=?,payment_status='pending_review',version=version+1 WHERE number=?",
+      mediaId,
+      number,
+    );
+    return {
+      status: 200,
+      body: buyerOrder({ ...row, payment_status: "pending_review", proof_media_id: mediaId, version: row.version + 1 }),
+    };
   }).body;
 }

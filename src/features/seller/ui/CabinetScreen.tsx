@@ -45,7 +45,9 @@ export function CabinetScreen() {
   return (
     <Screen
       template="form"
-      after={query.data && !query.isError ? <SellerTabs /> : undefined}
+      after={
+        query.data && !query.isError ? <SellerTabs store={current?.slug} account={query.data.telegramId} /> : undefined
+      }
       header={
         <Header
           title={needsLogin ? "Вход" : title}

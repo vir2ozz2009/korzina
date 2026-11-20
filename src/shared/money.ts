@@ -71,3 +71,23 @@ export function discountPercent(amount: number, oldAmount: number): number {
   const old = integer(oldAmount);
   return old > current ? Number(((old - current) * 100n) / old) : 0;
 }
+
+function currencyDigits(currency: string) {
+  return new Intl.NumberFormat("ru", { style: "currency", currency }).resolvedOptions().maximumFractionDigits ?? 2;
+}
+
+export function minorInput(amount: number, currency: string) {
+  const digits = currencyDigits(currency);
+  const value = integer(amount)
+    .toString()
+    .padStart(digits + 1, "0");
+  return digits ? `${value.slice(0, -digits)},${value.slice(-digits)}` : value;
+}
+
+export function parseMinorInput(value: string, currency: string) {
+  const match = /^(\d{1,16})(?:[.,](\d+))?$/u.exec(value.trim().replace(/\s/gu, ""));
+  const digits = currencyDigits(currency);
+  if (!match || (match[2]?.length ?? 0) > digits) return;
+  const minor = Number(match[1] + (match[2] ?? "").padEnd(digits, "0"));
+  return Number.isSafeInteger(minor) ? minor : undefined;
+}

@@ -1,6 +1,10 @@
 import type { OrderSnapshot } from "../../../src/shared/contracts/checkout";
 
-export type ReservedOrder = OrderSnapshot & { seatReserved?: boolean; reservedStock?: string[] };
+export type ReservedOrder = OrderSnapshot & {
+  seatReserved?: boolean;
+  reservedStock?: string[];
+  customerNameKey?: string;
+};
 
 export function releaseOrderReservation(storage: DurableObjectStorage, order: ReservedOrder, returnStock: boolean) {
   if (returnStock) {

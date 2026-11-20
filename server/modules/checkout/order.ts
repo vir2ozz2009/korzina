@@ -10,6 +10,7 @@ import { executeCommand } from "../../shop/commands";
 import type { ShopEnv } from "../../shop/env";
 import { removeOrderedLines } from "../cart/service";
 import { reserveTime } from "../fulfillment/availability";
+import type { ReservedOrder } from "./order-reservation";
 import { loadQuote, purchaseDraft } from "./quote";
 import { quoteTerms } from "./quote-terms";
 
@@ -82,7 +83,7 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
   return executeCommand(storage, env.db, `checkout:${subject}`, command, () => {
     if (env.shop.status !== "active") throw new ApiError("SHOP_CLOSED", "Магазин временно не принимает заказы");
     const previous = loadQuote(storage, subject, input.quoteRevision, now);
-    const { snapshot, cart, storedReceiving } = purchaseDraft(env, subject, actor.kind, now, false);
+    const { snapshot, cart, storedReceiving, customerName } = purchaseDraft(env, subject, actor.kind, now, false);
     if (!snapshot.paymentSettings.methods.includes(input.payment))
       throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Этот способ оплаты недоступен");
     if (JSON.stringify(quoteTerms(previous)) !== JSON.stringify(quoteTerms(snapshot)))
@@ -97,7 +98,13 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
       ? confirmReceipt(storage, subject, proof, details.totalMinor, paymentSettings, now)
       : undefined;
     const paymentStatus = proof ? "pending_review" : "unpaid";
-    const order: OrderSnapshot = { ...details, payment: input.payment, paymentStatus, transferReview };
+    const order: OrderSnapshot = {
+      ...details,
+      payment: input.payment,
+      paymentStatus,
+      transferReview,
+      ...(customerName && { customerName }),
+    };
     const stock = order.lines.map(({ variantId, quantity }) => ({ variantId, quantity }));
     const reservedStock = cart.lines
       .filter(({ available, stock }) => available && stock !== null)
@@ -117,7 +124,12 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
         now,
         paymentStatus,
         proof,
-        JSON.stringify({ ...order, seatReserved, reservedStock }),
+        JSON.stringify({
+          ...order,
+          seatReserved,
+          reservedStock,
+          customerNameKey: customerName?.toLocaleLowerCase("ru"),
+        }),
       )
       .one();
     storage.sql.exec("INSERT INTO order_outbox(order_number,event,created_at) VALUES(?,'order.placed',?)", number, now);
@@ -135,7 +147,8 @@ export function readOrder(storage: DurableObjectStorage, subject: string, number
   const {
     seatReserved: _seat,
     reservedStock: _stock,
+    customerNameKey: _nameKey,
     ...order
-  } = JSON.parse(row.snapshot) as OrderSnapshot & { seatReserved?: boolean; reservedStock?: string[] };
+  } = JSON.parse(row.snapshot) as ReservedOrder;
   return { ...order, number };
 }

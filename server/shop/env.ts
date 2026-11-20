@@ -7,9 +7,11 @@ import type { CommandVariables } from "../middleware/idempotency";
 export type ShopEnv = {
   Bindings: {
     shop: ShopInfo;
+    timeZone?: string;
     features: FeatureState;
     db: DrizzleSqliteDODatabase;
     storage: DurableObjectStorage;
+    object: DurableObjectState;
     matchedRoute?: (path: string) => void;
     secrets: AuthSecrets;
     platform: D1Database;

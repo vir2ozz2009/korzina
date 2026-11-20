@@ -2,12 +2,12 @@ import type { SellerOrder, SellerOrderEvent } from "../../../src/shared/contract
 import { ApiError } from "../../../src/shared/errors";
 import type { Seller } from "../../auth/roles";
 import { type OrderRow, unpackOrder } from "../checkout/buyer-orders";
+import { orderBalance, orderFinance, orderWorkflow } from "../checkout/order-workflow";
 
-type FulfillmentState = { packed?: string[]; handedOff?: boolean };
 export function sellerOrderRow(storage: DurableObjectStorage, number: number) {
   const row = storage.sql
     .exec<OrderRow>(
-      "SELECT number,created_at,status,payment_status,version,proof_media_id,snapshot,fulfillment_state FROM orders WHERE number=?",
+      "SELECT customer,number,created_at,status,payment_status,version,proof_media_id,snapshot,fulfillment_state FROM orders WHERE number=?",
       number,
     )
     .toArray()[0];
@@ -15,17 +15,16 @@ export function sellerOrderRow(storage: DurableObjectStorage, number: number) {
   return row;
 }
 
-export function fulfillmentState(row: OrderRow): FulfillmentState {
-  return {
-    ...JSON.parse(row.fulfillment_state),
-    ...((row.status === "handed" || row.status === "completed") && { handedOff: true }),
-  };
-}
-
-export function sellerOrder(storage: DurableObjectStorage, number: number, actor: Seller): SellerOrder {
+export function sellerOrder(
+  storage: DurableObjectStorage,
+  number: number,
+  actor: Seller,
+  timeZone = "Asia/Ho_Chi_Minh",
+): SellerOrder {
   const row = sellerOrderRow(storage, number);
-  const { seatReserved: _seat, reservedStock: _stock, ...snapshot } = unpackOrder(row);
-  const state = fulfillmentState(row);
+  const { seatReserved: _seat, reservedStock: _stock, customerNameKey: _nameKey, ...snapshot } = unpackOrder(row);
+  const state = orderWorkflow(row);
+  const finance = orderFinance(state, snapshot, row.payment_status);
   const permissions = {
     assembly: actor.role === "owner" || actor.permissions.includes("assembly"),
     payments: actor.role === "owner" || actor.permissions.includes("payments"),
@@ -36,6 +35,20 @@ export function sellerOrder(storage: DurableObjectStorage, number: number, actor
       number,
     )
     .toArray();
+  const receipts = permissions.payments
+    ? storage.sql
+        .exec<{ id: string; createdAt: number; mime: string }>(
+          `SELECT id, created_at AS createdAt, mime FROM media
+       WHERE status='attached' AND ready=1 AND purpose='receipt'
+       AND (id=? OR id IN (SELECT media_id FROM order_receipt_history WHERE order_number=?))
+       ORDER BY id=? DESC, created_at DESC LIMIT 100`,
+          row.proof_media_id,
+          number,
+          row.proof_media_id,
+        )
+        .toArray()
+    : [];
+  const balance = orderBalance(finance, snapshot.totalMinor, row.status);
   return {
     ...snapshot,
     number,
@@ -45,7 +58,12 @@ export function sellerOrder(storage: DurableObjectStorage, number: number, actor
     paymentStatus: row.payment_status,
     packed: state.packed ?? [],
     handedOff: state.handedOff ?? false,
+    readyForPickup: state.readyForPickup ?? false,
+    deliveryAssigned: finance.deliveryAssigned ?? false,
+    timeZone,
     permissions,
     events,
+    balance,
+    receipts,
   };
 }

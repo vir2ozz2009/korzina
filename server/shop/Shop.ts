@@ -16,6 +16,8 @@ import { RequestMetrics } from "../metrics";
 import { handleError, notFound } from "../middleware/errors";
 import { extendCustomerVisit } from "../modules/auth/service";
 import { confirmBrowserBuyer, demoBuyerExchange, shopBuyerExchange } from "../modules/auth/telegram-exchange";
+import { signalSellerOrders } from "../modules/seller-orders/live";
+import { sendOrderNotifications } from "../modules/seller-orders/notifications";
 import { botCoordinator, changeShopBot, managedBot } from "../platform/admin/shop-bot";
 import type { ShopMutation } from "../platform/admin/shop-change";
 import { demoPlatformShop } from "../platform/auth/demo-telegram";
@@ -87,8 +89,10 @@ export class Shop extends DurableObject<Env> {
           storage.transactionSync(() => db.insert(settings).values({ key: "shop_id", value: shop.id }).run());
         this.identity = shop.id;
       }
+      let timeZone: string | undefined;
       if (data.adminSettings) {
         const configured = shopContextContract.shape.adminSettings.parse(data.adminSettings);
+        timeZone = configured?.timeZone;
         const signature = JSON.stringify(configured);
         if (configured && signature !== this.settingsSignature) {
           applyAdminSettings(storage, configured);
@@ -97,9 +101,11 @@ export class Shop extends DurableObject<Env> {
       }
       response = await this.router.fetch(request, {
         shop,
+        timeZone,
         features: context.success ? context.data : resolveFeatures([]),
         db,
         storage,
+        object: this.ctx,
         secrets: this.env as Env & AuthSecrets,
         platform: this.env.PLATFORM,
         media: this.env,
@@ -111,6 +117,7 @@ export class Shop extends DurableObject<Env> {
       const known = error instanceof ApiError ? error : new ApiError("INTERNAL", "Внутренняя ошибка сервера");
       response = Response.json(errorBody(known), { status: errorStatus[known.code] });
     }
+    if (response.status === 101) return response;
     const metric = metrics.record(
       route,
       shopId,
@@ -119,9 +126,19 @@ export class Shop extends DurableObject<Env> {
       false,
     );
     if (request.method === "POST" && response.ok && metric.rowsWritten > 0) {
-      if (new URL(request.url).pathname === "/api/checkout") {
+      const path = new URL(request.url).pathname;
+      const orderChange = /^\/api\/(?:seller\/)?orders\/(\d+)\/(?:transition|cancel|proof)$/u.exec(path);
+      if (path === "/api/checkout") {
         this.pendingOrders = true;
         await schedulePlatformOrders(this.ctx.storage);
+        if (this.ctx.getWebSockets("seller-orders").length) {
+          const { number } = await response.clone().json<{ number: number }>();
+          this.ctx.waitUntil(signalSellerOrders(this.ctx, this.env.PLATFORM, number));
+        }
+      } else if (orderChange) {
+        this.ctx.waitUntil(signalSellerOrders(this.ctx, this.env.PLATFORM, Number(orderChange[1])));
+        await schedulePlatformOrders(this.ctx.storage);
+        await scheduleCleanup(this.ctx.storage);
       } else await scheduleCleanup(this.ctx.storage);
     }
     // Only the public Worker can see these; it strips them before returning to the client.
@@ -230,6 +247,7 @@ export class Shop extends DurableObject<Env> {
       const more = await cleanupShop(this.ctx.storage, this.env, Date.now(), projectOrders);
       this.pendingOrders ||= more;
       if (this.pendingOrders) await schedulePlatformOrders(this.ctx.storage);
+      await sendOrderNotifications(this.ctx.storage, this.env);
     } catch (error) {
       this.pendingOrders ||= projectOrders;
       throw error;

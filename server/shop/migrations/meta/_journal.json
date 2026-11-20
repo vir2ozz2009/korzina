@@ -183,6 +183,13 @@
       "when": 1795151045184,
       "tag": "0025_seller_order_state",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1795151623505,
+      "tag": "0026_seller_order_payments",
+      "breakpoints": true
     }
   ]
 }

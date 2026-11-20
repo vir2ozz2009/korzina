@@ -24,6 +24,7 @@ import m0022 from "./0022_buyer_profile.sql?raw";
 import m0023 from "./0023_buyer_order_insert_revision.sql?raw";
 import m0024 from "./0024_telegram_return.sql?raw";
 import m0025 from "./0025_seller_order_state.sql?raw";
+import m0026 from "./0026_seller_order_payments.sql?raw";
 import journal from "./meta/_journal.json";
 
 export const migrations = {
@@ -55,5 +56,6 @@ export const migrations = {
     m0023,
     m0024,
     m0025,
+    m0026,
   },
 };

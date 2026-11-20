@@ -101,6 +101,27 @@ export const sellerOrderIndex = sqliteTable(
     paymentStatus: text("payment_status").notNull(),
     packed: integer("packed").notNull(),
     lines: integer("lines").notNull(),
+    revision: integer("revision").notNull().default(0),
+    debtMinor: integer("debt_minor").notNull().default(0),
+    refundMinor: integer("refund_minor").notNull().default(0),
+    nameKey: text("name_key"),
   },
   (table) => [index("seller_orders_stage_time").on(table.stage, table.receivingAt, table.number)],
+);
+
+export const orderNotificationOutbox = sqliteTable(
+  "order_notification_outbox",
+  {
+    eventKey: text("event_key").primaryKey(),
+    kind: text("kind").notNull(),
+    orderNumber: integer("order_number")
+      .notNull()
+      .references(() => orders.number),
+    recipient: text("recipient").notNull(),
+    amount: integer("amount").notNull(),
+    currency: text("currency").notNull(),
+    dueAt: integer("due_at").notNull(),
+    attempts: integer("attempts").notNull().default(0),
+  },
+  (table) => [index("order_notification_due").on(table.dueAt)],
 );

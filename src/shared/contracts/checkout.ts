@@ -52,6 +52,7 @@ export type QuoteResponse = PurchaseQuote & { quoteRevision: string; expiresAt: 
 export type OrderSnapshot = Omit<PurchaseQuote, "paymentSettings"> & {
   payment: CheckoutCommand["payment"];
   paymentStatus: "unpaid" | "pending_review";
+  customerName?: string;
   transferReview?: { priorTotalMinor: number; differenceMinor: number; credentialsChanged: boolean };
 };
 export type OrderResult = OrderSnapshot & { number: number };

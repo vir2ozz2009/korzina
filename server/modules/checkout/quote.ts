@@ -13,8 +13,14 @@ const paymentDefaults = { minimumMinor: 0, methods: [] };
 
 function contextFor(env: Shop, subject: string) {
   const context = env.storage.sql
-    .exec<{ receiving: string | null; phone: string | null; fulfillment: string | null; payments: string | null }>(
-      `SELECT c.receiving,c.phone,(SELECT value FROM settings WHERE key='fulfillment') AS fulfillment,
+    .exec<{
+      receiving: string | null;
+      phone: string | null;
+      buyer_name: string | null;
+      fulfillment: string | null;
+      payments: string | null;
+    }>(
+      `SELECT c.receiving,c.phone,c.buyer_name,(SELECT value FROM settings WHERE key='fulfillment') AS fulfillment,
      (SELECT value FROM settings WHERE key='purchase_payment') AS payments
      FROM (SELECT 1) LEFT JOIN carts c ON c.customer=?`,
       subject,
@@ -110,7 +116,7 @@ export function purchaseDraft(env: Shop, subject: string, kind: "guest" | "teleg
     telegramLinked: kind === "telegram",
     paymentSettings,
   };
-  return { snapshot, cart, storedReceiving: context.receiving };
+  return { snapshot, cart, storedReceiving: context.receiving, customerName: context.buyer_name };
 }
 
 export function createQuote(env: Shop, subject: string, kind: "guest" | "telegram", now = Date.now()): QuoteResponse {

@@ -19,6 +19,10 @@ export const authenticateSeller = createMiddleware<SellerEnv>(async (c, next) =>
 export async function readSeller(request: Request, platform: D1Database, shopId: string): Promise<Seller> {
   const token = credential(request, sellerCookie);
   if (!token) throw new ApiError("UNAUTHORIZED", "Войдите в кабинет");
+  return readSellerSession(platform, await tokenHash(token), shopId);
+}
+
+export async function readSellerSession(platform: D1Database, hash: string, shopId: string): Promise<Seller> {
   // A fresh first-primary join for EVERY request: no cached rights or replica lag after revocation.
   const row = await platform
     .withSession("first-primary")
@@ -28,7 +32,7 @@ export async function readSeller(request: Request, platform: D1Database, shopId:
     ON m.account_id = s.account_id AND m.shop_id = ? AND m.revoked_at IS NULL
     WHERE s.token_hash = ? AND s.expires_at > ?
   `)
-    .bind(shopId, await tokenHash(token), Date.now())
+    .bind(shopId, hash, Date.now())
     .first<{ accountId: string; role: string | null; permissions: string | null }>();
   if (!row) throw new ApiError("UNAUTHORIZED", "Сессия недействительна");
   const role = roleSchema.safeParse(row.role);
