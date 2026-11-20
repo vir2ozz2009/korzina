@@ -10,6 +10,7 @@ export {
   orderOutbox,
   orderReceiptHistory,
   orders,
+  sellerOrderIndex,
 } from "../modules/checkout/schema";
 export { favorites } from "../modules/favorites/schema";
 export { media, mediaUsage } from "../modules/media/schema";

@@ -34,6 +34,7 @@ export const orders = sqliteTable(
     paymentStatus: text("payment_status").notNull(),
     proofMediaId: text("proof_media_id"),
     snapshot: text("snapshot").notNull(),
+    fulfillmentState: text("fulfillment_state").notNull().default("{}"),
   },
   (table) => [
     index("orders_customer_number").on(table.customer, table.number),
@@ -67,12 +68,39 @@ export const orderReceiptHistory = sqliteTable(
   (table) => [index("order_receipts_number").on(table.orderNumber, table.sequence)],
 );
 
-export const buyerOrderEvents = sqliteTable("buyer_order_events", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  orderNumber: integer("order_number")
-    .notNull()
-    .references(() => orders.number),
-  actor: text("actor").notNull(),
-  event: text("event").notNull(),
-  createdAt: integer("created_at").notNull(),
-});
+export const buyerOrderEvents = sqliteTable(
+  "buyer_order_events",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    orderNumber: integer("order_number")
+      .notNull()
+      .references(() => orders.number),
+    actor: text("actor").notNull(),
+    event: text("event").notNull(),
+    createdAt: integer("created_at").notNull(),
+    reason: text("reason"),
+    details: text("details"),
+  },
+  (table) => [index("buyer_order_events_number").on(table.orderNumber, table.id)],
+);
+
+export const sellerOrderIndex = sqliteTable(
+  "seller_order_index",
+  {
+    number: integer("number")
+      .primaryKey()
+      .references(() => orders.number),
+    stage: text("stage").notNull(),
+    method: text("method").notNull(),
+    receivingAt: text("receiving_at").notNull(),
+    createdAt: integer("created_at").notNull(),
+    name: text("name"),
+    phone: text("phone"),
+    currency: text("currency").notNull(),
+    totalMinor: integer("total_minor").notNull(),
+    paymentStatus: text("payment_status").notNull(),
+    packed: integer("packed").notNull(),
+    lines: integer("lines").notNull(),
+  },
+  (table) => [index("seller_orders_stage_time").on(table.stage, table.receivingAt, table.number)],
+);

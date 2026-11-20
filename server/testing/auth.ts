@@ -41,3 +41,25 @@ export async function signedInitData(botToken: string, fields: Record<string, st
   params.set("hash", Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join(""));
   return params.toString();
 }
+
+export async function sellerFixture(shopId: string, role: "owner" | "employee" = "owner", permissions: string[] = []) {
+  const { env } = await import("cloudflare:workers");
+  const { newToken, tokenHash } = await import("../auth/tokens");
+  const token = newToken();
+  const accountId = crypto.randomUUID();
+  await env.PLATFORM.batch([
+    env.PLATFORM.prepare("INSERT INTO accounts(id) VALUES(?)").bind(accountId),
+    env.PLATFORM.prepare("INSERT INTO memberships(shop_id,account_id,role,permissions) VALUES(?,?,?,?)").bind(
+      shopId,
+      accountId,
+      role,
+      JSON.stringify(permissions),
+    ),
+    env.PLATFORM.prepare("INSERT INTO seller_sessions(token_hash,account_id,expires_at) VALUES(?,?,?)").bind(
+      await tokenHash(token),
+      accountId,
+      Date.now() + 60_000,
+    ),
+  ]);
+  return { accountId, headers: { Authorization: `Bearer ${token}` } };
+}

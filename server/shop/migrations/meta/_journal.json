@@ -176,6 +176,13 @@
       "when": 1795100389301,
       "tag": "0024_telegram_return",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1795151045184,
+      "tag": "0025_seller_order_state",
+      "breakpoints": true
     }
   ]
 }

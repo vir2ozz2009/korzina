@@ -3,6 +3,7 @@ import type { CommandIdentity } from "../../middleware/idempotency";
 import { executeCommand } from "../../shop/commands";
 import type { ShopEnv } from "../../shop/env";
 import { buyerOrder, buyerOrderRow, unpackOrder } from "./buyer-orders";
+import { releaseOrderReservation } from "./order-reservation";
 
 type Shop = ShopEnv["Bindings"];
 function checkVersion(actual: number, expected: number) {
@@ -29,23 +30,7 @@ export function cancelBuyerOrder(
         current,
       );
     checkVersion(row.version, expected);
-    const { reservedStock, seatReserved } = unpackOrder(row);
-    const lines = reservedStock
-      ? current.lines.filter(({ variantId }) => reservedStock.includes(variantId))
-      : current.lines;
-    storage.sql.exec(
-      `WITH returned AS (
-        SELECT json_extract(value,'$.variantId') AS id, json_extract(value,'$.quantity') AS quantity FROM json_each(?)
-       ) UPDATE variants SET stock=stock+returned.quantity FROM returned WHERE variants.id=returned.id AND stock IS NOT NULL`,
-      JSON.stringify(lines.map(({ variantId, quantity }) => ({ variantId, quantity }))),
-    );
-    if (current.time && seatReserved !== false)
-      storage.sql.exec(
-        "UPDATE receiving_seats SET booked=booked-1 WHERE method=? AND date=? AND slot=? AND booked>0",
-        current.receiving.mode,
-        current.time.date,
-        current.time.slotId ?? "",
-      );
+    releaseOrderReservation(storage, unpackOrder(row), true);
     storage.sql.exec("UPDATE orders SET status='cancelled',version=version+1 WHERE number=?", number);
     storage.sql.exec(
       "INSERT INTO buyer_order_events(order_number,actor,event,created_at) VALUES(?,?,'order.cancelled',?)",
