@@ -1,9 +1,9 @@
 import { env } from "cloudflare:workers";
 import { beforeAll, expect, it } from "vitest";
-import { setupPlatform } from "../testing/platform";
+import { setupPlatformDatabase } from "../testing/platform";
 import { resolveShop } from "./resolve-shop";
 
-beforeAll(setupPlatform);
+beforeAll(setupPlatformDatabase);
 it("preview не использует снимок магазина из кеша demo", async () => {
   const request = new Request("https://demo.korzina.app/?shop=test2");
   const demo = await resolveShop(request, env.PLATFORM, "demo");

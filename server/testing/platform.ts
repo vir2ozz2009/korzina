@@ -12,12 +12,28 @@ import retentionMigration from "../platform/migrations/0009_platform_retention.s
 import telegramReturnMigration from "../platform/migrations/0010_telegram_return.sql?raw";
 import { demoSeedShopIds, seedStatements } from "../platform/seed";
 
+const migrations = [
+  migration,
+  authMigration,
+  featureMigration,
+  mediaMigration,
+  cleanupMigration,
+  demoSeedMigration,
+  sellerExchangeMigration,
+  adminRegistryMigration,
+  adminCardMigration,
+  retentionMigration,
+  telegramReturnMigration,
+].flatMap((file) => file.split("--> statement-breakpoint"));
+
+export async function setupPlatformDatabase() {
+  await env.PLATFORM.batch([
+    ...migrations.map((sql) => env.PLATFORM.prepare(sql)),
+    ...seedStatements.map(({ sql, params }) => env.PLATFORM.prepare(sql).bind(...params)),
+  ]);
+}
+
 export async function setupPlatform() {
-  await env.PLATFORM.batch(
-    `${migration}--> statement-breakpoint${authMigration}--> statement-breakpoint${featureMigration}--> statement-breakpoint${mediaMigration}--> statement-breakpoint${cleanupMigration}--> statement-breakpoint${demoSeedMigration}--> statement-breakpoint${sellerExchangeMigration}--> statement-breakpoint${adminRegistryMigration}--> statement-breakpoint${adminCardMigration}--> statement-breakpoint${retentionMigration}--> statement-breakpoint${telegramReturnMigration}`
-      .split("--> statement-breakpoint")
-      .map((sql) => env.PLATFORM.prepare(sql)),
-  );
-  await env.PLATFORM.batch(seedStatements.map(({ sql, params }) => env.PLATFORM.prepare(sql).bind(...params)));
+  await setupPlatformDatabase();
   await Promise.all(demoSeedShopIds.map((id) => exports.Shop.get(exports.Shop.idFromName(id)).seedDemoCatalog(id)));
 }

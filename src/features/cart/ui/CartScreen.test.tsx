@@ -1,7 +1,12 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
-import { expect, it } from "vitest";
+import { beforeAll, expect, it } from "vitest";
 import { cartCommandInput, cartContract } from "../../../shared/contracts/cart";
 import { cartLine, emptyCart, filledCart, storefront } from "../../../testing/storefront";
+
+beforeAll(async () => {
+  // The test controls the cart response. Load the route module before timing its render.
+  await import("./CartScreen");
+});
 
 const button = (name: RegExp | string) => screen.getByRole<HTMLButtonElement>("button", { name });
 function reply() {
