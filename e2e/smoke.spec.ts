@@ -40,7 +40,13 @@ test("витрина своего магазина → фасовка/корзи
   expect(response.ok()).toBe(true);
   const shop = await response.json();
   expect(shop.slug).toBe("test2");
-  await page.goto("/?shop=test2");
+  const [catalogResponse, liveResponse] = await Promise.all([
+    page.waitForResponse((response) => new URL(response.url()).pathname === "/api/catalog/document"),
+    page.waitForResponse((response) => new URL(response.url()).pathname === "/api/catalog/live"),
+    page.goto("/?shop=test2"),
+  ]);
+  expect(catalogResponse.ok(), `Документ каталога: HTTP ${catalogResponse.status()}`).toBe(true);
+  expect(liveResponse.ok(), `Остатки каталога: HTTP ${liveResponse.status()}`).toBe(true);
   expect(JSON.parse((await page.locator("#shop-context").textContent()) ?? "null").id).toBe(shop.id);
   await page.locator("article").first().waitFor();
   if (process.env.E2E_BASE_URL) await page.screenshot({ path: "test-results/demo-home.png" });
