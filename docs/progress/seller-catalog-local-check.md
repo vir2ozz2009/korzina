@@ -18,3 +18,9 @@
 | 10 | Открыть кабинет из Telegram и перейти на «Товары». Проверить назад из формы, включая несохранённый ввод, и вход в другом магазине. | Подтверждение выхода сохраняет черновик при отмене. Telegram и браузер остаются в выбранном магазине. | |
 
 [Отчёт S2](S2.md) · [Отчёт S3](S3.md)
+
+## Сверка экранов
+
+Слева — одобренная ревизия MagicPath, справа — интерфейс на локальном Worker с тестовым магазином. В тестовом магазине используется ₫.
+
+[Товары](seller-catalog-screens/01-products.jpg) · [Форма товара](seller-catalog-screens/02-editor.jpg) · [Рекомендации](seller-catalog-screens/03-recommendations.jpg) · [Действия](seller-catalog-screens/04-actions.jpg) · [Категории](seller-catalog-screens/05-categories.jpg) · [Бренды](seller-catalog-screens/06-brands.jpg) · [Мозаика](seller-catalog-screens/07-mosaic.jpg)

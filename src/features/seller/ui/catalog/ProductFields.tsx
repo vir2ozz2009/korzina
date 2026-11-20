@@ -61,7 +61,7 @@ export function ProductTextFields({
             value={draft[field]}
             maxLength={length}
             disabled={disabled}
-            className="block w-full min-h-20 rounded-lg bg-input px-3 py-2 text-body disabled:opacity-40"
+            className="block w-full min-h-20 resize-none rounded-xl bg-input px-3 py-2 text-body disabled:opacity-40"
             onChange={(event) => update({ [field]: event.target.value })}
           />
         </label>

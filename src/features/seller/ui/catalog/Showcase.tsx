@@ -1,4 +1,3 @@
-import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useRef, useState } from "react";
 import { QueryBoundary } from "../../../../app/shell/QueryBoundary";
 import { useToast } from "../../../../app/shell/ToastProvider";
@@ -6,11 +5,9 @@ import { categoryMosaic } from "../../../../shared/catalog/mosaic";
 import type { CatalogCategorySize } from "../../../../shared/contracts/catalog";
 import type { SellerCategoryOrder, SellerGroup } from "../../../../shared/contracts/seller-catalog";
 import { Button } from "../../../../ui/Button";
-import { Card } from "../../../../ui/Card";
 import { CategoryRail } from "../../../../ui/CategoryRail";
 import { CategoryTile } from "../../../../ui/CategoryTile";
 import { EmptyState } from "../../../../ui/EmptyState";
-import { IconButton } from "../../../../ui/IconButton";
 import { useCatalogCommand, useCatalogGroups } from "../../catalog-api";
 import { CatalogEditorFrame, type CatalogFrame } from "./CatalogEditorFrame";
 import { displayImage } from "./CatalogPhotos";
@@ -108,90 +105,92 @@ function Mosaic({
         <EmptyState title="Нет категорий на витрине" />
       ) : (
         <>
+          <h2 className="text-title-3">Категории</h2>
           <CategoryRail>
-            {placements.map(({ category, row, column, size }) => (
+            {placements.map(({ category, row, column, size }, index) => (
               <div
                 key={category.id}
                 data-mosaic-id={category.id}
-                className={`relative min-w-0 rounded-lg ${selected === category.id ? "outline-2 -outline-offset-2 outline-primary" : ""}`}
+                className="relative min-w-0 rounded-lg"
                 style={{ gridColumn: `${column}/span ${size[0]}`, gridRow: `${row}/span ${size[2]}` }}
               >
                 <CategoryTile name={category.name} size={size} image={displayImage(category.image) ?? undefined} />
-                <button
-                  type="button"
-                  className="absolute inset-0 z-10 touch-none rounded-lg"
-                  aria-label={category.name}
-                  aria-pressed={selected === category.id}
-                  draggable={canWrite}
-                  onClick={() => setSelected(category.id)}
-                  onDragOver={(event) => {
-                    if (dragging.current) event.preventDefault();
-                  }}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    if (dragging.current) move(dragging.current, category.id);
-                  }}
-                  onDragStart={(event) => {
-                    dragging.current = category.id;
-                    event.dataTransfer.setData("text/plain", category.id);
-                  }}
-                  onDragEnd={() => {
-                    dragging.current = undefined;
-                  }}
-                  onPointerDown={(event) => {
-                    if (canWrite && event.pointerType !== "mouse")
-                      event.currentTarget.setPointerCapture(event.pointerId);
-                  }}
-                  onPointerUp={(event) => {
-                    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
-                    const target = document
-                      .elementFromPoint(event.clientX, event.clientY)
-                      ?.closest<HTMLElement>("[data-mosaic-id]");
-                    if (target?.dataset.mosaicId) move(category.id, target.dataset.mosaicId);
-                  }}
-                />
+                {canWrite && (
+                  <button
+                    type="button"
+                    className={`absolute inset-0 z-10 cursor-grab rounded-lg ${selected === category.id ? "touch-none ring-2 ring-inset ring-primary" : ""}`}
+                    aria-label={category.name}
+                    aria-pressed={selected === category.id}
+                    draggable={canWrite}
+                    onClick={() => setSelected(category.id)}
+                    onDragOver={(event) => {
+                      if (dragging.current) event.preventDefault();
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      if (dragging.current) move(dragging.current, category.id);
+                    }}
+                    onDragStart={(event) => {
+                      dragging.current = category.id;
+                      event.dataTransfer.setData("text/plain", category.id);
+                    }}
+                    onDragEnd={() => {
+                      dragging.current = undefined;
+                    }}
+                    onPointerDown={(event) => {
+                      if (selected === category.id && event.pointerType !== "mouse")
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                    }}
+                    onPointerUp={(event) => {
+                      if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+                      const target = document
+                        .elementFromPoint(event.clientX, event.clientY)
+                        ?.closest<HTMLElement>("[data-mosaic-id]");
+                      if (target?.dataset.mosaicId) move(category.id, target.dataset.mosaicId);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+                      event.preventDefault();
+                      const target = rows[index + (event.key === "ArrowLeft" ? -1 : 1)];
+                      if (target) move(category.id, target.id);
+                    }}
+                  />
+                )}
               </div>
             ))}
           </CategoryRail>
           {selectedRow && canWrite && (
-            <Card className="space-y-2">
-              <fieldset aria-label={`Размер плитки «${selectedRow.name}»`} className="grid grid-cols-2 gap-2">
-                {options.map(([size, label]) => (
-                  <Button
-                    key={size}
-                    variant={current?.size === size ? "soft" : "secondary"}
-                    aria-pressed={current?.size === size}
-                    disabled={command.isPending}
-                    onClick={() => changeSize(selectedRow.id, size)}
-                  >
-                    <span className="flex min-w-0 flex-col items-center gap-1">
-                      <span aria-hidden>{size.replace("x", "×")}</span>
-                      {label}
-                    </span>
-                  </Button>
-                ))}
-              </fieldset>
-              <div className="flex justify-end">
-                <IconButton
-                  aria-label="Передвинуть влево"
-                  disabled={rows[0] === selectedRow}
-                  onClick={() => move(selectedRow.id, rows[rows.indexOf(selectedRow) - 1].id)}
+            <fieldset
+              aria-label={`Размер плитки «${selectedRow.name}»`}
+              className="grid grid-cols-2 gap-2 rounded-xl bg-card p-3"
+            >
+              {options.map(([size, label]) => (
+                <Button
+                  key={size}
+                  variant={current?.size === size ? "soft" : "secondary"}
+                  aria-pressed={current?.size === size}
+                  disabled={command.isPending}
+                  icon={<TileShape size={size} />}
+                  onClick={() => changeSize(selectedRow.id, size)}
                 >
-                  <ArrowLeft size={18} />
-                </IconButton>
-                <IconButton
-                  aria-label="Передвинуть вправо"
-                  disabled={rows.at(-1) === selectedRow}
-                  onClick={() => move(selectedRow.id, rows[rows.indexOf(selectedRow) + 1].id)}
-                >
-                  <ArrowRight size={18} />
-                </IconButton>
-              </div>
-            </Card>
+                  {label}
+                </Button>
+              ))}
+            </fieldset>
           )}
         </>
       )}
       {command.error && <p role="alert">{command.error.message}</p>}
     </CatalogEditorFrame>
+  );
+}
+
+function TileShape({ size }: { size: CatalogCategorySize }) {
+  return (
+    <span aria-hidden className="grid h-7 w-9 grid-cols-2 grid-rows-2 gap-0.5 rounded-sm border border-border p-0.5">
+      <span
+        className={`rounded-xs bg-current ${size[0] === "2" ? "col-span-2" : ""} ${size[2] === "2" ? "row-span-2" : ""}`}
+      />
+    </span>
   );
 }

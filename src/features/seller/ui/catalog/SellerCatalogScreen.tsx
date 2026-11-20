@@ -1,9 +1,10 @@
 import { ChevronDown } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Header } from "../../../../app/shell/Header";
 import { QueryBoundary } from "../../../../app/shell/QueryBoundary";
 import { Screen } from "../../../../app/shell/Screen";
 import { SellerTabs } from "../../../../app/shell/SellerTabs";
+import { sellerHistory } from "../../../../app/shell/tab-history";
 import type { SellerGroupKind } from "../../../../shared/contracts/seller-catalog";
 import { HttpError } from "../../../../shared/http-error";
 import { Chip } from "../../../../ui/Chip";
@@ -39,6 +40,11 @@ export function SellerCatalogScreen() {
   const scopedBrand = nav.params.get("brand");
   const parent = nav.params.get("parent");
   const cabinet = useCabinet(store);
+  const editor = Boolean(id) || type === "showcase";
+  const currentHref = nav.location.href;
+  useEffect(() => {
+    sellerHistory.visit(currentHref);
+  }, [currentHref]);
   const [shops, setShops] = useState(false);
   const tried = useRef(false);
   const login = cabinet.error instanceof HttpError && cabinet.error.status === 401;
@@ -61,81 +67,84 @@ export function SellerCatalogScreen() {
               : "Редактировать бренд";
 
   const frame: CatalogFrame = (children, footer) => (
-    <Screen
-      template={id || type === "showcase" ? "form" : "list"}
-      header={
-        <>
-          <Header
-            catalog
-            title={
-              login
-                ? "Вход"
-                : scopedCategory && !id
-                  ? "Товары категории"
-                  : scopedBrand && !id
-                    ? "Товары бренда"
-                    : parent && !id
-                      ? "Подкатегории"
-                      : title
-            }
-            onBack={
-              !id && (scopedCategory || scopedBrand || parent)
-                ? () => {
-                    if (scopedCategory || parent)
-                      nav.leave(`/seller/categories/${encodeURIComponent(scopedCategory ?? parent ?? "")}`);
-                    else nav.leave(`/seller/brands/${encodeURIComponent(scopedBrand ?? "")}`);
-                  }
-                : undefined
-            }
-            actions={
-              cabinet.data && cabinet.data.shops.length > 1 ? (
-                <IconButton aria-label="Выбрать магазин" onClick={() => setShops(true)}>
-                  <ChevronDown size={20} />
-                </IconButton>
-              ) : undefined
-            }
-          />
-          {!id && section && !nav.params.get("parent") && !nav.params.get("category") && !nav.params.get("brand") && (
-            <fieldset
-              aria-label="Разделы каталога"
-              className="grid grid-cols-3 gap-2 border-b border-border bg-card px-3 pb-3"
-            >
-              {sections.map(([name, label]) => (
-                <Chip
-                  key={name}
-                  selected={type === name}
-                  onClick={() => nav.open(`/seller/${name}`, { store: cabinet.data?.current?.slug ?? store })}
-                >
-                  {label}
-                </Chip>
-              ))}
-            </fieldset>
-          )}
-        </>
-      }
-      after={
-        cabinet.data?.current &&
-        !cabinet.isError && <SellerTabs store={cabinet.data.current.slug} account={cabinet.data.telegramId} />
-      }
-      footer={footer}
-    >
-      {children}
-      {shops && cabinet.data && (
-        <Sheet open title="Магазины" onOpenChange={setShops}>
-          {cabinet.data.shops.map((shop) => (
-            <ListItem
-              key={shop.id}
-              title={shop.name}
-              subtitle={shop.storefrontUrl}
-              onClick={() => {
-                setShops(false);
-                nav.open(type === "showcase" ? "/seller/showcase" : `/seller/${type}`, { store: shop.slug });
-              }}
+    <div className={editor ? "[--tab-height:0]" : undefined}>
+      <Screen
+        template={id || type === "showcase" ? "form" : "list"}
+        header={
+          <>
+            <Header
+              catalog
+              title={
+                login
+                  ? "Вход"
+                  : scopedCategory && !id
+                    ? "Товары категории"
+                    : scopedBrand && !id
+                      ? "Товары бренда"
+                      : parent && !id
+                        ? "Подкатегории"
+                        : title
+              }
+              onBack={
+                !id && (scopedCategory || scopedBrand || parent)
+                  ? () => {
+                      if (scopedCategory || parent)
+                        nav.leave(`/seller/categories/${encodeURIComponent(scopedCategory ?? parent ?? "")}`);
+                      else nav.leave(`/seller/brands/${encodeURIComponent(scopedBrand ?? "")}`);
+                    }
+                  : undefined
+              }
+              actions={
+                cabinet.data && cabinet.data.shops.length > 1 ? (
+                  <IconButton aria-label="Выбрать магазин" onClick={() => setShops(true)}>
+                    <ChevronDown size={20} />
+                  </IconButton>
+                ) : undefined
+              }
             />
-          ))}
-        </Sheet>
-      )}
-    </Screen>
+            {!id && section && !nav.params.get("parent") && !nav.params.get("category") && !nav.params.get("brand") && (
+              <fieldset
+                aria-label="Разделы каталога"
+                className="grid grid-cols-3 gap-2 border-b border-border bg-card px-3 pt-1 pb-4"
+              >
+                {sections.map(([name, label]) => (
+                  <Chip
+                    key={name}
+                    selected={type === name}
+                    onClick={() => nav.open(`/seller/${name}`, { store: cabinet.data?.current?.slug ?? store })}
+                  >
+                    {label}
+                  </Chip>
+                ))}
+              </fieldset>
+            )}
+          </>
+        }
+        after={
+          !editor &&
+          cabinet.data?.current &&
+          !cabinet.isError && <SellerTabs store={cabinet.data.current.slug} account={cabinet.data.telegramId} />
+        }
+        footer={footer}
+      >
+        {children}
+        {shops && cabinet.data && (
+          <Sheet open title="Магазины" onOpenChange={setShops}>
+            {cabinet.data.shops.map((shop) => (
+              <ListItem
+                key={shop.id}
+                title={shop.name}
+                subtitle={shop.storefrontUrl}
+                onClick={() => {
+                  setShops(false);
+                  nav.open(type === "showcase" ? "/seller/showcase" : `/seller/${type}`, { store: shop.slug });
+                }}
+              />
+            ))}
+          </Sheet>
+        )}
+      </Screen>
+    </div>
   );
 
   if (login)

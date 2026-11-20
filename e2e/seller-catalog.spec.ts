@@ -62,8 +62,10 @@ test("Блок 6: товар с новой категорией сохраняе
     await page.locator("[data-mosaic-id]").first().getByRole("button").click();
     await expect(page.getByRole("button", { name: "Большая" })).toBeVisible();
     await page.screenshot({ path: "test-results/seller-catalog-mosaic-390.png", animations: "disabled" });
-    await page.getByRole("button", { name: "Большая" }).click();
-    await expect(page.locator("[data-mosaic-id]").first().locator("[data-size]")).toHaveAttribute("data-size", "2x2");
+    const tile = page.locator("[data-mosaic-id]").first().locator("[data-size]");
+    const wasLarge = (await tile.getAttribute("data-size")) === "2x2";
+    await page.getByRole("button", { name: wasLarge ? "Маленькая" : "Большая" }).click();
+    await expect(tile).toHaveAttribute("data-size", wasLarge ? "1x1" : "2x2");
     await page.getByRole("button", { name: "Сохранить", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Ещё" })).toBeVisible();
   } finally {
