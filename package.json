@@ -10,7 +10,7 @@
     "dev": "npm run platform:setup -- --local --seed && vite --host 0.0.0.0",
     "build": "vite build --mode demo",
     "build:prod": "vite build --mode production",
-    "check": "npm run check:fast && knip && vitest run && npm run check:build",
+    "check": "npm run check:fast && knip && node scripts/check-parallel.ts",
     "check:fast": "cf workers types && tsc --noEmit && biome check . && npm run check:arch",
     "check:build": "npm run build:prod && node scripts/check-bundle.ts --prod && npm run build && node scripts/check-bundle.ts",
     "check:arch": "node scripts/check-arch.ts",

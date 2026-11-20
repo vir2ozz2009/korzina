@@ -1,9 +1,9 @@
 import { env } from "cloudflare:workers";
 import { beforeAll, describe, expect, it } from "vitest";
-import { setupPlatformDatabase } from "../../testing/platform";
+import { setupPlatform } from "../../testing/platform";
 import { startEmail, verifyEmail } from "./email";
 
-beforeAll(setupPlatformDatabase);
+beforeAll(setupPlatform);
 describe("email-коды", () => {
   it("пять неверных попыток блокируют код, исходный код в D1 не хранится", async () => {
     const challenge = await startEmail(env.PLATFORM, "attempts@korzina.invalid");
