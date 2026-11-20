@@ -1,3 +1,5 @@
+import { once } from "node:events";
+import { createServer } from "node:http";
 import { expect, type Page, test } from "@playwright/test";
 
 async function signalReturn(page: Page) {
@@ -166,9 +168,22 @@ test("BL-5: Mini App signs in with initData without opening the login sheet", as
 
 test("§9.12: a seller can open the selected shop in Telegram Web without cookies", async ({ page, baseURL }) => {
   const cabinetUrl = new URL("/seller?shop=test2&store=test2", baseURL);
-  // Chromium blocks public origins from framing loopback. Keep the fixture cross-site locally too.
-  const parentOrigin = cabinetUrl.hostname === "127.0.0.1" ? "http://localhost" : "https://web.telegram.org";
-  const parent = `${parentOrigin}/korzina-cabinet-fixture`;
+  const body = `<iframe src="${cabinetUrl.href.replaceAll("&", "&amp;")}" width="375" height="790"></iframe>`;
+  // A real loopback response gives Chromium the parent's network address space.
+  await using localParent =
+    cabinetUrl.hostname === "127.0.0.1"
+      ? createServer((_request, response) => response.writeHead(200, { "Content-Type": "text/html" }).end(body))
+      : undefined;
+  let parent = "https://web.telegram.org/korzina-cabinet-fixture";
+  if (localParent) {
+    localParent.listen(0, "127.0.0.1");
+    await once(localParent, "listening");
+    const address = localParent.address();
+    if (!address || typeof address === "string") throw new Error("Missing loopback fixture address");
+    parent = `http://localhost:${address.port}/korzina-cabinet-fixture`;
+  } else {
+    await page.route(parent, (route) => route.fulfill({ contentType: "text/html", body }));
+  }
   const token = "c".repeat(64);
   const shop = {
     slug: "test2",
@@ -178,12 +193,6 @@ test("§9.12: a seller can open the selected shop in Telegram Web without cookie
   };
   let signIns = 0;
   await stubMiniApp(page);
-  await page.route(parent, (route) =>
-    route.fulfill({
-      contentType: "text/html",
-      body: `<iframe src="${cabinetUrl.href.replaceAll("&", "&amp;")}" width="375" height="790"></iframe>`,
-    }),
-  );
   await page.route(/\/api\/seller\/cabinet\/telegram(?:\?|$)/, (route) => {
     signIns++;
     expect(route.request().postDataJSON()).toEqual({ initData: miniAppInitData, store: "test2", bearer: true });
