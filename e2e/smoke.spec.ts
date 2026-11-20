@@ -92,7 +92,21 @@ test("витрина своего магазина → фасовка/корзи
   await variants.getByRole("button", { name: "Добавить в корзину" }).first().click();
   await expect(variants.locator('[aria-busy="true"]')).toHaveCount(1);
   expect(revisions).toEqual([0]);
+  const writes = [0, 1].map((revision) =>
+    page.waitForResponse((response) => {
+      const request = response.request();
+      return (
+        isCart(new URL(response.url())) &&
+        request.method() === "POST" &&
+        request.postDataJSON().expectedRevision === revision
+      );
+    }),
+  );
   releaseFirst();
+  for (const [revision, write] of writes.entries()) {
+    const response = await write;
+    expect(response.ok(), `Запись корзины с ревизией ${revision}: HTTP ${response.status()}`).toBe(true);
+  }
   await expect(variants.getByLabel("В корзине", { exact: true })).toHaveText("1");
   expect(revisions).toEqual([0, 1]);
   await page.goBack();
