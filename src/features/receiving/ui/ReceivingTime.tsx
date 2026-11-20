@@ -1,7 +1,9 @@
 import { Clock } from "lucide-react";
 import { useState } from "react";
-import type { AvailabilityDay, ReceivingMethod, TimeChoice } from "../../../shared/contracts/receiving-time";
+import type { AvailabilityDay, ReceivingMethod } from "../../../shared/contracts/receiving-time";
+import { formatInterval, formatReceivingTime, formatShopDay } from "../../../shared/datetime";
 import { HttpError } from "../../../shared/http-error";
+import { shopTimeZone } from "../../../shared/shop-api";
 import { Button } from "../../../ui/Button";
 import { Chip } from "../../../ui/Chip";
 import { ListItem } from "../../../ui/ListItem";
@@ -10,23 +12,12 @@ import { Sheet } from "../../../ui/Sheet";
 import { SkeletonBlock } from "../../../ui/SkeletonBlock";
 import { type ReceivingState, useAvailability, useSaveTime } from "../api";
 
-const dayFormat = new Intl.DateTimeFormat("ru", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
-
-export function formatDay(date: string) {
-  return dayFormat.format(new Date(`${date}T12:00:00Z`));
-}
-
-function timeLabel(time: TimeChoice | null, mode: string | undefined) {
-  if (mode === "after_order") return "Согласуем после заказа";
-  if (!time) return undefined;
-  return [formatDay(time.date), time.slotId?.replace("-", "–")].filter(Boolean).join(", ");
-}
-
 function TimeOptions({
   method,
   days,
   mode,
   data,
+  timeZone,
   close,
   retry,
 }: {
@@ -34,6 +25,7 @@ function TimeOptions({
   days: AvailabilityDay[];
   mode: "slots" | "day";
   data: ReceivingState;
+  timeZone: string;
   close: () => void;
   retry: () => void;
 }) {
@@ -43,6 +35,7 @@ function TimeOptions({
   const save = useSaveTime();
   const day = days.find((item) => item.date === date && item.available) ?? days.find((item) => item.available);
   const slot = day?.intervals.find((item) => item.id === slotId && item.available);
+  const now = Date.now();
   const selectDay = (next: string) => {
     setDate(next);
     setSlotId(undefined);
@@ -66,14 +59,14 @@ function TimeOptions({
       ) : (
         <>
           <div className="flex flex-wrap gap-1">
-            {days.slice(0, 2).map((item, index) => (
+            {days.slice(0, 2).map((item) => (
               <Chip
                 key={item.date}
                 selected={!other && day.date === item.date}
                 disabled={!item.available || save.isPending}
                 onClick={() => selectDay(item.date)}
               >
-                {index === 0 ? "Сегодня" : "Завтра"}
+                {formatShopDay(item.date, timeZone, now, true)}
               </Chip>
             ))}
             <Chip
@@ -90,14 +83,14 @@ function TimeOptions({
               .map((item) => (
                 <ListItem
                   key={item.date}
-                  title={formatDay(item.date)}
+                  title={formatShopDay(item.date, timeZone, now)}
                   value={item.available ? undefined : "Занято"}
                   onClick={item.available ? () => selectDay(item.date) : undefined}
                 />
               ))
           ) : (
             <>
-              <h3 className="text-title-3 capitalize">{formatDay(day.date)}</h3>
+              <h3 className="text-title-3">{formatShopDay(day.date, timeZone, now)}</h3>
               <p className="text-meta text-muted-foreground">Доступное время по расписанию магазина</p>
               {mode === "day" ? (
                 <p>{method === "delivery" ? "Привезём" : "Заберёте"} в течение дня, без выбора часов</p>
@@ -107,7 +100,7 @@ function TimeOptions({
                     <Radio
                       key={item.id}
                       name="receiving-time"
-                      label={`${item.start}–${item.end}${item.reason === "full" ? " · Занято" : ""}`}
+                      label={`${formatInterval(item.id)}${item.reason === "full" ? " · Занято" : ""}`}
                       checked={item.id === slot?.id}
                       disabled={!item.available || save.isPending}
                       onChange={() => {
@@ -142,7 +135,7 @@ function TimeOptions({
                   )
                 }
               >
-                {mode === "day" ? "Выбрать день" : slot ? `Выбрать ${slot.start}–${slot.end}` : "Выбрать время"}
+                {mode === "day" ? "Выбрать день" : slot ? `Выбрать ${formatInterval(slot.id)}` : "Выбрать время"}
               </Button>
             </>
           )}
@@ -180,7 +173,9 @@ export function ReceivingTime({
         subtitle={
           availability?.mode === "after_order"
             ? "Магазин свяжется с вами"
-            : (timeLabel(data.time, availability?.mode) ?? "Выберите удобное время")
+            : data.time
+              ? formatReceivingTime(data.time, availability?.timeZone ?? shopTimeZone)
+              : "Выберите удобное время"
         }
         icon={<Clock size={22} />}
         onClick={disabled || availability?.mode === "after_order" ? undefined : () => setOpen(true)}
@@ -204,6 +199,7 @@ export function ReceivingTime({
               mode={availability.mode}
               days={availability.days}
               data={data}
+              timeZone={availability.timeZone}
               close={close}
               retry={() => void query.refetch()}
             />

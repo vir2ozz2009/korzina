@@ -1,11 +1,12 @@
 import { Bike, ChevronRight, Store } from "lucide-react";
 import type { SellerOrderSummary } from "../../../../shared/contracts/seller-order";
+import { formatShopDay, shopDateTime } from "../../../../shared/datetime";
 import { formatMinor } from "../../../../shared/money";
 import { Button } from "../../../../ui/Button";
 import { Card } from "../../../../ui/Card";
 import { StatusPill } from "../../../../ui/StatusPill";
 import { methodLabel, PaymentPill, StagePill, StageProgress } from "./OrderIndicators";
-import { dayLabel, mainAction } from "./order-actions";
+import { mainAction } from "./order-actions";
 
 export function OrderListCard({
   order,
@@ -23,15 +24,10 @@ export function OrderListCard({
   const Receiving = order.method === "delivery" ? Bike : Store;
   const action = mainAction(order.stage, order.method === "delivery");
   const [day, time] = order.receivingAt.split("T");
-  const date = day && dayLabel(day, timeZone);
-  const now = new Intl.DateTimeFormat("sv-SE", {
-    timeZone,
-    dateStyle: "short",
-    timeStyle: "short",
-  })
-    .format(Date.now())
-    .replace(" ", "T");
-  const overdue = !!action && order.receivingAt && order.receivingAt < now;
+  const now = Date.now();
+  const local = shopDateTime(now, timeZone);
+  const date = day && day !== local.date && formatShopDay(day, timeZone, now, true);
+  const overdue = !!action && order.receivingAt && order.receivingAt < `${local.date}T${local.time}`;
   return (
     <Card className="relative">
       <button
@@ -55,7 +51,7 @@ export function OrderListCard({
           <p className="text-price tabular-nums">{time === "23:59" || !time ? "Время согласуем" : time}</p>
           <p className="text-small text-muted-foreground">
             {methodLabel[order.method]}
-            {date && date !== "Сегодня" && ` · ${date}`}
+            {date && ` · ${date}`}
           </p>
         </div>
       </div>

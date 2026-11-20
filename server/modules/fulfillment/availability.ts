@@ -4,8 +4,9 @@ import {
   type TimeChoice,
   type TimeCommand,
 } from "../../../src/shared/contracts/receiving-time";
+import { calendarDate } from "../../../src/shared/datetime";
 import { ApiError } from "../../../src/shared/errors";
-import { availableDays, calendarDate, isAvailable, scheduleClock, scheduledPeriods } from "./schedule";
+import { availableDays, isAvailable, scheduleClock, scheduledPeriods } from "./schedule";
 import { readFulfillment, readReceiving, writeReceiving } from "./service";
 
 function readSchedule(storage: DurableObjectStorage) {

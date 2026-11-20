@@ -5,6 +5,7 @@ import type {
   SellerOrder,
   SellerOrderCommand,
 } from "../../../../shared/contracts/seller-order";
+import { formatShopTimestamp } from "../../../../shared/datetime";
 import { formatMinor, minorInput, parseMinorInput } from "../../../../shared/money";
 import { Button } from "../../../../ui/Button";
 import { Input } from "../../../../ui/Input";
@@ -112,7 +113,7 @@ export function OrderPaymentSheet({
                 {latest && (
                   <ListItem
                     title="Последний чек"
-                    subtitle={new Date(latest.createdAt).toLocaleString("ru-RU")}
+                    subtitle={formatShopTimestamp(latest.createdAt, order.timeZone)}
                     onClick={() => setReceipt(latest)}
                   />
                 )}
@@ -123,7 +124,7 @@ export function OrderPaymentSheet({
                       <ListItem
                         key={file.id}
                         title="Открыть чек"
-                        subtitle={new Date(file.createdAt).toLocaleString("ru-RU")}
+                        subtitle={formatShopTimestamp(file.createdAt, order.timeZone)}
                         onClick={() => setReceipt(file)}
                       />
                     ))}

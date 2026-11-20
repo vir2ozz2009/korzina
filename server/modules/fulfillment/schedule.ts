@@ -4,6 +4,7 @@ import {
   type TimeChoice,
   weekdays,
 } from "../../../src/shared/contracts/receiving-time";
+import { calendarDate } from "../../../src/shared/datetime";
 
 const minute = 60_000;
 const day = 24 * 60 * minute;
@@ -42,9 +43,6 @@ export function scheduleClock(timeZone: string, now: number) {
   const local = new Date(localEpoch(formatter, now)).toISOString();
   return { formatter, today: local.slice(0, 10), localTime: local.slice(11, 16) };
 }
-
-export const calendarDate = (today: string, offset: number) =>
-  new Date(Date.parse(`${today}T00:00:00Z`) + offset * day).toISOString().slice(0, 10);
 
 export function scheduledPeriods(schedule: MethodSchedule, date: string) {
   const weekday = weekdays[new Date(`${date}T12:00:00Z`).getUTCDay()];
