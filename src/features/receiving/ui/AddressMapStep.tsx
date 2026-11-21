@@ -8,7 +8,7 @@ import { usePointDelivery, usePointName } from "../address-api";
 import { AddressReviewStatus } from "./AddressDelivery";
 import { useMapLocation } from "./useMapLocation";
 
-const MapPreview = lazy(() => import("./AddressMap").then(({ AddressMap }) => ({ default: AddressMap })));
+const MapPreview = lazy(() => import("../../../ui/AddressMap").then(({ AddressMap }) => ({ default: AddressMap })));
 
 export function AddressMapStep({
   address,

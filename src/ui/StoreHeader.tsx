@@ -6,6 +6,7 @@ const Actions = lazy(() => import("./StoreHeaderActions").then((module) => ({ de
 export interface StoreHeaderProps {
   name: string;
   logo?: string;
+  logoShape?: "circle" | "square" | "wide";
   address?: string;
   profile?: { name: string; src?: string };
   onAddress?: () => void;
@@ -13,7 +14,17 @@ export interface StoreHeaderProps {
   onChat?: () => void;
   onProfile?: () => void;
 }
-export function StoreHeader({ name, logo, address, profile, onAddress, onAbout, onChat, onProfile }: StoreHeaderProps) {
+export function StoreHeader({
+  name,
+  logo,
+  logoShape,
+  address,
+  profile,
+  onAddress,
+  onAbout,
+  onChat,
+  onProfile,
+}: StoreHeaderProps) {
   return (
     <header className="grid h-(--store-header-height) grid-cols-[minmax(0,1fr)_var(--store-mark-width)_minmax(0,1fr)] items-center bg-background p-(--page-x)">
       {onAddress ? (
@@ -29,19 +40,24 @@ export function StoreHeader({ name, logo, address, profile, onAddress, onAbout, 
             {address || "Выбрать адрес"} ›
           </span>
         </button>
-      ) : (
+      ) : !logo ? (
         <span aria-hidden />
-      )}
+      ) : null}
       <button
         type="button"
-        className="flex h-(--store-identity-height) min-w-0 flex-col items-center justify-center gap-0.5"
+        className={`flex h-(--store-identity-height) min-w-0 items-center gap-2 ${logo && !onAddress ? "col-span-2" : "flex-col justify-center"}`}
         onClick={onAbout}
         aria-label={`О магазине ${name}`}
       >
-        <StoreLogo name={name} src={logo} />
-        <span className="w-full truncate text-micro font-medium" title={name}>
-          {name}
-        </span>
+        <StoreLogo name={name} src={logo} shape={logoShape} />
+        {logoShape !== "wide" && (
+          <span
+            className={`truncate font-medium ${logo && !onAddress ? "text-label" : "w-full text-micro"}`}
+            title={name}
+          >
+            {name}
+          </span>
+        )}
       </button>
       <div className="flex items-center justify-end gap-1">
         {(onChat || onProfile) && (

@@ -30,7 +30,15 @@ function QrImage({ src, preview = false }: { src: string; preview?: boolean }) {
   );
 }
 
-export function TransferInstruction({ instruction, qrSrc }: { instruction?: string; qrSrc?: string }) {
+export function TransferInstruction({
+  instruction,
+  qrSrc,
+  details,
+}: {
+  instruction?: string;
+  qrSrc?: string;
+  details?: string;
+}) {
   const [qr, setQr] = useState(false);
   const toast = useToast();
   return (
@@ -61,10 +69,11 @@ export function TransferInstruction({ instruction, qrSrc }: { instruction?: stri
           </Sheet>
         </>
       )}
-      {instruction && (
+      {details && instruction && <p className="whitespace-pre-wrap text-small">{instruction}</p>}
+      {(details || instruction) && (
         <CopyField
           label="Реквизиты для перевода"
-          value={instruction}
+          value={details || instruction || ""}
           onCopied={() => toast("Реквизиты скопированы")}
           onError={() => toast("Не удалось скопировать реквизиты")}
         />
@@ -107,17 +116,24 @@ export function QuoteChange({
   old,
   quote,
   hasReceipt,
+  methodId,
   accept,
 }: {
   old: QuoteResponse;
   quote: QuoteResponse;
   hasReceipt: boolean;
+  methodId?: string;
   accept: () => void;
 }) {
   const diff = quote.totalMinor - old.totalMinor;
+  const before = old.paymentSettings.options?.find(({ id }) => id === methodId);
+  const next = quote.paymentSettings.options?.find(({ id }) => id === methodId);
   const changedDetails =
     old.paymentSettings.qrSrc !== quote.paymentSettings.qrSrc ||
-    old.paymentSettings.instruction !== quote.paymentSettings.instruction;
+    old.paymentSettings.instruction !== quote.paymentSettings.instruction ||
+    before?.imageSrc !== next?.imageSrc ||
+    before?.details !== next?.details ||
+    before?.instruction !== next?.instruction;
   return (
     <Card role="alert">
       <h2 className="text-title-3">Условия заказа изменились</h2>

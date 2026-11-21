@@ -1,5 +1,16 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { ArrowUpRight, ChevronDown, LogOut, MessageCircle, Store, UserRound } from "lucide-react";
+import {
+  ArrowUpRight,
+  ChevronDown,
+  Clock3,
+  CreditCard,
+  Info,
+  LogOut,
+  MessageCircle,
+  Store,
+  Truck,
+  UserRound,
+} from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { Header } from "../../../app/shell/Header";
 import { QueryBoundary } from "../../../app/shell/QueryBoundary";
@@ -16,6 +27,7 @@ import { Sheet } from "../../../ui/Sheet";
 import { StatusPill } from "../../../ui/StatusPill";
 import { useCabinet, useSellerLogout } from "../api";
 import { CabinetLogin } from "./CabinetLogin";
+import { PauseCard } from "./settings/PauseCard";
 
 const statusNames: Record<string, string> = { draft: "Черновик", active: "Открыт", paused: "Пауза" };
 
@@ -78,6 +90,36 @@ export function CabinetScreen() {
                 />
               ) : more ? (
                 <>
+                  {shop && (
+                    <>
+                      <ListItem
+                        title="Доставка и самовывоз"
+                        icon={<Truck size={20} />}
+                        onClick={() =>
+                          void navigate({ to: "/seller/receiving", search: { ...search, store: shop.slug } })
+                        }
+                      />
+                      <ListItem
+                        title="Часы работы"
+                        icon={<Clock3 size={20} />}
+                        onClick={() => void navigate({ to: "/seller/hours", search: { ...search, store: shop.slug } })}
+                      />
+                      <ListItem
+                        title="Оплата"
+                        icon={<CreditCard size={20} />}
+                        onClick={() =>
+                          void navigate({ to: "/seller/payments", search: { ...search, store: shop.slug } })
+                        }
+                      />
+                      <ListItem
+                        title="О магазине"
+                        icon={<Info size={20} />}
+                        onClick={() =>
+                          void navigate({ to: "/seller/shop-data", search: { ...search, store: shop.slug } })
+                        }
+                      />
+                    </>
+                  )}
                   <ListItem
                     title="Витрина"
                     icon={<Store size={20} />}
@@ -113,6 +155,7 @@ export function CabinetScreen() {
                       <p className="text-small text-muted-foreground">Витрина пока закрыта</p>
                     )}
                   </Card>
+                  <PauseCard key={shop.id} store={shop.slug} />
                   <ListItem
                     title="Открыть витрину"
                     icon={<ArrowUpRight size={21} />}

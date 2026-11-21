@@ -1,16 +1,20 @@
 import "leaflet/dist/leaflet.css";
-import { divIcon, type Map as LeafletMap, type Marker, map, marker, tileLayer } from "leaflet";
+import { circle, divIcon, type Map as LeafletMap, type Marker, map, marker, polygon, tileLayer } from "leaflet";
 import { useEffect, useRef } from "react";
-import type { Point } from "../../../shared/contracts/receiving";
+import type { DeliveryZone, Point } from "../shared/contracts/receiving";
 
 export function AddressMap({
   center,
   point,
+  geometry,
+  moveVertex,
   select,
   onUnavailable,
 }: {
   center?: Point;
   point?: Point;
+  geometry?: DeliveryZone["geometry"];
+  moveVertex?: (index: number, point: Point) => void;
   select: (point: Point) => void;
   onUnavailable: () => void;
 }) {
@@ -18,8 +22,8 @@ export function AddressMap({
   const initialCenter = useRef(center);
   const mapRef = useRef<LeafletMap>(null);
   const pin = useRef<Marker>(null);
-  const callbacks = useRef({ select, onUnavailable });
-  callbacks.current = { select, onUnavailable };
+  const callbacks = useRef({ select, onUnavailable, moveVertex });
+  callbacks.current = { select, onUnavailable, moveVertex };
   useEffect(() => {
     if (!container.current) return;
     const start = initialCenter.current;
@@ -49,6 +53,37 @@ export function AddressMap({
   useEffect(() => {
     if (center) mapRef.current?.setView([center.lat, center.lon], 16);
   }, [center]);
+  useEffect(() => {
+    const current = mapRef.current;
+    if (!current || !geometry) return;
+    const layer =
+      geometry.type === "radius"
+        ? circle([geometry.center.lat, geometry.center.lon], { radius: geometry.radiusMeters, interactive: false })
+        : polygon(
+            geometry.points.map(({ lat, lon }): [number, number] => [lat, lon]),
+            { interactive: false },
+          );
+    layer.addTo(current);
+    const handles =
+      geometry.type === "polygon" && callbacks.current.moveVertex
+        ? geometry.points.map(({ lat, lon }, index) => {
+            const handle = marker([lat, lon], {
+              draggable: true,
+              keyboard: false,
+              icon: divIcon({ className: "size-3 rounded-full border-2 border-white bg-primary", iconSize: [12, 12] }),
+            }).addTo(current);
+            handle.on("dragend", () => {
+              const value = handle.getLatLng().wrap();
+              callbacks.current.moveVertex?.(index, { lat: value.lat, lon: value.lng });
+            });
+            return handle;
+          })
+        : [];
+    return () => {
+      layer.remove();
+      for (const handle of handles) handle.remove();
+    };
+  }, [geometry]);
   useEffect(() => {
     const current = mapRef.current;
     if (!current) return;

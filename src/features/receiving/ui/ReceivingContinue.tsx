@@ -30,7 +30,15 @@ export function ReceivingContinue({
   const toCart = () => void navigate({ to: "/cart", search: (previous) => ({ shop: previous.shop }) });
   const toPayment = () => void navigate({ to: "/checkout/payment", search: (previous) => ({ shop: previous.shop }) });
   if (!selection || !total?.currency) return null;
-  if (!total.acceptingOrders) return <Card role="status">Магазин временно не принимает заказы</Card>;
+  if (!total.acceptingOrders || total.unavailable?.[selection.mode])
+    return (
+      <Card role="status">
+        <p>{total.closedMessage ?? total.unavailable?.[selection.mode] ?? "Магазин временно не принимает заказы"}</p>
+        <Button full variant="secondary" onClick={toCart}>
+          В корзину
+        </Button>
+      </Card>
+    );
   if (total.shortMinor > 0 || !total.hasItems || !data.availability?.available) {
     return (
       <Card role="alert">

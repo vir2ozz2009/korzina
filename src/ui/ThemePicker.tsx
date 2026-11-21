@@ -12,10 +12,12 @@ import {
 export function ThemePicker({
   initial,
   onChange,
+  onInvalidCustom,
   applyToPage = true,
 }: {
   initial: ShopTheme;
   onChange: (theme: ShopTheme) => void;
+  onInvalidCustom?: (value: string) => void;
   applyToPage?: boolean;
 }) {
   const id = useId();
@@ -32,6 +34,7 @@ export function ThemePicker({
     setCustom(value);
     const result = validateCustomColor(value);
     if (!result.ok) {
+      onInvalidCustom?.(value);
       setError(
         result.reason === "too_light"
           ? "Цвет слишком светлый. Выберите более насыщенный."

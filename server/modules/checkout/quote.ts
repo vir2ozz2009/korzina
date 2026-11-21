@@ -50,7 +50,10 @@ export function purchaseSummary(env: Shop, subject: string) {
   const cart = readCart(env.storage, subject, { id: env.shop.id, mediaOrigin: env.media.MEDIA_PUBLIC_URL });
   const availability = selection.receiving ? checkFulfillment(settings, selection.receiving) : null;
   const deliveryMinor =
-    availability?.available && availability.mode === "delivery" && availability.payee === "shop"
+    availability?.available &&
+    availability.mode === "delivery" &&
+    availability.payee === "shop" &&
+    !unavailable.delivery
       ? (availability.feeMinor ?? 0)
       : 0;
   return {

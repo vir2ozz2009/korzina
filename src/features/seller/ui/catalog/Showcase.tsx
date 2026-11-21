@@ -8,6 +8,7 @@ import { Button } from "../../../../ui/Button";
 import { CategoryRail } from "../../../../ui/CategoryRail";
 import { CategoryTile } from "../../../../ui/CategoryTile";
 import { EmptyState } from "../../../../ui/EmptyState";
+import { ListItem } from "../../../../ui/ListItem";
 import { useCatalogCommand, useCatalogGroups } from "../../catalog-api";
 import { CatalogEditorFrame, type CatalogFrame } from "./CatalogEditorFrame";
 import { displayImage } from "./CatalogPhotos";
@@ -101,6 +102,7 @@ function Mosaic({
       onSave={save}
     >
       {!canWrite && <p className="text-meta">Только просмотр</p>}
+      <ListItem title="Цвет витрины" onClick={() => nav.open("/seller/shop-color", { store })} />
       {!rows.length ? (
         <EmptyState title="Нет категорий на витрине" />
       ) : (

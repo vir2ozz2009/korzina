@@ -8,8 +8,10 @@ import { type ReceivingState, useReceiving, useSaveReceiving } from "../api";
 import { AddressSheet } from "./AddressSheet";
 
 export function activeReceiving(data: ReceivingState) {
-  if (data.receiving && data[data.receiving.mode]) return data.receiving.mode;
-  return data.delivery ? "delivery" : data.pickup ? "pickup" : undefined;
+  if (data.receiving && data[data.receiving.mode] && !data.unavailable?.[data.receiving.mode])
+    return data.receiving.mode;
+  if (data.delivery && !data.unavailable?.delivery) return "delivery";
+  if (data.pickup && !data.unavailable?.pickup) return "pickup";
 }
 
 export function CartShipping({
@@ -33,7 +35,16 @@ export function CartShipping({
   const previous = data?.lastUsedAddress;
   const { mutate } = save;
   useEffect(() => {
-    if (!data?.delivery || data.receiving || !previous || disabled || open || attempted.current === revision) return;
+    if (
+      !data?.delivery ||
+      data.unavailable?.delivery ||
+      data.receiving ||
+      !previous ||
+      disabled ||
+      open ||
+      attempted.current === revision
+    )
+      return;
     attempted.current = revision;
     mutate({ receiving: { ...previous, comment: undefined }, expectedRevision: revision });
   }, [data, previous, disabled, open, revision, mutate]);
@@ -77,7 +88,9 @@ export function CartShipping({
   }
   return (
     <>
-      {!data.acceptingOrders && <Card role="status">Магазин временно не принимает заказы</Card>}
+      {!data.acceptingOrders && (
+        <Card role="status">{data.closedMessage ?? "Магазин временно не принимает заказы"}</Card>
+      )}
       {methods.length === 2 ? (
         <fieldset aria-label="Способ получения" className="grid grid-cols-2 gap-2" disabled={blocked}>
           {methods.map(({ mode, title, description, Icon }) => (
@@ -91,11 +104,14 @@ export function CartShipping({
                 aria-label={title}
                 className="absolute inset-0 size-full cursor-pointer opacity-0"
                 checked={method === mode}
+                disabled={!!data.unavailable?.[mode]}
                 onChange={() => void choose(mode)}
               />
               <Icon size={24} aria-hidden />
               <span className="mt-2 block text-label">{title}</span>
-              <span className="mt-1 block text-small text-foreground-body">{description}</span>
+              <span className="mt-1 block text-small text-foreground-body">
+                {data.unavailable?.[mode] ?? description}
+              </span>
             </label>
           ))}
         </fieldset>
@@ -106,6 +122,7 @@ export function CartShipping({
               <Icon aria-hidden size={22} />
               <h2 className="text-title-3">{title}</h2>
             </div>
+            {data.unavailable?.[mode] && <p className="text-small">{data.unavailable[mode]}</p>}
           </Card>
         ))
       )}
@@ -138,7 +155,7 @@ export function CartShipping({
             await update(selected);
             setOpen(false);
           }}
-          pickup={data.pickup ? () => void choose("pickup") : undefined}
+          pickup={data.pickup && !data.unavailable?.pickup ? () => void choose("pickup") : undefined}
         />
       )}
     </>

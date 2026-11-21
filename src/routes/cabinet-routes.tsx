@@ -2,6 +2,17 @@ import { createRoute, lazyRouteComponent } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 
 const sellerScreen = lazyRouteComponent(() => import("../features/seller/ui/CabinetScreen"), "CabinetScreen");
+const settings = lazyRouteComponent(
+  () => import("../features/seller/ui/settings/SellerSettingsScreen"),
+  "SellerSettingsScreen",
+);
+const settingsRoutes = [
+  ["/seller/receiving", "Доставка и самовывоз"],
+  ["/seller/hours", "Часы работы"],
+  ["/seller/payments", "Оплата"],
+  ["/seller/shop-data", "О магазине"],
+  ["/seller/shop-color", "Цвет витрины"],
+] as const;
 const search = (input: Record<string, unknown>): { store?: string } => ({
   store: typeof input.store === "string" && /^[a-z0-9-]{1,63}$/.test(input.store) ? input.store : undefined,
 });
@@ -48,6 +59,15 @@ const catalogRoutes = [
   ["/seller/showcase", "Витрина", false],
 ] as const;
 export const sellerRoutes = [
+  ...settingsRoutes.map(([path, title]) =>
+    createRoute({
+      getParentRoute: () => rootRoute,
+      path,
+      validateSearch: search,
+      staticData: { template: "form", transition: "push", title },
+      component: settings,
+    }),
+  ),
   ...catalogRoutes.map(([path, title, root]) =>
     createRoute({
       getParentRoute: () => rootRoute,

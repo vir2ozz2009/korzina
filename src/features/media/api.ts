@@ -83,7 +83,8 @@ export function useUpload(seller: boolean, context?: { store: string; headers: R
       let cached = prepared.current.get(input.file);
       if (!cached) {
         cached = (async () => {
-          const body = await (await import("./prepare")).prepareUpload(input.file);
+          const body =
+            input.purpose === "payment_qr" ? input.file : await (await import("./prepare")).prepareUpload(input.file);
           const metadata =
             body.type === "application/pdf"
               ? {}
