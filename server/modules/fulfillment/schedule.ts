@@ -1,6 +1,6 @@
 import {
   type AvailabilityDay,
-  type Schedule,
+  type MethodSchedule,
   type TimeChoice,
   weekdays,
 } from "../../../src/shared/contracts/receiving-time";
@@ -8,7 +8,6 @@ import { calendarDate } from "../../../src/shared/datetime";
 
 const minute = 60_000;
 const day = 24 * 60 * minute;
-type MethodSchedule = NonNullable<Schedule["delivery"]>;
 type Count = (date: string, slot?: string) => number;
 
 function localEpoch(formatter: Intl.DateTimeFormat, epoch: number) {
@@ -45,6 +44,7 @@ export function scheduleClock(timeZone: string, now: number) {
 }
 
 export function scheduledPeriods(schedule: MethodSchedule, date: string) {
+  if (schedule.closedDates?.includes(date)) return [];
   const weekday = weekdays[new Date(`${date}T12:00:00Z`).getUTCDay()];
   return schedule.days[weekday] ?? [];
 }
@@ -59,11 +59,9 @@ export function availableDays(
   return Array.from({ length: 7 }, (_, offset) => {
     const date = calendarDate(clock.today, offset);
     const periods = scheduledPeriods(schedule, date);
+    const dayOpen = periods.length > 0 && (offset > 0 || clock.localTime < schedule.dayCutoff);
     if (schedule.mode === "day") {
-      const available =
-        periods.length > 0 &&
-        (offset > 0 || clock.localTime < schedule.dayCutoff) &&
-        (schedule.dayCapacity === undefined || count(date) < schedule.dayCapacity);
+      const available = dayOpen && (schedule.dayCapacity === undefined || count(date) < schedule.dayCapacity);
       return { date, available, intervals: [] };
     }
 
@@ -73,8 +71,13 @@ export function availableDays(
         const id = `${period.start}-${period.end}`;
         const startAt = intervalStart(clock.formatter, date, period.start);
         const past =
-          !Number.isFinite(startAt) || startAt <= now || startAt - now < schedule.preparationMinutes * minute;
-        const full = period.capacity !== undefined && count(date, id) >= period.capacity;
+          (schedule.cutoffForSlots && !dayOpen) ||
+          !Number.isFinite(startAt) ||
+          startAt <= now ||
+          startAt - now < schedule.preparationMinutes * minute;
+        const full =
+          (period.capacity !== undefined && count(date, id) >= period.capacity) ||
+          (schedule.dayCapacity !== undefined && count(date) >= schedule.dayCapacity);
         return {
           id,
           start: period.start,

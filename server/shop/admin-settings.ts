@@ -1,4 +1,6 @@
 import type { ShopContext } from "../../src/shared/contracts/shop-context";
+import { moveDayPauses } from "../modules/fulfillment/pause";
+import { shopTimeZoneSql } from "./time-zone";
 
 export function applyAdminSettings(storage: DurableObjectStorage, settings: NonNullable<ShopContext["adminSettings"]>) {
   const { name, country, currency, timeZone, theme } = settings;
@@ -8,6 +10,9 @@ export function applyAdminSettings(storage: DurableObjectStorage, settings: NonN
     .toArray()[0];
   if (active?.value === signature) return;
   storage.transactionSync(() => {
+    const previousTimeZone = storage.sql
+      .exec<{ timeZone: string }>(`SELECT ${shopTimeZoneSql} AS timeZone`)
+      .one().timeZone;
     storage.sql.exec(
       `INSERT INTO settings(key,value) VALUES
       ('display_name',?),('phone_region',?),('theme',?),('admin_settings',?)
@@ -29,5 +34,6 @@ export function applyAdminSettings(storage: DurableObjectStorage, settings: NonN
       timeZone,
       timeZone,
     );
+    if (previousTimeZone !== timeZone) moveDayPauses(storage, timeZone);
   });
 }

@@ -9,6 +9,7 @@ import { purchaseRoutes } from "../modules/checkout/routes";
 import { diagnostics } from "../modules/diagnostics/routes";
 import { favoritesRoutes } from "../modules/favorites/routes";
 import { receivingRoutes } from "../modules/fulfillment/routes";
+import { sellerReceivingRoutes } from "../modules/fulfillment/seller-routes";
 import { mediaRoutes } from "../modules/media/routes";
 import { profileRoutes } from "../modules/profile/routes";
 import { sellerCatalogRoutes } from "../modules/seller-catalog/routes";
@@ -39,6 +40,7 @@ export function shopRoutes() {
       .route("/orders", buyerOrderRoutes)
       .route("/seller/catalog", sellerCatalogRoutes)
       .route("/seller/orders", sellerOrderRoutes)
+      .route("/seller/receiving", sellerReceivingRoutes)
       .route("/favorites", favoritesRoutes)
       .route("/profile", profileRoutes)
       .route("/catalog", catalogRoutes)

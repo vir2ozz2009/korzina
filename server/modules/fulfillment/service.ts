@@ -13,6 +13,7 @@ import {
 } from "../../../src/shared/contracts/receiving";
 import type { TimeChoice } from "../../../src/shared/contracts/receiving-time";
 import { ApiError } from "../../../src/shared/errors";
+import { pauseStatus } from "./pause";
 import { deliveryZone } from "./zones";
 
 export function readFulfillment(storage: DurableObjectStorage, maps = true): FulfillmentSettings {
@@ -22,11 +23,14 @@ export function readFulfillment(storage: DurableObjectStorage, maps = true): Ful
 
 export function resolveFulfillment(value: string | null | undefined, maps: boolean) {
   const settings = fulfillmentSettingsInput.parse(value ? JSON.parse(value) : {});
-  if (!maps && settings.delivery?.mode === "map") return { ...settings, delivery: undefined };
+  if (!maps && settings.delivery?.mode === "map") {
+    const { payee, zones } = settings.delivery;
+    return { ...settings, delivery: { mode: "text" as const, payee, tariff: zones[0].tariff } };
+  }
   return settings;
 }
 
-export function publicFulfillment(settings: FulfillmentSettings) {
+export function publicFulfillment(settings: FulfillmentSettings, timeZone: string, now = Date.now()) {
   const delivery = settings.delivery;
   return {
     delivery: delivery
@@ -40,7 +44,7 @@ export function publicFulfillment(settings: FulfillmentSettings) {
       : null,
     pickup: settings.pickup ?? null,
     requiredDetails: settings.requiredDetails,
-    acceptingOrders: settings.acceptingOrders,
+    ...pauseStatus(settings, timeZone, now),
   };
 }
 

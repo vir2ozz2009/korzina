@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const methodInput = z.enum(["delivery", "pickup"]);
 const timeMode = z.enum(["slots", "day", "after_order"]);
-const localTime = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/u);
+export const localTime = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/u);
 const intervalInput = z
   .object({
     start: localTime,
@@ -17,6 +17,8 @@ const methodSchedule = z.object({
   preparationMinutes: z.number().int().min(0).max(1440).default(60),
   dayCutoff: localTime.default("18:00"),
   dayCapacity: z.number().int().positive().optional(),
+  closedDates: z.array(z.iso.date()).max(366).optional(),
+  cutoffForSlots: z.boolean().optional(),
 });
 const timezone = z.string().refine((value) => {
   try {
@@ -39,6 +41,7 @@ export const timeCommandInput = z.object({
 });
 export type ReceivingMethod = z.infer<typeof methodInput>;
 export type Schedule = z.infer<typeof scheduleInput>;
+export type MethodSchedule = z.infer<typeof methodSchedule>;
 export type TimeChoice = z.infer<typeof selectionInput>;
 export type TimeCommand = z.infer<typeof timeCommandInput>;
 

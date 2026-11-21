@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { geocodeInput, receiveCommandInput, receivingInput } from "../../../src/shared/contracts/receiving";
 import { methodInput, timeCommandInput } from "../../../src/shared/contracts/receiving-time";
+import { defaultShopTimeZone } from "../../../src/shared/datetime";
 import { ApiError } from "../../../src/shared/errors";
 import { authBodyLimit, validationFailure } from "../../auth/request";
 import { sessionLimiter } from "../../auth/session-limit";
@@ -39,7 +40,7 @@ export const receivingRoutes = new Hono<ShopEnv>()
     const session = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);
     const saved = session ? readReceiving(c.env.storage, session.subject) : { revision: 0, ...emptySelection() };
     const availability = saved.receiving ? checkFulfillment(settings, saved.receiving) : null;
-    return c.json({ ...saved, availability, ...publicFulfillment(settings) });
+    return c.json({ ...saved, availability, ...publicFulfillment(settings, c.env.timeZone ?? defaultShopTimeZone) });
   })
   .post("/check", authBodyLimit, zValidator("json", receivingInput, validationFailure), (c) =>
     c.json(checkFulfillment(readFulfillment(c.env.storage, c.env.features.maps), c.req.valid("json"))),

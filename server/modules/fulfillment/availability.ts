@@ -9,7 +9,7 @@ import { ApiError } from "../../../src/shared/errors";
 import { availableDays, isAvailable, scheduleClock, scheduledPeriods } from "./schedule";
 import { readFulfillment, readReceiving, writeReceiving } from "./service";
 
-function readSchedule(storage: DurableObjectStorage) {
+export function readSchedule(storage: DurableObjectStorage) {
   const row = storage.sql
     .exec<{ value: string }>("SELECT value FROM settings WHERE key='receiving_schedule'")
     .toArray()[0];
@@ -33,7 +33,11 @@ function availabilityFor(storage: DurableObjectStorage, method: ReceivingMethod,
     )
     .toArray();
   const counts = new Map(rows.map((row) => [`${row.date}/${row.slot}`, row.booked]));
-  const days = availableDays(methodSchedule, clock, now, (date, slot = "") => counts.get(`${date}/${slot}`) ?? 0);
+  const daily = new Map<string, number>();
+  for (const { date, booked } of rows) daily.set(date, (daily.get(date) ?? 0) + booked);
+  const days = availableDays(methodSchedule, clock, now, (date, slot) =>
+    slot === undefined ? (daily.get(date) ?? 0) : (counts.get(`${date}/${slot}`) ?? 0),
+  );
   return { methodSchedule, response: { mode, timeZone, days } };
 }
 
@@ -80,7 +84,7 @@ export function reserveTime(
       ? methodSchedule.dayCapacity
       : scheduledPeriods(methodSchedule, time.date).find((period) => `${period.start}-${period.end}` === time.slotId)
           ?.capacity;
-  if (capacity === undefined) return false;
+  if (capacity === undefined && methodSchedule.dayCapacity === undefined) return false;
   const expiresAt = Date.parse(`${calendarDate(time.date, 2)}T00:00:00Z`);
   const result = storage.sql.exec(
     `INSERT INTO receiving_seats(method,date,slot,booked,expires_at) VALUES(?,?,?,1,?)
@@ -89,7 +93,7 @@ export function reserveTime(
     time.date,
     time.slotId ?? "",
     expiresAt,
-    capacity,
+    capacity ?? methodSchedule.dayCapacity ?? Number.MAX_SAFE_INTEGER,
   );
   if (!result.rowsWritten) throw unavailableTime();
   return true;
