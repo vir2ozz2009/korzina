@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { AvailabilityDay, ReceivingMethod } from "../../../shared/contracts/receiving-time";
 import { formatInterval, formatReceivingTime, formatShopDay } from "../../../shared/datetime";
 import { HttpError } from "../../../shared/http-error";
+import { timeChangedMessage } from "../../../shared/receiving-hours";
 import { shopTimeZone } from "../../../shared/shop-api";
 import { Button } from "../../../ui/Button";
 import { Chip } from "../../../ui/Chip";
@@ -10,7 +11,14 @@ import { ListItem } from "../../../ui/ListItem";
 import { Radio } from "../../../ui/Radio";
 import { Sheet } from "../../../ui/Sheet";
 import { SkeletonBlock } from "../../../ui/SkeletonBlock";
-import { type ReceivingState, useAvailability, useSaveTime } from "../api";
+import { type ReceivingState, useSaveTime } from "../api";
+import type { useReceivingTime } from "../useReceivingTime";
+
+function unavailableDayLabel(day: AvailabilityDay) {
+  if (day.available) return undefined;
+  if (day.reason === "closed") return "Не работаем";
+  return day.reason === "full" ? "Занято" : "Недоступно";
+}
 
 function TimeOptions({
   method,
@@ -67,6 +75,7 @@ function TimeOptions({
                 onClick={() => selectDay(item.date)}
               >
                 {formatShopDay(item.date, timeZone, now, true)}
+                {item.reason === "closed" && " · Не работаем"}
               </Chip>
             ))}
             <Chip
@@ -84,7 +93,7 @@ function TimeOptions({
                 <ListItem
                   key={item.date}
                   title={formatShopDay(item.date, timeZone, now)}
-                  value={item.available ? undefined : "Занято"}
+                  value={unavailableDayLabel(item)}
                   onClick={item.available ? () => selectDay(item.date) : undefined}
                 />
               ))
@@ -150,22 +159,29 @@ function TimeOptions({
 
 export function ReceivingTime({
   data,
+  selection,
   open,
   setOpen,
   disabled = false,
 }: {
   data: ReceivingState;
+  selection: ReturnType<typeof useReceivingTime>;
   open: boolean;
   setOpen: (open: boolean) => void;
   disabled?: boolean;
 }) {
   const method = data.receiving?.mode;
-  const query = useAvailability(method);
+  const { schedule: query, time, changed, error, retry } = selection;
   const availability = query.data;
   const close = () => setOpen(false);
   if (!method) return null;
   const title = method === "delivery" ? "Когда привезти" : "Когда заберёте";
   const sheetTitle = method === "delivery" ? "Когда привезти заказ" : "Когда заберёте заказ";
+  const notice = changed && (
+    <p role="status" className="px-3 text-meta">
+      {timeChangedMessage}
+    </p>
+  );
   return (
     <>
       <ListItem
@@ -173,32 +189,47 @@ export function ReceivingTime({
         subtitle={
           availability?.mode === "after_order"
             ? "Магазин свяжется с вами"
-            : data.time
-              ? formatReceivingTime(data.time, availability?.timeZone ?? shopTimeZone)
+            : time
+              ? formatReceivingTime(time, availability?.timeZone ?? shopTimeZone)
               : "Выберите удобное время"
         }
         icon={<Clock size={22} />}
-        onClick={disabled || availability?.mode === "after_order" ? undefined : () => setOpen(true)}
+        onClick={
+          disabled || availability?.mode === "after_order"
+            ? undefined
+            : () => {
+                setOpen(true);
+                void query.refetch();
+              }
+        }
       />
+      {!open && notice}
+      {error && !open && (
+        <Button variant="secondary" onClick={() => void retry()}>
+          Повторить проверку времени
+        </Button>
+      )}
       <Sheet title={sheetTitle} open={open} onOpenChange={setOpen}>
+        {open && notice}
         {open &&
-          (query.isPending ? (
-            <div role="status" aria-label="Проверяем доступность">
-              <SkeletonBlock className="h-28" />
-            </div>
-          ) : query.isError ? (
+          (error ? (
             <div className="space-y-3">
               <p role="alert">{navigator.onLine ? "Не удалось проверить время" : "Нет подключения к интернету"}</p>
-              <Button full variant="secondary" onClick={() => void query.refetch()}>
+              <Button full variant="secondary" onClick={() => void retry()}>
                 Повторить проверку
               </Button>
             </div>
+          ) : selection.checking ? (
+            <div role="status" aria-label="Проверяем доступность">
+              <SkeletonBlock className="h-28" />
+            </div>
           ) : availability && availability.mode !== "after_order" ? (
             <TimeOptions
+              key={availability.mode}
               method={method}
               mode={availability.mode}
               days={availability.days}
-              data={data}
+              data={{ ...data, time }}
               timeZone={availability.timeZone}
               close={close}
               retry={() => void query.refetch()}

@@ -7,6 +7,7 @@ import { Screen } from "../../../app/shell/Screen";
 import type { CheckoutCommand, QuoteResponse } from "../../../shared/contracts/checkout";
 import { HttpError } from "../../../shared/http-error";
 import { formatMinor } from "../../../shared/money";
+import { timeChangedMessage } from "../../../shared/receiving-hours";
 import { shopKey } from "../../../shared/shop-api";
 import { rememberBuyer } from "../../../shared/shop-session";
 import { Button } from "../../../ui/Button";
@@ -15,7 +16,7 @@ import { ListItem } from "../../../ui/ListItem";
 import { StickyFooter } from "../../../ui/StickyFooter";
 import { ContactSheet, useContact } from "../../contact";
 import { orderKeys } from "../../orders";
-import { ReceivingTime, useReceiving } from "../../receiving";
+import { ReceivingTime, useReceiving, useReceivingTime } from "../../receiving";
 import { type Attempt, usePlaceOrder, useQuote } from "../api";
 import { readAttempt, storeAttempt, storeOrderNumber } from "../session";
 import { PaymentHelp, QuoteChange } from "./PaymentExtras";
@@ -36,9 +37,13 @@ export function PaymentScreen() {
   const [before, setBefore] = useState<QuoteResponse>();
   const [failure, setFailure] = useState("");
   const place = usePlaceOrder();
+  const draft = receiving.data;
+  const timeSelection = useReceivingTime(draft, !attempt);
+  const canQuote = !timeSelection.needsTime && !timeSelection.error;
+  const timeReady = canQuote && !timeSelection.checking;
   const readyContact = !!(contact.data?.phone || contact.data?.telegramLinked);
-  const readyReceiving = !!receiving.data?.receiving;
-  const query = useQuote(receiving.data?.revision, contact.data, !attempt && readyContact && readyReceiving);
+  const readyReceiving = !!draft?.receiving;
+  const query = useQuote(draft?.revision, contact.data, !attempt && readyContact && readyReceiving && timeReady);
   const quote = query.data;
   const payment = quote?.paymentSettings;
   const methods =
@@ -117,7 +122,6 @@ export function PaymentScreen() {
     void send({ key: crypto.randomUUID(), request, startedAt: Date.now() });
   }
 
-  const draft = receiving.data;
   if (!attempt && ((contact.data && !readyContact) || (draft && !readyReceiving)))
     return <Navigate to="/cart" search={(previous) => ({ shop: previous.shop })} replace />;
   const address =
@@ -140,6 +144,7 @@ export function PaymentScreen() {
       header={<Header title="Оплата" />}
       after={
         quote &&
+        timeReady &&
         !attempt &&
         !query.isError && (
           <StickyFooter floating>
@@ -159,8 +164,8 @@ export function PaymentScreen() {
         </Card>
       ) : (
         <>
-          {query.isPending && !query.isError && <Card role="status">Проверяем оплату…</Card>}
-          {(receiving.isError || contact.isError || query.isError) && (
+          {query.isPending && (timeReady || timeSelection.checking) && <Card role="status">Проверяем оплату…</Card>}
+          {(receiving.isError || contact.isError || (timeReady && query.isError)) && (
             <Card role="alert">
               <p>{error?.message ?? "Не удалось проверить оплату"}</p>
               <Button
@@ -184,10 +189,20 @@ export function PaymentScreen() {
               </Button>
             </Card>
           )}
-          {failure && !needsAccept && !query.isError && <Card role="alert">{failure}</Card>}
-          {quote && draft && !query.isError && (
+          {failure && !needsAccept && !query.isError && failure !== timeChangedMessage && (
+            <Card role="alert">{failure}</Card>
+          )}
+          {draft && (
+            <ReceivingTime
+              data={draft}
+              selection={timeSelection}
+              open={timeOpen}
+              setOpen={setTimeOpen}
+              disabled={busy}
+            />
+          )}
+          {quote && canQuote && !query.isError && (
             <>
-              <ReceivingTime data={draft} open={timeOpen} setOpen={setTimeOpen} disabled={busy} />
               {address && (
                 <ListItem
                   title={quote.receiving.mode === "delivery" ? "Адрес доставки" : "Самовывоз"}

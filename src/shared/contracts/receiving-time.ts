@@ -51,6 +51,7 @@ export type TimeCommand = z.infer<typeof timeCommandInput>;
 export type AvailabilityDay = {
   date: string;
   available: boolean;
+  reason?: "closed" | "past" | "full";
   intervals: {
     id: string;
     start: string;

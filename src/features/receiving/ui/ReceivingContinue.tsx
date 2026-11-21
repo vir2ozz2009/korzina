@@ -3,29 +3,33 @@ import { useState } from "react";
 import type { QuoteResponse } from "../../../shared/contracts/checkout";
 import { HttpError } from "../../../shared/http-error";
 import { formatMinor } from "../../../shared/money";
+import { isTimeAvailable } from "../../../shared/receiving-hours";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { StickyFooter } from "../../../ui/StickyFooter";
 import { usePrepareQuote, usePurchaseSummary } from "../../checkout";
-import { type ReceivingState, useAvailability } from "../api";
+import type { ReceivingState } from "../api";
 import { deliveryLabel } from "../delivery-label";
+import type { useReceivingTime } from "../useReceivingTime";
 
 export function ReceivingContinue({
   data,
+  timeSelection,
   onTime,
   onDetails,
 }: {
   data: ReceivingState;
+  timeSelection: ReturnType<typeof useReceivingTime>;
   onTime: () => void;
   onDetails: (field: ReceivingState["requiredDetails"][number]) => void;
 }) {
   const navigate = useNavigate();
-  const schedule = useAvailability(data.receiving?.mode);
+  const { schedule, needsTime, checking, error: timeError } = timeSelection;
   const summary = usePurchaseSummary(data.revision);
   const prepare = usePrepareQuote();
   const [updated, setUpdated] = useState<QuoteResponse>();
+  const currentUpdate = updated?.revision === data.revision ? updated : undefined;
   const total = summary.data;
-  const timeRequired = schedule.data?.mode !== "after_order" && !data.time;
   const selection = data.receiving;
   const toCart = () => void navigate({ to: "/cart", search: (previous) => ({ shop: previous.shop }) });
   const toPayment = () => void navigate({ to: "/checkout/payment", search: (previous) => ({ shop: previous.shop }) });
@@ -61,15 +65,17 @@ export function ReceivingContinue({
       const missing = data.requiredDetails.find((field) => !selection[field]?.trim());
       if (missing) return onDetails(missing);
     }
-    if (timeRequired) return onTime();
+    if (needsTime) return onTime();
     try {
       const quote = await prepare.mutateAsync();
       if (quote.totalMinor !== total?.totalMinor) setUpdated(quote);
       else toPayment();
     } catch (error) {
       if (error instanceof HttpError && error.code === "SLOT_TAKEN") {
-        void schedule.refetch();
-        onTime();
+        const current = await schedule.refetch();
+        if (data.time && current.data && !isTimeAvailable(current.data.mode, current.data.days, data.time))
+          prepare.reset();
+        if (current.data && current.data.mode !== "after_order") onTime();
       }
     }
   }
@@ -77,12 +83,12 @@ export function ReceivingContinue({
   return (
     <>
       {prepare.error && <Card role="alert">{prepare.error.message}</Card>}
-      {updated && updated.revision === data.revision && (
+      {currentUpdate && !needsTime && (
         <Card role="alert">
           <p>Условия заказа изменились</p>
           <p>Было {formatMinor(total.totalMinor, total.currency)}</p>
-          <p>Стало {formatMinor(updated.totalMinor, updated.currency)}</p>
-          <Button full onClick={toPayment}>
+          <p>Стало {formatMinor(currentUpdate.totalMinor, currentUpdate.currency)}</p>
+          <Button full disabled={checking || !!timeError} onClick={toPayment}>
             Подтвердить и к оплате
           </Button>
         </Card>
@@ -93,7 +99,7 @@ export function ReceivingContinue({
           size="xl"
           className="shadow-float"
           loading={prepare.isPending}
-          disabled={schedule.isPending || summary.isFetching || !!updated}
+          disabled={checking || !!timeError || summary.isFetching || !!currentUpdate}
           subtitle={
             schedule.data?.mode === "after_order"
               ? "Дату и время согласуем после заказа"
@@ -101,7 +107,7 @@ export function ReceivingContinue({
           }
           onClick={() => void next()}
         >
-          {timeRequired ? "Выбрать время" : `К оплате · ${formatMinor(total.totalMinor, total.currency)}`}
+          {needsTime ? "Выбрать время" : `К оплате · ${formatMinor(total.totalMinor, total.currency)}`}
         </Button>
       </StickyFooter>
     </>

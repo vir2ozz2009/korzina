@@ -101,9 +101,9 @@ export async function checkShopHours(page: Page, query: string) {
   });
   await test.step("§14.7 · строка покупателя меняется сразу при редактировании", async () => {
     const preview = common.getByRole("status", { name: "Покупатель увидит" });
-    await expect(preview).toHaveText("Покупатель увидит · Пн–Сб · 10:00–13:00, 13:00–16:00 …");
+    await expect(preview.getByText("Пн–Сб · 10:00–13:00, 13:00–16:00 …", { exact: true })).toBeVisible();
     await common.getByRole("combobox", { name: "Длительность интервала" }).selectOption("1");
-    await expect(preview).toHaveText("Покупатель увидит · Пн–Сб · 10:00–11:00, 11:00–12:00 …");
+    await expect(preview.getByText("Пн–Сб · 10:00–11:00, 11:00–12:00 …", { exact: true })).toBeVisible();
     await save.click();
     await expect(save).toBeHidden();
   });
@@ -150,9 +150,14 @@ async function checkHoursWidths(page: Page) {
     });
     expect(overflow, `${width}px`).toBe(false);
     expect(
-      await page
-        .getByRole("status", { name: "Покупатель увидит" })
-        .evaluate((line) => line.scrollWidth <= line.clientWidth),
+      await page.getByRole("status", { name: "Покупатель увидит" }).evaluate((line) => {
+        const schedule = line.lastElementChild;
+        return (
+          !!schedule &&
+          schedule.scrollWidth <= schedule.clientWidth &&
+          schedule.getBoundingClientRect().height <= parseFloat(getComputedStyle(schedule).lineHeight)
+        );
+      }),
       `${width}px · первые два интервала в строке`,
     ).toBe(true);
     await page.screenshot({ path: `test-results/shop-hours-${width}.png`, fullPage: true, animations: "disabled" });

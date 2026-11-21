@@ -2,6 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { verifyBuyerOrderReload, verifyFavoriteCart, verifyOrderCancellation, verifySavedAddress } from "./after-order";
 import { verifyPaymentHelp } from "./payment-help";
 import { chooseDeliveryAddress } from "./purchase-address";
+import { checkChangedReceivingTime, checkClosedReceivingDay } from "./receiving-recheck";
 import { verifySellerOrders } from "./seller-orders";
 
 async function keyboardViewport(page: Page, open: boolean) {
@@ -81,14 +82,21 @@ test("B10: товар, доставка и заказ наличными", async
   await page.reload();
   if (onMap) await expect(page.getByText("кв. 12А")).toBeVisible();
   else await expect(page.getByText("28 Lê Lợi, Хошимин", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: /Когда привезти/ }).click();
-  const time = page.getByRole("dialog", { name: /Когда привезти/ });
-  // The shop initially shows its first available day, which may be later than tomorrow.
-  await time.locator('input[type="radio"]:enabled').first().check();
-  await page.screenshot({ path: "test-results/receiving-time-390.png", animations: "disabled" });
-  await time.getByRole("button", { name: /^Выбрать \d/ }).click();
-  await expect(time).toBeHidden();
-  await expect(page.getByRole("button", { name: /Когда привезти.*\d{2}:\d{2}/ })).toBeVisible();
+  await checkClosedReceivingDay(page);
+  const chooseTime = async () => {
+    await page.getByRole("button", { name: /Когда привезти/ }).click();
+    const time = page.getByRole("dialog", { name: /Когда привезти/ });
+    // The shop initially shows its first available day, which may be later than tomorrow.
+    await time.locator('input[type="radio"]:enabled').first().check();
+    await page.screenshot({ path: "test-results/receiving-time-390.png", animations: "disabled" });
+    await time.getByRole("button", { name: /^Выбрать \d/ }).click();
+    await expect(time).toBeHidden();
+    await expect(page.getByRole("button", { name: /Когда привезти.*\d{2}:\d{2}/ })).toBeVisible();
+  };
+  await chooseTime();
+  await checkChangedReceivingTime(page);
+  await chooseTime();
+  await expect(page.getByText("Время изменилось, выберите заново", { exact: true })).toHaveCount(0);
   await page.screenshot({ path: "test-results/receiving-390.png", animations: "disabled" });
   await page.getByRole("button", { name: /^К оплате/ }).click();
   await expect(page).toHaveURL(/checkout\/payment/);

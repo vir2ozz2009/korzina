@@ -56,7 +56,7 @@ export function ClosedDates({
         </div>
       )}
       <Button variant="ghost" disabled={dates.length >= 366} onClick={() => setSelectedMonth(currentMonth)}>
-        + Выбрать дату
+        + Выбрать дату <span aria-hidden>›</span>
       </Button>
       <Sheet
         open={!!selectedMonth && !disabled}
