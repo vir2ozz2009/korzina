@@ -37,6 +37,18 @@ test("Блок 7: продавец сохраняет настройки и пр
 
     await page.goto(`/seller/hours?${query}`);
     await expect(page.getByRole("switch", { name: "Разные часы для доставки и самовывоза" })).toBeVisible();
+    if (local) {
+      await test.step("06 · §12.4 часы самовывоза соответствуют окнам покупателя", async () => {
+        const availability = await buyer.request.get("/api/receiving/availability?shop=test2&method=pickup");
+        expect(availability.ok()).toBe(true);
+        const { days } = await availability.json();
+        expect(days[1].intervals.map(({ id }: { id: string }) => id)).toEqual(["09:00-20:00"]);
+        const pickup = page.getByRole("heading", { name: "Самовывоз", exact: true }).locator("..");
+        const interval = pickup.getByRole("button", { name: /^Интервал/ });
+        await expect(interval).toContainText("Сохранённые интервалы");
+        await expect(pickup.getByText("09:00–20:00", { exact: true })).toBeVisible();
+      });
+    }
     await page.screenshot({ path: "test-results/shop-settings-hours-390.png", animations: "disabled" });
     await page.goto(`/seller/payments?${query}`);
     await expect(page.getByRole("button", { name: "Добавить способ" })).toBeVisible();
@@ -44,6 +56,9 @@ test("Блок 7: продавец сохраняет настройки и пр
     await page.goto(`/seller/shop-data?${query}`);
     await expect(page.getByLabel("Название магазина")).toBeVisible();
     await page.screenshot({ path: "test-results/shop-settings-profile-390.png", animations: "disabled" });
+    await test.step("12 · §12.6 название целиком помещается в шапке витрины", async () => {
+      await checkStoreName(await buyer.newPage());
+    });
     await page.goto(`/seller/shop-color?${query}`);
     await expect(page.getByText("Свой цвет", { exact: true })).toBeVisible();
     await page.screenshot({ path: "test-results/shop-settings-color-390.png", animations: "disabled" });
@@ -92,6 +107,36 @@ test("Блок 7: продавец сохраняет настройки и пр
     await Promise.all([seller.close(), buyer.close()]);
   }
 });
+
+async function checkStoreName(page: Page) {
+  const name = "Семейная ферма с домашними сырами и сезонными продуктами";
+  await page.route("**/?shop=test2", async (route) => {
+    const response = await route.fetch();
+    const body = (await response.text()).replace(
+      /(<script id="shop-context" type="application\/json">)(.*?)(<\/script>)/u,
+      (_, before, context, after) =>
+        `${before}${JSON.stringify({ ...JSON.parse(context), name, profile: { logo: null } })}${after}`,
+    );
+    await route.fulfill({ response, body });
+  });
+  await page.goto("/?shop=test2");
+  const title = page.getByRole("button", { name: `О магазине ${name}` }).getByText(name, { exact: true });
+  await expect(title).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  for (const width of [360, 390, 412]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect
+      .soft(
+        await title.evaluate((node) => node.scrollWidth <= node.clientWidth && node.scrollHeight <= node.clientHeight),
+        `${width}px`,
+      )
+      .toBe(true);
+    if (width === 390)
+      await page.screenshot({ path: "test-results/shop-settings-name-390.png", animations: "disabled" });
+  }
+  await page.getByRole("button", { name: `О магазине ${name}` }).click();
+  await expect(page).toHaveURL(/\/about(?:\?shop=test2)?$/u);
+}
 
 async function previewSettings(page: Page) {
   const revision = { revision: 0, canWrite: true };

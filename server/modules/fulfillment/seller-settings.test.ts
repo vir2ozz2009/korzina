@@ -1,7 +1,8 @@
 import { exports } from "cloudflare:workers";
 import { beforeAll, expect, it, vi } from "vitest";
 import { fulfillmentSettingsInput } from "../../../src/shared/contracts/receiving";
-import { getAuth, sellerFixture } from "../../testing/auth";
+import type { Schedule } from "../../../src/shared/contracts/receiving-time";
+import { getAuth, postAuth, sellerFixture } from "../../testing/auth";
 import { setupPlatform } from "../../testing/platform";
 import { buy, customer, getQuote, setupCheckout } from "../checkout/testing";
 import { deliveryCities } from "./city";
@@ -14,15 +15,39 @@ beforeAll(async () => {
   await setupCheckout();
 });
 
-const url = (section: string) => `https://demo.korzina.app/api/seller/receiving/${section}?store=lavka`;
-const write = (section: string, body: object, headers: Record<string, string>, key = crypto.randomUUID()) =>
+const write = (
+  section: string,
+  body: object,
+  headers: Record<string, string>,
+  key = crypto.randomUUID(),
+  store = "lavka",
+) =>
   exports.default.fetch(
-    new Request(url(section), {
+    new Request(`https://demo.korzina.app/api/seller/receiving/${section}?store=${store}`, {
       method: "PUT",
       headers: { ...headers, "Content-Type": "application/json", "Idempotency-Key": key },
       body: JSON.stringify(body),
     }),
   );
+
+it("05 · US-M05 сохраняет выключенный самовывоз и позволяет снова включить его с новым адресом", async () => {
+  const { headers } = await sellerFixture("korzina-demo-test2");
+  const read = () => getAuth("/api/receiving?shop=test2");
+  const save = (expectedRevision: number, pickup?: { address: string; hours: string }) =>
+    write("settings", { expectedRevision, minimumMinor: 0, pickup }, headers, undefined, "test2");
+  expect(await (await read()).json()).toMatchObject({ pickup: { address: expect.any(String) } });
+  const disabled = await save(0);
+  expect(disabled.status).toBe(200);
+  expect(await disabled.json()).not.toHaveProperty("pickup");
+  expect(await (await read()).json()).toMatchObject({ delivery: null, pickup: null });
+  expect(await (await postAuth("/api/receiving/check?shop=test2", { mode: "pickup" })).json()).toMatchObject({
+    mode: "pickup",
+    available: false,
+  });
+  const pickup = { address: "Новый пункт выдачи", hours: "10:00–19:00" };
+  expect((await save(1, pickup)).status).toBe(200);
+  expect(await (await read()).json()).toMatchObject({ delivery: null, pickup, acceptingOrders: true });
+});
 
 it("§9.3 §12.1 §13.3 §13.5 пауза блокирует старый checkout по способу, плашка видна только при включении", async () => {
   const { headers } = await sellerFixture("korzina-demo-lavka", "employee");
@@ -142,6 +167,44 @@ it("§12.4 интервалы нарезаются внутри рабочих �
     { start: "13:00", end: "14:00" },
   ]);
   expect(hours.closedDates).toEqual(["2026-12-31"]);
+});
+
+it("06 · §12.4 сохраняет старое окно при изменении подготовки и делит его после выбора двух часов", async () => {
+  const { headers } = await sellerFixture("korzina-demo-test2");
+  const read = async () => {
+    const { days } = await (await getAuth("/api/receiving/availability?shop=test2&method=pickup")).json<{
+      days: { intervals: { id: string }[] }[];
+    }>();
+    return days[1].intervals.map(({ id }) => id);
+  };
+  const { schedule } = await (await getAuth("/api/seller/receiving/hours?store=test2", headers)).json<{
+    schedule: Schedule;
+  }>();
+  const input = {
+    delivery: { ...schedule.delivery, interval: "custom" },
+    pickup: { ...schedule.pickup, interval: "custom", preparationMinutes: 30, capacity: 4 },
+    closedDates: [],
+  };
+  expect(await read()).toEqual(["09:00-20:00"]);
+  const save = (body: object) => write("hours", body, headers, undefined, "test2");
+  const saved = await save({ ...input, expectedRevision: 0 });
+  expect(saved.status, await saved.clone().text()).toBe(200);
+  expect(await saved.json()).toMatchObject({ schedule: { pickup: { days: { mon: [{ capacity: 4 }] } } } });
+  expect(await read()).toEqual(["09:00-20:00"]);
+  const split = {
+    ...input,
+    expectedRevision: 1,
+    pickup: { ...input.pickup, interval: "2" },
+  };
+  expect((await save(split)).status).toBe(200);
+  expect(await read()).toEqual([
+    "09:00-11:00",
+    "11:00-13:00",
+    "13:00-15:00",
+    "15:00-17:00",
+    "17:00-19:00",
+    "19:00-20:00",
+  ]);
 });
 
 it("§12.3 границу города читаем из кеша, без границы остаётся центр для радиуса", async () => {

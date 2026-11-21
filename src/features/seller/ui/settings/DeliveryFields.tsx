@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState } from "react";
 import type { DeliveryZone, ReceivingAvailability } from "../../../../shared/contracts/receiving";
+import { HttpError } from "../../../../shared/http-error";
 import { formatMinor } from "../../../../shared/money";
 import { Button } from "../../../../ui/Button";
 import { Chip } from "../../../../ui/Chip";
@@ -78,8 +79,12 @@ export function DeliveryFields({
           ? `Адрес внутри зоны · ${availability.feeMinor === null ? "Расчёт после заказа" : formatMinor(availability.feeMinor, currency)}`
           : "Адрес за пределами зоны",
       );
-    } catch {
-      setResult("Не удалось проверить адрес");
+    } catch (error) {
+      setResult(
+        error instanceof HttpError && error.code === "ADDRESS_NOT_FOUND"
+          ? error.message
+          : "Не удалось проверить адрес. Попробуйте ещё раз.",
+      );
     } finally {
       setChecking(false);
     }
@@ -171,6 +176,8 @@ export function DeliveryFields({
           <Input
             label="Проверить адрес на карте"
             value={address}
+            maxLength={300}
+            disabled={checking}
             onChange={(event) => {
               setAddress(event.target.value);
               setResult("");

@@ -5,7 +5,7 @@ import { localTime, methodInput, weekdays } from "./receiving-time";
 const expectedRevision = z.number().int().nonnegative();
 const positive = z.number().int().positive().max(100_000);
 const hours = z
-  .object({ start: localTime, end: z.union([localTime, z.literal("24:00")]) })
+  .object({ start: localTime, end: z.union([localTime, z.literal("24:00")]), capacity: positive.optional() })
   .refine(({ start, end }) => start < end);
 const dayHours = z
   .array(hours)
@@ -17,7 +17,7 @@ const dayHours = z
 
 const hoursInput = z.object({
   days: z.partialRecord(z.enum(weekdays), dayHours),
-  interval: z.enum(["1", "2", "3", "day", "after_order"]).default("2"),
+  interval: z.enum(["1", "2", "3", "day", "after_order", "custom"]).default("2"),
   capacity: positive.optional(),
   dayCapacity: positive.optional(),
   preparationMinutes: z.number().int().min(0).max(1440).default(60),

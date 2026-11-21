@@ -91,7 +91,11 @@ export function updateReceivingSettings(
       zones: existing.delivery.zones.map((zone, index) => (index ? zone : { ...zone, tariff })),
     };
   }
-  storeSetting(storage, "fulfillment", fulfillmentSettingsInput.parse({ ...existing, ...input, delivery }));
+  storeSetting(
+    storage,
+    "fulfillment",
+    fulfillmentSettingsInput.parse({ ...existing, ...input, delivery, pickup: input.pickup }),
+  );
   ensureReceivingSchedule(storage, Boolean(delivery), Boolean(input.pickup));
   storage.sql.exec(
     `INSERT INTO settings(key,value) VALUES('purchase_payment',json_object('minimumMinor',?,'methods',json('[]')))
@@ -117,29 +121,34 @@ const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.sl
 const clockTime = (time: number) =>
   `${String(Math.floor(time / 60)).padStart(2, "0")}:${String(time % 60).padStart(2, "0")}`;
 
-export function scheduleFromHours(input: ReceivingHours, closedDates: string[]): MethodSchedule {
+export function scheduleFromHours(
+  input: ReceivingHours,
+  closedDates: string[],
+  previous?: MethodSchedule,
+): MethodSchedule {
   const { days, interval, capacity, dayCapacity, preparationMinutes, dayCutoff } = input;
   const mode = interval === "after_order" ? "after_order" : interval === "day" ? "day" : "slots";
-  const step = mode === "slots" ? Number(interval) * 60 : 1440;
+  const custom = interval === "custom";
+  const step = mode === "slots" && !custom ? Number(interval) * 60 : 1440;
   return {
     mode,
     dayCapacity,
     preparationMinutes,
     dayCutoff,
     closedDates,
-    cutoffForSlots: true,
+    cutoffForSlots: !custom || previous?.cutoffForSlots === true || previous?.dayCutoff !== dayCutoff,
     days: Object.fromEntries(
       weekdays.map((day) => [
         day,
         (days[day] ?? [])
           .toSorted((a, b) => a.start.localeCompare(b.start))
-          .flatMap(({ start, end }) => {
+          .flatMap(({ start, end, capacity: windowCapacity }) => {
             const from = minutes(start);
             const to = minutes(end);
             return Array.from({ length: Math.ceil((to - from) / step) }, (_, index) => ({
               start: clockTime(from + index * step),
               end: clockTime(Math.min(to, from + (index + 1) * step)),
-              capacity,
+              capacity: custom ? windowCapacity : capacity,
             }));
           }),
       ]),
@@ -155,18 +164,15 @@ function ensureReceivingSchedule(storage: DurableObjectStorage, delivery: boolea
   if (!delivery && !pickup) return;
   const current = readSchedule(storage);
   if ((!delivery || current?.delivery) && (!pickup || current?.pickup)) return;
-  const defaults =
-    current?.delivery ??
-    current?.pickup ??
-    scheduleFromHours(
-      {
-        days: Object.fromEntries(weekdays.map((day) => [day, [{ start: "09:00", end: "20:00" }]])),
-        interval: "2",
-        preparationMinutes: 60,
-        dayCutoff: "18:00",
-      },
-      [],
-    );
+  const defaultHours: ReceivingHours = {
+    days: Object.fromEntries(weekdays.map((day) => [day, [{ start: "09:00", end: "20:00" }]])),
+    interval: "2",
+    preparationMinutes: 60,
+    dayCutoff: "18:00",
+  };
+  const existing = current?.delivery ?? current?.pickup;
+  const defaults = existing ?? scheduleFromHours(defaultHours, []);
+  if (!existing) storeSetting(storage, "seller_receiving_hours", { delivery: defaultHours, closedDates: [] });
   storeSetting(storage, "receiving_schedule", {
     ...current,
     timeZone: current?.timeZone ?? timeZone(storage),
@@ -179,10 +185,11 @@ export function updateReceivingHours(env: Env, seller: Seller, { expectedRevisio
   const { storage } = env;
   assertRevision(storage, "hours", expectedRevision);
   const { delivery, pickup, closedDates } = input;
+  const current = delivery.interval === "custom" || pickup?.interval === "custom" ? readSchedule(storage) : null;
   storeSetting(storage, "receiving_schedule", {
     timeZone: timeZone(storage),
-    delivery: scheduleFromHours(delivery, closedDates),
-    pickup: scheduleFromHours(pickup ?? delivery, closedDates),
+    delivery: scheduleFromHours(delivery, closedDates, current?.delivery),
+    pickup: scheduleFromHours(pickup ?? delivery, closedDates, pickup ? current?.pickup : current?.delivery),
   });
   storeSetting(storage, "seller_receiving_hours", input);
   advanceRevision(storage, "hours", seller);

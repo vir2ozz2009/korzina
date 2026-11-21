@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type GeocodeInput, type Point, pointInput } from "../../../src/shared/contracts/receiving";
+import { type GeocodeInput, pointInput } from "../../../src/shared/contracts/receiving";
 import { ApiError } from "../../../src/shared/errors";
 
 const candidate = pointInput.extend({ address: z.string().min(1).max(500) });
@@ -34,8 +34,8 @@ async function resolvePhoton(input: GeocodeInput, request: typeof fetch) {
   const url = new URL(input.type === "search" ? "/api/" : "/reverse", "https://photon.komoot.io");
   url.search = new URLSearchParams(
     input.type === "search"
-      ? { q: input.address, limit: "5", lang: "ru" }
-      : { lat: String(input.point.lat), lon: String(input.point.lon), limit: "1", lang: "ru" },
+      ? { q: input.address, limit: "5" }
+      : { lat: String(input.point.lat), lon: String(input.point.lon), limit: "1" },
   ).toString();
   const response = await request(url, { headers: requestHeaders(), signal: AbortSignal.timeout(3500) });
   if (!response.ok) throw new Error("Photon unavailable");
@@ -51,16 +51,21 @@ async function resolvePhoton(input: GeocodeInput, request: typeof fetch) {
   });
 }
 
-async function resolveNominatim(point: Point, request: typeof fetch) {
-  const url = new URL("/reverse", "https://nominatim.openstreetmap.org");
-  url.search = new URLSearchParams({ lat: String(point.lat), lon: String(point.lon), format: "jsonv2" }).toString();
+const nominatimPlace = z.object({ display_name: z.string().min(1), lat: z.coerce.number(), lon: z.coerce.number() });
+
+async function resolveNominatim(input: GeocodeInput, request: typeof fetch) {
+  const search = input.type === "search";
+  const url = new URL(search ? "/search" : "/reverse", "https://nominatim.openstreetmap.org");
+  url.search = new URLSearchParams({
+    format: "jsonv2",
+    ...(search ? { q: input.address, limit: "5" } : { lat: String(input.point.lat), lon: String(input.point.lon) }),
+  }).toString();
   const response = await request(url, { headers: requestHeaders(), signal: AbortSignal.timeout(3500) });
   if (response.status === 404) return [];
   if (!response.ok) throw new Error("Nominatim unavailable");
-  const item = z
-    .object({ display_name: z.string().min(1), lat: z.coerce.number(), lon: z.coerce.number() })
-    .parse(await response.json());
-  return [candidate.parse({ address: item.display_name.slice(0, 500), lat: item.lat, lon: item.lon })];
+  const data = await response.json();
+  const places = search ? nominatimPlace.array().max(5).parse(data) : [nominatimPlace.parse(data)];
+  return places.map(({ display_name, lat, lon }) => candidate.parse({ address: display_name.slice(0, 500), lat, lon }));
 }
 
 export async function geocodeAddress(
@@ -68,7 +73,7 @@ export async function geocodeAddress(
   input: GeocodeInput,
   cache: Cache,
   permit: Permit,
-  request: typeof fetch = fetch,
+  { request = fetch, submittedSearch = false }: { request?: typeof fetch; submittedSearch?: boolean } = {},
 ) {
   const normalized: GeocodeInput =
     input.type === "search"
@@ -86,7 +91,7 @@ export async function geocodeAddress(
     new TextEncoder().encode(`${shopId}\n${normalized.type}\n${value}`),
   );
   const hash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
-  const key = new Request(`https://geocoding.invalid/v2/${hash}`);
+  const key = new Request(`https://geocoding.invalid/v3/${submittedSearch ? "submitted/" : ""}${hash}`);
   const cached = await cache.match(key);
   if (cached) return resultsInput.parse(await cached.json());
   if (!(await permit("photon"))) throw new ApiError("RATE_LIMITED", "Повторите поиск чуть позже");
@@ -98,9 +103,10 @@ export async function geocodeAddress(
     photonFailed = true;
     results = [];
   }
-  if (normalized.type === "reverse" && !results.length && (await permit("nominatim"))) {
+  // Public Nominatim supports submitted searches, but not address autocomplete.
+  if ((normalized.type === "reverse" || submittedSearch) && !results.length && (await permit("nominatim"))) {
     try {
-      results = await resolveNominatim(normalized.point, request);
+      results = await resolveNominatim(normalized, request);
       photonFailed = false;
     } catch {
       photonFailed = true;

@@ -7,7 +7,7 @@ import { Input } from "../../../../ui/Input";
 import { Select } from "../../../../ui/Select";
 import { Switch } from "../../../../ui/Switch";
 import { BuyerPreview } from "./BuyerPreview";
-import { type Day, defaultRange, isValid, labels, mondayFirst, type Range } from "./hours-form";
+import { changeInterval, type Day, defaultRange, isValid, labels, mondayFirst, type Range } from "./hours-form";
 
 export function HoursFields({
   title,
@@ -29,6 +29,7 @@ export function HoursFields({
   }
   const interval = value.interval;
   const capacity = interval === "day" ? "dayCapacity" : "capacity";
+  const editableLimit = interval !== "after_order" && interval !== "custom";
   return (
     <Card>
       <h2 className="text-title-3">{title}</h2>
@@ -85,22 +86,23 @@ export function HoursFields({
         label="Интервал"
         value={interval}
         options={[
+          ...(interval === "custom" ? [{ value: "custom", label: "Сохранённые интервалы" }] : []),
           { value: "1", label: "1 час" },
           { value: "2", label: "2 часа" },
           { value: "3", label: "3 часа" },
           { value: "day", label: "Весь день" },
           { value: "after_order", label: "Согласуем после заказа" },
         ]}
-        onChange={(next) => change({ ...value, interval: next as ReceivingHours["interval"] })}
+        onChange={(next) => change(changeInterval(value, next as ReceivingHours["interval"]))}
       />
-      {interval !== "after_order" && (
+      {editableLimit && (
         <Switch
           label={interval === "day" ? "Ограничить число заказов в день" : "Ограничить число заказов в интервале"}
           checked={!!value[capacity]}
           onChange={(event) => change({ ...value, [capacity]: event.target.checked ? 4 : undefined })}
         />
       )}
-      {interval !== "after_order" && value[capacity] !== undefined && (
+      {editableLimit && value[capacity] !== undefined && (
         <Input
           min={1}
           type="number"
@@ -135,7 +137,12 @@ export function HoursFields({
         {interval === "after_order"
           ? "Согласуем время после заказа"
           : ranges.length
-            ? `${ranges.map(({ start, end }) => `${start}–${end}`).join(", ")} · ${interval === "day" ? "В течение дня" : `Интервалы по ${interval} ч`}`
+            ? [
+                ranges.map(({ start, end }) => `${start}–${end}`).join(", "),
+                interval === "custom" ? undefined : interval === "day" ? "В течение дня" : `Интервалы по ${interval} ч`,
+              ]
+                .filter(Boolean)
+                .join(" · ")
             : "В этот день заказ недоступен"}
       </BuyerPreview>
     </Card>
