@@ -11,10 +11,13 @@ const intervalInput = z
   })
   .refine(({ start, end }) => start < end);
 export const weekdays = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+export const preparationInput = z.enum(["now", "hour", "two_hours", "next_day"]);
+export type Preparation = z.infer<typeof preparationInput>;
 const methodSchedule = z.object({
   mode: timeMode,
   days: z.partialRecord(z.enum(weekdays), z.array(intervalInput).max(24)),
   preparationMinutes: z.number().int().min(0).max(1440).default(60),
+  preparation: preparationInput.optional(),
   dayCutoff: localTime.default("18:00"),
   dayCapacity: z.number().int().positive().optional(),
   closedDates: z.array(z.iso.date()).max(366).optional(),

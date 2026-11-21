@@ -19,7 +19,7 @@ export function Header({
   const back = useBack();
   const root = useRouterState({ select: (state) => state.matches.at(-1)?.staticData.root ?? false });
   return (
-    <div className=" [&_header]:h-18">
+    <div className="[&_header]:h-(--screen-header-height)">
       <KitHeader
         title={title}
         background={catalog ? "card" : "background"}

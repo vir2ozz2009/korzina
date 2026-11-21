@@ -7,6 +7,7 @@ import type {
   SaveReceivingSettings,
 } from "../../../src/shared/contracts/seller-receiving";
 import { ApiError } from "../../../src/shared/errors";
+import { preparationMinutes as durations, splitHours } from "../../../src/shared/receiving-hours";
 import type { Seller } from "../../auth/roles";
 import type { ShopEnv } from "../../shop/env";
 import { shopTimeZoneSql } from "../../shop/time-zone";
@@ -109,48 +110,44 @@ export function updateReceivingSettings(
 
 export function readReceivingHours(env: Env, seller: Seller) {
   const form = readSetting(env.storage, "seller_receiving_hours");
+  const schedule = readSchedule(env.storage);
   return {
     ...revision(env.storage, "hours"),
     canWrite: seller.role === "owner",
     settings: form ? (JSON.parse(form) as Omit<SaveReceivingHours, "expectedRevision">) : null,
-    schedule: readSchedule(env.storage),
+    schedule,
+    timeZone: schedule?.timeZone ?? timeZone(env.storage),
   };
 }
-
-const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
-const clockTime = (time: number) =>
-  `${String(Math.floor(time / 60)).padStart(2, "0")}:${String(time % 60).padStart(2, "0")}`;
 
 export function scheduleFromHours(
   input: ReceivingHours,
   closedDates: string[],
   previous?: MethodSchedule,
 ): MethodSchedule {
-  const { days, interval, capacity, dayCapacity, preparationMinutes, dayCutoff } = input;
+  const { days, interval, capacity, dayCapacity, preparation, preparationMinutes, dayCutoff } = input;
   const mode = interval === "after_order" ? "after_order" : interval === "day" ? "day" : "slots";
   const custom = interval === "custom";
   const step = mode === "slots" && !custom ? Number(interval) * 60 : 1440;
   return {
     mode,
-    dayCapacity,
-    preparationMinutes,
+    dayCapacity: !preparation || mode === "day" ? dayCapacity : undefined,
+    preparation,
+    preparationMinutes: preparation ? durations[preparation] : preparationMinutes,
     dayCutoff,
     closedDates,
-    cutoffForSlots: !custom || previous?.cutoffForSlots === true || previous?.dayCutoff !== dayCutoff,
+    cutoffForSlots: !preparation && (!custom || previous?.cutoffForSlots === true || previous?.dayCutoff !== dayCutoff),
     days: Object.fromEntries(
       weekdays.map((day) => [
         day,
         (days[day] ?? [])
           .toSorted((a, b) => a.start.localeCompare(b.start))
-          .flatMap(({ start, end, capacity: windowCapacity }) => {
-            const from = minutes(start);
-            const to = minutes(end);
-            return Array.from({ length: Math.ceil((to - from) / step) }, (_, index) => ({
-              start: clockTime(from + index * step),
-              end: clockTime(Math.min(to, from + (index + 1) * step)),
-              capacity: custom ? windowCapacity : capacity,
-            }));
-          }),
+          .flatMap(({ start, end, capacity: windowCapacity }) =>
+            splitHours({ start, end }, step).map((range) => ({
+              ...range,
+              capacity: custom ? windowCapacity : !preparation || mode === "slots" ? capacity : undefined,
+            })),
+          ),
       ]),
     ),
   };
@@ -168,6 +165,7 @@ function ensureReceivingSchedule(storage: DurableObjectStorage, delivery: boolea
     days: Object.fromEntries(weekdays.map((day) => [day, [{ start: "09:00", end: "20:00" }]])),
     interval: "2",
     preparationMinutes: 60,
+    preparation: "hour",
     dayCutoff: "18:00",
   };
   const existing = current?.delivery ?? current?.pickup;

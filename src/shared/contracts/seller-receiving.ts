@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { fulfillmentSettingsInput, geocodeInput, pauseTermInput, receivingInput } from "./receiving";
-import { localTime, methodInput, weekdays } from "./receiving-time";
+import { fulfillmentSettingsInput, geocodeInput, pauseTermInput, receivingInput } from "./receiving.ts";
+import { localTime, methodInput, preparationInput, weekdays } from "./receiving-time.ts";
 
 const expectedRevision = z.number().int().nonnegative();
 const positive = z.number().int().positive().max(100_000);
@@ -15,14 +15,25 @@ const dayHours = z
     return sorted.every((range, index) => !index || sorted[index - 1].end <= range.start);
   }, "Часы работы пересекаются");
 
-const hoursInput = z.object({
-  days: z.partialRecord(z.enum(weekdays), dayHours),
-  interval: z.enum(["1", "2", "3", "day", "after_order", "custom"]).default("2"),
-  capacity: positive.optional(),
-  dayCapacity: positive.optional(),
-  preparationMinutes: z.number().int().min(0).max(1440).default(60),
-  dayCutoff: localTime.default("18:00"),
-});
+const hoursInput = z
+  .object({
+    days: z
+      .partialRecord(z.enum(weekdays), dayHours)
+      .describe("Часы работы по дням недели. Один диапазон на рабочий день"),
+    interval: z.enum(["1", "2", "3", "day", "after_order", "custom"]).default("2"),
+    capacity: positive.optional(),
+    dayCapacity: positive.optional(),
+    preparationMinutes: z.number().int().min(0).max(1440).default(60),
+    preparation: preparationInput
+      .optional()
+      .describe("Срок подготовки заказа: сразу, час, два часа или следующий рабочий день"),
+    dayCutoff: localTime.default("18:00"),
+  })
+  .refine(
+    ({ preparation, interval, days }) =>
+      !preparation || (interval !== "custom" && Object.values(days).every((ranges) => ranges.length <= 1)),
+    "Выберите один диапазон часов в день",
+  );
 
 const delivery = fulfillmentSettingsInput.shape.delivery;
 const fulfillment = z.strictObject({

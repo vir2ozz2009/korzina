@@ -18,6 +18,7 @@ export type ReceivingSettingsData = SellerRevision &
     currency: string;
   };
 export type ReceivingHoursData = SellerRevision & {
+  timeZone: string;
   settings: Omit<SaveReceivingHours, "expectedRevision"> | null;
   schedule: Schedule | null;
 };

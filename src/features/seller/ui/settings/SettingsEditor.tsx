@@ -19,6 +19,7 @@ export function SettingsEditor<T extends Record<string, unknown>, R extends Sell
   frame,
   children,
   valid = () => true,
+  suggestSave = false,
   payload,
 }: {
   store: string;
@@ -28,6 +29,7 @@ export function SettingsEditor<T extends Record<string, unknown>, R extends Sell
   frame: SettingsFrame;
   children: (value: T, change: (value: T) => void, disabled: boolean) => ReactNode;
   valid?: (value: T) => boolean;
+  suggestSave?: boolean;
   payload?: (value: T) => Record<string, unknown>;
 }) {
   const client = useQueryClient();
@@ -49,8 +51,10 @@ export function SettingsEditor<T extends Record<string, unknown>, R extends Sell
   const conflicted = error instanceof HttpError && error.code === "VERSION_CONFLICT";
 
   async function save() {
-    if (!editing || busy || conflicts.length || !valid(value)) return;
-    const body = stringify({ ...(payload?.(value) ?? value), expectedRevision: editing.revision });
+    if ((!dirty && !suggestSave) || busy || conflicts.length || !valid(value)) return;
+    const revision = editing?.revision ?? data.revision;
+    if (!editing) setEditing({ original, value, revision });
+    const body = stringify({ ...(payload?.(value) ?? value), expectedRevision: revision });
     if (attempt.current?.body !== body) attempt.current = { body, key: crypto.randomUUID() };
     setBusy(true);
     setError(undefined);
@@ -147,22 +151,24 @@ export function SettingsEditor<T extends Record<string, unknown>, R extends Sell
         onConfirm={() => blocker.proceed?.()}
       />
     </>,
-    dirty && data.canWrite ? (
+    (dirty || suggestSave) && data.canWrite ? (
       <div className="space-y-2">
-        <p className="text-meta">Несохранённые изменения</p>
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            variant="secondary"
-            disabled={busy}
-            onClick={() => {
-              setEditing(undefined);
-              setError(undefined);
-              setConflicts([]);
-              setFormKey((key) => key + 1);
-            }}
-          >
-            Отменить
-          </Button>
+        <p className="text-meta">{dirty ? "Несохранённые изменения" : "Сохраните обновлённое расписание"}</p>
+        <div className={dirty ? "grid grid-cols-2 gap-2" : "grid"}>
+          {dirty && (
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={() => {
+                setEditing(undefined);
+                setError(undefined);
+                setConflicts([]);
+                setFormKey((key) => key + 1);
+              }}
+            >
+              Отменить
+            </Button>
+          )}
           <Button
             loading={busy}
             disabled={conflicted || !!conflicts.length || !valid(value)}
