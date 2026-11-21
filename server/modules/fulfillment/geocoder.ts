@@ -1,3 +1,4 @@
+import { exports } from "cloudflare:workers";
 import { z } from "zod";
 import { type GeocodeInput, pointInput } from "../../../src/shared/contracts/receiving";
 import { ApiError } from "../../../src/shared/errors";
@@ -94,25 +95,37 @@ export async function geocodeAddress(
   const key = new Request(`https://geocoding.invalid/v3/${submittedSearch ? "submitted/" : ""}${hash}`);
   const cached = await cache.match(key);
   if (cached) return resultsInput.parse(await cached.json());
-  if (!(await permit("photon"))) throw new ApiError("RATE_LIMITED", "Повторите поиск чуть позже");
-  let results: z.infer<typeof resultsInput>;
-  let photonFailed = false;
-  try {
-    results = await resolvePhoton(normalized, request);
-  } catch {
-    photonFailed = true;
-    results = [];
-  }
-  // Public Nominatim supports submitted searches, but not address autocomplete.
-  if ((normalized.type === "reverse" || submittedSearch) && !results.length && (await permit("nominatim"))) {
+  const photonAllowed = await permit("photon");
+  if (!photonAllowed && !submittedSearch) throw new ApiError("RATE_LIMITED", "Повторите поиск чуть позже");
+  let results: z.infer<typeof resultsInput> = [];
+  let failed = false;
+  if (photonAllowed) {
     try {
-      results = await resolveNominatim(normalized, request);
-      photonFailed = false;
+      results = await resolvePhoton(normalized, request);
     } catch {
-      photonFailed = true;
+      failed = true;
     }
   }
-  if (photonFailed) throw new ApiError("GEOCODER_UNAVAILABLE", "Поиск адреса недоступен. Укажите адрес вручную.");
+  // Public Nominatim supports submitted searches, but not address autocomplete.
+  if ((normalized.type === "reverse" || submittedSearch) && !results.length) {
+    if (await permit("nominatim")) {
+      try {
+        results = await resolveNominatim(normalized, request);
+        failed = false;
+      } catch {
+        failed = true;
+      }
+    } else if (submittedSearch) {
+      throw new ApiError("RATE_LIMITED", "Повторите проверку чуть позже");
+    }
+  }
+  if (failed) throw new ApiError("GEOCODER_UNAVAILABLE", "Поиск адреса недоступен. Укажите адрес вручную.");
   await cache.put(key, Response.json(results, { headers: { "Cache-Control": "max-age=86400" } }));
   return results;
+}
+
+export async function lookupShopAddress(shopId: string, input: GeocodeInput, submittedSearch = false) {
+  const coordinator = exports.Shop.get(exports.Shop.idFromName("geocoder:osm"));
+  const cache = await caches.open("shop-geocoding");
+  return geocodeAddress(shopId, input, cache, (provider) => coordinator.allowGeocoder(provider), { submittedSearch });
 }

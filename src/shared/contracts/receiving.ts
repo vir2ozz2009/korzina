@@ -2,8 +2,9 @@ import { z } from "zod";
 
 export const pointInput = z.object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180) });
 const address = z.string().trim().min(1).max(300);
+export const submittedAddressInput = z.object({ address: address.min(3) });
 export const geocodeInput = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("search"), address: address.min(3) }),
+  submittedAddressInput.extend({ type: z.literal("search") }),
   z.object({ type: z.literal("reverse"), point: pointInput }),
 ]);
 const tariff = z.discriminatedUnion("kind", [

@@ -4,6 +4,17 @@ import type { SavedAddress } from "../../../shared/contracts/profile";
 import type { DeliveryAddress } from "../../../shared/contracts/receiving";
 import { Button } from "../../../ui/Button";
 import { ListItem } from "../../../ui/ListItem";
+import type { ReceivingState } from "../api";
+
+export function savedChoices(current: DeliveryAddress | undefined, data: ReceivingState) {
+  const found = new Map<string, DeliveryAddress | SavedAddress>();
+  for (const value of [current, data.lastUsedAddress, ...data.savedAddresses]) {
+    if (!value) continue;
+    const key = addressKey(value);
+    if (!found.has(key) || "id" in value) found.set(key, value);
+  }
+  return [...found.values()];
+}
 
 export function AddressChooser({
   addresses,

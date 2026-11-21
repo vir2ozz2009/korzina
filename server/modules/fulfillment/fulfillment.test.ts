@@ -187,3 +187,48 @@ it("03 · §12.3 при отказе Photon ручная проверка адр
   expect(request).toHaveBeenCalledTimes(2);
   expect(new URL(String(request.mock.calls[0][0])).searchParams.has("lang")).toBe(false);
 });
+
+it("D12 · после сбоя подсказок проверяет ручной адрес через Nominatim и применяет зону магазина", async () => {
+  const headers = await guest();
+  const address = "12 Улица проверки, Хошимин";
+  const outside = "56 Улица проверки, Дананг";
+  const place = (name: string, { lat, lon }: typeof center) => ({ display_name: name, lat, lon });
+  const request = vi.fn<typeof fetch>(async (input) => {
+    const url = new URL(String(input));
+    if (url.hostname === "photon.komoot.io") return new Response(null, { status: 503 });
+    expect(url.origin + url.pathname).toBe("https://nominatim.openstreetmap.org/search");
+    expect(url.searchParams.get("q")).toBe(address);
+    return Response.json([place(address, center)]);
+  });
+  const confirm = (value: string) => postAuth("/api/receiving/verify-address?shop=lavka", { address: value }, headers);
+  vi.stubGlobal("fetch", request);
+  try {
+    const suggestions = await postAuth("/api/receiving/geocode?shop=lavka", { type: "search", address }, headers);
+    expect(suggestions.status).toBe(503);
+    expect(request).toHaveBeenCalledOnce();
+    const response = await confirm(address);
+    expect(response.status, await response.clone().text()).toBe(200);
+    const { point } = await response.json<{ point: typeof center }>();
+    expect(point).toEqual(center);
+    expect(await (await save(headers, 0, { ...street, address, point }, true)).json()).toMatchObject({
+      receiving: { address, point },
+      availability: { available: true, zoneId: "center", feeMinor: 25000 },
+    });
+    const cache = await caches.open("shop-geocoding");
+    await geocodeAddress("korzina-demo-lavka", { type: "search", address: outside }, cache, async () => true, {
+      submittedSearch: true,
+      request: async () =>
+        Response.json({
+          features: [{ geometry: { coordinates: [108.25, 16.036] }, properties: { name: outside } }],
+        }),
+    });
+    const rejected = await confirm(outside);
+    expect(rejected.status).toBe(409);
+    expect(await rejected.json()).toMatchObject({
+      error: { code: "OUT_OF_ZONE", details: { pickup: { address: expect.any(String) } } },
+    });
+    expect(await (await getAuth(path, headers)).json()).toMatchObject({ revision: 1, receiving: { address, point } });
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});

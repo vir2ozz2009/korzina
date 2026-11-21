@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { confirmAddressWithoutGeocoders } from "./address-verification";
 import { verifyBuyerOrderReload, verifyFavoriteCart, verifyOrderCancellation, verifySavedAddress } from "./after-order";
 import { verifyPaymentHelp } from "./payment-help";
 import { verifySellerOrders } from "./seller-orders";
@@ -81,8 +82,8 @@ test("B10: товар, доставка и заказ наличными", async
       await route.fulfill({ json: { results: [{ address: "45 Lê Lợi, Хошимин", lat: 10.7769, lon: 106.7009 }] } });
     } else {
       await route.fulfill({
-        status: 429,
-        json: { error: { code: "RATE_LIMITED", message: "Повторите поиск чуть позже" } },
+        status: 503,
+        json: { error: { code: "GEOCODER_UNAVAILABLE", message: "Сбой подсказок" } },
       });
     }
   });
@@ -143,7 +144,7 @@ test("B10: товар, доставка и заказ наличными", async
   await street.fill("28 Lê Lợi, Хошимин");
   await expect(search.getByText("Подсказки пока недоступны. Можно сохранить набранный текст.")).toBeVisible();
   await page.screenshot({ path: "test-results/checkout-address-fallback-390.png", animations: "disabled" });
-  await search.getByRole("button", { name: "Сохранить адрес вручную" }).click();
+  await confirmAddressWithoutGeocoders(page, search, "28 Lê Lợi, Хошимин");
   await expect(search).toBeHidden();
   const savedAddress = page.getByRole("button", { name: /28 Lê Lợi, Хошимин.*Условия доставки уточняются/ });
   await expect(savedAddress).toBeVisible();

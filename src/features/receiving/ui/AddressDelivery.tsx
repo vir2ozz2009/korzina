@@ -48,8 +48,9 @@ export function AddressReviewStatus({ check, currency }: { check: Check; currenc
 export function ManualDeliveryStatus() {
   return (
     <Card role="status" className="bg-secondary">
-      <p className="text-label">Условия доставки уточняются</p>
-      <p className="text-meta">Магазин проверит, возможна ли доставка, и сообщит её стоимость.</p>
+      <p className="text-meta">
+        Проверим адрес. Если точку найти не удастся, магазин уточнит возможность и стоимость доставки.
+      </p>
     </Card>
   );
 }
