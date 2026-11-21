@@ -13,8 +13,9 @@
 
 - [x] Андрей одобрил [спецификацию S7–S9](specs/team-and-launch.md) 21.11.2026. Ответы в §11, их проверки добавлены в §7.
 - [x] Андрей одобрил холст блока 8 по §12.5–§12.7 21.11.2026. «Витрина глазами покупателя» открывается внутри кабинета. В Chromium на 390 px проверены переходы, оформление на демоданных и возврат. [Кабинет `474938204991139840`](https://designs.magicpath.ai/v1/gently-cliff-1486?revisionId=474938204991139840&history=design) · [Приёмка в #178](https://github.com/vir2ozz2009/korzina/pull/178).
-- [ ] Сервер S8 → S9 (+ остаток S7), затем экраны, demo, smoke.
-- [ ] **СТОП:** чек-лист `docs/progress/team-and-launch-local-check.md` с таблицей покрытия спецификации → «➡️ Локальный Codex».
+- [x] Сервер команды и запуска, бот, кабинет и витрина по §12.5–§12.7 на demo `c1cbb7c`. Check, smoke на превью и Demo smoke прошли. [S8 #180](https://github.com/vir2ozz2009/korzina/pull/180) · [S9 #181](https://github.com/vir2ozz2009/korzina/pull/181) · [Экраны #182](https://github.com/vir2ozz2009/korzina/pull/182) · [Demo smoke](https://github.com/vir2ozz2009/korzina/actions/runs/44935450707).
+- [x] Подготовлен [чек-лист локальной проверки](progress/team-and-launch-local-check.md) с таблицей покрытия.
+- [ ] **СТОП:** Claude сверяет покрытие чек-листа по шагу 7 [правил блока](specs/README.md). После сверки проводится локальная проверка в браузере и Telegram.
 
 ### Шаги блока 7 · Настройки магазина
 
