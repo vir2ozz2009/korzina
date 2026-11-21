@@ -45,7 +45,7 @@ export function moveDayPauses(storage: DurableObjectStorage, timeZone: string, n
   }
 }
 
-export function pauseMessage(method: ReceivingMethod | "all", pause: ReceivingPause, timeZone: string) {
+function pauseMessage(method: ReceivingMethod | "all", pause: ReceivingPause, timeZone: string) {
   if (!pause.showBanner) return method === "all" ? "Магазин сейчас не принимает заказы" : "Сейчас недоступно";
   const subject = {
     delivery: "Доставка временно недоступна",
