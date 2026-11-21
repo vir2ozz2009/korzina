@@ -20,7 +20,7 @@ const methodSchedule = z.object({
   closedDates: z.array(z.iso.date()).max(366).optional(),
   cutoffForSlots: z.boolean().optional(),
 });
-const timezone = z.string().refine((value) => {
+export const timezone = z.string().refine((value) => {
   try {
     new Intl.DateTimeFormat("en", { timeZone: value });
     return true;

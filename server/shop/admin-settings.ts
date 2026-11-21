@@ -1,6 +1,5 @@
 import type { ShopContext } from "../../src/shared/contracts/shop-context";
-import { moveDayPauses } from "../modules/fulfillment/pause";
-import { shopTimeZoneSql } from "./time-zone";
+import { putSetting, recordStoreRevision, updateStoreTimeZone } from "./profile-settings";
 
 export function applyAdminSettings(storage: DurableObjectStorage, settings: NonNullable<ShopContext["adminSettings"]>) {
   const { name, country, currency, timeZone, theme } = settings;
@@ -9,31 +8,28 @@ export function applyAdminSettings(storage: DurableObjectStorage, settings: NonN
     .exec<{ value: string }>("SELECT value FROM settings WHERE key='admin_settings'")
     .toArray()[0];
   if (active?.value === signature) return;
+  const previous = active && (JSON.parse(active.value) as NonNullable<ShopContext["adminSettings"]>);
   storage.transactionSync(() => {
-    const previousTimeZone = storage.sql
-      .exec<{ timeZone: string }>(`SELECT ${shopTimeZoneSql} AS timeZone`)
-      .one().timeZone;
-    storage.sql.exec(
-      `INSERT INTO settings(key,value) VALUES
-      ('display_name',?),('phone_region',?),('theme',?),('admin_settings',?)
-      ON CONFLICT(key) DO UPDATE SET value=excluded.value`,
-      name,
-      country,
-      JSON.stringify(theme),
-      signature,
-    );
-    if (currency)
+    const themeChanged = JSON.stringify(previous?.theme) !== JSON.stringify(theme);
+    if (previous?.name !== name) putSetting(storage, "display_name", name);
+    if (previous?.country !== country) putSetting(storage, "phone_region", country);
+    if (themeChanged) putSetting(storage, "theme", JSON.stringify(theme));
+    if (currency && previous?.currency !== currency)
       storage.sql.exec(
         "UPDATE catalog_state SET currency=?,version=version+1 WHERE id=1 AND currency<>?",
         currency,
         currency,
       );
-    storage.sql.exec(
-      `UPDATE settings SET value=json_set(value,'$.timeZone',?)
-      WHERE key='receiving_schedule' AND json_valid(value) AND json_extract(value,'$.timeZone') IS NOT ?`,
-      timeZone,
-      timeZone,
-    );
-    if (previousTimeZone !== timeZone) moveDayPauses(storage, timeZone);
+    if (previous?.timeZone !== timeZone) updateStoreTimeZone(storage, timeZone);
+    putSetting(storage, "admin_settings", signature);
+    if (previous && themeChanged) recordStoreRevision(storage, "theme");
+    if (
+      previous &&
+      (previous.name !== name ||
+        previous.country !== country ||
+        previous.currency !== currency ||
+        previous.timeZone !== timeZone)
+    )
+      recordStoreRevision(storage, "profile");
   });
 }

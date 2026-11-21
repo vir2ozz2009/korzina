@@ -22,6 +22,7 @@ export class ShopContextCache {
     request: Request,
     env: Pick<Env, "PLATFORM"> & Partial<Pick<Env, "APP_ENV" | "MEDIA_PUBLIC_URL">>,
     fresh = false,
+    refreshSettings = false,
   ): Promise<ShopContext> {
     const started = this.now();
     const shop = await resolveShop(request, env.PLATFORM, env.APP_ENV, fresh);
@@ -39,11 +40,14 @@ export class ShopContextCache {
     const mediaOrigin =
       env.MEDIA_PUBLIC_URL === undefined ? undefined : publicMediaOrigin(request, env.MEDIA_PUBLIC_URL);
     const hit = this.entries.get(shop.id);
-    if (hit && hit.expires > this.now() && JSON.stringify(hit.value.adminSettings) === JSON.stringify(adminSettings))
-      return { ...hit.value, status: shop.status, mediaOrigin };
-    this.entries.delete(shop.id);
-    await applyDemoSeed(env.PLATFORM, env.APP_ENV, shop.id);
-    const features = await readFeatures(env.PLATFORM, shop.id);
+    const usable =
+      hit && hit.expires > this.now() && JSON.stringify(hit.value.adminSettings) === JSON.stringify(adminSettings);
+    if (usable && !refreshSettings) return { ...hit.value, status: shop.status, mediaOrigin };
+    if (!usable) {
+      this.entries.delete(shop.id);
+      await applyDemoSeed(env.PLATFORM, env.APP_ENV, shop.id);
+    }
+    const features = usable ? hit.value.features : await readFeatures(env.PLATFORM, shop.id);
     const response = await forwardToShop(
       { req: { raw: new Request("https://internal/api/shop") } },
       { ...shop, features, adminSettings },
@@ -53,6 +57,7 @@ export class ShopContextCache {
     const value = shopContextContract.parse({
       ...shop,
       name: settings.name,
+      profile: settings.profile,
       timeZone: settings.timeZone,
       theme: settings.theme,
       features,
@@ -60,7 +65,7 @@ export class ShopContextCache {
       mediaOrigin,
     });
     if (this.entries.size >= 500) this.entries.delete(this.entries.keys().next().value as string);
-    this.entries.set(shop.id, { value, expires: started + CONTEXT_TTL });
+    this.entries.set(shop.id, { value, expires: usable ? hit.expires : started + CONTEXT_TTL });
     return value;
   }
 }

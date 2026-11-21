@@ -19,6 +19,16 @@ export function themedHtml(response: Response, context: ShopContext, shopTheme: 
     .on("head", {
       element(element) {
         element.append(`<script id="shop-context" type="application/json">${encoded}</script>`, { html: true });
+        const src = shopTheme && context.profile?.logo?.src;
+        if (src) {
+          const escaped = src.replace(/&/gu, "&amp;").replace(/"/gu, "&quot;").replace(/</gu, "&lt;");
+          element.append(`<meta property="og:image" content="${escaped}">`, { html: true });
+        }
+      },
+    })
+    .on("title", {
+      element: (element) => {
+        if (shopTheme) element.setInnerContent(context.name);
       },
     })
     .transform(response);
@@ -35,8 +45,8 @@ export async function serveHtml(request: Request, env: Env): Promise<Response> {
   const response = await env.ASSETS.fetch(request);
   if (!response.headers.get("Content-Type")?.includes("text/html") || !response.ok) return response;
   try {
-    const context = await shopContexts.read(request, env);
     const isShop = !/^\/(seller|admin)(\/|$)/.test(url.pathname);
+    const context = await shopContexts.read(request, env, false, isShop);
     const page = themedHtml(response, context, isShop);
     const name = customerCookie(context.id);
     const token = request.method === "GET" ? cookieValue(request, name) : undefined;

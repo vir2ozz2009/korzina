@@ -43,7 +43,9 @@ export const adminRoutes = new Hono<{
     const current =
       input.action === "data" || input.action === "status" ? await managedShop(c.env.PLATFORM, id) : undefined;
     const locked =
-      input.action === "data" ? (await exports.Shop.get(exports.Shop.idFromName(id)).adminShopStats()).finances : false;
+      input.action === "data"
+        ? (await exports.Shop.get(exports.Shop.idFromName(id)).adminShopStats()).hasOrders
+        : false;
     const mutation = { id, actor: c.get("actorId"), command: c.get("command"), version: input.version };
     const result = await changeShop(c.env.PLATFORM, mutation, input, c.env, locked);
     shopContexts.invalidate(id);
