@@ -12,6 +12,7 @@ import { Sheet } from "../../../ui/Sheet";
 import { TextArea } from "../../../ui/TextArea";
 import { useContact } from "../../contact";
 import { useReceiving, useSaveReceiving } from "../api";
+import { useReceivingTime } from "../useReceivingTime";
 import { addressFields } from "./AddressFields";
 import { ReceivingContinue } from "./ReceivingContinue";
 import { ReceivingTime } from "./ReceivingTime";
@@ -113,6 +114,7 @@ export function ReceivingScreen() {
   const [focus, setFocus] = useState<keyof typeof addressFields>();
   const [editor, setEditor] = useState<"details" | "comment">();
   const data = query.data;
+  const timeSelection = useReceivingTime(data);
   const selection = data?.receiving;
   const address = selection?.mode === "delivery" ? selection : undefined;
   const commentTitle = address ? "Комментарий курьеру" : "Комментарий магазину";
@@ -147,7 +149,7 @@ export function ReceivingScreen() {
               }}
             />
           )}
-          <ReceivingTime data={data} open={timeOpen} setOpen={setTimeOpen} />
+          <ReceivingTime data={data} selection={timeSelection} open={timeOpen} setOpen={setTimeOpen} />
           <ListItem
             title={commentTitle}
             subtitle={selection.comment}
@@ -178,6 +180,7 @@ export function ReceivingScreen() {
           </Sheet>
           <ReceivingContinue
             data={data}
+            timeSelection={timeSelection}
             onTime={() => setTimeOpen(true)}
             onDetails={(field) => {
               setFocus(field);

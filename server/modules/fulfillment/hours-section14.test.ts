@@ -84,6 +84,12 @@ it("§14.5 §14.6 выходная дата и заполненный интер
   const limited = scheduleFromHours({ ...workingHours, capacity: 4 }, ["2026-11-19"]);
   const dates = availableDays(limited, clock, now, count);
   expect(dates[0].intervals[0]).toMatchObject({ available: false, reason: "full" });
-  expect(dates[1]).toMatchObject({ available: false, intervals: [] });
+  expect(dates[0]).toMatchObject({ available: false, reason: "full" });
+  expect(dates[1]).toMatchObject({ available: false, reason: "closed", intervals: [] });
+  const byDay = scheduleFromHours({ ...workingHours, interval: "day", dayCapacity: 4 }, ["2026-11-19"]);
+  expect(availableDays(byDay, clock, now, count).slice(0, 2)).toMatchObject([
+    { available: false, reason: "full" },
+    { available: false, reason: "closed" },
+  ]);
   expect(availableDays(scheduleFromHours(workingHours, []), clock, now, count)[0].intervals[0].available).toBe(true);
 });

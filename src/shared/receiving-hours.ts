@@ -1,4 +1,18 @@
-import type { Preparation } from "./contracts/receiving-time";
+import type { AvailabilityDay, MethodSchedule, Preparation, TimeChoice } from "./contracts/receiving-time";
+
+export const timeChangedMessage = "Время изменилось, выберите заново";
+
+export function isTimeAvailable(mode: MethodSchedule["mode"], days: AvailabilityDay[], time: TimeChoice | null) {
+  if (mode === "after_order") return time === null;
+  if (!time) return false;
+  const day = days.find(({ date }) => date === time.date);
+  return (
+    !!day?.available &&
+    (mode === "day"
+      ? time.slotId === undefined
+      : day.intervals.some(({ id, available }) => id === time.slotId && available))
+  );
+}
 
 export const preparationMinutes = { now: 0, hour: 60, two_hours: 120, next_day: 0 } satisfies Record<
   Preparation,

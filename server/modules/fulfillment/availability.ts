@@ -6,7 +6,8 @@ import {
 } from "../../../src/shared/contracts/receiving-time";
 import { calendarDate } from "../../../src/shared/datetime";
 import { ApiError } from "../../../src/shared/errors";
-import { availableDays, isAvailable, scheduleClock, scheduledPeriods } from "./schedule";
+import { isTimeAvailable, timeChangedMessage } from "../../../src/shared/receiving-hours";
+import { availableDays, scheduleClock, scheduledPeriods } from "./schedule";
 import { readFulfillment, readReceiving, writeReceiving } from "./service";
 
 export function readSchedule(storage: DurableObjectStorage) {
@@ -60,7 +61,7 @@ export function saveTime(storage: DurableObjectStorage, subject: string, input: 
       if (!readFulfillment(storage, maps)[current.receiving.mode])
         throw new ApiError("NOT_FOUND", "Способ получения недоступен");
       const availability = readAvailability(storage, current.receiving.mode);
-      if (!isAvailable(availability.mode, availability.days, time)) throw unavailableTime();
+      if (!isTimeAvailable(availability.mode, availability.days, time)) throw unavailableTime();
     }
     if (JSON.stringify(current.time) === JSON.stringify(time)) return { revision, ...current };
     const updated = { ...current, time, receivingUpdatedAt: Date.now() };
@@ -77,7 +78,8 @@ export function reserveTime(
   now = Date.now(),
 ) {
   const { methodSchedule, response: availability } = availabilityFor(storage, method, now);
-  if (!isAvailable(availability.mode, availability.days, time)) throw unavailableTime();
+  if (!isTimeAvailable(availability.mode, availability.days, time))
+    throw new ApiError("SLOT_TAKEN", time ? timeChangedMessage : "Выберите доступное время получения");
   if (!time) return false;
   const capacity =
     methodSchedule.mode === "day"

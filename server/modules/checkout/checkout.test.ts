@@ -1,6 +1,7 @@
 import { runInDurableObject } from "cloudflare:test";
-import { beforeAll, beforeEach, expect, it } from "vitest";
+import { assert, beforeAll, beforeEach, expect, it } from "vitest";
 import type { OrderResult } from "../../../src/shared/contracts/checkout";
+import { type AvailabilityDay, weekdays } from "../../../src/shared/contracts/receiving-time";
 import { assertSqlBudget, type SqlMetrics } from "../../metrics";
 import { getAuth } from "../../testing/auth";
 import { setupPlatform } from "../../testing/platform";
@@ -176,3 +177,48 @@ it("прежний расчёт отклоняется после изменен
     error: { code: "QUOTE_CHANGED", details: { beforeMinor: 130000, afterMinor: 135000 } },
   });
 });
+
+it.each(["day", "after_order"] as const)(
+  "§14.3 переход с интервалов на %s отклоняет прежнее время при расчёте и оформлении",
+  async (mode) => {
+    const days = Object.fromEntries(weekdays.map((day) => [day, [{ start: "09:00", end: "20:00" }]]));
+    const setMode = (mode: string) =>
+      catalogSql(
+        "UPDATE settings SET value=? WHERE key='receiving_schedule'",
+        JSON.stringify({ timeZone: "Asia/Ho_Chi_Minh", pickup: { mode, days } }),
+      );
+    await setMode("slots");
+    const cookie = await customer("sku-01");
+    const availability = await getAuth("/api/receiving/availability?shop=lavka&method=pickup");
+    const { days: available } = await availability.json<{ days: AvailabilityDay[] }>();
+    const tomorrow = available[1];
+    const slot = tomorrow.intervals.find((item) => item.available);
+    assert(slot);
+    const time = { date: tomorrow.date, slotId: slot.id };
+    expect((await buy("receiving/time", { expectedRevision: 2, time }, cookie)).status).toBe(200);
+    const quote = await getQuote(cookie);
+    expect(quote.time).toEqual(time);
+    await setMode(mode);
+
+    for (const response of [
+      await buy("quote", {}, cookie),
+      await buy("checkout", { quoteRevision: quote.quoteRevision, payment: "cash" }, cookie),
+    ]) {
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({
+        error: { code: "SLOT_TAKEN", message: "Время изменилось, выберите заново" },
+      });
+    }
+    const session = await getAuth("/api/auth/session?shop=lavka", { Cookie: cookie });
+    const { subject } = await session.json<{ subject: string }>();
+    expect(await catalogSql("SELECT number FROM orders WHERE customer=?", subject)).toEqual([]);
+    const cart = await getAuth("/api/cart?shop=lavka", { Cookie: cookie });
+    expect(await cart.json()).toMatchObject({ revision: 3, count: 1 });
+    const nextTime = mode === "day" ? { date: tomorrow.date } : null;
+    expect((await buy("receiving/time", { expectedRevision: 3, time: nextTime }, cookie)).status).toBe(200);
+    const next = await getQuote(cookie);
+    const placed = await buy("checkout", { quoteRevision: next.quoteRevision, payment: "cash" }, cookie);
+    expect(placed.status).toBe(201);
+    expect(await placed.json()).toMatchObject({ time: nextTime });
+  },
+);

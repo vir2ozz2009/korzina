@@ -31,7 +31,7 @@ export function HoursSettings({ store, frame }: { store: string; frame: Settings
                 extra={
                   !value.pickup && (
                     <Button variant="ghost" onClick={() => change({ ...value, pickup: value.delivery })}>
-                      Для самовывоза другие часы
+                      Для самовывоза другие часы <span aria-hidden>›</span>
                     </Button>
                   )
                 }
@@ -43,7 +43,7 @@ export function HoursSettings({ store, frame }: { store: string; frame: Settings
                   change={(pickup) => change({ ...value, pickup })}
                   extra={
                     <Button variant="ghost" onClick={() => change({ ...value, pickup: undefined })}>
-                      Общие часы для самовывоза
+                      Общие часы для самовывоза <span aria-hidden>›</span>
                     </Button>
                   }
                 />

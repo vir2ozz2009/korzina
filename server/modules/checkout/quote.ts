@@ -2,11 +2,11 @@ import { type PurchaseQuote, paymentSettingsInput, type QuoteResponse } from "..
 import { defaultShopTimeZone } from "../../../src/shared/datetime";
 import { ApiError } from "../../../src/shared/errors";
 import { addMinor, multiplyMinor } from "../../../src/shared/money";
+import { isTimeAvailable, timeChangedMessage } from "../../../src/shared/receiving-hours";
 import type { ShopEnv } from "../../shop/env";
 import { readCart } from "../cart/service";
 import { readAvailability } from "../fulfillment/availability";
 import { pauseStatus } from "../fulfillment/pause";
-import { isAvailable } from "../fulfillment/schedule";
 import { checkFulfillment, parseSelection, requireFulfillment, resolveFulfillment } from "../fulfillment/service";
 import { checkoutPayments } from "./payment-settings";
 
@@ -91,8 +91,8 @@ export function purchaseDraft(env: Shop, subject: string, kind: "guest" | "teleg
   if (!fulfillment.available) throw new ApiError("VALIDATION", "Уточните получение");
   if (checkTime) {
     const availability = readAvailability(storage, receiving.mode, now);
-    if (!isAvailable(availability.mode, availability.days, time))
-      throw new ApiError("SLOT_TAKEN", "Выберите доступное время получения");
+    if (!isTimeAvailable(availability.mode, availability.days, time))
+      throw new ApiError("SLOT_TAKEN", time ? timeChangedMessage : "Выберите доступное время получения");
   }
   if (!context.phone && kind !== "telegram") throw new ApiError("VALIDATION", "Войдите или укажите номер телефона");
   if (!paymentSettings.methods.length) throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Оплата пока недоступна");

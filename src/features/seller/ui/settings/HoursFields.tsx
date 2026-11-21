@@ -40,7 +40,6 @@ export function HoursFields({
   const common = first ?? emptyRange;
   const mode = value.interval === "day" || value.interval === "after_order" ? value.interval : "slots";
   const capacity = mode === "day" ? "dayCapacity" : "capacity";
-  const previewText = `Покупатель увидит · ${preview(value)}`;
 
   return (
     <Card role="region" aria-labelledby={id} className="min-w-0">
@@ -97,7 +96,7 @@ export function HoursFields({
           setByDay(!byDay);
         }}
       >
-        {byDay ? "Общее время для всех дней" : "Разное время по дням"}
+        {byDay ? "Общее время для всех дней" : "Разное время по дням"} <span aria-hidden>›</span>
       </Button>
       {!isValid(value) && <p role="alert">Проверьте часы работы и лимит заказов.</p>}
       <fieldset className="min-w-0 space-y-2">
@@ -146,7 +145,7 @@ export function HoursFields({
       {mode !== "after_order" &&
         (value[capacity] === undefined ? (
           <Button variant="ghost" onClick={() => change({ ...value, [capacity]: 4 })}>
-            Ограничить число заказов
+            Ограничить число заказов <span aria-hidden>›</span>
           </Button>
         ) : (
           <div className="space-y-1">
@@ -159,17 +158,14 @@ export function HoursFields({
               onChange={(event) => change({ ...value, [capacity]: event.target.valueAsNumber })}
             />
             <Button variant="ghost" onClick={() => change({ ...value, [capacity]: undefined })}>
-              Снять ограничение
+              Снять ограничение <span aria-hidden>›</span>
             </Button>
           </div>
         ))}
       {extra}
-      <output
-        aria-label="Покупатель увидит"
-        title={previewText}
-        className="block truncate rounded-lg bg-secondary px-1 py-2 text-micro font-normal tracking-tight"
-      >
-        {previewText}
+      <output aria-label="Покупатель увидит" className="block rounded-lg bg-secondary px-2 py-2 text-meta">
+        <span className="block text-label">Покупатель увидит</span>
+        <span className="block">{preview(value)}</span>
       </output>
     </Card>
   );

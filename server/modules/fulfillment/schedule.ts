@@ -1,9 +1,4 @@
-import {
-  type AvailabilityDay,
-  type MethodSchedule,
-  type TimeChoice,
-  weekdays,
-} from "../../../src/shared/contracts/receiving-time";
+import { type AvailabilityDay, type MethodSchedule, weekdays } from "../../../src/shared/contracts/receiving-time";
 import { calendarDate } from "../../../src/shared/datetime";
 
 const minute = 60_000;
@@ -59,6 +54,7 @@ export function availableDays(
   return Array.from({ length: 7 }, (_, offset) => {
     const date = calendarDate(clock.today, offset);
     const periods = scheduledPeriods(schedule, date);
+    if (!periods.length) return { date, available: false, reason: "closed", intervals: [] };
     const prep = schedule.preparationMinutes * minute;
     const nextDayClosed = schedule.preparation === "next_day" && offset === 0;
     if (schedule.mode === "day") {
@@ -66,7 +62,7 @@ export function availableDays(
         ? !nextDayClosed && periods.some(({ end }) => intervalStart(clock.formatter, date, end) > now + prep)
         : periods.length > 0 && (offset > 0 || clock.localTime < schedule.dayCutoff);
       const available = dayOpen && (schedule.dayCapacity === undefined || count(date) < schedule.dayCapacity);
-      return { date, available, intervals: [] };
+      return { date, available, reason: available ? undefined : dayOpen ? "full" : "past", intervals: [] };
     }
 
     const intervals = [...periods]
@@ -91,18 +87,8 @@ export function availableDays(
           reason: past ? ("past" as const) : full ? ("full" as const) : undefined,
         };
       });
-    return { date, available: intervals.some(({ available }) => available), intervals };
+    const available = intervals.some((interval) => interval.available);
+    const reason = available ? undefined : intervals.some((interval) => interval.reason === "full") ? "full" : "past";
+    return { date, available, reason, intervals };
   });
-}
-
-export function isAvailable(mode: MethodSchedule["mode"], days: AvailabilityDay[], time: TimeChoice | null) {
-  if (mode === "after_order") return time === null;
-  if (!time) return false;
-  const entry = days.find(({ date }) => date === time.date);
-  return (
-    !!entry?.available &&
-    (mode === "day"
-      ? time.slotId === undefined
-      : entry.intervals.some(({ id, available }) => id === time.slotId && available))
-  );
 }

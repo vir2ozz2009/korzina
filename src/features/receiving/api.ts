@@ -29,7 +29,7 @@ function useReceivingMutation<T, Result>(mutationFn: (input: T) => Promise<Resul
     mutationFn,
     onSettled: async () => {
       await Promise.all([
-        client.invalidateQueries({ queryKey: receivingKey }),
+        client.invalidateQueries({ queryKey: receivingKey, exact: true }),
         client.invalidateQueries({ queryKey: cartKey }),
       ]);
     },
@@ -71,7 +71,8 @@ export function useAvailability(method: ReceivingMethod | undefined) {
   return useQuery({
     queryKey: [...receivingKey, "availability", method],
     enabled: !!method,
-    staleTime: 30_000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: "always",
     queryFn: async ({ signal }) => {
       const response = await shopApi.api.receiving.availability.$get(
         { query: { method: method ?? "pickup" } },
