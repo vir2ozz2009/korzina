@@ -9,8 +9,10 @@ import { purchaseRoutes } from "../modules/checkout/routes";
 import { sellerPaymentRoutes } from "../modules/checkout/seller-payment-routes";
 import { diagnostics } from "../modules/diagnostics/routes";
 import { favoritesRoutes } from "../modules/favorites/routes";
+import { pauseStatus } from "../modules/fulfillment/pause";
 import { receivingRoutes } from "../modules/fulfillment/routes";
 import { sellerReceivingRoutes } from "../modules/fulfillment/seller-routes";
+import { resolveFulfillment } from "../modules/fulfillment/service";
 import { mediaRoutes } from "../modules/media/routes";
 import { profileRoutes } from "../modules/profile/routes";
 import { sellerCatalogRoutes } from "../modules/seller-catalog/routes";
@@ -27,12 +29,15 @@ export function shopRoutes() {
       // Public ingress is rate-limited by the Worker. A catalog page may make several private Shop reads.
       .get("/shop", async (c) => {
         const settings = readPublicSettings(c.env.db);
+        const fulfillment = resolveFulfillment(settings.fulfillment, c.env.features.maps);
+        const { banners } = pauseStatus(fulfillment, settings.timeZone, Date.now());
         return c.json({
           ...c.env.shop,
           name: settings.name ?? c.env.shop.name,
           theme: settings.theme,
           timeZone: settings.timeZone,
           profile: settings.profile,
+          orderBanners: banners.length ? banners : undefined,
           features: c.env.features,
         });
       })

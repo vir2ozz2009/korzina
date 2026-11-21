@@ -79,7 +79,8 @@ export function ownerProfile(env: Env, seller: Seller) {
     country,
     currency,
     slug: shop.slug,
-    profile: { ...values.profile, name: values.name ?? shop.name, timeZone: values.timeZone },
+    maps: env.features.maps,
+    profile: { logo: null, ...values.profile, name: values.name ?? shop.name, timeZone: values.timeZone },
   };
 }
 

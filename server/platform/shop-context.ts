@@ -58,6 +58,7 @@ export class ShopContextCache {
       ...shop,
       name: settings.name,
       profile: settings.profile,
+      orderBanners: settings.orderBanners,
       timeZone: settings.timeZone,
       theme: settings.theme,
       features,

@@ -1,10 +1,11 @@
 import { exports } from "cloudflare:workers";
 import { beforeAll, expect, it, vi } from "vitest";
+import { fulfillmentSettingsInput } from "../../../src/shared/contracts/receiving";
 import { getAuth, sellerFixture } from "../../testing/auth";
 import { setupPlatform } from "../../testing/platform";
 import { buy, customer, getQuote, setupCheckout } from "../checkout/testing";
 import { deliveryCities } from "./city";
-import { pauseDeadline } from "./pause";
+import { pauseDeadline, pauseStatus } from "./pause";
 import { checkFulfillment, resolveFulfillment } from "./service";
 import { scheduleFromHours } from "./settings";
 
@@ -103,6 +104,26 @@ it("§9.3 сроки паузы считают час и следующую по
   expect(pauseDeadline("day", now, "Asia/Ho_Chi_Minh")).toBe(Date.parse("2026-11-20T17:00:00Z"));
   expect(pauseDeadline("day", now, "America/New_York")).toBe(Date.parse("2026-11-20T05:00:00Z"));
   expect(pauseDeadline("manual", now, "Asia/Ho_Chi_Minh")).toBeNull();
+});
+
+it("§13.3 истечение паузы доставки не снимает бессрочную плашку самовывоза", () => {
+  const now = Date.parse("2026-11-20T10:00:00Z");
+  const until = now + 60 * 60_000;
+  const settings = fulfillmentSettingsInput.parse({
+    delivery: { mode: "text", tariff: { kind: "free" } },
+    pickup: { address: "Пункт выдачи", hours: "09:00–20:00" },
+    pauses: {
+      delivery: { term: "hour", startedAt: now, until },
+      pickup: { term: "manual", startedAt: now, until: null },
+    },
+  });
+  expect(pauseStatus(settings, "UTC", now).banners).toEqual([
+    { text: "Доставка временно недоступна до 11:00", expires: until },
+    { text: "Самовывоз временно недоступен", expires: null },
+  ]);
+  expect(pauseStatus(settings, "UTC", until).banners).toEqual([
+    { text: "Самовывоз временно недоступен. Доставка работает", expires: null },
+  ]);
 });
 
 it("§12.4 интервалы нарезаются внутри рабочих часов, выходные даты сохраняются", () => {

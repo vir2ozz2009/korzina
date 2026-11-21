@@ -32,9 +32,11 @@ export const fulfillmentSettingsInput = z.object({
     .union([
       z.object({
         mode: z.literal("map").default("map"),
+        city: z.string().trim().min(1).max(500).optional(),
         payee: deliveryPayee,
+        defaultTariff: tariff.optional(),
         zones: z
-          .array(z.object({ id: zoneId, geometry, tariff }))
+          .array(z.object({ id: zoneId, geometry, tariff, customTariff: z.boolean().optional() }))
           .min(1)
           .max(30),
       }),

@@ -55,11 +55,13 @@ export function readReceivingSettings(env: Env, seller: Seller) {
   const settings = resolveFulfillment(saved, features.maps);
   const actual = resolveFulfillment(saved, true);
   const payment = readSetting(storage, "purchase_payment");
+  const { currency } = storage.sql.exec<{ currency: string }>("SELECT currency FROM catalog_state WHERE id=1").one();
   const { delivery, pickup, requiredDetails } = settings;
   return {
     ...revision(storage, "receiving"),
     canWrite: seller.role === "owner",
     maps: features.maps,
+    currency,
     mapsFallback: !features.maps && actual.delivery?.mode === "map",
     delivery,
     pickup,
@@ -78,17 +80,19 @@ export function updateReceivingSettings(
   assertRevision(storage, "receiving", expectedRevision);
   const saved = readSetting(storage, "fulfillment");
   const existing = resolveFulfillment(saved, true);
-  const fallback = resolveFulfillment(saved, env.features.maps);
   if (!env.features.maps && input.delivery?.mode === "map")
     throw new ApiError("FEATURE_DISABLED", "Карта отключена. Проверьте условия доставки.");
-  const delivery =
-    existing.delivery?.mode === "map" &&
-    !env.features.maps &&
-    input.delivery?.mode === "text" &&
-    JSON.stringify(input.delivery) === JSON.stringify(fallback.delivery)
-      ? existing.delivery
-      : input.delivery;
+  let delivery = input.delivery;
+  if (!env.features.maps && existing.delivery?.mode === "map" && delivery?.mode === "text") {
+    const { tariff, payee } = delivery;
+    delivery = {
+      ...existing.delivery,
+      payee,
+      zones: existing.delivery.zones.map((zone, index) => (index ? zone : { ...zone, tariff })),
+    };
+  }
   storeSetting(storage, "fulfillment", fulfillmentSettingsInput.parse({ ...existing, ...input, delivery }));
+  ensureReceivingSchedule(storage, Boolean(delivery), Boolean(input.pickup));
   storage.sql.exec(
     `INSERT INTO settings(key,value) VALUES('purchase_payment',json_object('minimumMinor',?,'methods',json('[]')))
       ON CONFLICT(key) DO UPDATE SET value=json_set(value,'$.minimumMinor',?)`,
@@ -147,6 +151,30 @@ function timeZone(storage: DurableObjectStorage) {
   return storage.sql.exec<{ timeZone: string }>(`SELECT ${shopTimeZoneSql} AS timeZone`).one().timeZone;
 }
 
+function ensureReceivingSchedule(storage: DurableObjectStorage, delivery: boolean, pickup: boolean) {
+  if (!delivery && !pickup) return;
+  const current = readSchedule(storage);
+  if ((!delivery || current?.delivery) && (!pickup || current?.pickup)) return;
+  const defaults =
+    current?.delivery ??
+    current?.pickup ??
+    scheduleFromHours(
+      {
+        days: Object.fromEntries(weekdays.map((day) => [day, [{ start: "09:00", end: "20:00" }]])),
+        interval: "2",
+        preparationMinutes: 60,
+        dayCutoff: "18:00",
+      },
+      [],
+    );
+  storeSetting(storage, "receiving_schedule", {
+    ...current,
+    timeZone: current?.timeZone ?? timeZone(storage),
+    delivery: current?.delivery ?? (delivery ? defaults : undefined),
+    pickup: current?.pickup ?? (pickup ? defaults : undefined),
+  });
+}
+
 export function updateReceivingHours(env: Env, seller: Seller, { expectedRevision, ...input }: SaveReceivingHours) {
   const { storage } = env;
   assertRevision(storage, "hours", expectedRevision);
@@ -167,6 +195,7 @@ export function readReceivingPauses(env: Env, seller: Seller, now = Date.now()) 
   const adminPaused = shop.status !== "active";
   return {
     ...revision(storage, "pause"),
+    timeZone: timeZone(storage),
     adminPaused,
     canWrite: !adminPaused && (seller.role === "owner" || seller.permissions.includes("orders")),
     methods: receivingMethods

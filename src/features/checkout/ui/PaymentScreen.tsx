@@ -12,16 +12,15 @@ import { rememberBuyer } from "../../../shared/shop-session";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { ListItem } from "../../../ui/ListItem";
-import { Radio } from "../../../ui/Radio";
 import { StickyFooter } from "../../../ui/StickyFooter";
 import { ContactSheet, useContact } from "../../contact";
 import { orderKeys } from "../../orders";
 import { ReceivingTime, useReceiving } from "../../receiving";
 import { type Attempt, usePlaceOrder, useQuote } from "../api";
 import { readAttempt, storeAttempt, storeOrderNumber } from "../session";
-import { PaymentHelp, QuoteChange, TransferInstruction } from "./PaymentExtras";
+import { PaymentHelp, QuoteChange } from "./PaymentExtras";
+import { PaymentMethods } from "./PaymentMethods";
 import { PurchaseTotals } from "./PurchaseTotals";
-import { ReceiptField } from "./ReceiptField";
 import { useReceipt } from "./useReceipt";
 
 export function PaymentScreen() {
@@ -30,9 +29,7 @@ export function PaymentScreen() {
   const receiving = useReceiving();
   const contact = useContact();
   const receipt = useReceipt();
-  const [method, setMethod] = useState<CheckoutCommand["payment"] | undefined>(() =>
-    receipt.draft?.bound ? "transfer" : undefined,
-  );
+  const [method, setMethod] = useState<string | undefined>(() => (receipt.draft?.bound ? "transfer" : undefined));
   const [timeOpen, setTimeOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [attempt, setAttempt] = useState(readAttempt);
@@ -43,17 +40,28 @@ export function PaymentScreen() {
   const readyReceiving = !!receiving.data?.receiving;
   const query = useQuote(receiving.data?.revision, contact.data, !attempt && readyContact && readyReceiving);
   const quote = query.data;
-  const selected = method ?? quote?.paymentSettings.methods[0];
-  const available = selected && quote?.paymentSettings.methods.includes(selected);
+  const payment = quote?.paymentSettings;
+  const methods =
+    payment?.options ??
+    payment?.methods.map((id) => ({
+      id,
+      name: id === "cash" ? "Наличные" : "Перевод",
+      requiresReceipt: id === "transfer",
+      description: undefined,
+      imageSrc: payment.qrSrc,
+      instruction: payment.instruction,
+      details: undefined,
+    }));
+  const selected = methods?.find((option) => option.id === method) ?? methods?.[0];
   const busy = !!attempt || place.isPending || receipt.pending;
   const needsAccept = !!(before && quote && before.quoteRevision !== quote.quoteRevision);
   const disabled =
     busy ||
-    !available ||
+    !selected ||
     needsAccept ||
     query.isFetching ||
     query.isError ||
-    (selected === "transfer" && !receipt.draft?.bound);
+    (selected?.requiresReceipt && !receipt.draft?.bound);
 
   async function send(next: Attempt) {
     if (place.isPending) return;
@@ -97,13 +105,16 @@ export function PaymentScreen() {
   function submit() {
     if (disabled || !quote || !selected) return;
     const proof = receipt.draft?.proofId;
-    const request: CheckoutCommand | undefined =
-      selected === "cash"
+    const request: CheckoutCommand =
+      selected.id === "cash"
         ? { quoteRevision: quote.quoteRevision, payment: "cash" }
-        : proof
-          ? { quoteRevision: quote.quoteRevision, payment: "transfer", proofMediaId: proof }
-          : undefined;
-    if (request) void send({ key: crypto.randomUUID(), request, startedAt: Date.now() });
+        : {
+            quoteRevision: quote.quoteRevision,
+            payment: "transfer",
+            ...(payment?.options && { methodId: selected.id }),
+            ...(selected.requiresReceipt && proof && { proofMediaId: proof }),
+          };
+    void send({ key: crypto.randomUUID(), request, startedAt: Date.now() });
   }
 
   const draft = receiving.data;
@@ -118,7 +129,9 @@ export function PaymentScreen() {
   const error = query.error instanceof HttpError ? query.error : undefined;
   const cartError =
     error &&
-    ["OUT_OF_ZONE", "PICKUP_UNAVAILABLE", "QUOTE_CHANGED", "MIN_ORDER_SUM", "UNAUTHORIZED"].includes(error.code ?? "");
+    ["OUT_OF_ZONE", "PICKUP_UNAVAILABLE", "QUOTE_CHANGED", "MIN_ORDER_SUM", "UNAUTHORIZED", "SHOP_CLOSED"].includes(
+      error.code ?? "",
+    );
   const receivingError = error?.code === "SLOT_TAKEN" || error?.code === "VALIDATION";
 
   return (
@@ -195,36 +208,22 @@ export function PaymentScreen() {
                   old={before}
                   quote={quote}
                   hasReceipt={!!receipt.draft?.bound}
+                  methodId={selected?.id}
                   accept={() => {
                     setBefore(undefined);
                     setFailure("");
                   }}
                 />
               )}
-              <Card>
-                <h2 className="text-title-3">Способ оплаты</h2>
-                <fieldset aria-label="Способ оплаты" disabled={busy}>
-                  {quote.paymentSettings.methods.map((item) => (
-                    <Radio
-                      key={item}
-                      name="payment"
-                      checked={item === selected}
-                      label={item === "cash" ? "Наличные" : "Перевод"}
-                      onChange={() => setMethod(item)}
-                    />
-                  ))}
-                </fieldset>
-                {selected === "transfer" && available && (
-                  <>
-                    <TransferInstruction key={quote.paymentSettings.qrSrc} {...quote.paymentSettings} />
-                    <ReceiptField
-                      quoteRevision={quote.quoteRevision}
-                      receipt={receipt}
-                      locked={place.isPending || needsAccept || query.isFetching}
-                    />
-                  </>
-                )}
-              </Card>
+              <PaymentMethods
+                choices={methods}
+                selected={selected}
+                select={setMethod}
+                receipt={receipt}
+                busy={busy}
+                locked={place.isPending || needsAccept || query.isFetching}
+                quoteRevision={quote.quoteRevision}
+              />
               <ContactSheet mode={contactOpen ? "phone" : undefined} close={() => setContactOpen(false)} />
             </>
           )}

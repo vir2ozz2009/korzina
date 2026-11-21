@@ -63,14 +63,27 @@ export function pauseStatus(settings: FulfillmentSettings, timeZone: string, now
     return pause ? [{ method, pause }] : [];
   });
   const allPaused = !settings.acceptingOrders || (enabled.length > 0 && enabled.length === paused.length);
+  const working = enabled.find((method) => !paused.some((entry) => entry.method === method));
+  const message = (method: ReceivingMethod, pause: ReceivingPause) => {
+    const text = pauseMessage(method, pause, timeZone);
+    if (!working || !pause.showBanner) return text;
+    return `${text}. ${working === "pickup" ? "Самовывоз работает" : "Доставка работает"}`;
+  };
   const visible = paused.filter(({ pause }) => pause.showBanner);
   const same = visible.length === 2 && JSON.stringify(visible[0].pause) === JSON.stringify(visible[1].pause);
-  const banner = same
-    ? pauseMessage("all", visible[0].pause, timeZone)
-    : visible.map(({ method, pause }) => pauseMessage(method, pause, timeZone)).join(". ");
-  const closedMessage = allPaused ? banner || "Магазин сейчас не принимает заказы" : null;
-  const unavailable = Object.fromEntries(
-    paused.map(({ method, pause }) => [method, pauseMessage(method, pause, timeZone)]),
-  );
-  return { acceptingOrders: !allPaused, closedMessage, unavailable, banner: banner || null };
+  const banners = same
+    ? [{ text: pauseMessage("all", visible[0].pause, timeZone), expires: visible[0].pause.until }]
+    : visible.map(({ method, pause }) => ({ text: message(method, pause), expires: pause.until }));
+  const banner = banners.map(({ text }) => text).join(". ");
+  const closedMessage = allPaused
+    ? (visible.length === paused.length && banner) || "Магазин сейчас не принимает заказы"
+    : null;
+  const unavailable = Object.fromEntries(paused.map(({ method, pause }) => [method, message(method, pause)]));
+  return {
+    acceptingOrders: !allPaused,
+    closedMessage,
+    unavailable,
+    banner: banner || null,
+    banners,
+  };
 }

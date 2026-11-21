@@ -7,6 +7,7 @@ import { HttpError } from "../../../shared/http-error";
 import { AboutStore } from "../../../ui/AboutStore";
 import { ErrorState } from "../../../ui/AsyncErrorState";
 import { Button } from "../../../ui/Button";
+import { Card } from "../../../ui/Card";
 import { StoreHeader } from "../../../ui/StoreHeader";
 import { useCart } from "../../cart";
 import { ActiveOrders } from "../../orders";
@@ -50,6 +51,8 @@ export function HomeScreen() {
         header={
           <StoreHeader
             name={bootstrap?.name ?? "Магазин"}
+            logo={bootstrap?.profile?.logo?.src}
+            logoShape={bootstrap?.profile?.logo?.shape}
             onAbout={() => void navigate({ to: "/about" })}
             onProfile={() => void navigate({ to: "/profile" })}
           />
@@ -62,6 +65,7 @@ export function HomeScreen() {
           emptyDescription: "Загляните чуть позже — здесь появятся товары.",
         }}
         sections={[
+          <OrderingBanner key="order-banner" />,
           <ActiveOrders key="active-orders" />,
           <HomeView
             key="catalog"
@@ -119,4 +123,23 @@ export function HomeScreen() {
       )}
     </>
   );
+}
+
+function OrderingBanner() {
+  const [now, setNow] = useState(Date.now);
+  const active = bootstrap?.orderBanners?.filter(({ expires }) => expires === null || expires > now) ?? [];
+  const nextExpiry = active.reduce<number | undefined>(
+    (soonest, { expires }) => (expires === null ? soonest : Math.min(soonest ?? expires, expires)),
+    undefined,
+  );
+  useEffect(() => {
+    if (!nextExpiry) return;
+    const timer = window.setTimeout(() => setNow(Date.now()), Math.max(0, nextExpiry - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [nextExpiry]);
+  return active.length ? (
+    <Card role="status" className="bg-status-warning text-status-warning-foreground">
+      {active.map(({ text }) => text).join(". ")}
+    </Card>
+  ) : null;
 }
