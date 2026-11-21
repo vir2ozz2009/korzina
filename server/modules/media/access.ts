@@ -2,7 +2,7 @@ import type { Permission } from "../../../src/shared/contracts/auth";
 import type { MediaPurpose } from "../../../src/shared/contracts/media";
 import { publicPurposes } from "../../../src/shared/contracts/media";
 import { ApiError } from "../../../src/shared/errors";
-import { readSeller, type Seller } from "../../auth/roles";
+import { managesSettings, readSeller, type Seller } from "../../auth/roles";
 import type { ShopEnv } from "../../shop/env";
 import { readCustomer } from "../auth/service";
 import type { MediaRecord } from "./schema";
@@ -18,7 +18,7 @@ export async function mediaActor(env: ShopEnv["Bindings"], request: Request): Pr
   return { id: customer.subject };
 }
 function canManage(actor: MediaActor, purpose: MediaPurpose) {
-  if (purpose === "logo" || purpose === "cover") return actor.seller?.role === "owner";
+  if (purpose === "logo" || purpose === "cover") return !!actor.seller && managesSettings(actor.seller);
   const permission: Permission =
     purpose === "chat"
       ? "chat"
@@ -27,7 +27,9 @@ function canManage(actor: MediaActor, purpose: MediaPurpose) {
         : purpose === "receipt"
           ? "payments"
           : purpose === "payment_qr"
-            ? "payments"
+            ? actor.seller?.teamRole
+              ? "payment_methods"
+              : "payments"
             : purpose === "review"
               ? "orders"
               : "products";

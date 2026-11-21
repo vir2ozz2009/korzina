@@ -12,7 +12,7 @@ import {
 } from "../../../src/shared/contracts/seller-receiving";
 import { ApiError } from "../../../src/shared/errors";
 import { validationFailure } from "../../auth/request";
-import { readSeller, type Seller } from "../../auth/roles";
+import { checkSettingsAccess, managesSettings, readSeller, type Seller } from "../../auth/roles";
 import { sessionLimiter } from "../../auth/session-limit";
 import { idempotency } from "../../middleware/idempotency";
 import { executeCommand } from "../../shop/commands";
@@ -34,7 +34,7 @@ const limitLookup = sessionLimiter(20);
 
 function requireWrite(c: Context<ReceivingEnv>, pause = false) {
   const seller = c.get("seller");
-  if (seller.role !== "owner" && !(pause && seller.permissions.includes("orders")))
+  if (!managesSettings(seller) && !(pause && !seller.teamRole && seller.permissions.includes("orders")))
     throw new ApiError("FORBIDDEN", "Нет права изменять настройки");
   return seller;
 }
@@ -49,7 +49,9 @@ function command<T>(c: Context<ReceivingEnv>, execute: () => T) {
 export const sellerReceivingRoutes = new Hono<ReceivingEnv>()
   .use("*", async (c, next) => {
     c.header("Cache-Control", "private, no-store");
-    c.set("seller", await readSeller(c.req.raw, c.env.platform, c.env.shop.id));
+    const seller = await readSeller(c.req.raw, c.env.platform, c.env.shop.id);
+    checkSettingsAccess(seller);
+    c.set("seller", seller);
     await next();
   })
   .get("/settings", (c) => c.json(readReceivingSettings(c.env, c.get("seller"))))

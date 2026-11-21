@@ -1,6 +1,6 @@
 import type { StoreProfile } from "../../src/shared/contracts/seller-shop-profile";
 import { ApiError } from "../../src/shared/errors";
-import type { Seller } from "../auth/roles";
+import { managesSettings, type Seller } from "../auth/roles";
 import { pauseUntil } from "../modules/catalog/sale-pause";
 import { moveDayPauses } from "../modules/fulfillment/pause";
 import { presentMedia } from "../modules/media/presentation";
@@ -75,7 +75,7 @@ export function ownerProfile(env: Env, seller: Seller) {
   const { currency } = storage.sql.exec<{ currency: string }>("SELECT currency FROM catalog_state WHERE id=1").one();
   return {
     ...savedRevision(storage, "profile"),
-    canWrite: seller.role === "owner",
+    canWrite: managesSettings(seller),
     country,
     currency,
     slug: shop.slug,
@@ -87,7 +87,7 @@ export function ownerProfile(env: Env, seller: Seller) {
 export function ownerTheme(env: Env, seller: Seller) {
   return {
     ...savedRevision(env.storage, "theme"),
-    canWrite: seller.role === "owner",
+    canWrite: managesSettings(seller),
     theme: readPublicSettings(env.db).theme,
   };
 }

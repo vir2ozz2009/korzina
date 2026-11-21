@@ -10,6 +10,8 @@ import adminRegistryMigration from "../platform/migrations/0007_admin_registry.s
 import adminCardMigration from "../platform/migrations/0008_admin_card.sql?raw";
 import retentionMigration from "../platform/migrations/0009_platform_retention.sql?raw";
 import telegramReturnMigration from "../platform/migrations/0010_telegram_return.sql?raw";
+import staffMigration from "../platform/migrations/0011_staff.sql?raw";
+import staffNotificationMigration from "../platform/migrations/0012_staff-notifications.sql?raw";
 import { demoSeedShopIds, seedStatements } from "../platform/seed";
 
 const migrations = [
@@ -24,6 +26,8 @@ const migrations = [
   adminCardMigration,
   retentionMigration,
   telegramReturnMigration,
+  staffMigration,
+  staffNotificationMigration,
 ].flatMap((file) => file.split("--> statement-breakpoint"));
 
 export async function setupPlatformDatabase() {

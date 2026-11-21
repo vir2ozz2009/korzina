@@ -8,7 +8,7 @@ import type {
 } from "../../../src/shared/contracts/seller-receiving";
 import { ApiError } from "../../../src/shared/errors";
 import { preparationMinutes as durations, splitHours } from "../../../src/shared/receiving-hours";
-import type { Seller } from "../../auth/roles";
+import { managesSettings, type Seller } from "../../auth/roles";
 import type { ShopEnv } from "../../shop/env";
 import { shopTimeZoneSql } from "../../shop/time-zone";
 import { readSchedule } from "./availability";
@@ -60,7 +60,7 @@ export function readReceivingSettings(env: Env, seller: Seller) {
   const { delivery, pickup, requiredDetails } = settings;
   return {
     ...revision(storage, "receiving"),
-    canWrite: seller.role === "owner",
+    canWrite: managesSettings(seller),
     maps: features.maps,
     currency,
     mapsFallback: !features.maps && actual.delivery?.mode === "map",
@@ -113,7 +113,7 @@ export function readReceivingHours(env: Env, seller: Seller) {
   const schedule = readSchedule(env.storage);
   return {
     ...revision(env.storage, "hours"),
-    canWrite: seller.role === "owner",
+    canWrite: managesSettings(seller),
     settings: form ? (JSON.parse(form) as Omit<SaveReceivingHours, "expectedRevision">) : null,
     schedule,
     timeZone: schedule?.timeZone ?? timeZone(env.storage),
@@ -202,7 +202,7 @@ export function readReceivingPauses(env: Env, seller: Seller, now = Date.now()) 
     ...revision(storage, "pause"),
     timeZone: timeZone(storage),
     adminPaused,
-    canWrite: !adminPaused && (seller.role === "owner" || seller.permissions.includes("orders")),
+    canWrite: !adminPaused && (managesSettings(seller) || (!seller.teamRole && seller.permissions.includes("orders"))),
     methods: receivingMethods
       .filter((method) => settings[method])
       .map((method) => ({

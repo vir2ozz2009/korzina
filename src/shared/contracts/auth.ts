@@ -13,6 +13,8 @@ const permissions = [
   "exports",
   "team",
   "bot",
+  "shop_settings",
+  "shop_audit",
 ] as const;
 export const permissionSchema = z.enum(permissions);
 export type Permission = z.infer<typeof permissionSchema>;

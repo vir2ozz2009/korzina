@@ -1,7 +1,7 @@
 import { paymentSettingsInput } from "../../../src/shared/contracts/checkout";
 import type { PaymentOption, SaveSellerPayments } from "../../../src/shared/contracts/seller-payments";
 import { ApiError } from "../../../src/shared/errors";
-import type { Seller } from "../../auth/roles";
+import { managesSettings, type Seller } from "../../auth/roles";
 import type { ShopEnv } from "../../shop/env";
 import { presentMedia } from "../media/presentation";
 import { findMedia } from "../media/service";
@@ -10,7 +10,8 @@ import { paymentOptions } from "./payment-settings";
 type Env = ShopEnv["Bindings"];
 type Revision = { revision: number; author?: string; updatedAt?: number };
 
-export const canEditPayments = (seller: Seller) => seller.role === "owner" || seller.permissions.includes("payments");
+export const canEditPayments = (seller: Seller) =>
+  managesSettings(seller) || (!seller.teamRole && seller.permissions.includes("payments"));
 
 function read(env: Env) {
   const rows = env.storage.sql

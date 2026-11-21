@@ -14,6 +14,7 @@ const retention = [
   { table: "platform_audit", column: "created_at", keep: 365 * day },
   { table: "platform_order_events", column: "created_at", keep: 31 * day },
   { table: "invitations", column: "expires_at", keep: 30 * day },
+  { table: "staff_invitations", column: "expires_at", keep: 30 * day },
 ] as const;
 const batchSize = 100;
 

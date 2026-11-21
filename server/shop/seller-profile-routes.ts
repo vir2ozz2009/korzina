@@ -5,7 +5,7 @@ import { pointInput } from "../../src/shared/contracts/receiving";
 import { saveStoreProfile, saveStoreTheme } from "../../src/shared/contracts/seller-shop-profile";
 import { ApiError } from "../../src/shared/errors";
 import { authBodyLimit, validationFailure } from "../auth/request";
-import { readSeller, type Seller } from "../auth/roles";
+import { checkSettingsAccess, managesSettings, readSeller, type Seller } from "../auth/roles";
 import { idempotency } from "../middleware/idempotency";
 import { executeCommand } from "./commands";
 import type { ShopEnv } from "./env";
@@ -31,7 +31,8 @@ export const sellerProfileRoutes = new Hono<SellerProfileEnv>()
   .use("*", async (c, next) => {
     c.header("Cache-Control", "private, no-store");
     const seller = await readSeller(c.req.raw, c.env.platform, c.env.shop.id);
-    if (c.req.method !== "GET" && seller.role !== "owner")
+    checkSettingsAccess(seller);
+    if (c.req.method !== "GET" && !managesSettings(seller))
       throw new ApiError("FORBIDDEN", "Нет права изменять данные магазина");
     c.set("seller", seller);
     await next();

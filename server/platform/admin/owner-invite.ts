@@ -70,7 +70,8 @@ export async function redeemOwnerInvite(
     database
       .prepare(`INSERT INTO memberships(shop_id,account_id,role) SELECT i.shop_id,a.id,'owner'
       FROM invitations i JOIN accounts a ON a.telegram_id=i.used_by WHERE i.token_hash=? AND i.redeemed_id=?
-      ON CONFLICT(shop_id,account_id) DO UPDATE SET role='owner',revoked_at=NULL`)
+      ON CONFLICT(shop_id,account_id) DO UPDATE SET role='owner',team_role=NULL,permissions='[]',
+        display_name=NULL,revoked_at=NULL,version=memberships.version+1`)
       .bind(hash, operation),
     database
       .prepare(`UPDATE shops SET owner_name=?,version=version+1

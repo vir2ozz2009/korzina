@@ -7,6 +7,8 @@ import type { AuthSecrets } from "../../auth/config";
 import { matchesTelegramSecret, telegramApi } from "../../auth/telegram-api";
 import { answerBrowserLogin, telegramReturnUrl } from "../../auth/telegram-return";
 import { demoBuyerExchange } from "../../modules/auth/telegram-exchange";
+import { platformStaffBot, staffConnectPattern } from "../team/bot";
+import { answerStaffInvite, replyStaffChat, staffInvitePattern } from "../team/telegram";
 import { confirmSellerExchange } from "./browser-exchange";
 import { demoPlatformShop, isDemoTelegramOrigin } from "./demo-telegram";
 import { answerOwnerInvite, invitationPattern } from "./invitation-reply";
@@ -40,6 +42,8 @@ export const platformWebhook = new Hono<{ Bindings: Env & AuthSecrets }>().post(
     if (chat.id !== from.id || !text) return c.json({ ok: true });
     const code = /^\/start (seller_[a-f0-9]{48})$/.exec(text)?.[1];
     const raw = invitationPattern.exec(text)?.[1];
+    const staff = staffInvitePattern.exec(text)?.[1];
+    const staffShop = staffConnectPattern.exec(text)?.[1];
     const purchase = /^\/start (purchase_demo_[a-f0-9]{32})$/.exec(text)?.[1];
     if (purchase && demoBuyerExchange.test(purchase) && c.env.APP_ENV === "demo" && isDemoTelegramOrigin(c.req.raw)) {
       const shop = exports.Shop.get(exports.Shop.idFromName(demoPlatformShop));
@@ -54,6 +58,10 @@ export const platformWebhook = new Hono<{ Bindings: Env & AuthSecrets }>().post(
         bot: token,
         platformBot: token,
       });
+    } else if (staff) {
+      await answerStaffInvite(c.env.PLATFORM, { raw: staff, from, origin: new URL(c.req.url).origin, bot: token });
+    } else if (staffShop) {
+      await replyStaffChat(c.env, staffShop, platformStaffBot, from.id, token, new URL(c.req.url).origin);
     } else if (text === "/start") {
       const seller = await c.env.PLATFORM.withSession("first-primary")
         .prepare(`SELECT 1 FROM accounts a JOIN memberships m

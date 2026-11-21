@@ -178,6 +178,12 @@ export class Shop extends DurableObject<Env> {
     return response;
   }
 
+  closeSellerOrderSubscription(accountId: string) {
+    for (const socket of this.ctx.getWebSockets(`seller:${accountId}`)) {
+      if (socket.readyState === WebSocket.OPEN) socket.close(1008, "Access expired");
+    }
+  }
+
   async verifyCabinetTelegram(initData: string, shopId: string) {
     if (!this.ctx.exports.Shop.idFromName(shopId).equals(this.ctx.id))
       throw new ApiError("FORBIDDEN", "Другой магазин");

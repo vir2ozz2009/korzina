@@ -1,10 +1,10 @@
 import { formatShopDay } from "../../../src/shared/datetime";
 import { formatMinor } from "../../../src/shared/money";
-import { decryptBotToken } from "../../auth/bot-token";
 import type { AuthSecrets } from "../../auth/config";
 import { TelegramRequestError, telegramApi } from "../../auth/telegram-api";
-import { managedBot } from "../../platform/admin/shop-bot";
 import { storefrontUrl } from "../../platform/storefront-url";
+import { staffBot, staffBotToken } from "../../platform/team/bot";
+import { staffRecipients } from "../../platform/team/notifications";
 import { shopTimeZoneSql } from "../../shop/time-zone";
 
 type Queued = {
@@ -17,7 +17,7 @@ type Queued = {
   attempts: number;
 };
 
-async function expandNewOrders(storage: DurableObjectStorage, platform: D1Database, shop: string, now: number) {
+async function expandNewOrders(storage: DurableObjectStorage, env: Env & AuthSecrets, shop: string, now: number) {
   const orders = storage.sql
     .exec<{ number: number; total: number; currency: string }>(
       `SELECT p.order_number AS number,i.total_minor AS total,i.currency
@@ -27,17 +27,11 @@ async function expandNewOrders(storage: DurableObjectStorage, platform: D1Databa
     )
     .toArray();
   if (!orders.length) return false;
-  const { results } = await platform
-    .withSession("first-primary")
-    .prepare(`
-    SELECT DISTINCT a.telegram_id AS recipient
-    FROM memberships m JOIN accounts a ON a.id=m.account_id
-    WHERE m.shop_id=? AND m.revoked_at IS NULL AND m.role IN ('owner','employee') AND a.telegram_id IS NOT NULL`)
-    .bind(shop)
-    .all<{ recipient: string }>();
+  const bot = await staffBot(env.PLATFORM, shop, env);
+  const recipients = await staffRecipients(env.PLATFORM, shop, bot.id);
   storage.transactionSync(() => {
     for (const order of orders)
-      for (const { recipient } of results)
+      for (const recipient of recipients)
         storage.sql.exec(
           `INSERT OR IGNORE INTO order_notification_outbox(event_key,kind,order_number,recipient,amount,currency,due_at)
            VALUES(?,'new',?,?,?,?,?)`,
@@ -61,13 +55,13 @@ export async function sendOrderNotifications(storage: DurableObjectStorage, env:
     .exec<{ value: string }>("SELECT value FROM settings WHERE key='shop_id'")
     .toArray()[0]?.value;
   if (!shop) return;
-  const more = await expandNewOrders(storage, env.PLATFORM, shop, now);
+  const more = await expandNewOrders(storage, env, shop, now);
   const queue = storage.sql
     .exec<Queued>("SELECT * FROM order_notification_outbox WHERE due_at<=? ORDER BY due_at LIMIT 10", now)
     .toArray();
   if (queue.length) {
-    const bot = await managedBot(env.PLATFORM, shop);
-    const token = bot?.token ? await decryptBotToken(bot.token, shop, env.ENCRYPTION_KEY) : env.PLATFORM_BOT_TOKEN;
+    const bot = await staffBot(env.PLATFORM, shop, env);
+    const token = await staffBotToken(bot, shop, env);
     const origin = env.APP_ENV === "production" ? "https://korzina.app" : "https://demo.korzina.app";
     const buyerSlug =
       token && queue.some(({ kind }) => kind !== "new")
@@ -78,9 +72,11 @@ export async function sendOrderNotifications(storage: DurableObjectStorage, env:
         : null;
     const buyerStorefront = buyerSlug ? storefrontUrl(origin, env.APP_ENV, buyerSlug) : undefined;
     for (const event of queue) {
+      const permitted =
+        event.kind !== "new" || (await staffRecipients(env.PLATFORM, shop, bot.id, event.recipient)).length > 0;
       // Claim before contacting Telegram: sendMessage has no idempotency key.
       const claim = storage.sql.exec("DELETE FROM order_notification_outbox WHERE event_key=?", event.event_key);
-      if (!claim.rowsWritten || !token) continue;
+      if (!claim.rowsWritten || !token || !permitted) continue;
       try {
         await telegramApi(token, "sendMessage", telegramMessage(storage, origin, shop, event, now, buyerStorefront));
       } catch (error) {

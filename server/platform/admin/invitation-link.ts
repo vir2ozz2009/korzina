@@ -22,12 +22,16 @@ export function readOwnerInvite(database: D1Database, shopId: string) {
     .bind(shopId);
 }
 
-export async function invitationToken(linkId: string, secret: string | undefined) {
+export async function invitationToken(
+  linkId: string,
+  secret: string | undefined,
+  purpose: "owner-invite" | "staff-invite" = "owner-invite",
+) {
   if (!secret || !/^[a-f0-9]{64}$/.test(secret)) throw new ApiError("AUTH_UNAVAILABLE", "Приглашения пока недоступны");
   const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, [
     "sign",
   ]);
-  const bytes = await crypto.subtle.sign("HMAC", key, encoder.encode(`korzina:owner-invite:v1:${linkId}`));
+  const bytes = await crypto.subtle.sign("HMAC", key, encoder.encode(`korzina:${purpose}:v1:${linkId}`));
   return btoa(String.fromCharCode(...new Uint8Array(bytes)))
     .replaceAll("+", "-")
     .replaceAll("/", "_")
