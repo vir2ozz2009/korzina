@@ -1,8 +1,12 @@
-import { exports } from "cloudflare:workers";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import { geocodeInput, receiveCommandInput, receivingInput } from "../../../src/shared/contracts/receiving";
+import {
+  geocodeInput,
+  receiveCommandInput,
+  receivingInput,
+  submittedAddressInput,
+} from "../../../src/shared/contracts/receiving";
 import { methodInput, timeCommandInput } from "../../../src/shared/contracts/receiving-time";
 import { defaultShopTimeZone } from "../../../src/shared/datetime";
 import { ApiError } from "../../../src/shared/errors";
@@ -11,17 +15,19 @@ import { sessionLimiter } from "../../auth/session-limit";
 import type { ShopEnv } from "../../shop/env";
 import { readCustomer } from "../auth/service";
 import { readAvailability, saveTime } from "./availability";
-import { geocodeAddress } from "./geocoder";
+import { lookupShopAddress } from "./geocoder";
 import {
   checkFulfillment,
   emptySelection,
   publicFulfillment,
   readFulfillment,
   readReceiving,
+  requireFulfillment,
   saveReceiving,
 } from "./service";
 
 const geocodeLimit = sessionLimiter(20);
+const verifyAddressLimit = sessionLimiter(20);
 export const receivingRoutes = new Hono<ShopEnv>()
   .get("/availability", zValidator("query", z.object({ method: methodInput }), validationFailure), (c) => {
     const { method } = c.req.valid("query");
@@ -51,13 +57,22 @@ export const receivingRoutes = new Hono<ShopEnv>()
     if (readFulfillment(c.env.storage, c.env.features.maps).delivery?.mode !== "map")
       throw new ApiError("FEATURE_DISABLED", "Поиск по карте недоступен");
     geocodeLimit(c, session.sessionId);
-    const coordinator = exports.Shop.get(exports.Shop.idFromName("geocoder:osm"));
-    const cache = await caches.open("shop-geocoding");
-    const results = await geocodeAddress(c.env.shop.id, c.req.valid("json"), cache, (provider) =>
-      coordinator.allowGeocoder(provider),
-    );
+    const results = await lookupShopAddress(c.env.shop.id, c.req.valid("json"));
     if (!results.length) throw new ApiError("ADDRESS_NOT_FOUND", "Не нашли такой адрес");
     return c.json({ results });
+  })
+  .post("/verify-address", authBodyLimit, zValidator("json", submittedAddressInput, validationFailure), async (c) => {
+    const { db, storage, shop, features } = c.env;
+    const session = await readCustomer(db, c.req.raw, shop.id);
+    if (!session) throw new ApiError("UNAUTHORIZED", "Нужна сессия покупателя");
+    const settings = readFulfillment(storage, features.maps);
+    if (settings.delivery?.mode !== "map") throw new ApiError("FEATURE_DISABLED", "Проверка по карте недоступна");
+    verifyAddressLimit(c, session.sessionId);
+    const { address } = c.req.valid("json");
+    const [place] = await lookupShopAddress(shop.id, { type: "search", address }, true);
+    const point = place ? { lat: place.lat, lon: place.lon } : null;
+    if (point) requireFulfillment(settings, { mode: "delivery", address, point }, false);
+    return c.json({ point });
   })
   .post("/", authBodyLimit, zValidator("json", receiveCommandInput, validationFailure), async (c) => {
     const session = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);

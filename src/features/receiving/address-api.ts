@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import type { GeocodeInput, Point } from "../../shared/contracts/receiving";
 import { checkResponse, HttpError } from "../../shared/http-error";
@@ -40,6 +40,22 @@ export function useAddressSuggestions(text: string) {
     queryFn: ({ signal }) => geocode({ type: "search", address: settled }, signal),
   });
   return { query, searching: address.length >= 3 && (!ready || query.isFetching) };
+}
+
+export function useVerifySubmittedAddress() {
+  return useMutation({
+    mutationFn: async (address: string) => {
+      await ensureShopSession();
+      const response = await shopApi.api.receiving["verify-address"].$post({ json: { address } });
+      try {
+        await checkResponse(response);
+      } catch (error) {
+        if (error instanceof HttpError && error.code === "GEOCODER_UNAVAILABLE") return null;
+        throw error;
+      }
+      return (await response.json()).point;
+    },
+  });
 }
 
 export function usePointName(point: Point | undefined) {

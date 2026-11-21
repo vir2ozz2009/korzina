@@ -18,7 +18,7 @@ import { idempotency } from "../../middleware/idempotency";
 import { executeCommand } from "../../shop/commands";
 import type { ShopEnv } from "../../shop/env";
 import { deliveryCities } from "./city";
-import { geocodeAddress } from "./geocoder";
+import { lookupShopAddress } from "./geocoder";
 import { checkFulfillment } from "./service";
 import {
   readReceivingHours,
@@ -83,15 +83,7 @@ export const sellerReceivingRoutes = new Hono<ReceivingEnv>()
     if (delivery?.mode !== "map" || receiving.mode !== "delivery")
       throw new ApiError("VALIDATION", "Проверка по карте недоступна");
     limitLookup(c, seller.accountId);
-    const coordinator = exports.Shop.get(exports.Shop.idFromName("geocoder:osm"));
-    const cache = await caches.open("shop-geocoding");
-    const results = await geocodeAddress(
-      c.env.shop.id,
-      geocode,
-      cache,
-      (provider) => coordinator.allowGeocoder(provider),
-      { submittedSearch: true },
-    );
+    const results = await lookupShopAddress(c.env.shop.id, geocode, true);
     const result = results[0];
     if (!result) throw new ApiError("ADDRESS_NOT_FOUND", "Не нашли такой адрес");
     return c.json({ results, availability: checkFulfillment(settings, { ...receiving, point: result }) });

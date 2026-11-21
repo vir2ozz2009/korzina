@@ -1,14 +1,13 @@
 import { MapPin } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { addressKey } from "../../../shared/address-key";
-import type { SavedAddress } from "../../../shared/contracts/profile";
 import type { DeliveryAddress, Point } from "../../../shared/contracts/receiving";
+import { HttpError } from "../../../shared/http-error";
 import { Button } from "../../../ui/Button";
 import { ListItem } from "../../../ui/ListItem";
 import { Sheet } from "../../../ui/Sheet";
-import { usePointDelivery } from "../address-api";
+import { usePointDelivery, useVerifySubmittedAddress } from "../address-api";
 import type { ReceivingState } from "../api";
-import { AddressChooser } from "./AddressChooser";
+import { AddressChooser, savedChoices } from "./AddressChooser";
 import { AddressReviewStatus } from "./AddressDelivery";
 import { AddressMapStep } from "./AddressMapStep";
 import { AddressSearch } from "./AddressSearch";
@@ -25,22 +24,12 @@ const titles: Record<View, string> = {
 const empty: DeliveryAddress = { mode: "delivery", address: "" };
 const normalize = (address: string) => address.trim().replace(/\s+/g, " ").toLowerCase();
 
-function savedChoices(current: DeliveryAddress | undefined, data: ReceivingState) {
-  const found = new Map<string, DeliveryAddress | SavedAddress>();
-  for (const value of [current, data.lastUsedAddress, ...data.savedAddresses]) {
-    if (!value) continue;
-    const key = addressKey(value);
-    if (!found.has(key) || "id" in value) found.set(key, value);
-  }
-  return [...found.values()];
-}
-
 export function AddressSheet({
   current,
   data,
   currency,
   save,
-  pending,
+  pending: saving,
   close,
   pickup,
   edit,
@@ -67,6 +56,8 @@ export function AddressSheet({
   const [point, setPoint] = useState<Point>();
   const [outside, setOutside] = useState<string[]>([]);
   const [error, setError] = useState("");
+  const verification = useVerifySubmittedAddress();
+  const pending = saving || verification.isPending;
   const check = usePointDelivery(view === "review" ? candidate?.point : undefined);
   const result = check.data;
   const available = !check.isError && result?.mode === "delivery" && result.available;
@@ -113,11 +104,20 @@ export function AddressSheet({
     setDraft(address);
   }
 
-  async function saveAddress(address: DeliveryAddress) {
+  async function saveAddress(address: DeliveryAddress, verify = false) {
+    if (pending) return;
     setError("");
     try {
+      if (verify) {
+        const point = await verification.mutateAsync(address.address);
+        address = { ...address, point: point ?? undefined, acceptedWithoutPoint: point ? undefined : true };
+      }
       await save(address);
     } catch (reason) {
+      if (reason instanceof HttpError && reason.code === "OUT_OF_ZONE") {
+        rememberOutside(address.address);
+        if (view === "search") return;
+      }
       setError(reason instanceof Error ? reason.message : "Не удалось сохранить адрес");
       if (view === "review") void check.refetch();
     }
@@ -125,12 +125,12 @@ export function AddressSheet({
 
   function saveManual() {
     const address = draft.address.trim();
-    if (!address) return setError("Укажите адрес доставки");
+    if (!address || (onMap && address.length < 3)) return setError("Укажите адрес доставки");
     if (blocked) return setError("Этот адрес уже проверен и находится вне зоны. Укажите другой адрес.");
     if (districts.length && !draft.districtId) return setError("Выберите район");
     if (!onMap && data.requiredDetails.some((field) => !draft[field]?.trim()))
       return setError("Заполните обязательные поля");
-    void saveAddress({ ...draft, address, point: undefined, acceptedWithoutPoint: onMap ? true : undefined });
+    void saveAddress({ ...draft, address, point: undefined, acceptedWithoutPoint: undefined }, onMap);
   }
 
   return (
@@ -174,6 +174,7 @@ export function AddressSheet({
             manual={() => open("manual")}
             map={() => open("map")}
             save={saveManual}
+            pickup={pickup}
           />
         )}
         {view === "manual" && (
@@ -185,7 +186,7 @@ export function AddressSheet({
             change={change}
             save={saveManual}
             map={onMap ? () => open("map") : undefined}
-            pickup={onMap ? undefined : pickup}
+            pickup={!onMap || blocked ? pickup : undefined}
           />
         )}
         {view === "map" && (

@@ -17,6 +17,7 @@ export function AddressSearch({
   manual,
   map,
   save,
+  pickup,
 }: {
   address: string;
   change: (address: string) => void;
@@ -26,6 +27,7 @@ export function AddressSearch({
   manual: () => void;
   map: () => void;
   save: () => void;
+  pickup?: () => void;
 }) {
   const { query, searching } = useAddressSuggestions(address);
   const suggestions = query.data ?? [];
@@ -73,6 +75,11 @@ export function AddressSearch({
         <Button full variant="secondary" disabled={pending} onClick={map}>
           Указать на карте
         </Button>
+        {blocked && pickup && (
+          <Button full variant="secondary" disabled={pending} onClick={pickup}>
+            Выбрать самовывоз
+          </Button>
+        )}
         {offerManual && (
           <Button full variant="ghost" disabled={pending} onClick={manual}>
             Ввести адрес вручную
