@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { checkShopHours } from "./shop-hours";
 
 const query = "shop=test2&store=test2";
 const fixtureShop = {
@@ -35,21 +36,7 @@ test("Блок 7: продавец сохраняет настройки и пр
     await page.getByRole("button", { name: "Сохранить", exact: true }).click();
     await expect(page.getByText("Несохранённые изменения")).toBeHidden();
 
-    await page.goto(`/seller/hours?${query}`);
-    await expect(page.getByRole("switch", { name: "Разные часы для доставки и самовывоза" })).toBeVisible();
-    if (local) {
-      await test.step("06 · §12.4 часы самовывоза соответствуют окнам покупателя", async () => {
-        const availability = await buyer.request.get("/api/receiving/availability?shop=test2&method=pickup");
-        expect(availability.ok()).toBe(true);
-        const { days } = await availability.json();
-        expect(days[1].intervals.map(({ id }: { id: string }) => id)).toEqual(["09:00-20:00"]);
-        const pickup = page.getByRole("heading", { name: "Самовывоз", exact: true }).locator("..");
-        const interval = pickup.getByRole("button", { name: /^Интервал/ });
-        await expect(interval).toContainText("Сохранённые интервалы");
-        await expect(pickup.getByText("09:00–20:00", { exact: true })).toBeVisible();
-      });
-    }
-    await page.screenshot({ path: "test-results/shop-settings-hours-390.png", animations: "disabled" });
+    await checkShopHours(page, query);
     await page.goto(`/seller/payments?${query}`);
     await expect(page.getByRole("button", { name: "Добавить способ" })).toBeVisible();
     await page.screenshot({ path: "test-results/shop-settings-payments-390.png", animations: "disabled" });

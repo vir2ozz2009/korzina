@@ -1,20 +1,15 @@
-import { useState } from "react";
 import { QueryBoundary } from "../../../../app/shell/QueryBoundary";
+import { defaultShopTimeZone, shopDateTime } from "../../../../shared/datetime";
 import { Button } from "../../../../ui/Button";
-import { Card } from "../../../../ui/Card";
-import { Chip } from "../../../../ui/Chip";
-import { Input } from "../../../../ui/Input";
-import { Switch } from "../../../../ui/Switch";
 import { type ReceivingHoursData, useSellerSetting } from "../../settings-api";
+import { ClosedDates } from "./ClosedDates";
 import { HoursFields } from "./HoursFields";
-
-import { form, isValid } from "./hours-form";
+import { form, isValid, suggestsSave } from "./hours-form";
 import { SettingsEditor, type SettingsFrame } from "./SettingsEditor";
 
 const path = "receiving/hours";
 export function HoursSettings({ store, frame }: { store: string; frame: SettingsFrame }) {
   const query = useSellerSetting<ReceivingHoursData>(store, path);
-  const [newDate, setNewDate] = useState("");
   return (
     <QueryBoundary query={query} template="form">
       {(data) => (
@@ -23,61 +18,42 @@ export function HoursSettings({ store, frame }: { store: string; frame: Settings
           store={store}
           data={data}
           select={form}
+          suggestSave={suggestsSave(data)}
           frame={frame}
           valid={({ delivery, pickup }) => isValid(delivery) && (!pickup || isValid(pickup))}
         >
-          {(value, change) => (
+          {(value, change, disabled) => (
             <>
-              <Card>
-                <Switch
-                  label="Разные часы для доставки и самовывоза"
-                  checked={!!value.pickup}
-                  onChange={(event) => change({ ...value, pickup: event.target.checked ? value.delivery : undefined })}
-                />
-              </Card>
               <HoursFields
-                title={value.pickup ? "Доставка" : "Часы работы"}
+                title={value.pickup ? "Когда принимаете доставку" : "Когда принимаете заказы"}
                 value={value.delivery}
                 change={(delivery) => change({ ...value, delivery })}
+                extra={
+                  !value.pickup && (
+                    <Button variant="ghost" onClick={() => change({ ...value, pickup: value.delivery })}>
+                      Для самовывоза другие часы
+                    </Button>
+                  )
+                }
               />
               {value.pickup && (
-                <HoursFields title="Самовывоз" value={value.pickup} change={(pickup) => change({ ...value, pickup })} />
-              )}
-              <Card>
-                <h2 className="text-title-3">Не работаем</h2>
-                <div className="flex flex-wrap gap-2">
-                  {value.closedDates.map((date) => (
-                    <Chip
-                      key={date}
-                      onClick={() =>
-                        change({
-                          ...value,
-                          closedDates: value.closedDates.filter((item) => item !== date),
-                        })
-                      }
-                      aria-label={`Убрать выходной ${date}`}
-                    >
-                      {date} ×
-                    </Chip>
-                  ))}
-                </div>
-                <Input
-                  type="date"
-                  label="Выходная дата"
-                  value={newDate}
-                  onChange={(event) => setNewDate(event.target.value)}
+                <HoursFields
+                  title="Самовывоз"
+                  value={value.pickup}
+                  change={(pickup) => change({ ...value, pickup })}
+                  extra={
+                    <Button variant="ghost" onClick={() => change({ ...value, pickup: undefined })}>
+                      Общие часы для самовывоза
+                    </Button>
+                  }
                 />
-                <Button
-                  variant="secondary"
-                  disabled={!newDate || value.closedDates.includes(newDate)}
-                  onClick={() => {
-                    change({ ...value, closedDates: [...value.closedDates, newDate].sort() });
-                    setNewDate("");
-                  }}
-                >
-                  Добавить дату
-                </Button>
-              </Card>
+              )}
+              <ClosedDates
+                today={shopDateTime(Date.now(), data.timeZone ?? data.schedule?.timeZone ?? defaultShopTimeZone).date}
+                dates={value.closedDates}
+                disabled={disabled}
+                change={(closedDates) => change({ ...value, closedDates })}
+              />
             </>
           )}
         </SettingsEditor>

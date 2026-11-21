@@ -59,8 +59,12 @@ export function availableDays(
   return Array.from({ length: 7 }, (_, offset) => {
     const date = calendarDate(clock.today, offset);
     const periods = scheduledPeriods(schedule, date);
-    const dayOpen = periods.length > 0 && (offset > 0 || clock.localTime < schedule.dayCutoff);
+    const prep = schedule.preparationMinutes * minute;
+    const nextDayClosed = schedule.preparation === "next_day" && offset === 0;
     if (schedule.mode === "day") {
+      const dayOpen = schedule.preparation
+        ? !nextDayClosed && periods.some(({ end }) => intervalStart(clock.formatter, date, end) > now + prep)
+        : periods.length > 0 && (offset > 0 || clock.localTime < schedule.dayCutoff);
       const available = dayOpen && (schedule.dayCapacity === undefined || count(date) < schedule.dayCapacity);
       return { date, available, intervals: [] };
     }
@@ -71,10 +75,11 @@ export function availableDays(
         const id = `${period.start}-${period.end}`;
         const startAt = intervalStart(clock.formatter, date, period.start);
         const past =
-          (schedule.cutoffForSlots && !dayOpen) ||
+          nextDayClosed ||
+          (schedule.cutoffForSlots && offset === 0 && clock.localTime >= schedule.dayCutoff) ||
           !Number.isFinite(startAt) ||
           startAt <= now ||
-          startAt - now < schedule.preparationMinutes * minute;
+          startAt - now < prep;
         const full =
           (period.capacity !== undefined && count(date, id) >= period.capacity) ||
           (schedule.dayCapacity !== undefined && count(date) >= schedule.dayCapacity);
