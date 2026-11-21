@@ -8,7 +8,7 @@ import { Chip } from "../../../../ui/Chip";
 import { Input } from "../../../../ui/Input";
 import { ListItem } from "../../../../ui/ListItem";
 import { Sheet } from "../../../../ui/Sheet";
-import { StoreLogo } from "../../../../ui/StoreLogo";
+import { StoreHeader } from "../../../../ui/StoreHeader";
 import { type ProfileData, sellerSettingRequest, useSellerSetting } from "../../settings-api";
 import { SettingsEditor, type SettingsFrame } from "./SettingsEditor";
 import { SettingsImage } from "./SettingsImage";
@@ -86,9 +86,8 @@ export function ShopProfileSettings({
                     ))}
                   </div>
                 )}
-                <div className="flex items-center gap-3 rounded-lg bg-secondary p-3">
-                  <StoreLogo name={value.name} src={value.logo?.src} shape={value.logo?.shape} />
-                  {value.logo?.shape !== "wide" && <span className="text-label">{value.name}</span>}
+                <div className="overflow-hidden rounded-lg">
+                  <StoreHeader name={value.name} logo={value.logo?.src} logoShape={value.logo?.shape} />
                 </div>
               </Card>
               <Card>

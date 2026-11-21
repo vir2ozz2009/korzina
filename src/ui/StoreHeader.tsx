@@ -25,9 +25,12 @@ export function StoreHeader({
   onChat,
   onProfile,
 }: StoreHeaderProps) {
+  const Identity = onAbout ? "button" : "div";
   return (
-    <header className="grid h-(--store-header-height) grid-cols-[minmax(0,1fr)_var(--store-mark-width)_minmax(0,1fr)] items-center bg-background p-(--page-x)">
-      {onAddress ? (
+    <header
+      className={`grid min-h-(--store-header-height) items-center gap-2 bg-background p-(--page-x) ${onAddress ? "grid-cols-[minmax(0,1fr)_var(--store-mark-width)_minmax(0,1fr)]" : "grid-cols-[minmax(0,1fr)_auto]"}`}
+    >
+      {onAddress && (
         <button
           type="button"
           className="flex min-h-(--control-md) min-w-0 flex-col justify-center gap-0.5 text-left"
@@ -40,25 +43,20 @@ export function StoreHeader({
             {address || "Выбрать адрес"} ›
           </span>
         </button>
-      ) : !logo ? (
-        <span aria-hidden />
-      ) : null}
-      <button
-        type="button"
-        className={`flex h-(--store-identity-height) min-w-0 items-center gap-2 ${logo && !onAddress ? "col-span-2" : "flex-col justify-center"}`}
+      )}
+      <Identity
+        type={onAbout ? "button" : undefined}
+        className={`flex min-h-(--store-identity-height) min-w-0 items-center gap-2 ${onAddress ? "flex-col justify-center" : "text-left"}`}
         onClick={onAbout}
-        aria-label={`О магазине ${name}`}
+        aria-label={onAbout ? `О магазине ${name}` : undefined}
       >
-        <StoreLogo name={name} src={logo} shape={logoShape} />
+        <div className="shrink-0">
+          <StoreLogo name={name} src={logo} shape={logoShape} />
+        </div>
         {logoShape !== "wide" && (
-          <span
-            className={`truncate font-medium ${logo && !onAddress ? "text-label" : "w-full text-micro"}`}
-            title={name}
-          >
-            {name}
-          </span>
+          <span className={`min-w-0 wrap-anywhere font-medium ${onAddress ? "text-micro" : "text-label"}`}>{name}</span>
         )}
-      </button>
+      </Identity>
       <div className="flex items-center justify-end gap-1">
         {(onChat || onProfile) && (
           <Suspense fallback={null}>

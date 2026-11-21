@@ -85,8 +85,12 @@ export const sellerReceivingRoutes = new Hono<ReceivingEnv>()
     limitLookup(c, seller.accountId);
     const coordinator = exports.Shop.get(exports.Shop.idFromName("geocoder:osm"));
     const cache = await caches.open("shop-geocoding");
-    const results = await geocodeAddress(c.env.shop.id, geocode, cache, (provider) =>
-      coordinator.allowGeocoder(provider),
+    const results = await geocodeAddress(
+      c.env.shop.id,
+      geocode,
+      cache,
+      (provider) => coordinator.allowGeocoder(provider),
+      { submittedSearch: true },
     );
     const result = results[0];
     if (!result) throw new ApiError("ADDRESS_NOT_FOUND", "Не нашли такой адрес");

@@ -145,7 +145,7 @@ it("геокодер кеширует нормализованный поиск 
     }),
   );
   const search = (shop: string, address: string) =>
-    geocodeAddress(shop, { type: "search", address }, cache, async () => true, request);
+    geocodeAddress(shop, { type: "search", address }, cache, async () => true, { request });
   expect(await search("one", "  Nhà  hát  ")).toEqual([{ ...center, address: "Nhà hát" }]);
   await search("one", "nhà hát");
   expect(request).toHaveBeenCalledOnce();
@@ -160,12 +160,30 @@ it("обратный поиск использует запасного пров
       ? Response.json({ features: [] })
       : Response.json({ display_name: "Nhà hát", lat: String(center.lat), lon: String(center.lon) }),
   );
-  expect(await geocodeAddress("one", { type: "reverse", point: center }, cache, async () => true, request)).toEqual([
-    { ...center, address: "Nhà hát" },
-  ]);
+  expect(await geocodeAddress("one", { type: "reverse", point: center }, cache, async () => true, { request })).toEqual(
+    [{ ...center, address: "Nhà hát" }],
+  );
   expect(request).toHaveBeenCalledTimes(2);
   const unavailable = vi.fn<typeof fetch>(async () => new Response(null, { status: 503 }));
   await expect(
-    geocodeAddress("one", { type: "search", address: "Nhà hát" }, cache, async () => true, unavailable),
+    geocodeAddress("one", { type: "search", address: "Nhà hát" }, cache, async () => true, { request: unavailable }),
   ).rejects.toMatchObject({ code: "GEOCODER_UNAVAILABLE" });
+});
+
+it("03 · §12.3 при отказе Photon ручная проверка адреса находит точку у Nominatim", async () => {
+  const cache = await caches.open("seller-address-test");
+  const address = "45 Lê Lợi, Hồ Chí Minh";
+  const request = vi.fn<typeof fetch>(async (input) => {
+    const url = new URL(String(input));
+    if (url.hostname === "photon.komoot.io") return new Response(null, { status: 503 });
+    expect(url.pathname).toBe("/search");
+    expect(url.searchParams.get("q")).toBe(address);
+    return Response.json([{ display_name: address, lat: String(center.lat), lon: String(center.lon) }]);
+  });
+  const check = () =>
+    geocodeAddress("seller", { type: "search", address }, cache, async () => true, { request, submittedSearch: true });
+  expect(await check()).toEqual([{ address, ...center }]);
+  expect(await check()).toEqual([{ address, ...center }]);
+  expect(request).toHaveBeenCalledTimes(2);
+  expect(new URL(String(request.mock.calls[0][0])).searchParams.has("lang")).toBe(false);
 });
