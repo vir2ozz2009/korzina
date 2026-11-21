@@ -18,6 +18,14 @@ const geometry = z.discriminatedUnion("type", [
 const detailField = z.enum(["apartment", "entrance", "floor", "intercom"]);
 const deliveryPayee = z.enum(["shop", "courier"]).default("shop");
 const zoneId = z.string().min(1).max(80);
+export const pauseTermInput = z.enum(["hour", "day", "manual"]);
+const receivingPause = z.object({
+  term: pauseTermInput,
+  until: z.number().int().positive().nullable(),
+  startedAt: z.number().int().nonnegative(),
+  showBanner: z.boolean().default(true),
+  message: z.string().trim().max(140).default(""),
+});
 
 export const fulfillmentSettingsInput = z.object({
   delivery: z
@@ -41,9 +49,10 @@ export const fulfillmentSettingsInput = z.object({
       z.object({ mode: z.literal("text"), payee: deliveryPayee, tariff }),
     ])
     .optional(),
-  pickup: z.object({ address: z.string().min(1), hours: z.string().min(1) }).optional(),
+  pickup: z.object({ address: z.string().min(1), hours: z.string().min(1), point: pointInput.optional() }).optional(),
   requiredDetails: z.array(detailField).max(4).default(["apartment"]),
   acceptingOrders: z.boolean().default(true),
+  pauses: z.object({ delivery: receivingPause.optional(), pickup: receivingPause.optional() }).optional(),
 });
 const detail = z.string().trim().max(80).optional();
 const comment = z.string().trim().max(500).optional();
@@ -77,6 +86,7 @@ export type DeliveryZone = Extract<DeliverySettings, { mode: "map" }>["zones"][n
 export type DeliveryAddress = Extract<Receiving, { mode: "delivery" }>;
 export type DeliveryTariff = z.infer<typeof tariff>;
 export type DetailField = z.infer<typeof detailField>;
+export type ReceivingPause = z.infer<typeof receivingPause>;
 
 export type ReceivingAvailability =
   | { mode: "pickup"; available: true; pickup: NonNullable<FulfillmentSettings["pickup"]> }

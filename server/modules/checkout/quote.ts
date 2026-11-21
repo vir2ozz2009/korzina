@@ -1,9 +1,11 @@
 import { type PurchaseQuote, paymentSettingsInput, type QuoteResponse } from "../../../src/shared/contracts/checkout";
+import { defaultShopTimeZone } from "../../../src/shared/datetime";
 import { ApiError } from "../../../src/shared/errors";
 import { addMinor, multiplyMinor } from "../../../src/shared/money";
 import type { ShopEnv } from "../../shop/env";
 import { readCart } from "../cart/service";
 import { readAvailability } from "../fulfillment/availability";
+import { pauseStatus } from "../fulfillment/pause";
 import { isAvailable } from "../fulfillment/schedule";
 import { checkFulfillment, parseSelection, requireFulfillment, resolveFulfillment } from "../fulfillment/service";
 
@@ -39,6 +41,11 @@ function contextFor(env: Shop, subject: string) {
 
 export function purchaseSummary(env: Shop, subject: string) {
   const { settings, selection, paymentSettings } = contextFor(env, subject);
+  const { acceptingOrders, closedMessage, unavailable } = pauseStatus(
+    settings,
+    env.timeZone ?? defaultShopTimeZone,
+    Date.now(),
+  );
   const cart = readCart(env.storage, subject, { id: env.shop.id, mediaOrigin: env.media.MEDIA_PUBLIC_URL });
   const availability = selection.receiving ? checkFulfillment(settings, selection.receiving) : null;
   const deliveryMinor =
@@ -53,7 +60,9 @@ export function purchaseSummary(env: Shop, subject: string) {
     totalMinor: addMinor(cart.totalMinor, deliveryMinor),
     minimumMinor: paymentSettings.minimumMinor,
     shortMinor: Math.max(0, paymentSettings.minimumMinor - cart.totalMinor),
-    acceptingOrders: settings.acceptingOrders && env.shop.status === "active",
+    acceptingOrders: acceptingOrders && env.shop.status === "active",
+    closedMessage,
+    unavailable,
     availability,
   };
 }
@@ -66,8 +75,11 @@ export function purchaseDraft(env: Shop, subject: string, kind: "guest" | "teleg
     paymentSettings,
     selection: { receiving, time },
   } = context;
-  if (!settings.acceptingOrders || env.shop.status !== "active")
-    throw new ApiError("SHOP_CLOSED", "Магазин временно не принимает заказы");
+  const { closedMessage, unavailable } = pauseStatus(settings, env.timeZone ?? defaultShopTimeZone, now);
+  if (env.shop.status !== "active") throw new ApiError("SHOP_CLOSED", "Магазин временно не принимает заказы");
+  if (closedMessage) throw new ApiError("SHOP_CLOSED", closedMessage);
+  const pause = receiving && unavailable[receiving.mode];
+  if (pause) throw new ApiError("SHOP_CLOSED", pause);
   const cart = readCart(storage, subject, { id: env.shop.id, mediaOrigin: env.media.MEDIA_PUBLIC_URL });
   if (cart.review) throw new ApiError("QUOTE_CHANGED", "Подтвердите изменения в корзине", { cart });
   if (!receiving) throw new ApiError("VALIDATION", "Укажите способ получения");
