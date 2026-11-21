@@ -1,5 +1,5 @@
 import { queryOptions, useQuery } from "@tanstack/react-query";
-import { bootstrap } from "../../app/bootstrap";
+import { bootstrap, buyerStorefrontOpen } from "../../app/bootstrap";
 import { queryPolicy } from "../../app/query-defaults";
 import type { CatalogFilters } from "../../shared/contracts/catalog-list";
 import { checkResponse } from "../../shared/http-error";
@@ -10,7 +10,7 @@ function searchQuery(q: string, filters: CatalogFilters = {}, active = true) {
   return queryOptions({
     queryKey: ["shop", shopKey, "catalog-search", q, filters] as const,
     ...queryPolicy.stock,
-    enabled: active && q.length >= 2 && bootstrap?.status === "active",
+    enabled: active && q.length >= 2 && buyerStorefrontOpen,
     queryFn: async ({ signal }) => {
       const response = await shopApi.api.catalog.search.$get(
         {
@@ -39,7 +39,7 @@ export function useShoppingMatches(q: string, enabled: boolean) {
   return useQuery({
     queryKey: ["shop", shopKey, "shopping-search", q] as const,
     ...queryPolicy.stock,
-    enabled: enabled && bootstrap?.status === "active",
+    enabled: enabled && buyerStorefrontOpen,
     queryFn: async ({ signal }) => {
       const response = await shopApi.api.catalog["shopping-search"].$post({ json: { q } }, { init: { signal } });
       await checkResponse(response);

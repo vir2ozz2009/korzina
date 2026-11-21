@@ -12,6 +12,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
+import { openCabinetStorefront } from "../../../app/cabinet-storefront";
 import { Header } from "../../../app/shell/Header";
 import { QueryBoundary } from "../../../app/shell/QueryBoundary";
 import { Screen } from "../../../app/shell/Screen";
@@ -27,6 +28,7 @@ import { Sheet } from "../../../ui/Sheet";
 import { StatusPill } from "../../../ui/StatusPill";
 import { useCabinet, useSellerLogout } from "../api";
 import { CabinetLogin } from "./CabinetLogin";
+import { LaunchReadiness } from "./LaunchReadiness";
 import { PauseCard } from "./settings/PauseCard";
 
 const statusNames: Record<string, string> = { draft: "Черновик", active: "Открыт", paused: "Пауза" };
@@ -155,11 +157,12 @@ export function CabinetScreen() {
                       <p className="text-small text-muted-foreground">Витрина пока закрыта</p>
                     )}
                   </Card>
-                  <PauseCard key={shop.id} store={shop.slug} />
+                  {shop.status === "draft" && shop.canPublish && <LaunchReadiness key={shop.id} store={shop.slug} />}
+                  {shop.status !== "draft" && <PauseCard key={shop.id} store={shop.slug} />}
                   <ListItem
-                    title="Открыть витрину"
+                    title="Открыть витрину как покупатель"
                     icon={<ArrowUpRight size={21} />}
-                    onClick={() => location.assign(shop.storefrontUrl)}
+                    onClick={() => openCabinetStorefront(shop.slug)}
                   />
                 </>
               ) : (

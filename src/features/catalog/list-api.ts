@@ -1,6 +1,6 @@
 import { infiniteQueryOptions, useInfiniteQuery } from "@tanstack/react-query";
 import type { InferResponseType } from "hono/client";
-import { bootstrap } from "../../app/bootstrap";
+import { bootstrap, buyerStorefrontOpen } from "../../app/bootstrap";
 import { queryPolicy } from "../../app/query-defaults";
 import type { CatalogFilters, CatalogScope } from "../../shared/contracts/catalog-list";
 import { checkResponse } from "../../shared/http-error";
@@ -14,7 +14,7 @@ function productListQuery(scope: CatalogScope, filters: CatalogFilters = {}, ena
   return infiniteQueryOptions({
     queryKey: productListKey(scope, filters),
     ...queryPolicy.stock,
-    enabled: enabled && bootstrap?.status === "active",
+    enabled: enabled && buyerStorefrontOpen,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (page: CatalogPage) => page.next ?? undefined,
     queryFn: async ({ pageParam, signal }) => {

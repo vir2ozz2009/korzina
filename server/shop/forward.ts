@@ -6,9 +6,11 @@ import type { FeatureState } from "../../src/shared/flags";
 type ForwardRequest = { req: { raw: Request }; res?: Response };
 export async function forwardToShop(
   c: ForwardRequest,
-  context: ShopInfo & { features: FeatureState; adminSettings?: ShopContext["adminSettings"] },
+  context: ShopInfo & { features: FeatureState; adminSettings?: ShopContext["adminSettings"]; teamPreview?: boolean },
 ) {
   const headers = new Headers(c.req.raw.headers);
+  headers.delete("x-korzina-preview-session");
+  headers.delete("x-korzina-preview-shop");
   headers.set("x-korzina-shop", encodeURIComponent(JSON.stringify(context)));
   headers.set("x-korzina-client", c.req.raw.headers.get("CF-Connecting-IP") ?? "local");
   headers.set("x-request-id", c.res?.headers.get("X-Request-Id") ?? crypto.randomUUID());

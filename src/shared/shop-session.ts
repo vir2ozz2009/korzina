@@ -1,3 +1,4 @@
+import { embeddedStorefront, storeBuyerToken } from "../app/cabinet-storefront";
 import { checkResponse } from "./http-error";
 import { commandHeaders, shopApi, shopKey } from "./shop-api";
 
@@ -10,8 +11,12 @@ export function ensureShopSession(): Promise<void> {
       return ensureShopSession();
     });
   guest ??= (async () => {
-    const response = await shopApi.api.auth.guest.$post({ json: {} }, { headers: commandHeaders() });
+    const response = await shopApi.api.auth.guest.$post(
+      { json: embeddedStorefront ? { bearer: true } : {} },
+      { headers: commandHeaders() },
+    );
     await checkResponse(response);
+    if (embeddedStorefront && response.status === 201) storeBuyerToken((await response.json()).token);
   })().catch((error) => {
     guest = undefined;
     throw error;
@@ -22,8 +27,12 @@ export function ensureShopSession(): Promise<void> {
 export function authenticateTelegram(initData: string) {
   telegram ??= (async () => {
     await guest?.catch(() => {});
-    const result = await shopApi.api.auth.telegram.$post({ json: { initData } }, { headers: commandHeaders() });
+    const result = await shopApi.api.auth.telegram.$post(
+      { json: { initData, ...(embeddedStorefront && { bearer: true }) } },
+      { headers: commandHeaders() },
+    );
     await checkResponse(result);
+    if (embeddedStorefront && result.status === 201) storeBuyerToken((await result.json()).token);
     rememberBuyer(true);
   })();
   return telegram;
@@ -47,6 +56,7 @@ export function hasBuyerMarker() {
 }
 
 export function clearClientSession() {
+  storeBuyerToken();
   guest = undefined;
   telegram = undefined;
   rememberBuyer(false);

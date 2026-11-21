@@ -1,6 +1,6 @@
 import { queryOptions, useMutation, useMutationState, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { bootstrap } from "../../app/bootstrap";
+import { buyerStorefrontOpen } from "../../app/bootstrap";
 import { queryPolicy } from "../../app/query-defaults";
 import type { useToast } from "../../app/shell/ToastProvider";
 import type { Cart, CartCommandInput } from "../../shared/contracts/cart";
@@ -17,7 +17,7 @@ function cartQuery() {
   return queryOptions({
     queryKey: cartKey,
     ...queryPolicy.cart,
-    enabled: bootstrap?.status === "active",
+    enabled: buyerStorefrontOpen,
     queryFn: async ({ signal }) => {
       const response = await shopApi.api.cart.$get({}, { init: { signal } });
       await checkResponse(response);

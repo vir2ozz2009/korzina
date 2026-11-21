@@ -31,17 +31,30 @@ export async function readCabinet(database: D1Database, request: Request, appEnv
   if (!token) throw new ApiError("UNAUTHORIZED", "Войдите в кабинет");
   const rows = await database
     .withSession("first-primary")
-    .prepare(`SELECT a.telegram_id AS telegramId, sh.id, sh.slug, sh.name, sh.status, m.role
+    .prepare(`SELECT a.telegram_id AS telegramId, sh.id, sh.slug, sh.name, sh.status, m.role,
+      COALESCE(m.role='owner' OR 'publish' IN (
+        SELECT value FROM json_each(CASE WHEN json_valid(m.permissions) THEN m.permissions ELSE '[]' END)
+      ),0) AS canPublish
       FROM seller_sessions s JOIN accounts a ON a.id=s.account_id
       LEFT JOIN memberships m ON m.account_id=a.id AND m.revoked_at IS NULL AND m.role IN ('owner','employee')
       LEFT JOIN shops sh ON sh.id=m.shop_id AND sh.status IN ('draft','active','paused')
       WHERE s.token_hash=? AND s.expires_at>? AND a.telegram_id IS NOT NULL ORDER BY sh.name, sh.id`)
     .bind(await tokenHash(token), Date.now())
-    .all<{ telegramId: string; id: string | null; slug: string; name: string; status: string; role: string }>();
+    .all<{
+      telegramId: string;
+      id: string | null;
+      slug: string;
+      name: string;
+      status: string;
+      role: string;
+      canPublish: number;
+    }>();
   const actor = rows.results[0];
   if (!actor) throw new ApiError("UNAUTHORIZED", "Войдите через Telegram");
-  const shops = rows.results.flatMap(({ telegramId: _, id, ...shop }) =>
-    id ? [{ id, ...shop, storefrontUrl: storefrontUrl(request.url, appEnv, shop.slug) }] : [],
+  const shops = rows.results.flatMap(({ telegramId: _, id, canPublish, ...shop }) =>
+    id
+      ? [{ id, ...shop, canPublish: Boolean(canPublish), storefrontUrl: storefrontUrl(request.url, appEnv, shop.slug) }]
+      : [],
   );
   const current = slug ? shops.find((shop) => shop.slug === slug) : shops[0];
   if (slug && !current) throw new ApiError("FORBIDDEN", "Нет доступа к магазину");

@@ -2,6 +2,7 @@ import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query
 import type { InferResponseType } from "hono/client";
 import { useRef } from "react";
 import { bootstrap } from "../../app/bootstrap";
+import { buyerStorefrontHeaders } from "../../app/cabinet-storefront";
 import { type api, apiForShop } from "../../shared/api";
 import type { CropPosition, MediaPurpose, PhotoMetadata } from "../../shared/contracts/media";
 import { checkResponse, HttpError } from "../../shared/http-error";
@@ -112,7 +113,7 @@ export function useUpload(seller: boolean, context?: { store: string; headers: R
         query: { shop: store ?? shop(), ...(seller ? { as: "seller" } : {}), purpose: input.purpose },
       });
       if (seller && store) url.searchParams.set("store", store);
-      return sendFile(url, body, input, metadata, context?.headers ?? {});
+      return sendFile(url, body, input, metadata, context?.headers ?? (seller ? {} : buyerStorefrontHeaders()));
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["media", context?.store ?? shop(), "usage"] }),
   });

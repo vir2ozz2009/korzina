@@ -89,6 +89,31 @@ test("Блок 7: продавец сохраняет настройки и пр
       await resume.first().click();
       await expect(resume).toHaveCount(0);
     }
+    if (local)
+      await test.step("§12.5–§12.7 витрина черновика внутри кабинета", async () => {
+        const status = "/__e2e/test2/status";
+        expect((await seller.request.post(status, { data: "draft" })).status()).toBe(204);
+        try {
+          const guest = await buyer.newPage();
+          await guest.goto("/?shop=test2");
+          await expect(guest.getByText("Магазин скоро откроется")).toBeVisible();
+          await page.goto(`/seller?${query}`);
+          await page.getByRole("button", { name: "Открыть витрину как покупатель" }).click();
+          await expect(page.getByRole("heading", { name: "Витрина глазами покупателя" })).toBeVisible();
+          await expect(page.getByText("Предпросмотр для команды")).toBeVisible();
+          await expect(page.getByRole("heading", { name: "Категории", exact: true })).toBeVisible();
+          await page.screenshot({ path: "test-results/cabinet-storefront-390.png", animations: "disabled" });
+          await page.getByRole("button", { name: /поиск/i }).click({ timeout: 7000 });
+          await expect(page).toHaveURL(/\/search[?].*viewer=team/);
+          await page.getByRole("button", { name: "Назад", exact: true }).click();
+          await expect(page.getByRole("heading", { name: "Категории", exact: true })).toBeVisible();
+          await page.getByRole("button", { name: "Вернуться в кабинет" }).click();
+          await expect(page).toHaveURL(/\/seller[?].*store=test2/);
+          await expect(page.getByRole("button", { name: "Открыть витрину как покупатель" })).toBeVisible();
+        } finally {
+          expect((await seller.request.post(status, { data: "active" })).status()).toBe(204);
+        }
+      });
     expect(errors).toEqual([]);
   } finally {
     await Promise.all([seller.close(), buyer.close()]);

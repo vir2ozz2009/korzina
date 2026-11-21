@@ -21,8 +21,11 @@ export function ShopNavigation({ children }: { children: ReactNode }) {
       const url = new URL(anchor.href);
       if (url.origin !== location.origin) return;
       event.preventDefault();
-      const shop = new URLSearchParams(location.search).get("shop");
-      if (shop) url.searchParams.set("shop", shop);
+      const current = new URLSearchParams(location.search);
+      for (const key of ["shop", "viewer", "telegram"]) {
+        const value = current.get(key);
+        if (value && !url.searchParams.has(key)) url.searchParams.set(key, value);
+      }
       void router.navigate({ href: url.pathname + url.search + url.hash });
     };
     document.addEventListener("click", navigate);

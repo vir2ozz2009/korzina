@@ -1,4 +1,5 @@
 import { focusManager } from "@tanstack/react-query";
+import { telegramLaunch } from "./launch";
 
 interface TelegramApp {
   initData: string;
@@ -29,15 +30,20 @@ declare global {
 const telegramApp = () => window.Telegram?.WebApp;
 
 // The SDK is loaded only for a Telegram launch. Normal web visits download nothing.
+let loading: Promise<void> | undefined;
 export async function loadTelegram() {
-  if (!telegramApp() && /(?:^|[?#&])tgWebAppData=/.test(location.hash + location.search)) {
-    await new Promise<void>((resolve, reject) => {
+  if (!telegramApp() && telegramLaunch) {
+    loading ??= new Promise<void>((resolve, reject) => {
       const script = document.createElement("script");
       script.src = "https://telegram.org/js/telegram-web-app.js";
       script.onload = () => resolve();
       script.onerror = () => reject(new Error("Telegram SDK unavailable"));
       document.head.appendChild(script);
+    }).catch((error) => {
+      loading = undefined;
+      throw error;
     });
+    await loading;
   }
   return telegramApp();
 }

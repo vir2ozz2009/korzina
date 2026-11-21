@@ -17,8 +17,10 @@ import { cabinetRoutes } from "./platform/auth/cabinet-routes";
 import { platformWebhook } from "./platform/auth/platform-webhook";
 import { platformAuth } from "./platform/auth/routes";
 import { shopWebhook } from "./platform/auth/shop-webhook";
+import { launchRoutes } from "./platform/launch-routes";
 import { sellerOrderGateway } from "./platform/seller-order-gateway";
 import { shopContexts } from "./platform/shop-context";
+import { authorizeBuyerShop } from "./platform/shop-preview";
 import { teamRoutes } from "./platform/team/routes";
 import { forwardToShop } from "./shop/forward";
 import { shopRoutes } from "./shop/routes";
@@ -33,7 +35,8 @@ const forwarding = createMiddleware<{ Bindings: Env }>(async (c) => {
     return notFound(c);
   }
   const shop = await shopContexts.read(c.req.raw, c.env, c.req.path === "/api/checkout" && c.req.method === "POST");
-  return forwardToShop(c, shop);
+  const teamPreview = await authorizeBuyerShop(c.req.raw, c.env.PLATFORM, shop);
+  return forwardToShop(c, { ...shop, teamPreview });
 });
 
 // Routing and validation types come from the SAME DO router; no manually duplicated RPC signatures.
@@ -54,10 +57,13 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
   .route("/platform/storefront", publicShop)
   .route("/seller/access", sellerAccess)
   .route("/seller/cabinet", cabinetRoutes)
+  .route("/seller/launch", launchRoutes)
   .route("/seller/team", teamRoutes)
   .get("/shop", async (c) => {
     c.header("Cache-Control", "no-store");
-    return c.json(await shopContexts.read(c.req.raw, c.env, false, true));
+    const shop = await shopContexts.read(c.req.raw, c.env, false, true);
+    const teamPreview = await authorizeBuyerShop(c.req.raw, c.env.PLATFORM, shop);
+    return c.json(teamPreview ? { ...shop, teamPreview } : shop);
   })
   .use("/auth/*", forwarding)
   .use("/cart", guestCart)

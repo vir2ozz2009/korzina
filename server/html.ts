@@ -1,5 +1,5 @@
 import { exports } from "cloudflare:workers";
-import type { ShopContext } from "../src/shared/contracts/shop-context";
+import { type ShopContext, shopContextContract } from "../src/shared/contracts/shop-context";
 import { ApiError } from "../src/shared/errors";
 import { DEFAULT_THEME, themeStyle } from "../src/shared/theme-presets";
 import { cookieValue, customerCookie, sessionCookie } from "./auth/cookies";
@@ -7,6 +7,7 @@ import { tokenHash } from "./auth/tokens";
 import { isDemoPath } from "./development";
 import { customerTtl } from "./modules/auth/service";
 import { shopContexts } from "./platform/shop-context";
+import { hasTeamAccess } from "./platform/shop-preview";
 
 export function themedHtml(response: Response, context: ShopContext, shopTheme: boolean): Response {
   const encoded = JSON.stringify(context).replace(/</g, "\\u003c");
@@ -46,7 +47,23 @@ export async function serveHtml(request: Request, env: Env): Promise<Response> {
   if (!response.headers.get("Content-Type")?.includes("text/html") || !response.ok) return response;
   try {
     const isShop = !/^\/(seller|admin)(\/|$)/.test(url.pathname);
-    const context = await shopContexts.read(request, env, false, isShop);
+    const shop = await shopContexts.read(request, env, false, isShop);
+    const teamPreview = shop.status === "draft" && (await hasTeamAccess(request, env.PLATFORM, shop));
+    const context =
+      shop.status !== "draft"
+        ? shop
+        : teamPreview
+          ? { ...shop, teamPreview }
+          : shopContextContract.parse({
+              id: shop.id,
+              slug: shop.slug,
+              status: shop.status,
+              plan: shop.plan,
+              createdAt: shop.createdAt,
+              name: "Магазин",
+              features: {},
+              theme: DEFAULT_THEME,
+            });
     const page = themedHtml(response, context, isShop);
     const name = customerCookie(context.id);
     const token = request.method === "GET" ? cookieValue(request, name) : undefined;

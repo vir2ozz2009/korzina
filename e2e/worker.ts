@@ -4,12 +4,14 @@ import { sellerCookie, sessionCookie } from "../server/auth/cookies";
 import { newToken, tokenHash } from "../server/auth/tokens";
 import catalog from "../server/demo-catalog.json";
 import { telegramMessage } from "../server/modules/seller-orders/notifications";
+import { invalidateShopAddress } from "../server/platform/resolve-shop";
 
 export { app } from "../server";
 
 const path = "/__e2e/test2/tomatoes";
 const sellerPath = "/__e2e/test2/seller";
 const orderMessagePath = "/__e2e/test2/order-message";
+const shopStatusPath = "/__e2e/test2/status";
 const shopId = "korzina-demo-test2";
 
 export class Shop extends Store {
@@ -39,7 +41,12 @@ export class Shop extends Store {
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url);
-    if (url.pathname !== path && url.pathname !== sellerPath && url.pathname !== orderMessagePath)
+    if (
+      url.pathname !== path &&
+      url.pathname !== sellerPath &&
+      url.pathname !== orderMessagePath &&
+      url.pathname !== shopStatusPath
+    )
       return worker.fetch(request, env, ctx);
     if (
       url.hostname !== "127.0.0.1" ||
@@ -67,6 +74,13 @@ export default {
         status: 204,
         headers: { "Set-Cookie": sessionCookie(request, sellerCookie, token, 300) },
       });
+    }
+    if (url.pathname === shopStatusPath) {
+      const status = await request.text();
+      if (status !== "active" && status !== "draft") return new Response(null, { status: 400 });
+      await env.PLATFORM.prepare("UPDATE shops SET status=?,version=version+1 WHERE id=?").bind(status, shopId).run();
+      await invalidateShopAddress(env.APP_ENV, "test2");
+      return new Response(null, { status: 204 });
     }
     const namespace = exports.Shop as unknown as DurableObjectNamespace<Shop>;
     const shop = namespace.get(namespace.idFromName(shopId));
