@@ -107,7 +107,7 @@ export function TeamInviteForm({ store, id, close }: { store: string; id?: strin
   return (
     <Sheet
       open
-      title={id || issued ? "Приглашение" : "Пригласить сотрудника"}
+      title={id || issued ? "Приглашение" : "Добавить сотрудника"}
       onOpenChange={(open) => {
         if (!open) close();
       }}

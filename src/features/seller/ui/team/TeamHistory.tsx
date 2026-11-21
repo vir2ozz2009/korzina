@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { QueryBoundary } from "../../../../app/shell/QueryBoundary";
+import { calendarDate, formatShopTimestamp, shopDayStart } from "../../../../shared/datetime";
 import { Button } from "../../../../ui/Button";
 import { EmptyState } from "../../../../ui/EmptyState";
 import { ListItem } from "../../../../ui/ListItem";
@@ -18,10 +19,9 @@ const actionName: Record<string, string> = {
   "shop.status": "Изменён статус магазина",
 };
 const sectionName = { team: "Команда", shop: "Магазин", owner: "Владелец", bot: "Бот" };
-const dateTime = new Intl.DateTimeFormat("ru", { dateStyle: "short", timeStyle: "short" });
 const statusName = { draft: "Черновик", active: "Открыт", paused: "Пауза" };
 
-export function TeamHistory({ store }: { store: string }) {
+export function TeamHistory({ store, timeZone }: { store: string; timeZone: string }) {
   const [filters, setFilters] = useState({ section: "", date: "", actor: "" });
   const [draft, setDraft] = useState(filters);
   const [open, setOpen] = useState(false);
@@ -31,15 +31,18 @@ export function TeamHistory({ store }: { store: string }) {
     queryKey: [...teamKey(store), "audit", filters],
     initialPageParam: "",
     queryFn: ({ pageParam, signal }) => {
-      const start = filters.date ? new Date(`${filters.date}T00:00:00`).getTime() : undefined;
-      const until = start === undefined ? undefined : new Date(start);
-      if (until) until.setDate(until.getDate() + 1);
+      const range = filters.date
+        ? {
+            from: String(shopDayStart(filters.date, timeZone)),
+            until: String(shopDayStart(calendarDate(filters.date, 1), timeZone)),
+          }
+        : undefined;
       return teamRequest<Audit>(store, "audit", {
         signal,
         filters: {
           ...(filters.section && { section: filters.section }),
           ...(filters.actor && { actor: filters.actor }),
-          ...(start !== undefined && until && { from: String(start), until: String(until.getTime()) }),
+          ...range,
           ...(pageParam && { cursor: pageParam }),
         },
       });
@@ -75,7 +78,7 @@ export function TeamHistory({ store }: { store: string }) {
                 <ListItem
                   key={entry.id}
                   title={label(entry)}
-                  subtitle={`${entry.name} · ${dateTime.format(entry.createdAt)}`}
+                  subtitle={`${entry.name} · ${formatShopTimestamp(entry.createdAt, timeZone)}`}
                   onClick={() => select(entry)}
                 />
               ))}
@@ -150,7 +153,7 @@ export function TeamHistory({ store }: { store: string }) {
         {selected && (
           <>
             <ListItem title="Кто" value={selected.name} />
-            <ListItem title="Когда" value={dateTime.format(selected.createdAt)} />
+            <ListItem title="Когда" value={formatShopTimestamp(selected.createdAt, timeZone)} />
             <ListItem title="Раздел" value={sectionName[selected.action.split(".")[0] as keyof typeof sectionName]} />
             <ListItem title={label(selected)} />
             {selected.change.before && <ListItem title="Было" value={roleName[selected.change.before.role]} />}

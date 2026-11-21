@@ -111,13 +111,20 @@ export function CabinetScreen() {
                     <>
                       {shop.role === "owner" && (
                         <ListItem
-                          title="Команда"
+                          title="Сотрудники"
                           icon={<Users size={20} />}
                           onClick={() => void navigate({ to: "/seller/team", search: { ...search, store: shop.slug } })}
                         />
                       )}
                       {(shop.role === "owner" || shop.teamRole === "manager") && (
                         <>
+                          <ListItem
+                            title="Бот магазина"
+                            icon={<MessageCircle size={20} />}
+                            onClick={() =>
+                              void navigate({ to: "/seller/bot", search: { ...search, store: shop.slug } })
+                            }
+                          />
                           <ListItem
                             title="Уведомления"
                             icon={<Bell size={20} />}

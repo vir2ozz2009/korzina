@@ -117,13 +117,15 @@ test("Блок 7: продавец сохраняет настройки и пр
     if (local)
       await test.step("Блок 8: команда, роль уведомлений и журнал", async () => {
         await page.goto(`/seller/more?${query}`);
-        await page.getByRole("button", { name: "Команда", exact: true }).click({ timeout: 7000 });
+        await page.getByRole("button", { name: "Сотрудники", exact: true }).click({ timeout: 7000 });
         await expect(page.getByRole("heading", { name: "Сотрудники", exact: true })).toBeVisible();
         await page.screenshot({ path: "test-results/team-390.png", animations: "disabled" });
-        await page.getByRole("button", { name: "Пригласить сотрудника", exact: true }).click();
-        await expect(page.getByRole("dialog", { name: "Пригласить сотрудника" })).toBeVisible();
+        await page.getByRole("button", { name: "Добавить сотрудника", exact: true }).click();
+        await expect(page.getByRole("dialog", { name: "Добавить сотрудника" })).toBeVisible();
         await page.screenshot({ path: "test-results/team-invite-390.png", animations: "disabled" });
-        await page.goto(`/seller/notifications?${query}`);
+        await page.goto(`/seller/bot?${query}`);
+        await expect(page.getByText("Бота подключает администратор Korzina")).toBeVisible();
+        await page.getByRole("button", { name: "Настроить уведомления сотрудников", exact: true }).click();
         await expect(page.getByRole("table", { name: "Уведомления по ролям" })).toBeVisible();
         await expect(page.getByRole("checkbox", { name: "Сборщик · Оплаты и чеки" })).toBeDisabled();
         const newOrders = page.getByRole("checkbox", { name: "Сборщик · Новые заказы" });

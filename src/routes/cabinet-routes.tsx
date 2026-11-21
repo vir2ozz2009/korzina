@@ -4,7 +4,8 @@ import { rootRoute } from "./root";
 const sellerScreen = lazyRouteComponent(() => import("../features/seller/ui/CabinetScreen"), "CabinetScreen");
 const team = lazyRouteComponent(() => import("../features/seller/ui/team/TeamScreen"), "TeamScreen");
 const teamRoutes = [
-  ["/seller/team", "Команда"],
+  ["/seller/team", "Сотрудники"],
+  ["/seller/bot", "Бот магазина"],
   ["/seller/notifications", "Уведомления"],
   ["/seller/history", "История действий"],
 ] as const;

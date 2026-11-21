@@ -2,9 +2,12 @@ import { env } from "cloudflare:workers";
 import { assert, beforeAll, expect, it } from "vitest";
 import type { OrderResult, QuoteResponse } from "../../../src/shared/contracts/checkout";
 import type { LaunchReadiness } from "../../../src/shared/contracts/launch";
+import { app } from "../../index";
+import { openAdminSession } from "../../platform/admin/access";
 import { invalidateShopAddress } from "../../platform/resolve-shop";
 import { cookieFrom, getAuth, postAuth, sellerFixture } from "../../testing/auth";
 import { setupPlatform } from "../../testing/platform";
+import { customerTtl } from "../auth/service";
 import { catalogSql } from "../catalog/testing";
 import { setupCheckout } from "../checkout/testing";
 
@@ -120,4 +123,63 @@ it("§11.6–§11.7 владелец открывает магазин толь�
   expect(await opened.json()).toMatchObject({ status: "active" });
   expect((await postAuth(path, { revision: current.revision }, headers)).status).toBe(200);
   expect((await getAuth(api("catalog/document"))).status).toBe(200);
+});
+
+it("§9.5, §11.7 только администратор подтверждает открытие неполного черновика и снимает административную паузу", async () => {
+  await closeShop();
+  await catalogSql(
+    "UPDATE settings SET value=? WHERE key='purchase_payment'",
+    JSON.stringify({ minimumMinor: 0, methods: [] }),
+  );
+  const manager = await sellerFixture(shop, "employee", ["publish", "shop_settings"]);
+  const picker = await sellerFixture(shop, "employee", ["orders"]);
+  await env.PLATFORM.prepare("UPDATE memberships SET team_role='manager' WHERE account_id=?")
+    .bind(manager.accountId)
+    .run();
+  await env.PLATFORM.prepare("UPDATE memberships SET team_role='picker' WHERE account_id=?")
+    .bind(picker.accountId)
+    .run();
+  expect((await getAuth(launch, picker.headers)).status).toBe(403);
+  const { revision } = await (await getAuth(launch, manager.headers)).json<LaunchReadiness>();
+  const openPath = "/api/seller/launch/open?store=lavka";
+  expect(await (await postAuth(openPath, { revision }, manager.headers)).json()).toMatchObject({
+    error: { code: "NOT_READY" },
+  });
+  expect((await postAuth(openPath, { revision, force: true }, manager.headers)).status).toBe(400);
+
+  const telegramId = "92222";
+  const bindings = { ...env, PLATFORM_ADMIN_TELEGRAM_IDS: telegramId };
+  await env.PLATFORM.batch([
+    env.PLATFORM.prepare("INSERT INTO accounts(id,telegram_id) VALUES('launch-admin',?)").bind(telegramId),
+    env.PLATFORM.prepare("INSERT INTO platform_admins(account_id) VALUES('launch-admin')"),
+  ]);
+  const { token } = await openAdminSession(env.PLATFORM, bindings, telegramId, Date.now() + customerTtl * 1000);
+  const version = await env.PLATFORM.prepare("SELECT version FROM shops WHERE id=?")
+    .bind(shop)
+    .first<number>("version");
+  const change = (status: "active" | "paused", version: number | null, key: string, force?: true) =>
+    app.fetch(
+      new Request(`https://demo.korzina.app/api/platform/admin/shops/${shop}`, {
+        method: "PATCH",
+        headers: { Cookie: `korzina_admin=${token}`, "Idempotency-Key": key, "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "status", status, version, ...(force && { force }) }),
+      }),
+      bindings,
+    );
+  const rejected = await change("active", version, crypto.randomUUID());
+  expect(await rejected.json()).toMatchObject({ error: { code: "NOT_READY" } });
+  const key = crypto.randomUUID();
+  const responses = await Promise.all([change("active", version, key, true), change("active", version, key, true)]);
+  expect(responses.map(({ status }) => status)).toEqual([200, 200]);
+  const { version: opened } = await responses[0].json<{ version: number }>();
+  await expect(responses[1].json()).resolves.toMatchObject({ version: opened });
+  expect((await change("paused", opened, crypto.randomUUID())).status).toBe(200);
+  expect(await (await postAuth(openPath, { revision }, manager.headers)).json()).toMatchObject({
+    error: { code: "ADMIN_PAUSED" },
+  });
+  expect(
+    await env.PLATFORM.prepare("SELECT COUNT(*) AS count FROM platform_audit WHERE actor_id='launch-admin'").first(
+      "count",
+    ),
+  ).toBe(2);
 });

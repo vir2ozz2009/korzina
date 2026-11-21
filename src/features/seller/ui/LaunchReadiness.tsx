@@ -4,7 +4,7 @@ import { type ReactNode, useRef, useState } from "react";
 import { QueryBoundary } from "../../../app/shell/QueryBoundary";
 import { useToast } from "../../../app/shell/ToastProvider";
 import { api } from "../../../shared/api";
-import type { ReadinessItem } from "../../../shared/contracts/launch";
+import { type ReadinessItem, readinessLabels } from "../../../shared/contracts/launch";
 import { checkResponse, errorKind } from "../../../shared/http-error";
 import { commandHeaders } from "../../../shared/shop-api";
 import { Button } from "../../../ui/Button";
@@ -14,11 +14,11 @@ import { ListItem } from "../../../ui/ListItem";
 import { sellerSessionHeaders } from "../api";
 
 const settings = {
-  name: ["Данные магазина", "/seller/shop-data"],
-  product: ["Товары", "/seller/products"],
-  receiving: ["Доставка и самовывоз", "/seller/receiving"],
-  payment: ["Оплата", "/seller/payments"],
-} as const satisfies Record<ReadinessItem["key"], readonly [string, string]>;
+  name: "/seller/shop-data",
+  product: "/seller/products",
+  receiving: "/seller/receiving",
+  payment: "/seller/payments",
+} as const satisfies Record<ReadinessItem["key"], string>;
 
 export function LaunchReadiness({ store, children }: { store: string; children: ReactNode }) {
   const router = useRouter();
@@ -73,13 +73,12 @@ export function LaunchReadiness({ store, children }: { store: string; children: 
         {({ items, revision, status }) => (
           <>
             {items.map(({ key, ready }) => {
-              const [label, path] = settings[key];
-              const url = new URL(path, location.origin);
+              const url = new URL(settings[key], location.origin);
               url.searchParams.set("store", store);
               return (
                 <ListItem
                   key={key}
-                  title={label}
+                  title={readinessLabels[key]}
                   value={ready ? "Готово" : "Нужно настроить"}
                   onClick={() => void router.navigate({ href: url.pathname + url.search })}
                 />

@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { readinessLabels } from "../../../shared/contracts/launch";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { Dialog } from "../../../ui/Dialog";
+import { ListItem } from "../../../ui/ListItem";
 import { Switch } from "../../../ui/Switch";
 import type { AdminShop } from "../api";
 import { useShopCommand } from "./useShopCommand";
@@ -31,6 +33,13 @@ export function AdminShopActions({ shop }: { shop: AdminShop }) {
           {label}
         </Button>
       </div>
+      {shop.readiness && shop.status === "draft" && (
+        <section aria-label="Готовность магазина">
+          {shop.readiness.items.map(({ key, ready }) => (
+            <ListItem key={key} title={readinessLabels[key]} value={ready ? "Готово" : "Нужно настроить"} />
+          ))}
+        </section>
+      )}
       {shop.status === "draft" && !shop.currency && <p className="text-caption">Выберите валюту в данных магазина</p>}
       {shop.statusNotice && <p role="status">{shop.statusNotice}</p>}
       {command.error && <p role="alert">{command.error}</p>}

@@ -1,10 +1,9 @@
 import type { FulfillmentSettings, ReceivingPause } from "../../../src/shared/contracts/receiving";
 import type { ReceivingMethod } from "../../../src/shared/contracts/receiving-time";
-import { calendarDate, shopDateTime } from "../../../src/shared/datetime";
+import { calendarDate, shopDateTime, shopDayStart } from "../../../src/shared/datetime";
 
 export const receivingMethods = ["delivery", "pickup"] as const;
 const hour = 3_600_000;
-const minute = 60_000;
 const legacyPause: ReceivingPause = { term: "manual", until: null, startedAt: 0, showBanner: true, message: "" };
 
 export function activePause(settings: FulfillmentSettings, method: ReceivingMethod, now: number) {
@@ -17,15 +16,7 @@ export function pauseDeadline(term: ReceivingPause["term"], now: number, timeZon
   if (term === "manual") return null;
   if (term === "hour") return now + hour;
   const nextDate = calendarDate(shopDateTime(now, timeZone).date, 1);
-  // Find the first instant in the next local day, including midnight offset changes.
-  let before = Math.floor(now / minute);
-  let after = before + 48 * 60;
-  while (after - before > 1) {
-    const middle = Math.floor((before + after) / 2);
-    if (shopDateTime(middle * minute, timeZone).date < nextDate) before = middle;
-    else after = middle;
-  }
-  return after * minute;
+  return shopDayStart(nextDate, timeZone);
 }
 
 export function moveDayPauses(storage: DurableObjectStorage, timeZone: string, now = Date.now()) {

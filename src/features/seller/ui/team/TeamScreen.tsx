@@ -1,11 +1,13 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useRouterState } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { Bell, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { Header } from "../../../../app/shell/Header";
 import { QueryBoundary } from "../../../../app/shell/QueryBoundary";
 import { Screen } from "../../../../app/shell/Screen";
 import { SellerTabs } from "../../../../app/shell/SellerTabs";
 import type { StaffInvite } from "../../../../shared/contracts/staff";
+import { defaultShopTimeZone } from "../../../../shared/datetime";
 import { Button } from "../../../../ui/Button";
 import { Card } from "../../../../ui/Card";
 import { EmptyState } from "../../../../ui/EmptyState";
@@ -14,7 +16,7 @@ import { useCabinet } from "../../api";
 import { TeamInviteForm, TeamMemberForm } from "./TeamForms";
 import { TeamHistory } from "./TeamHistory";
 import { TeamNotifications } from "./TeamNotifications";
-import { type Invites, type Members, roleName, teamKey, teamRequest } from "./team-api";
+import { type Invites, type Members, roleName, teamKey, teamRequest, useStaffBot } from "./team-api";
 
 export function TeamScreen() {
   const { pathname, search } = useRouterState({ select: (state) => state.location });
@@ -23,7 +25,8 @@ export function TeamScreen() {
   const current = cabinet.data?.current;
   const history = pathname === "/seller/history";
   const notifications = pathname === "/seller/notifications";
-  const title = history ? "История действий" : notifications ? "Уведомления" : "Команда";
+  const bot = pathname === "/seller/bot";
+  const title = history ? "История действий" : notifications ? "Уведомления" : bot ? "Бот магазина" : "Сотрудники";
   return (
     <Screen
       template="list"
@@ -38,9 +41,11 @@ export function TeamScreen() {
         {({ current }) =>
           current ? (
             history ? (
-              <TeamHistory store={current.slug} />
+              <TeamHistory key={current.slug} store={current.slug} timeZone={current.timeZone ?? defaultShopTimeZone} />
             ) : notifications ? (
               <TeamNotifications store={current.slug} />
+            ) : bot ? (
+              <ShopBot store={current.slug} canManage={current.permissions.includes("shop_settings")} />
             ) : (
               <TeamList key={current.slug} store={current.slug} />
             )
@@ -50,6 +55,36 @@ export function TeamScreen() {
         }
       </QueryBoundary>
     </Screen>
+  );
+}
+
+function ShopBot({ store, canManage }: { store: string; canManage: boolean }) {
+  const navigate = useNavigate();
+  const query = useStaffBot(store);
+  return (
+    <QueryBoundary query={query} template="form">
+      {({ shopBot }) => (
+        <>
+          <ListItem
+            title={shopBot ? `Бот подключён · @${shopBot}` : "Бота подключает администратор Korzina"}
+            subtitle={shopBot ? undefined : "Личные уведомления отправляет бот Korzina"}
+            icon={<MessageCircle size={20} />}
+          />
+          {canManage && (
+            <ListItem
+              title="Настроить уведомления сотрудников"
+              icon={<Bell size={20} />}
+              onClick={() =>
+                void navigate({
+                  to: "/seller/notifications",
+                  search: (previous) => ({ shop: previous.shop, store }),
+                })
+              }
+            />
+          )}
+        </>
+      )}
+    </QueryBoundary>
   );
 }
 
@@ -90,10 +125,12 @@ function TeamList({ store }: { store: string }) {
       {({ pages }) => (
         <>
           <Button full onClick={() => select({ kind: "new" })}>
-            Пригласить сотрудника
+            Добавить сотрудника
           </Button>
           <Card>
-            <h2 className="text-title-3">Сотрудники</h2>
+            {pages.length === 1 && pages[0].members.length === 1 && !members.hasNextPage && (
+              <p>Пока других сотрудников нет</p>
+            )}
             {pages
               .flatMap(({ members }) => members)
               .map((member) => (
