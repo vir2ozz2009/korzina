@@ -114,6 +114,29 @@ test("Блок 7: продавец сохраняет настройки и пр
           expect((await seller.request.post(status, { data: "active" })).status()).toBe(204);
         }
       });
+    if (local)
+      await test.step("Блок 8: команда, роль уведомлений и журнал", async () => {
+        await page.goto(`/seller/more?${query}`);
+        await page.getByRole("button", { name: "Команда", exact: true }).click({ timeout: 7000 });
+        await expect(page.getByRole("heading", { name: "Сотрудники", exact: true })).toBeVisible();
+        await page.screenshot({ path: "test-results/team-390.png", animations: "disabled" });
+        await page.getByRole("button", { name: "Пригласить сотрудника", exact: true }).click();
+        await expect(page.getByRole("dialog", { name: "Пригласить сотрудника" })).toBeVisible();
+        await page.screenshot({ path: "test-results/team-invite-390.png", animations: "disabled" });
+        await page.goto(`/seller/notifications?${query}`);
+        await expect(page.getByRole("table", { name: "Уведомления по ролям" })).toBeVisible();
+        await expect(page.getByRole("checkbox", { name: "Сборщик · Оплаты и чеки" })).toBeDisabled();
+        const newOrders = page.getByRole("checkbox", { name: "Сборщик · Новые заказы" });
+        const initial = await newOrders.isChecked();
+        await newOrders.click();
+        await expect(newOrders).toBeChecked({ checked: !initial });
+        await newOrders.click();
+        await expect(newOrders).toBeChecked({ checked: initial });
+        await page.screenshot({ path: "test-results/team-notifications-390.png", animations: "disabled" });
+        await page.goto(`/seller/history?${query}`);
+        await expect(page.getByRole("button", { name: /Изменены уведомления/ }).first()).toBeVisible();
+        await page.screenshot({ path: "test-results/team-history-390.png", animations: "disabled" });
+      });
     expect(errors).toEqual([]);
   } finally {
     await Promise.all([seller.close(), buyer.close()]);

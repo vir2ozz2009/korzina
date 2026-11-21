@@ -71,6 +71,8 @@ export function useSellerLogout() {
       await client.cancelQueries({ queryKey: ["seller-catalog"] });
       client.removeQueries({ queryKey: ["seller-catalog"] });
       client.removeQueries({ queryKey: ["seller-settings"] });
+      await client.cancelQueries({ queryKey: ["seller", "team"] });
+      client.removeQueries({ queryKey: ["seller", "team"] });
     },
   });
 }

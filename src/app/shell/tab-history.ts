@@ -2,7 +2,10 @@ const sellerRoots = ["/seller", "/seller/orders", "/seller/products", "/seller/m
 export function sellerTab(href: string) {
   const path = href.split(/[?#]/)[0];
   if (/^\/seller\/(?:categories|brands)(?:\/|$)/u.test(path)) return "/seller/products";
-  if (path === "/seller/profile" || path === "/seller/showcase") return "/seller/more";
+  if (
+    ["/seller/profile", "/seller/showcase", "/seller/team", "/seller/notifications", "/seller/history"].includes(path)
+  )
+    return "/seller/more";
   return sellerRoots.findLast((root) => path === root || path.startsWith(`${root}/`)) ?? "/seller";
 }
 

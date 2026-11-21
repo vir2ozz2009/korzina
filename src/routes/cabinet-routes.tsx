@@ -2,6 +2,12 @@ import { createRoute, lazyRouteComponent } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 
 const sellerScreen = lazyRouteComponent(() => import("../features/seller/ui/CabinetScreen"), "CabinetScreen");
+const team = lazyRouteComponent(() => import("../features/seller/ui/team/TeamScreen"), "TeamScreen");
+const teamRoutes = [
+  ["/seller/team", "Команда"],
+  ["/seller/notifications", "Уведомления"],
+  ["/seller/history", "История действий"],
+] as const;
 const settings = lazyRouteComponent(
   () => import("../features/seller/ui/settings/SellerSettingsScreen"),
   "SellerSettingsScreen",
@@ -59,6 +65,15 @@ const catalogRoutes = [
   ["/seller/showcase", "Витрина", false],
 ] as const;
 export const sellerRoutes = [
+  ...teamRoutes.map(([path, title]) =>
+    createRoute({
+      getParentRoute: () => rootRoute,
+      path,
+      validateSearch: search,
+      staticData: { template: "list", transition: "push", title },
+      component: team,
+    }),
+  ),
   ...settingsRoutes.map(([path, title]) =>
     createRoute({
       getParentRoute: () => rootRoute,

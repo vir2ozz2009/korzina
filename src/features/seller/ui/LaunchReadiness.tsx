@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { QueryBoundary } from "../../../app/shell/QueryBoundary";
 import { useToast } from "../../../app/shell/ToastProvider";
 import { api } from "../../../shared/api";
@@ -20,7 +20,7 @@ const settings = {
   payment: ["Оплата", "/seller/payments"],
 } as const satisfies Record<ReadinessItem["key"], readonly [string, string]>;
 
-export function LaunchReadiness({ store }: { store: string }) {
+export function LaunchReadiness({ store, children }: { store: string; children: ReactNode }) {
   const router = useRouter();
   const cache = useQueryClient();
   const notify = useToast();
@@ -85,6 +85,7 @@ export function LaunchReadiness({ store }: { store: string }) {
                 />
               );
             })}
+            {children}
             <Button
               full
               disabled={status !== "draft" || items.some(({ ready }) => !ready)}

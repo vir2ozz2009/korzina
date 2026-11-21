@@ -1,15 +1,18 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   ArrowUpRight,
+  Bell,
   ChevronDown,
   Clock3,
   CreditCard,
+  History,
   Info,
   LogOut,
   MessageCircle,
   Store,
   Truck,
   UserRound,
+  Users,
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { openCabinetStorefront } from "../../../app/cabinet-storefront";
@@ -30,6 +33,7 @@ import { useCabinet, useSellerLogout } from "../api";
 import { CabinetLogin } from "./CabinetLogin";
 import { LaunchReadiness } from "./LaunchReadiness";
 import { PauseCard } from "./settings/PauseCard";
+import { ReconnectStaffBot } from "./team/ReconnectStaffBot";
 
 const statusNames: Record<string, string> = { draft: "Черновик", active: "Открыт", paused: "Пауза" };
 
@@ -49,11 +53,21 @@ export function CabinetScreen() {
   const title = profile ? "Профиль продавца" : more ? "Ещё" : (current?.name ?? "Кабинет продавца");
   const needsLogin = query.error instanceof HttpError && query.error.status === 401;
   const denied = query.error instanceof HttpError && query.error.status === 403;
+  const storefrontAction = current && (
+    <ListItem
+      title="Открыть витрину как покупатель"
+      subtitle={current.status === "draft" ? "Чтобы проверить всё целиком, сделайте заказ и отмените его" : undefined}
+      icon={<ArrowUpRight size={21} />}
+      onClick={() => openCabinetStorefront(current.slug)}
+    />
+  );
   return (
     <Screen
       template="form"
       after={
-        query.data && !query.isError ? <SellerTabs store={current?.slug} account={query.data.telegramId} /> : undefined
+        query.data && !query.isError ? (
+          <SellerTabs store={current?.slug} account={query.data.telegramId} permissions={current?.permissions} />
+        ) : undefined
       }
       header={
         <Header
@@ -83,6 +97,7 @@ export function CabinetScreen() {
         <QueryBoundary query={query} template="form">
           {({ telegramId, current: shop, shops }) => (
             <>
+              {shop && !profile && <ReconnectStaffBot store={shop.slug} />}
               {profile ? (
                 <ListItem
                   title="Telegram"
@@ -94,43 +109,76 @@ export function CabinetScreen() {
                 <>
                   {shop && (
                     <>
-                      <ListItem
-                        title="Доставка и самовывоз"
-                        icon={<Truck size={20} />}
-                        onClick={() =>
-                          void navigate({ to: "/seller/receiving", search: { ...search, store: shop.slug } })
-                        }
-                      />
-                      <ListItem
-                        title="Часы работы"
-                        icon={<Clock3 size={20} />}
-                        onClick={() => void navigate({ to: "/seller/hours", search: { ...search, store: shop.slug } })}
-                      />
-                      <ListItem
-                        title="Оплата"
-                        icon={<CreditCard size={20} />}
-                        onClick={() =>
-                          void navigate({ to: "/seller/payments", search: { ...search, store: shop.slug } })
-                        }
-                      />
-                      <ListItem
-                        title="О магазине"
-                        icon={<Info size={20} />}
-                        onClick={() =>
-                          void navigate({ to: "/seller/shop-data", search: { ...search, store: shop.slug } })
-                        }
-                      />
+                      {shop.role === "owner" && (
+                        <ListItem
+                          title="Команда"
+                          icon={<Users size={20} />}
+                          onClick={() => void navigate({ to: "/seller/team", search: { ...search, store: shop.slug } })}
+                        />
+                      )}
+                      {(shop.role === "owner" || shop.teamRole === "manager") && (
+                        <>
+                          <ListItem
+                            title="Уведомления"
+                            icon={<Bell size={20} />}
+                            onClick={() =>
+                              void navigate({ to: "/seller/notifications", search: { ...search, store: shop.slug } })
+                            }
+                          />
+                          <ListItem
+                            title="История действий"
+                            icon={<History size={20} />}
+                            onClick={() =>
+                              void navigate({ to: "/seller/history", search: { ...search, store: shop.slug } })
+                            }
+                          />
+                        </>
+                      )}
+                      {(!shop.teamRole || shop.permissions.includes("shop_settings")) && (
+                        <>
+                          <ListItem
+                            title="Доставка и самовывоз"
+                            icon={<Truck size={20} />}
+                            onClick={() =>
+                              void navigate({ to: "/seller/receiving", search: { ...search, store: shop.slug } })
+                            }
+                          />
+                          <ListItem
+                            title="Часы работы"
+                            icon={<Clock3 size={20} />}
+                            onClick={() =>
+                              void navigate({ to: "/seller/hours", search: { ...search, store: shop.slug } })
+                            }
+                          />
+                          <ListItem
+                            title="Оплата"
+                            icon={<CreditCard size={20} />}
+                            onClick={() =>
+                              void navigate({ to: "/seller/payments", search: { ...search, store: shop.slug } })
+                            }
+                          />
+                          <ListItem
+                            title="О магазине"
+                            icon={<Info size={20} />}
+                            onClick={() =>
+                              void navigate({ to: "/seller/shop-data", search: { ...search, store: shop.slug } })
+                            }
+                          />
+                        </>
+                      )}
                     </>
                   )}
-                  <ListItem
-                    title="Витрина"
-                    icon={<Store size={20} />}
-                    onClick={() =>
-                      void navigate({
-                        href: `/seller/showcase${shop ? `?store=${encodeURIComponent(shop.slug)}` : ""}`,
-                      })
-                    }
-                  />
+                  {(!shop?.teamRole || shop.permissions.includes("products")) && (
+                    <ListItem
+                      title="Витрина"
+                      icon={<Store size={20} />}
+                      onClick={() =>
+                        void navigate({
+                          href: `/seller/showcase${shop ? `?store=${encodeURIComponent(shop.slug)}` : ""}`,
+                        })
+                      }
+                    />
+                  )}
                   <ListItem
                     title="Профиль продавца"
                     icon={<UserRound size={20} />}
@@ -157,13 +205,16 @@ export function CabinetScreen() {
                       <p className="text-small text-muted-foreground">Витрина пока закрыта</p>
                     )}
                   </Card>
-                  {shop.status === "draft" && shop.canPublish && <LaunchReadiness key={shop.id} store={shop.slug} />}
-                  {shop.status !== "draft" && <PauseCard key={shop.id} store={shop.slug} />}
-                  <ListItem
-                    title="Открыть витрину как покупатель"
-                    icon={<ArrowUpRight size={21} />}
-                    onClick={() => openCabinetStorefront(shop.slug)}
-                  />
+                  {shop.status === "draft" && shop.permissions?.includes("publish") ? (
+                    <LaunchReadiness key={shop.id} store={shop.slug}>
+                      {storefrontAction}
+                    </LaunchReadiness>
+                  ) : (
+                    storefrontAction
+                  )}
+                  {shop.status !== "draft" && (!shop.teamRole || shop.permissions.includes("shop_settings")) && (
+                    <PauseCard key={shop.id} store={shop.slug} />
+                  )}
                 </>
               ) : (
                 <Card>

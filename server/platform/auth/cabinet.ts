@@ -1,5 +1,7 @@
+import { permissionSchema } from "../../../src/shared/contracts/auth";
 import { ApiError } from "../../../src/shared/errors";
 import { credential, sellerCookie } from "../../auth/cookies";
+import { effectiveSellerPermissions } from "../../auth/roles";
 import { tokenHash } from "../../auth/tokens";
 import { storefrontUrl } from "../storefront-url";
 import { telegramSellerSession } from "./sessions";
@@ -32,9 +34,7 @@ export async function readCabinet(database: D1Database, request: Request, appEnv
   const rows = await database
     .withSession("first-primary")
     .prepare(`SELECT a.telegram_id AS telegramId, sh.id, sh.slug, sh.name, sh.status, m.role,
-      COALESCE(m.role='owner' OR 'publish' IN (
-        SELECT value FROM json_each(CASE WHEN json_valid(m.permissions) THEN m.permissions ELSE '[]' END)
-      ),0) AS canPublish
+      m.team_role AS teamRole, m.permissions
       FROM seller_sessions s JOIN accounts a ON a.id=s.account_id
       LEFT JOIN memberships m ON m.account_id=a.id AND m.revoked_at IS NULL AND m.role IN ('owner','employee')
       LEFT JOIN shops sh ON sh.id=m.shop_id AND sh.status IN ('draft','active','paused')
@@ -47,15 +47,26 @@ export async function readCabinet(database: D1Database, request: Request, appEnv
       name: string;
       status: string;
       role: string;
-      canPublish: number;
+      teamRole: string | null;
+      permissions: string | null;
     }>();
   const actor = rows.results[0];
   if (!actor) throw new ApiError("UNAUTHORIZED", "Войдите через Telegram");
-  const shops = rows.results.flatMap(({ telegramId: _, id, canPublish, ...shop }) =>
-    id
-      ? [{ id, ...shop, canPublish: Boolean(canPublish), storefrontUrl: storefrontUrl(request.url, appEnv, shop.slug) }]
-      : [],
-  );
+  const shops = rows.results.flatMap(({ telegramId: _, id, permissions, ...shop }) => {
+    if (!id) return [];
+    const allowed =
+      shop.role === "owner"
+        ? [...permissionSchema.options]
+        : (() => {
+            try {
+              const granted = permissionSchema.array().parse(JSON.parse(permissions ?? "[]"));
+              return effectiveSellerPermissions(granted, shop.teamRole === null);
+            } catch {
+              return [];
+            }
+          })();
+    return [{ id, ...shop, permissions: allowed, storefrontUrl: storefrontUrl(request.url, appEnv, shop.slug) }];
+  });
   const current = slug ? shops.find((shop) => shop.slug === slug) : shops[0];
   if (slug && !current) throw new ApiError("FORBIDDEN", "Нет доступа к магазину");
   return { telegramId: actor.telegramId, current: current ?? null, shops };

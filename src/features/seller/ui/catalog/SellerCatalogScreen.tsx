@@ -123,7 +123,13 @@ export function SellerCatalogScreen() {
         after={
           !editor &&
           cabinet.data?.current &&
-          !cabinet.isError && <SellerTabs store={cabinet.data.current.slug} account={cabinet.data.telegramId} />
+          !cabinet.isError && (
+            <SellerTabs
+              store={cabinet.data.current.slug}
+              account={cabinet.data.telegramId}
+              permissions={cabinet.data.current.permissions}
+            />
+          )
         }
         footer={footer}
       >
