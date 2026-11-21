@@ -6,7 +6,7 @@ import { shopContract } from "./shop";
 export const shopContextContract = z.extend(shopContract, {
   mediaOrigin: z.optional(z.string()),
   timeZone: z.optional(z.string()),
-  orderBanner: z.optional(z.nullable(z.object({ text: z.string(), expires: z.nullable(z.number()) }))),
+  orderBanners: z.optional(z.array(z.object({ text: z.string(), expires: z.nullable(z.number()) }))),
   profile: z.optional(
     z.object({
       logo: z.nullable(z.object({ id: z.string(), shape: z.enum(["circle", "square", "wide"]), src: z.string() })),

@@ -30,14 +30,14 @@ export function shopRoutes() {
       .get("/shop", async (c) => {
         const settings = readPublicSettings(c.env.db);
         const fulfillment = resolveFulfillment(settings.fulfillment, c.env.features.maps);
-        const { banner, bannerExpires } = pauseStatus(fulfillment, settings.timeZone, Date.now());
+        const { banners } = pauseStatus(fulfillment, settings.timeZone, Date.now());
         return c.json({
           ...c.env.shop,
           name: settings.name ?? c.env.shop.name,
           theme: settings.theme,
           timeZone: settings.timeZone,
           profile: settings.profile,
-          orderBanner: banner ? { text: banner, expires: bannerExpires } : null,
+          orderBanners: banners.length ? banners : undefined,
           features: c.env.features,
         });
       })

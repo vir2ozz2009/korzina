@@ -126,17 +126,20 @@ export function HomeScreen() {
 }
 
 function OrderingBanner() {
-  const banner = bootstrap?.orderBanner;
-  const expires = banner?.expires;
-  const [expired, setExpired] = useState(() => !!expires && expires <= Date.now());
+  const [now, setNow] = useState(Date.now);
+  const active = bootstrap?.orderBanners?.filter(({ expires }) => expires === null || expires > now) ?? [];
+  const nextExpiry = active.reduce<number | undefined>(
+    (soonest, { expires }) => (expires === null ? soonest : Math.min(soonest ?? expires, expires)),
+    undefined,
+  );
   useEffect(() => {
-    if (!expires) return;
-    const timer = window.setTimeout(() => setExpired(true), Math.max(0, expires - Date.now()));
+    if (!nextExpiry) return;
+    const timer = window.setTimeout(() => setNow(Date.now()), Math.max(0, nextExpiry - Date.now()));
     return () => window.clearTimeout(timer);
-  }, [expires]);
-  return banner && !expired ? (
+  }, [nextExpiry]);
+  return active.length ? (
     <Card role="status" className="bg-status-warning text-status-warning-foreground">
-      {banner.text}
+      {active.map(({ text }) => text).join(". ")}
     </Card>
   ) : null;
 }
