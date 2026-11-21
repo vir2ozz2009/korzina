@@ -23,13 +23,19 @@ it("координатор убирает только истёкшие seller_s
       ('younger','korzina-demo-lavka','cleanup-account','fixture','{}',?)`)
     .bind(now - 366 * 86_400_000, now - 364 * 86_400_000)
     .run();
+  await env.PLATFORM.prepare(`INSERT INTO staff_invitations
+    (id,token_hash,shop_id,role,permissions,bot,bot_username,expires_at)
+    VALUES ('expired','old','korzina-demo-lavka','picker','[]','platform','testbot',?),
+      ('recent','new','korzina-demo-lavka','picker','[]','platform','testbot',?)`)
+    .bind(now - 31 * 86_400_000, now - 29 * 86_400_000)
+    .run();
   await scheduleSellerCleanup();
   const stub = exports.Shop.get(exports.Shop.idFromName(platformCleanupId));
   await runInDurableObject(stub, async (_instance, ctx) => {
     const queries = vi.spyOn(env.PLATFORM, "prepare");
     try {
       await cleanupSellers(env.PLATFORM, ctx.storage, now);
-      expect(queries).toHaveBeenCalledTimes(8);
+      expect(queries).toHaveBeenCalledTimes(9);
     } finally {
       queries.mockRestore();
     }
@@ -39,6 +45,7 @@ it("координатор убирает только истёкшие seller_s
     expect(await env.PLATFORM.prepare("SELECT id FROM seller_exchanges ORDER BY id").all()).toMatchObject({
       results: [{ id: "fresh" }],
     });
+    expect((await env.PLATFORM.prepare("SELECT id FROM staff_invitations").all()).results).toEqual([{ id: "recent" }]);
     expect(await ctx.storage.getAlarm()).toBeGreaterThan(now);
     await cleanupSellers(env.PLATFORM, ctx.storage, now + 100001);
     expect((await env.PLATFORM.prepare("SELECT id FROM platform_audit ORDER BY id").all()).results).toEqual([
