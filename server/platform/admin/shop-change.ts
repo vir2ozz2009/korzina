@@ -156,7 +156,7 @@ async function dataChange(
   if ("custom" in theme ? !validateCustomColor(theme.custom).ok : !THEME_PRESETS.some(({ id }) => id === theme.preset))
     throw new ApiError("VALIDATION", "Проверьте цвет оформления");
   if (currencyLocked && shop.currency && shop.currency !== currency)
-    throw new ApiError("CURRENCY_LOCKED", "Валюта закреплена после первой финансовой операции");
+    throw new ApiError("CURRENCY_LOCKED", "Валюта закреплена после первого заказа");
   const slug = input.slug ?? shop.slug;
   if (slug !== shop.slug && shop.status !== "draft")
     throw new ApiError("SLUG_LOCKED", "Адрес можно изменить только в черновике");

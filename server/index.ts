@@ -55,7 +55,7 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
   .route("/seller/cabinet", cabinetRoutes)
   .get("/shop", async (c) => {
     c.header("Cache-Control", "no-store");
-    return c.json(await shopContexts.read(c.req.raw, c.env));
+    return c.json(await shopContexts.read(c.req.raw, c.env, false, true));
   })
   .use("/auth/*", forwarding)
   .use("/cart", guestCart)
@@ -68,6 +68,7 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
   .use("/seller/orders/*", sellerOrderGateway)
   .use("/seller/receiving/*", sellerOrderGateway)
   .use("/seller/payments/*", sellerOrderGateway)
+  .use("/seller/profile/*", sellerOrderGateway)
   .use("/favorites/*", forwarding)
   .use("/profile/*", forwarding)
   .use("/media/*", (c, next) =>

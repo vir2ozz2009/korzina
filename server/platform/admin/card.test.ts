@@ -187,3 +187,34 @@ it("§9.12 заказы проецируются из журнала магаз�
   const row = await db.prepare("SELECT COUNT(*) AS count FROM platform_order_events WHERE shop_id=?").bind(id).first();
   expect(row).toMatchObject({ count: 1 });
 });
+
+it("§11.1 блокирует смену валюты после первого неоплаченного заказа", async () => {
+  const id = await draft("currency-after-first-order");
+  const stub = exports.Shop.get(exports.Shop.idFromName(id));
+  await runInDurableObject(stub, (_instance, { storage }) => {
+    storage.sql.exec(
+      "INSERT INTO orders(customer,created_at,status,payment_status,snapshot) VALUES('guest:fixture',?,'placed','unpaid','{}')",
+      Date.now(),
+    );
+  });
+  const { hasOrders } = await stub.adminShopStats();
+  expect(hasOrders).toBe(true);
+  const step = await mutation(id);
+  await expect(
+    changeShop(
+      db,
+      step,
+      {
+        action: "data",
+        version: step.version,
+        name: "Хлеб",
+        country: "VN",
+        currency: "USD",
+        timeZone: "Asia/Ho_Chi_Minh",
+        theme: { preset: "forest" },
+      },
+      bindings,
+      hasOrders,
+    ),
+  ).rejects.toMatchObject({ code: "CURRENCY_LOCKED" });
+});

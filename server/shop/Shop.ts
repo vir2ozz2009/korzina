@@ -115,6 +115,8 @@ export class Shop extends DurableObject<Env> {
         if (configured && signature !== this.settingsSignature) {
           applyAdminSettings(storage, configured);
           this.settingsSignature = signature;
+          this.saleDeadline = nextSaleDeadline(storage);
+          this.ctx.waitUntil(this.scheduleSaleDeadline());
         }
       }
       this.expireSales();
@@ -149,7 +151,7 @@ export class Shop extends DurableObject<Env> {
       response.status,
       false,
     );
-    if (request.method === "POST" && response.ok && metric.rowsWritten > 0) {
+    if ((request.method === "POST" || request.method === "PUT") && response.ok && metric.rowsWritten > 0) {
       const path = new URL(request.url).pathname;
       const orderChange = /^\/api\/(?:seller\/)?orders\/(\d+)\/(?:transition|cancel|proof)$/u.exec(path);
       if (path === "/api/checkout") {
@@ -165,7 +167,7 @@ export class Shop extends DurableObject<Env> {
         await scheduleCleanup(this.ctx.storage);
       } else {
         await scheduleCleanup(this.ctx.storage);
-        if (path.startsWith("/api/seller/catalog/")) {
+        if (path.startsWith("/api/seller/catalog/") || path === "/api/seller/profile/data") {
           this.saleDeadline = nextSaleDeadline(this.ctx.storage);
           await this.scheduleSaleDeadline();
         }
@@ -222,12 +224,8 @@ export class Shop extends DurableObject<Env> {
 
   adminShopStats() {
     const products = this.ctx.storage.sql.exec<{ count: number }>("SELECT COUNT(*) AS count FROM products").one().count;
-    const finances =
-      this.ctx.storage.sql
-        .exec(`SELECT 1 FROM orders
-      WHERE payment_status NOT IN ('unpaid','pending_review') LIMIT 1`)
-        .toArray().length > 0;
-    return { products, finances };
+    const hasOrders = this.ctx.storage.sql.exec("SELECT 1 FROM orders LIMIT 1").toArray().length > 0;
+    return { products, hasOrders };
   }
 
   extendBuyerVisit(shopId: string, sessionId: string) {

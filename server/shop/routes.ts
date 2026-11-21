@@ -18,6 +18,7 @@ import { sellerOrderRoutes } from "../modules/seller-orders/routes";
 import { revisionResponse } from "../revisions";
 import type { ShopEnv } from "./env";
 import { readPublicSettings } from "./public-settings";
+import { sellerProfileRoutes } from "./seller-profile-routes";
 
 export function shopRoutes() {
   return (
@@ -31,6 +32,7 @@ export function shopRoutes() {
           name: settings.name ?? c.env.shop.name,
           theme: settings.theme,
           timeZone: settings.timeZone,
+          profile: settings.profile,
           features: c.env.features,
         });
       })
@@ -43,6 +45,7 @@ export function shopRoutes() {
       .route("/seller/orders", sellerOrderRoutes)
       .route("/seller/receiving", sellerReceivingRoutes)
       .route("/seller/payments", sellerPaymentRoutes)
+      .route("/seller/profile", sellerProfileRoutes)
       .route("/favorites", favoritesRoutes)
       .route("/profile", profileRoutes)
       .route("/catalog", catalogRoutes)
