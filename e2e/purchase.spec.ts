@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { shopContactsInput } from "../src/shared/contracts/checkout";
 import { verifyBuyerOrderReload, verifyFavoriteCart, verifyOrderCancellation, verifySavedAddress } from "./after-order";
 import { verifySellerOrders } from "./seller-orders";
 
@@ -188,12 +189,16 @@ test("B10: товар, доставка и заказ наличными", async
   await page.getByRole("button", { name: /^К оплате/ }).click();
   await expect(page).toHaveURL(/checkout\/payment/);
   await expect(page.getByText("Номер для заказа")).toBeVisible();
+  const support = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/checkout/support");
   await page.getByRole("button", { name: "Проблема с оплатой?" }).click();
   const help = page.getByRole("dialog", { name: "Помощь с оплатой" });
-  await expect(help.getByRole("link", { name: "Поддержка demo" })).toHaveAttribute(
-    "href",
-    "mailto:shop@example.invalid",
-  );
+  const supportResponse = await support;
+  expect(supportResponse.ok()).toBe(true);
+  const contacts = shopContactsInput.parse(await supportResponse.json());
+  if (local) expect(contacts).toContainEqual({ title: "Поддержка demo", href: "mailto:shop@example.invalid" });
+  if (contacts.length === 0) await expect(help.getByText("Контакты магазина пока недоступны")).toBeVisible();
+  for (const { title, href } of contacts)
+    await expect(help.getByRole("link", { name: title, exact: true })).toHaveAttribute("href", href);
   await help.getByRole("button", { name: "Закрыть", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Ваш заказ", exact: true })).toHaveCount(0);
   await page.getByRole("radio", { name: "Перевод", exact: true }).check();
