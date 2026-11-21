@@ -11,6 +11,7 @@ import type { ShopEnv } from "../../shop/env";
 import { removeOrderedLines } from "../cart/service";
 import { reserveTime } from "../fulfillment/availability";
 import type { ReservedOrder } from "./order-reservation";
+import { paymentOptions, selectedPayment } from "./payment-settings";
 import { loadQuote, purchaseDraft } from "./quote";
 import { quoteTerms } from "./quote-terms";
 
@@ -21,7 +22,7 @@ const receiptUnavailable = () => new ApiError("VALIDATION", "Чек недост
 export function bindReceipt(storage: DurableObjectStorage, subject: string, mediaId: string, quoteId: string) {
   const now = Date.now();
   const quote = loadQuote(storage, subject, quoteId, now);
-  if (!quote.paymentSettings.methods.includes("transfer"))
+  if (!paymentOptions(quote.paymentSettings).some((option) => option.enabled && option.requiresReceipt))
     throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Перевод недоступен");
   const row = storage.sql
     .exec<{ expires_at: number }>(
@@ -48,7 +49,7 @@ function confirmReceipt(
   subject: string,
   mediaId: string,
   total: number,
-  current: PaymentSettings,
+  current: NonNullable<OrderSnapshot["paymentOption"]>,
   now: number,
 ) {
   const captured = storage.sql
@@ -67,12 +68,15 @@ function confirmReceipt(
     now,
   );
   if (!update.rowsWritten) throw receiptUnavailable();
-  const previous = JSON.parse(captured.payment_settings) as PaymentSettings;
+  const previous = selectedPayment(JSON.parse(captured.payment_settings) as PaymentSettings, "transfer", current.id);
   const priorTotalMinor = captured.quoted_total_minor;
   return {
     priorTotalMinor,
     differenceMinor: total - priorTotalMinor,
-    credentialsChanged: previous.instruction !== current.instruction || previous.qrSrc !== current.qrSrc,
+    credentialsChanged:
+      previous?.instruction !== current.instruction ||
+      previous?.imageSrc !== current.imageSrc ||
+      previous?.details !== current.details,
   };
 }
 
@@ -84,8 +88,12 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
     if (env.shop.status !== "active") throw new ApiError("SHOP_CLOSED", "Магазин временно не принимает заказы");
     const previous = loadQuote(storage, subject, input.quoteRevision, now);
     const { snapshot, cart, storedReceiving, customerName } = purchaseDraft(env, subject, actor.kind, now, false);
-    if (!snapshot.paymentSettings.methods.includes(input.payment))
-      throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Этот способ оплаты недоступен");
+    const method = selectedPayment(
+      snapshot.paymentSettings,
+      input.payment,
+      input.payment === "transfer" ? input.methodId : undefined,
+    );
+    if (!method) throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Этот способ оплаты недоступен");
     if (JSON.stringify(quoteTerms(previous)) !== JSON.stringify(quoteTerms(snapshot)))
       throw new ApiError("QUOTE_CHANGED", "Условия заказа изменились", {
         beforeMinor: previous.totalMinor,
@@ -93,16 +101,16 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
       });
     const seatReserved = reserveTime(storage, snapshot.receiving.mode, snapshot.time, now);
     const { paymentSettings, ...details } = snapshot;
-    const proof = input.payment === "transfer" ? input.proofMediaId : null;
-    const transferReview = proof
-      ? confirmReceipt(storage, subject, proof, details.totalMinor, paymentSettings, now)
-      : undefined;
+    const proof = input.payment === "transfer" ? (input.proofMediaId ?? null) : null;
+    if (method.requiresReceipt && !proof) throw receiptUnavailable();
+    const transferReview = proof ? confirmReceipt(storage, subject, proof, details.totalMinor, method, now) : undefined;
     const paymentStatus = proof ? "pending_review" : "unpaid";
     const order: OrderSnapshot = {
       ...details,
       payment: input.payment,
       paymentStatus,
       transferReview,
+      ...(paymentSettings.options && { paymentOption: method }),
       ...(customerName && { customerName }),
     };
     const stock = order.lines.map(({ variantId, quantity }) => ({ variantId, quantity }));

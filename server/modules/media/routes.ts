@@ -49,7 +49,7 @@ export const mediaRoutes = new Hono<MediaRouterEnv>()
     } catch {
       throw new ApiError("VALIDATION", "Неверные метаданные фото");
     }
-    const bytes = await readUpload(c.req.raw);
+    const bytes = await readUpload(c.req.raw, parsed.data === "payment_qr");
     const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
     const fingerprint = await digest(`${parsed.data}:${Array.from(hash).join(",")}:${JSON.stringify(metadata)}`);
     const record = await uploadMedia(

@@ -27,7 +27,7 @@ function canManage(actor: MediaActor, purpose: MediaPurpose) {
         : purpose === "receipt"
           ? "payments"
           : purpose === "payment_qr"
-            ? "payment_methods"
+            ? "payments"
             : purpose === "review"
               ? "orders"
               : "products";
