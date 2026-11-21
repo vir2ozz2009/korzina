@@ -35,7 +35,10 @@ export const adminRoutes = new Hono<{
     const id = c.req.param("id");
     const shop = await managedShop(c.env.PLATFORM, id);
     const stats = await exports.Shop.get(exports.Shop.idFromName(id)).adminShopStats();
-    return c.json(await shopDetail(c.env.PLATFORM, c.env, c.req.raw, shop, stats.products, c.get("actorId")));
+    const detail = await shopDetail(c.env.PLATFORM, c.env, c.req.raw, shop, stats.products, c.get("actorId"));
+    const readiness =
+      shop.status === "draft" ? await exports.Shop.get(exports.Shop.idFromName(id)).launchReadiness(id) : undefined;
+    return c.json({ ...detail, readiness });
   })
   .patch("/shops/:id", authBodyLimit, idempotency, zValidator("json", shopChange, validationFailure), async (c) => {
     const id = c.req.param("id");
@@ -47,7 +50,20 @@ export const adminRoutes = new Hono<{
         ? (await exports.Shop.get(exports.Shop.idFromName(id)).adminShopStats()).hasOrders
         : false;
     const mutation = { id, actor: c.get("actorId"), command: c.get("command"), version: input.version };
-    const result = await changeShop(c.env.PLATFORM, mutation, input, c.env, locked);
+    let result: { id: string; version: number };
+    if (input.action === "status" && input.status === "active" && current?.status === "draft") {
+      const response = await exports.Shop.get(exports.Shop.idFromName(id)).launchDraft(id, {
+        actor: mutation.actor,
+        via: "admin",
+        command: mutation.command,
+        version: input.version,
+        force: input.force,
+      });
+      if (!response.ok) throw new ApiError(response.code, response.message, response.details);
+      result = { id, version: response.result.version };
+    } else {
+      result = await changeShop(c.env.PLATFORM, mutation, input, c.env, locked);
+    }
     shopContexts.invalidate(id);
     if (current) {
       const changedAddress = input.action === "data" && input.slug && input.slug !== current.slug;

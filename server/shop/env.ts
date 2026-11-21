@@ -7,6 +7,7 @@ import type { CommandVariables } from "../middleware/idempotency";
 export type ShopEnv = {
   Bindings: {
     shop: ShopInfo;
+    teamPreview?: boolean;
     timeZone?: string;
     features: FeatureState;
     db: DrizzleSqliteDODatabase;
@@ -19,3 +20,7 @@ export type ShopEnv = {
   };
   Variables: CommandVariables;
 };
+
+export function acceptsCheckout(env: Pick<ShopEnv["Bindings"], "shop" | "teamPreview">) {
+  return env.shop.status === "active" || (env.shop.status === "draft" && env.teamPreview === true);
+}

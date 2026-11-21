@@ -4,6 +4,7 @@ import { normalizeTheme } from "../theme-presets";
 import { shopContract } from "./shop";
 
 export const shopContextContract = z.extend(shopContract, {
+  teamPreview: z.optional(z.boolean()),
   mediaOrigin: z.optional(z.string()),
   timeZone: z.optional(z.string()),
   orderBanners: z.optional(z.array(z.object({ text: z.string(), expires: z.nullable(z.number()) }))),

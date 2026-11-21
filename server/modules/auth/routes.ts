@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import {
   emptyInput,
+  guestInput,
   phoneContactInput,
   telegramFinishInput,
   telegramInput,
@@ -60,7 +61,7 @@ export const customerAuth = new Hono<ShopEnv>()
     "*",
     rateLimit(new RateLimiter(30), (request) => request.headers.get("x-korzina-client") ?? "local"),
   )
-  .post("/guest", zValidator("json", emptyInput, validationFailure), async (c) => {
+  .post("/guest", zValidator("json", guestInput, validationFailure), async (c) => {
     const existing = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);
     if (existing) {
       limitCustomer(c, existing.sessionId);
@@ -68,7 +69,7 @@ export const customerAuth = new Hono<ShopEnv>()
     }
     const created = await createCustomer(c.env.db);
     c.header("Set-Cookie", sessionCookie(c.req.raw, customerCookie(c.env.shop.id), created.token, customerTtl));
-    return c.json(created.session, 201);
+    return c.json({ ...created.session, ...(c.req.valid("json").bearer ? { token: created.token } : {}) }, 201);
   })
   .get("/contact", async (c) => {
     const session = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);

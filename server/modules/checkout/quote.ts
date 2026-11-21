@@ -3,7 +3,7 @@ import { defaultShopTimeZone } from "../../../src/shared/datetime";
 import { ApiError } from "../../../src/shared/errors";
 import { addMinor, multiplyMinor } from "../../../src/shared/money";
 import { isTimeAvailable, timeChangedMessage } from "../../../src/shared/receiving-hours";
-import type { ShopEnv } from "../../shop/env";
+import { acceptsCheckout, type ShopEnv } from "../../shop/env";
 import { readCart } from "../cart/service";
 import { readAvailability } from "../fulfillment/availability";
 import { pauseStatus } from "../fulfillment/pause";
@@ -64,7 +64,7 @@ export function purchaseSummary(env: Shop, subject: string) {
     totalMinor: addMinor(cart.totalMinor, deliveryMinor),
     minimumMinor: paymentSettings.minimumMinor,
     shortMinor: Math.max(0, paymentSettings.minimumMinor - cart.totalMinor),
-    acceptingOrders: acceptingOrders && env.shop.status === "active",
+    acceptingOrders: acceptingOrders && acceptsCheckout(env),
     closedMessage,
     unavailable,
     availability,
@@ -80,7 +80,7 @@ export function purchaseDraft(env: Shop, subject: string, kind: "guest" | "teleg
     selection: { receiving, time },
   } = context;
   const { closedMessage, unavailable } = pauseStatus(settings, env.timeZone ?? defaultShopTimeZone, now);
-  if (env.shop.status !== "active") throw new ApiError("SHOP_CLOSED", "Магазин временно не принимает заказы");
+  if (!acceptsCheckout(env)) throw new ApiError("SHOP_CLOSED", "Магазин временно не принимает заказы");
   if (closedMessage) throw new ApiError("SHOP_CLOSED", closedMessage);
   const pause = receiving && unavailable[receiving.mode];
   if (pause) throw new ApiError("SHOP_CLOSED", pause);

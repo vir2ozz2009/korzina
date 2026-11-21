@@ -24,7 +24,7 @@ export const slugProblem = (slug: string) => {
 const version = z.number().int().nonnegative();
 const stage = z.enum(["active", "paused"]);
 export const shopChange = z.discriminatedUnion("action", [
-  z.strictObject({ action: z.literal("status"), version, status: stage }),
+  z.strictObject({ action: z.literal("status"), version, status: stage, force: z.literal(true).optional() }),
   z.strictObject({ action: z.literal("invite"), version, reason: z.string().trim().min(1).max(300).optional() }),
   z.strictObject({ action: z.literal("feature"), version, key: z.string().min(1).max(64), enabled: z.boolean() }),
   z.strictObject({

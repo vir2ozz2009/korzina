@@ -5,6 +5,7 @@ import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { Hono } from "hono";
 import { routePath } from "hono/route";
 import type { BotChange } from "../../src/shared/contracts/admin";
+import { launchReadiness } from "../../src/shared/contracts/launch";
 import { shopContract } from "../../src/shared/contracts/shop";
 import { shopContextContract } from "../../src/shared/contracts/shop-context";
 import { ApiError, errorBody, errorStatus } from "../../src/shared/errors";
@@ -17,11 +18,14 @@ import { handleError, notFound } from "../middleware/errors";
 import { extendCustomerVisit } from "../modules/auth/service";
 import { confirmBrowserBuyer, demoBuyerExchange, shopBuyerExchange } from "../modules/auth/telegram-exchange";
 import { expireSalePauses, nextSaleDeadline } from "../modules/catalog/sale-pause";
+import { type OpenDraftRequest, type OpenResponse, openDraft } from "../modules/launch/open";
+import { launchSnapshot } from "../modules/launch/readiness";
 import { publicMediaOrigin } from "../modules/media/public-origin";
 import { signalSellerOrders } from "../modules/seller-orders/live";
 import { sendOrderNotifications } from "../modules/seller-orders/notifications";
 import { botCoordinator, changeShopBot, managedBot } from "../platform/admin/shop-bot";
-import type { ShopMutation } from "../platform/admin/shop-change";
+import { notifyShopStatus, type ShopMutation } from "../platform/admin/shop-change";
+import { managedShop } from "../platform/admin/shop-detail";
 import { demoPlatformShop } from "../platform/auth/demo-telegram";
 import { cleanupSellers, platformCleanupId } from "../platform/cleanup";
 import { applyAdminSettings } from "./admin-settings";
@@ -81,6 +85,40 @@ export class Shop extends DurableObject<Env> {
       this.saleDeadline = expireSalePauses(this.ctx.storage, now);
   }
 
+  async launchReadiness(shop: string) {
+    if (!this.ctx.exports.Shop.idFromName(shop).equals(this.ctx.id)) throw new ApiError("FORBIDDEN", "Другой магазин");
+    this.expireSales();
+    return (await launchSnapshot(this.ctx.storage, this.env.PLATFORM, shop)).readiness;
+  }
+
+  async launchDraft(shop: string, input: OpenDraftRequest): Promise<OpenResponse> {
+    if (!this.ctx.exports.Shop.idFromName(shop).equals(this.ctx.id))
+      return { ok: false, code: "FORBIDDEN", message: "Другой магазин" };
+    return this.ctx.blockConcurrencyWhile(async () => {
+      try {
+        this.expireSales();
+        const result = await openDraft(this.ctx.storage, this.env.PLATFORM, shop, input, (version) => {
+          if (input.via !== "admin") return;
+          const send = async () => {
+            const current = await managedShop(this.env.PLATFORM, shop);
+            if (current.version === version)
+              await notifyShopStatus(this.env.PLATFORM, current, "active", version, this.env.PLATFORM_BOT_TOKEN);
+          };
+          this.ctx.waitUntil(send().catch(() => {}));
+        });
+        return { ok: true as const, result };
+      } catch (error) {
+        if (!(error instanceof ApiError)) throw error;
+        return {
+          ok: false,
+          code: error.code,
+          message: error.message,
+          details: launchReadiness.safeParse(error.details).data,
+        };
+      }
+    });
+  }
+
   async fetch(request: Request): Promise<Response> {
     const metrics = new RequestMetrics();
     const storage = metrics.storage(this.ctx.storage);
@@ -122,6 +160,7 @@ export class Shop extends DurableObject<Env> {
       this.expireSales();
       response = await this.router.fetch(request, {
         shop,
+        teamPreview: data.teamPreview === true && shop.status === "draft",
         timeZone,
         features: context.success ? context.data : resolveFeatures([]),
         db,

@@ -1,6 +1,6 @@
 import { infiniteQueryOptions, useInfiniteQuery, useQueries } from "@tanstack/react-query";
 import type { InferResponseType } from "hono/client";
-import { bootstrap } from "../../app/bootstrap";
+import { bootstrap, buyerStorefrontOpen } from "../../app/bootstrap";
 import { queryPolicy } from "../../app/query-defaults";
 import { checkResponse } from "../../shared/http-error";
 import { shopApi, shopKey } from "../../shared/shop-api";
@@ -15,7 +15,7 @@ function catalogQuery(version?: number) {
   return infiniteQueryOptions({
     queryKey: catalogKeys.document(version),
     ...queryPolicy.catalog,
-    enabled: bootstrap?.status === "active",
+    enabled: buyerStorefrontOpen,
     initialPageParam: undefined as { after: string; version: number } | undefined,
     getNextPageParam: (page: CatalogDocument) =>
       page.next ? { after: page.next, version: page.catalogVersion } : undefined,
@@ -51,7 +51,7 @@ function catalogQuery(version?: number) {
 export const useCatalog = (version?: number) => useInfiniteQuery(catalogQuery(version));
 export function useOffers(pages: CatalogDocument[]) {
   const queries = useQueries({
-    queries: offerPages(pages).map((ids) => ({ ...offersQuery(ids), enabled: bootstrap?.status === "active" })),
+    queries: offerPages(pages).map((ids) => ({ ...offersQuery(ids), enabled: buyerStorefrontOpen })),
   });
   const data = queries.flatMap((query) => (query.data ? [query.data] : []));
   return {

@@ -1,10 +1,13 @@
 import { Outlet, useRouterState } from "@tanstack/react-router";
+import { ArrowLeft } from "lucide-react";
 import { type TouchEvent, useEffect, useRef } from "react";
 import { CartProvider } from "../../features/cart";
 import { FavoritesProvider } from "../../features/favorites";
 import { FeatureProvider } from "../../shared/useFeature";
+import { Button } from "../../ui/Button";
 import { EmptyState } from "../../ui/EmptyState";
-import { bootstrap } from "../bootstrap";
+import { bootstrap, buyerStorefrontOpen } from "../bootstrap";
+import { cabinetStorefront, restoreCabinetPosition, returnToCabinet } from "../cabinet-storefront";
 import { TelegramBridge } from "../telegram/TelegramBridge";
 import { ShopActions } from "./ShopActions";
 import { ShopNavigation } from "./ShopNavigation";
@@ -19,11 +22,13 @@ export function AppShell() {
   const path = useRouterState({ select: (state) => state.location.pathname });
   const isRoot = useRouterState({ select: (state) => state.matches.at(-1)?.staticData.root ?? false });
   const seller = path.startsWith("/seller");
+  const viewer = !seller && !!cabinetStorefront;
   const storefrontClosed =
-    bootstrap &&
-    ["draft", "paused"].includes(bootstrap.status) &&
     !seller &&
-    !/^\/(admin|orders|order|profile)(\/|$)/.test(path);
+    ((viewer && !bootstrap) ||
+      (bootstrap?.status === "draft" && !buyerStorefrontOpen) ||
+      (bootstrap?.status === "paused" && !/^\/(admin|orders|order|profile)(\/|$)/.test(path))) &&
+    !path.startsWith("/admin");
   const compactCart =
     path.startsWith("/p/") || path === "/favorites" || path === "/profile" || path.startsWith("/profile/");
   const floating =
@@ -32,7 +37,11 @@ export function AppShell() {
       (prefix) => path === prefix || path.startsWith(`${prefix}/`),
     );
   const start = useRef<{ x: number; y: number } | null>(null);
-  const previousPath = useRef(path);
+  const previousPath = useRef(viewer ? "" : path);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => restoreCabinetPosition(path));
+    return () => cancelAnimationFrame(frame);
+  }, [path]);
   useEffect(() => {
     // Initial theme is already in the server HTML. Load theme editing only on navigation.
     if (previousPath.current === path) return;
@@ -75,6 +84,24 @@ export function AppShell() {
                 }}
                 onTouchEnd={endSwipe}
               >
+                {viewer && (
+                  <header className="border-b border-border bg-card px-(--page-x) pb-2">
+                    <Button
+                      variant="ghost"
+                      className="-ml-3"
+                      icon={<ArrowLeft aria-hidden size={18} />}
+                      onClick={returnToCabinet}
+                    >
+                      Вернуться в кабинет
+                    </Button>
+                    <h1 className="text-title-3">Витрина глазами покупателя</h1>
+                  </header>
+                )}
+                {!seller && buyerStorefrontOpen && (viewer || bootstrap?.teamPreview) && (
+                  <p className="bg-primary-soft px-(--page-x) py-2 text-small font-medium text-primary-text">
+                    Предпросмотр для команды
+                  </p>
+                )}
                 <Transition>
                   {storefrontClosed ? (
                     <EmptyState
@@ -89,7 +116,7 @@ export function AppShell() {
                     <Outlet />
                   )}
                 </Transition>
-                {floating && !keyboardOpen && bootstrap?.status === "active" && (
+                {floating && !keyboardOpen && buyerStorefrontOpen && (
                   <ShopActions compact={compactCart} search={path !== "/search"} />
                 )}
               </div>

@@ -66,32 +66,40 @@ function statusChange(
     action: "shop.status",
     changed: { from: shop.status, to: next },
     statements: [database.prepare("UPDATE shops SET status=?,status_notice=NULL WHERE id=?").bind(next, shop.id)],
-    afterCommit: async () => {
-      if (!shop.ownerAccepted) return;
-      const owner = await database
-        .withSession("first-primary")
-        .prepare(`SELECT a.telegram_id AS telegramId
-        FROM memberships m JOIN accounts a ON a.id=m.account_id
-        WHERE m.shop_id=? AND m.role='owner' AND m.revoked_at IS NULL LIMIT 1`)
-        .bind(shop.id)
-        .first<{ telegramId: string | null }>();
-      if (owner?.telegramId && bot) {
-        try {
-          await telegramApi(bot, "sendMessage", {
-            chat_id: owner.telegramId,
-            text: next === "paused" ? `Магазин «${shop.name}» поставлен на паузу.` : `Магазин «${shop.name}» открыт.`,
-          });
-          return;
-        } catch {
-          /* The status command has already committed. */
-        }
-      }
-      await database
-        .prepare("UPDATE shops SET status_notice=? WHERE id=? AND version=?")
-        .bind("Уведомление не отправлено: владелец не подключил Telegram", shop.id, shop.version + 1)
-        .run();
-    },
+    afterCommit: () => notifyShopStatus(database, shop, next, shop.version + 1, bot),
   };
+}
+
+export async function notifyShopStatus(
+  database: D1Database,
+  shop: Pick<ManagedShop, "id" | "name" | "ownerAccepted">,
+  next: "active" | "paused",
+  version: number,
+  bot?: string,
+) {
+  if (!shop.ownerAccepted) return;
+  const owner = await database
+    .withSession("first-primary")
+    .prepare(`SELECT a.telegram_id AS telegramId
+    FROM memberships m JOIN accounts a ON a.id=m.account_id
+    WHERE m.shop_id=? AND m.role='owner' AND m.revoked_at IS NULL LIMIT 1`)
+    .bind(shop.id)
+    .first<{ telegramId: string | null }>();
+  if (owner?.telegramId && bot) {
+    try {
+      await telegramApi(bot, "sendMessage", {
+        chat_id: owner.telegramId,
+        text: next === "paused" ? `Магазин «${shop.name}» поставлен на паузу.` : `Магазин «${shop.name}» открыт.`,
+      });
+      return;
+    } catch {
+      /* The status command has already committed. */
+    }
+  }
+  await database
+    .prepare("UPDATE shops SET status_notice=? WHERE id=? AND version=?")
+    .bind("Уведомление не отправлено: владелец не подключил Telegram", shop.id, version)
+    .run();
 }
 
 async function inviteChange(

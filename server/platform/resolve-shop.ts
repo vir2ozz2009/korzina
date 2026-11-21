@@ -1,5 +1,7 @@
+import { ApiError } from "../../src/shared/errors";
 import { isDevelopmentHost } from "../development";
 import type { PlatformShop } from "./schema";
+import { hasTeamAccess, previewShopHeader } from "./shop-preview";
 
 const ttl = 30_000;
 type ResolvedShop = PlatformShop & {
@@ -37,10 +39,18 @@ export async function resolveShop(
   fresh = false,
 ): Promise<ResolvedShop | undefined> {
   const url = new URL(request.url);
-  const slug = isDevelopmentHost(url.hostname) ? (url.searchParams.get("shop") ?? "lavka") : undefined;
+  const preview = request.headers.get(previewShopHeader);
+  if (preview !== null && !/^[a-z0-9-]{1,63}$/u.test(preview))
+    throw new ApiError("SHOP_NOT_FOUND", "Магазин не найден");
+  const slug = preview ?? (isDevelopmentHost(url.hostname) ? (url.searchParams.get("shop") ?? "lavka") : undefined);
   const key = slug ? cacheKey(namespace, "slug", slug) : cacheKey(namespace, "host", url.hostname);
   const hit = fresh ? undefined : memory.get(key);
-  if (hit && hit.expires > Date.now()) return hit.shop;
+  const verify = async (shop: ResolvedShop) => {
+    if (preview && !(await hasTeamAccess(request, database, shop)))
+      throw new ApiError("SHOP_NOT_FOUND", "Магазин скоро откроется");
+    return shop;
+  };
+  if (hit && hit.expires > Date.now()) return verify(hit.shop);
   memory.delete(key);
 
   const cache = await caches.open("shop-resolution");
@@ -49,7 +59,7 @@ export async function resolveShop(
     const entry = await cached.json<CachedShop>();
     if (entry.expires > Date.now()) {
       remember(key, entry);
-      return entry.shop;
+      return verify(entry.shop);
     }
   }
 
@@ -68,5 +78,5 @@ export async function resolveShop(
     remember(key, entry);
     await cache.put(key, Response.json(entry, { headers: { "Cache-Control": "max-age=30" } }));
   }
-  return shop ?? undefined;
+  return shop ? verify(shop) : undefined;
 }

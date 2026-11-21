@@ -1,5 +1,6 @@
 import type { ShopContext } from "../shared/contracts/shop-context";
 import { resolveFeatures } from "../shared/flags";
+import { cabinetStorefront, loadCabinetStorefront } from "./cabinet-storefront";
 
 function readBootstrap(): ShopContext | undefined {
   try {
@@ -28,4 +29,5 @@ function readBootstrap(): ShopContext | undefined {
   }
 }
 
-export const bootstrap = readBootstrap();
+export const bootstrap = cabinetStorefront ? await loadCabinetStorefront() : readBootstrap();
+export const buyerStorefrontOpen = bootstrap?.status === "active" || bootstrap?.teamPreview === true;

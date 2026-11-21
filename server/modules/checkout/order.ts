@@ -7,7 +7,7 @@ import type {
 import { ApiError } from "../../../src/shared/errors";
 import type { CommandIdentity } from "../../middleware/idempotency";
 import { executeCommand } from "../../shop/commands";
-import type { ShopEnv } from "../../shop/env";
+import { acceptsCheckout, type ShopEnv } from "../../shop/env";
 import { removeOrderedLines } from "../cart/service";
 import { reserveTime } from "../fulfillment/availability";
 import type { ReservedOrder } from "./order-reservation";
@@ -85,7 +85,7 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
   const subject = actor.subject;
   const now = Date.now();
   return executeCommand(storage, env.db, `checkout:${subject}`, command, () => {
-    if (env.shop.status !== "active") throw new ApiError("SHOP_CLOSED", "Магазин временно не принимает заказы");
+    if (!acceptsCheckout(env)) throw new ApiError("SHOP_CLOSED", "Магазин временно не принимает заказы");
     const previous = loadQuote(storage, subject, input.quoteRevision, now);
     const { snapshot, cart, storedReceiving, customerName } = purchaseDraft(env, subject, actor.kind, now, false);
     const method = selectedPayment(

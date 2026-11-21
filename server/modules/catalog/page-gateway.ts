@@ -11,7 +11,7 @@ import type { readDocument, readLive } from "./service";
 
 export async function pageGateway(
   c: Context<{ Bindings: Env }>,
-  shop: ShopInfo & { features: FeatureState },
+  shop: ShopInfo & { features: FeatureState; teamPreview?: boolean },
   input: CatalogListInput,
 ) {
   const request = (path: string, query: URLSearchParams) => {
@@ -39,8 +39,9 @@ export async function pageGateway(
       const query = new URLSearchParams({ limit: String(params.limit) });
       for (const [key, value] of Object.entries(params)) if (value !== undefined) query.set(key, String(value));
       const raw = request("document", query);
+      const load = () => forwardToShop({ req: { raw } }, shop);
       return decode<ReturnType<typeof readDocument>>(
-        await cachedDocument(raw, params, c.env.APP_ENV, shop.id, () => forwardToShop({ req: { raw } }, shop)),
+        await (shop.teamPreview ? load() : cachedDocument(raw, params, c.env.APP_ENV, shop.id, load)),
       );
     },
     async (ids) =>

@@ -210,7 +210,25 @@ test("§9.12: a seller can open the selected shop in Telegram Web without cookie
   await page.goto(parent);
   const cabinet = page.frameLocator("iframe");
   await expect(cabinet.getByRole("heading", { name: "Второй магазин" }).first()).toBeVisible();
-  await expect(cabinet.getByRole("button", { name: "Открыть витрину" })).toBeVisible();
+  const open = cabinet.getByRole("button", { name: "Открыть витрину как покупатель", exact: true });
+  await expect(open).toBeVisible();
   expect(signIns).toBe(1);
   await page.locator("iframe").screenshot({ path: "test-results/telegram-embedded-cabinet-390.png" });
+  await page.route(/\/api\/shop\?/, async (route) => {
+    const request = route.request();
+    expect(await request.headerValue("x-korzina-preview-shop")).toBe("test2");
+    if ((await request.headerValue("x-korzina-preview-session")) !== token)
+      return route.fulfill({ status: 404, json: { error: { code: "SHOP_NOT_FOUND" } } });
+    return route.fulfill({
+      json: { ...shop, id: "korzina-demo-test2", status: "draft", plan: "base", features: {}, teamPreview: true },
+    });
+  });
+  const returnAction = cabinet.getByRole("button", { name: "Вернуться в кабинет", exact: true });
+  await open.click();
+  await expect(returnAction).toBeVisible();
+  await expect(cabinet.getByText("Предпросмотр для команды", { exact: true })).toBeVisible();
+  expect(page.url()).toBe(parent);
+  await returnAction.click();
+  await expect(open).toBeVisible();
+  expect(page.url()).toBe(parent);
 });

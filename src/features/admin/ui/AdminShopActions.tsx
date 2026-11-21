@@ -9,6 +9,8 @@ import { useShopCommand } from "./useShopCommand";
 export function AdminShopActions({ shop }: { shop: AdminShop }) {
   const command = useShopCommand(shop.id);
   const [pause, setPause] = useState(false);
+  const [forceOpen, setForceOpen] = useState(false);
+  const incomplete = shop.status === "draft" && shop.readiness?.items.some(({ ready }) => !ready);
   const label = shop.status === "draft" ? "Открыть магазин" : shop.status === "paused" ? "Возобновить" : "Пауза";
   const choose = (status: "active" | "paused") =>
     command.submit({ action: "status", version: shop.version, status }, () => setPause(false));
@@ -18,9 +20,13 @@ export function AdminShopActions({ shop }: { shop: AdminShop }) {
         <h2 className="text-title-3">Статус</h2>
         <Button
           variant={shop.status === "active" ? "secondary" : "primary"}
-          loading={command.pending && !pause}
+          loading={command.pending && !pause && !forceOpen}
           disabled={shop.status === "draft" && !shop.currency}
-          onClick={() => (shop.status === "active" ? setPause(true) : choose("active"))}
+          onClick={() => {
+            if (shop.status === "active") setPause(true);
+            else if (incomplete) setForceOpen(true);
+            else choose("active");
+          }}
         >
           {label}
         </Button>
@@ -28,6 +34,19 @@ export function AdminShopActions({ shop }: { shop: AdminShop }) {
       {shop.status === "draft" && !shop.currency && <p className="text-caption">Выберите валюту в данных магазина</p>}
       {shop.statusNotice && <p role="status">{shop.statusNotice}</p>}
       {command.error && <p role="alert">{command.error}</p>}
+      <Dialog
+        open={forceOpen}
+        onOpenChange={setForceOpen}
+        title="Не всё готово. Открыть всё равно?"
+        description={command.error ?? "Покупатели смогут зайти на витрину магазина."}
+        confirm="Открыть магазин"
+        loading={command.pending}
+        onConfirm={() =>
+          command.submit({ action: "status", version: shop.version, status: "active", force: true }, () =>
+            setForceOpen(false),
+          )
+        }
+      />
       <Dialog
         open={pause}
         onOpenChange={setPause}
