@@ -1,13 +1,25 @@
 import { createMiddleware } from "hono/factory";
 import { type Permission, permissionSchema, type Role, roleSchema } from "../../src/shared/contracts/auth";
+import { type StaffRole, staffRole } from "../../src/shared/contracts/staff";
 import { ApiError } from "../../src/shared/errors";
 import { credential, sellerCookie } from "./cookies";
 import { sessionLimiter } from "./session-limit";
 import { tokenHash } from "./tokens";
 
 const employeeDefaults: readonly Permission[] = ["orders", "assembly", "chat", "products", "stock"];
-export type Seller = { accountId: string; role: Role; permissions: Permission[] };
+export function effectiveSellerPermissions(granted: Permission[], legacyEmployee: boolean) {
+  return legacyEmployee ? [...new Set([...employeeDefaults, ...granted])] : granted;
+}
+export type Seller = { accountId: string; role: Role; teamRole?: StaffRole; permissions: Permission[] };
 export type SellerEnv = { Bindings: Env; Variables: { seller: Seller; shopId: string } };
+
+export function managesSettings(seller: Seller) {
+  return seller.role === "owner" || seller.permissions.includes("shop_settings");
+}
+
+export function checkSettingsAccess(seller: Seller) {
+  if (seller.teamRole && !managesSettings(seller)) throw new ApiError("FORBIDDEN", "Недостаточно прав");
+}
 
 const limitSeller = sessionLimiter();
 export const authenticateSeller = createMiddleware<SellerEnv>(async (c, next) => {
@@ -27,16 +39,19 @@ export async function readSellerSession(platform: D1Database, hash: string, shop
   const row = await platform
     .withSession("first-primary")
     .prepare(`
-    SELECT s.account_id AS accountId, m.role, m.permissions
+    SELECT s.account_id AS accountId, m.role, m.permissions, m.team_role AS teamRole
     FROM seller_sessions s LEFT JOIN memberships m
     ON m.account_id = s.account_id AND m.shop_id = ? AND m.revoked_at IS NULL
     WHERE s.token_hash = ? AND s.expires_at > ?
   `)
     .bind(shopId, hash, Date.now())
-    .first<{ accountId: string; role: string | null; permissions: string | null }>();
+    .first<{ accountId: string; role: string | null; permissions: string | null; teamRole: string | null }>();
   if (!row) throw new ApiError("UNAUTHORIZED", "Сессия недействительна");
   const role = roleSchema.safeParse(row.role);
   if (!role.success) throw new ApiError("FORBIDDEN", "Нет доступа к магазину");
+  const team = staffRole.safeParse(row.teamRole);
+  if (role.data === "employee" && row.teamRole !== null && !team.success)
+    throw new ApiError("FORBIDDEN", "Нет доступа к магазину");
   let granted: Permission[];
   try {
     granted = permissionSchema.array().parse(JSON.parse(row.permissions ?? "[]"));
@@ -46,7 +61,8 @@ export async function readSellerSession(platform: D1Database, hash: string, shop
   return {
     accountId: row.accountId,
     role: role.data,
-    permissions: role.data === "employee" ? [...new Set([...employeeDefaults, ...granted])] : granted,
+    ...(role.data === "employee" && team.success && { teamRole: team.data }),
+    permissions: effectiveSellerPermissions(granted, role.data === "employee" && row.teamRole === null),
   };
 }
 export function requireRole(...roles: Role[]) {

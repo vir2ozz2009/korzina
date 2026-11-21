@@ -19,6 +19,7 @@ import { platformAuth } from "./platform/auth/routes";
 import { shopWebhook } from "./platform/auth/shop-webhook";
 import { sellerOrderGateway } from "./platform/seller-order-gateway";
 import { shopContexts } from "./platform/shop-context";
+import { teamRoutes } from "./platform/team/routes";
 import { forwardToShop } from "./shop/forward";
 import { shopRoutes } from "./shop/routes";
 
@@ -53,6 +54,7 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
   .route("/platform/storefront", publicShop)
   .route("/seller/access", sellerAccess)
   .route("/seller/cabinet", cabinetRoutes)
+  .route("/seller/team", teamRoutes)
   .get("/shop", async (c) => {
     c.header("Cache-Control", "no-store");
     return c.json(await shopContexts.read(c.req.raw, c.env, false, true));

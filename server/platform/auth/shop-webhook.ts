@@ -8,6 +8,8 @@ import { matchesTelegramSecret, telegramApi } from "../../auth/telegram-api";
 import { answerBrowserLogin } from "../../auth/telegram-return";
 import { shopBuyerExchange } from "../../modules/auth/telegram-exchange";
 import { botWebhookSecret, managedBot, miniAppAddress } from "../admin/shop-bot";
+import { staffConnectPattern } from "../team/bot";
+import { answerStaffInvite, replyStaffChat, staffInvitePattern } from "../team/telegram";
 import { answerOwnerInvite, invitationPattern } from "./invitation-reply";
 import { telegramMessage } from "./platform-webhook";
 
@@ -32,6 +34,8 @@ export const shopWebhook = new Hono<{ Bindings: Env & AuthSecrets }>().post(
     const token = await decryptBotToken(bot.token, shopId, c.env.ENCRYPTION_KEY);
     const origin = new URL(c.req.url).origin;
     const raw = invitationPattern.exec(text)?.[1];
+    const staff = staffInvitePattern.exec(text)?.[1];
+    const staffShop = staffConnectPattern.exec(text)?.[1];
     if (raw)
       await answerOwnerInvite(c.env.PLATFORM, {
         raw,
@@ -40,7 +44,17 @@ export const shopWebhook = new Hono<{ Bindings: Env & AuthSecrets }>().post(
         bot: token,
         platformBot: c.env.PLATFORM_BOT_TOKEN,
         shopId,
+        botKey: bot.telegramId,
       });
+    else if (staff)
+      await answerStaffInvite(c.env.PLATFORM, {
+        raw: staff,
+        from,
+        origin,
+        bot: token,
+        channel: { shop: shopId, bot: bot.telegramId },
+      });
+    else if (staffShop === shopId) await replyStaffChat(c.env, shopId, bot.telegramId, from.id, token, origin);
     else if (text.startsWith("/start ") && shopBuyerExchange.test(text.slice(7))) {
       const shop = exports.Shop.get(exports.Shop.idFromName(shopId));
       const name = [from.first_name, from.last_name].filter(Boolean).join(" ").slice(0, 100);

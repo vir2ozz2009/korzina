@@ -78,6 +78,20 @@
       "when": 1795099846089,
       "tag": "0010_telegram_return",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1795281968789,
+      "tag": "0011_staff",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1795282677776,
+      "tag": "0012_staff-notifications",
+      "breakpoints": true
     }
   ]
 }

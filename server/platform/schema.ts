@@ -77,6 +77,9 @@ export const memberships = sqliteTable(
       .references(() => accounts.id),
     role: text("role").notNull(),
     permissions: text("permissions").notNull().default("[]"),
+    teamRole: text("team_role"),
+    displayName: text("display_name"),
+    version: integer("version").notNull().default(0),
     revokedAt: integer("revoked_at"),
   },
   (table) => [
@@ -94,6 +97,56 @@ export const sellerSessions = sqliteTable(
     expiresAt: integer("expires_at").notNull(),
   },
   (t) => [index("seller_sessions_expiry_idx").on(t.expiresAt)],
+);
+
+export const staffInvitations = sqliteTable(
+  "staff_invitations",
+  {
+    id: text("id").primaryKey(),
+    tokenHash: text("token_hash").notNull().unique(),
+    shopId: text("shop_id")
+      .notNull()
+      .references(() => shops.id),
+    role: text("role").notNull(),
+    permissions: text("permissions").notNull(),
+    bot: text("bot").notNull(),
+    botUsername: text("bot_username").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+    usedBy: text("used_by"),
+    redemptionId: text("redemption_id"),
+    revokedAt: integer("revoked_at"),
+  },
+  (table) => [
+    index("staff_invitations_shop_expiry_idx").on(table.shopId, table.expiresAt),
+    index("staff_invitations_expiry_idx").on(table.expiresAt),
+  ],
+);
+
+export const staffBotChats = sqliteTable(
+  "staff_bot_chats",
+  {
+    shopId: text("shop_id")
+      .notNull()
+      .references(() => shops.id),
+    accountId: text("account_id")
+      .notNull()
+      .references(() => accounts.id),
+    bot: text("bot").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.shopId, table.accountId, table.bot] })],
+);
+
+export const staffRoleNotifications = sqliteTable(
+  "staff_role_notifications",
+  {
+    shopId: text("shop_id")
+      .notNull()
+      .references(() => shops.id),
+    role: text("role").notNull(),
+    topic: text("topic").notNull(),
+    enabled: integer("enabled", { mode: "boolean" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.shopId, table.role, table.topic] })],
 );
 export const emailChallenges = sqliteTable("email_challenges", {
   id: text("id").primaryKey(),

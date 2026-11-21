@@ -42,7 +42,8 @@ export const sellerCatalogRoutes = new Hono<CatalogEnv>()
     c.header("Cache-Control", "private, no-store");
     const seller = await readSeller(c.req.raw, c.env.platform, c.env.shop.id);
     const canWrite = canManage(seller);
-    if (c.req.method !== "GET" && !canWrite) throw new ApiError("FORBIDDEN", "Нет права изменять товары");
+    if (!canWrite && (seller.teamRole || c.req.method !== "GET"))
+      throw new ApiError("FORBIDDEN", "Недостаточно прав для каталога продавца");
     c.set("seller", seller);
     c.set("canWrite", canWrite);
     await next();

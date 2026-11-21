@@ -4,7 +4,7 @@ import { bodyLimit } from "hono/body-limit";
 import { saveSellerPayments } from "../../../src/shared/contracts/seller-payments";
 import { ApiError } from "../../../src/shared/errors";
 import { validationFailure } from "../../auth/request";
-import { readSeller } from "../../auth/roles";
+import { checkSettingsAccess, readSeller } from "../../auth/roles";
 import { idempotency } from "../../middleware/idempotency";
 import { executeCommand } from "../../shop/commands";
 import type { ShopEnv } from "../../shop/env";
@@ -14,6 +14,7 @@ export const sellerPaymentRoutes = new Hono<ShopEnv>()
   .get("/settings", async (c) => {
     c.header("Cache-Control", "private, no-store");
     const seller = await readSeller(c.req.raw, c.env.platform, c.env.shop.id);
+    checkSettingsAccess(seller);
     return c.json(readSellerPayments(c.env, seller));
   })
   .put(
