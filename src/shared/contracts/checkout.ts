@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { CartAdjustment, CartLine } from "./cart";
 import type { Receiving, ReceivingAvailability } from "./receiving";
 import type { TimeChoice } from "./receiving-time";
+import { type PaymentOption, paymentOptionId, paymentOptionInput } from "./seller-payments";
 
 const methodInput = z.enum(["cash", "transfer"]);
 export const paymentSettingsInput = z.object({
@@ -9,6 +10,7 @@ export const paymentSettingsInput = z.object({
   methods: z.array(methodInput).max(2),
   instruction: z.string().trim().max(2000).optional(),
   qrSrc: z.union([z.url({ protocol: /^https$/u }), z.string().regex(/^\/demo\/[a-z0-9-]+\.png$/u)]).optional(),
+  options: z.array(paymentOptionInput).max(20).optional(),
 });
 export const shopContactsInput = z
   .array(
@@ -23,7 +25,12 @@ export const shopContactsInput = z
   .max(8);
 export const checkoutInput = z.discriminatedUnion("payment", [
   z.strictObject({ quoteRevision: z.uuid(), payment: z.literal("cash") }),
-  z.strictObject({ quoteRevision: z.uuid(), payment: z.literal("transfer"), proofMediaId: z.uuid() }),
+  z.strictObject({
+    quoteRevision: z.uuid(),
+    payment: z.literal("transfer"),
+    proofMediaId: z.uuid().optional(),
+    methodId: paymentOptionId.optional(),
+  }),
 ]);
 export const receiptQuoteInput = z.strictObject({ quoteRevision: z.uuid(), proofMediaId: z.uuid() });
 export type CheckoutCommand = z.infer<typeof checkoutInput>;
@@ -54,5 +61,6 @@ export type OrderSnapshot = Omit<PurchaseQuote, "paymentSettings"> & {
   paymentStatus: "unpaid" | "pending_review";
   customerName?: string;
   transferReview?: { priorTotalMinor: number; differenceMinor: number; credentialsChanged: boolean };
+  paymentOption?: PaymentOption;
 };
 export type OrderResult = OrderSnapshot & { number: number };

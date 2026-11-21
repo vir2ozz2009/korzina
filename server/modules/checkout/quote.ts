@@ -8,6 +8,7 @@ import { readAvailability } from "../fulfillment/availability";
 import { pauseStatus } from "../fulfillment/pause";
 import { isAvailable } from "../fulfillment/schedule";
 import { checkFulfillment, parseSelection, requireFulfillment, resolveFulfillment } from "../fulfillment/service";
+import { checkoutPayments } from "./payment-settings";
 
 type Shop = ShopEnv["Bindings"];
 const quoteLifetime = 15 * 60_000;
@@ -28,9 +29,9 @@ function contextFor(env: Shop, subject: string) {
       subject,
     )
     .one();
-  const paymentSettings = paymentSettingsInput.parse(context.payments ? JSON.parse(context.payments) : paymentDefaults);
-  if (!paymentSettings.instruction && !paymentSettings.qrSrc)
-    paymentSettings.methods = paymentSettings.methods.filter((method) => method !== "transfer");
+  const paymentSettings = checkoutPayments(
+    paymentSettingsInput.parse(context.payments ? JSON.parse(context.payments) : paymentDefaults),
+  );
   return {
     ...context,
     paymentSettings,

@@ -1,4 +1,5 @@
 import { maxMediaBytes } from "../../../src/shared/contracts/media";
+import { paymentImageLimit } from "../../../src/shared/contracts/seller-payments";
 import { ApiError } from "../../../src/shared/errors";
 
 export function detectContent(
@@ -13,9 +14,14 @@ export function detectContent(
   throw new ApiError("VALIDATION", "Выберите JPEG, PNG, WebP, HEIC или PDF");
 }
 
-export async function readUpload(request: Request): Promise<Uint8Array<ArrayBuffer>> {
-  if (Number(request.headers.get("Content-Length")) > maxMediaBytes)
-    throw new ApiError("PAYLOAD_TOO_LARGE", "Размер файла после сжатия — до 10 МБ");
+export async function readUpload(request: Request, paymentImage = false): Promise<Uint8Array<ArrayBuffer>> {
+  const limit = paymentImage ? paymentImageLimit : maxMediaBytes;
+  const sizeError = () =>
+    new ApiError(
+      "PAYLOAD_TOO_LARGE",
+      paymentImage ? "Размер картинки для оплаты — до 1 МБ" : "Размер файла после сжатия — до 10 МБ",
+    );
+  if (Number(request.headers.get("Content-Length")) > limit) throw sizeError();
   if (!request.body) throw new ApiError("VALIDATION", "Выберите файл");
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -24,9 +30,9 @@ export async function readUpload(request: Request): Promise<Uint8Array<ArrayBuff
     const { done, value } = await reader.read();
     if (done) break;
     size += value.length;
-    if (size > maxMediaBytes) {
+    if (size > limit) {
       await reader.cancel();
-      throw new ApiError("PAYLOAD_TOO_LARGE", "Размер файла после сжатия — до 10 МБ");
+      throw sizeError();
     }
     chunks.push(value);
   }
@@ -36,5 +42,7 @@ export async function readUpload(request: Request): Promise<Uint8Array<ArrayBuff
     bytes.set(chunk, offset);
     offset += chunk.length;
   }
+  if (paymentImage && !["image/png", "image/jpeg", "image/webp"].includes(detectContent(bytes)))
+    throw new ApiError("VALIDATION", "Выберите PNG, JPG или WebP");
   return bytes;
 }

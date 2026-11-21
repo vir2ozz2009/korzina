@@ -6,6 +6,7 @@ import { cartRoutes } from "../modules/cart/routes";
 import { catalogRoutes } from "../modules/catalog/routes";
 import { buyerOrderRoutes } from "../modules/checkout/buyer-order-routes";
 import { purchaseRoutes } from "../modules/checkout/routes";
+import { sellerPaymentRoutes } from "../modules/checkout/seller-payment-routes";
 import { diagnostics } from "../modules/diagnostics/routes";
 import { favoritesRoutes } from "../modules/favorites/routes";
 import { receivingRoutes } from "../modules/fulfillment/routes";
@@ -41,6 +42,7 @@ export function shopRoutes() {
       .route("/seller/catalog", sellerCatalogRoutes)
       .route("/seller/orders", sellerOrderRoutes)
       .route("/seller/receiving", sellerReceivingRoutes)
+      .route("/seller/payments", sellerPaymentRoutes)
       .route("/favorites", favoritesRoutes)
       .route("/profile", profileRoutes)
       .route("/catalog", catalogRoutes)

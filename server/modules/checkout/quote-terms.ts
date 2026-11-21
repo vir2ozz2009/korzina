@@ -56,6 +56,7 @@ export function quoteTerms(quote: PurchaseQuote) {
       minimumMinor: paymentSettings.minimumMinor,
       instruction: paymentSettings.instruction,
       qrSrc: paymentSettings.qrSrc,
+      options: paymentSettings.options,
     },
   };
 }
