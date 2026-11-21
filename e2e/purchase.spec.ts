@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
-import { shopContactsInput } from "../src/shared/contracts/checkout";
 import { verifyBuyerOrderReload, verifyFavoriteCart, verifyOrderCancellation, verifySavedAddress } from "./after-order";
+import { verifyPaymentHelp } from "./payment-help";
 import { verifySellerOrders } from "./seller-orders";
 
 async function keyboardViewport(page: Page, open: boolean) {
@@ -189,17 +189,7 @@ test("B10: товар, доставка и заказ наличными", async
   await page.getByRole("button", { name: /^К оплате/ }).click();
   await expect(page).toHaveURL(/checkout\/payment/);
   await expect(page.getByText("Номер для заказа")).toBeVisible();
-  const support = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/checkout/support");
-  await page.getByRole("button", { name: "Проблема с оплатой?" }).click();
-  const help = page.getByRole("dialog", { name: "Помощь с оплатой" });
-  const supportResponse = await support;
-  expect(supportResponse.ok()).toBe(true);
-  const contacts = shopContactsInput.parse(await supportResponse.json());
-  if (local) expect(contacts).toContainEqual({ title: "Поддержка demo", href: "mailto:shop@example.invalid" });
-  if (contacts.length === 0) await expect(help.getByText("Контакты магазина пока недоступны")).toBeVisible();
-  for (const { title, href } of contacts)
-    await expect(help.getByRole("link", { name: title, exact: true })).toHaveAttribute("href", href);
-  await help.getByRole("button", { name: "Закрыть", exact: true }).click();
+  await verifyPaymentHelp(page, local);
   await expect(page.getByRole("heading", { name: "Ваш заказ", exact: true })).toHaveCount(0);
   await page.getByRole("radio", { name: "Перевод", exact: true }).check();
   const inlineQr = page.getByRole("img", { name: "QR для перевода" });
@@ -229,13 +219,14 @@ test("B10: товар, доставка и заказ наличными", async
   await expect(page).toHaveURL(/checkout\/payment/);
   await page.getByRole("button", { name: "Удалить", exact: true }).click();
   await expect(page.getByRole("button", { name: /^Оформить заказ/ })).toBeDisabled();
-  await page.getByRole("radio", { name: "Наличные", exact: true }).check();
+  await page.getByRole("radio", { name: /^Наличные(?: при получении)?$/u }).check();
   await page.screenshot({ path: "test-results/payment-cash-390.png", animations: "disabled" });
   const checkout = page.waitForResponse(
     (response) => new URL(response.url()).pathname === "/api/checkout" && response.request().method() === "POST",
   );
   await page.getByRole("button", { name: /^Оформить заказ/ }).click();
   const response = await checkout;
+  expect(response.request().postDataJSON()).toMatchObject({ payment: "cash" });
   expect(response.status()).toBe(201);
   const order: { number: number } = await response.json();
   await expect(page.getByRole("heading", { name: `Заказ №${order.number}` })).toBeVisible();
