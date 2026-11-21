@@ -1,6 +1,7 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { expect, type Page } from "@playwright/test";
 import { cartContract } from "../src/shared/contracts/cart";
+import { fillAddressDetails } from "./purchase-address";
 
 export async function verifyBuyerOrderReload(page: Page, number: number) {
   const heading = page.getByRole("heading", { name: `Заказ №${number}`, exact: true });
@@ -72,7 +73,7 @@ export async function verifyFavoriteCart(page: Page) {
   await expect(page.getByRole("button", { name: /Увеличить|Добавить одну штуку/ }).first()).toBeVisible();
 }
 
-export async function verifySavedAddress(page: Page) {
+export async function verifySavedAddress(page: Page, onMap: boolean) {
   await page.goBack();
   await expect(page).toHaveURL(/\/favorites/);
   await page.goBack();
@@ -84,9 +85,16 @@ export async function verifySavedAddress(page: Page) {
   await page.getByRole("button", { name: "Добавить адрес", exact: true }).click();
   await page.getByRole("textbox", { name: "Название", exact: true }).fill("Работа");
   await page.getByRole("button", { name: /Адрес доставки/ }).click();
-  await page.getByRole("searchbox", { name: "Улица, дом, город", exact: true }).fill("улица Ле Лой, 45");
-  await page.getByRole("button", { name: "Сохранить адрес вручную", exact: true }).click();
-  await page.getByRole("textbox", { name: "Квартира", exact: true }).fill("7");
+  const entry = page.getByRole("dialog", { name: onMap ? "Новый адрес" : "Ввести адрес вручную" });
+  const address = onMap
+    ? entry.getByRole("searchbox", { name: "Улица, дом, город", exact: true })
+    : entry.getByRole("textbox", { name: "Адрес доставки", exact: true });
+  const saveAddress = onMap ? "Сохранить адрес вручную" : "Сохранить адрес";
+  await address.fill("улица Ле Лой, 45");
+  if (!onMap) await fillAddressDetails(entry, "7");
+  await entry.getByRole("button", { name: saveAddress, exact: true }).click();
+  await expect(entry).toBeHidden();
+  await fillAddressDetails(page, "7", false);
   const [saved] = await Promise.all([
     page.waitForResponse(
       (response) =>
@@ -104,7 +112,7 @@ export async function verifySavedAddress(page: Page) {
     .first()
     .click();
   await page.getByRole("button", { name: /^Работа/ }).click();
-  const confirm = page.getByRole("button", { name: "Сохранить адрес вручную", exact: true });
+  const confirm = page.getByRole("button", { name: saveAddress, exact: true });
   const write = async () => {
     const response = page.waitForResponse(
       (response) => new URL(response.url()).pathname === "/api/receiving" && response.request().method() === "POST",
