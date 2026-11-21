@@ -33,7 +33,11 @@ export function SellerOrdersShell({
       template="list"
       after={
         cabinet.data?.current && !cabinet.isError ? (
-          <SellerTabs store={cabinet.data.current.slug} account={cabinet.data.telegramId} />
+          <SellerTabs
+            store={cabinet.data.current.slug}
+            account={cabinet.data.telegramId}
+            permissions={cabinet.data.current.permissions}
+          />
         ) : undefined
       }
       footer={footer}

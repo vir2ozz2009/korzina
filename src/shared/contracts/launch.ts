@@ -9,3 +9,10 @@ export const launchReadiness = z.strictObject({
 });
 export type LaunchReadiness = z.infer<typeof launchReadiness>;
 export type ReadinessItem = LaunchReadiness["items"][number];
+
+export const readinessLabels: Record<ReadinessItem["key"], string> = {
+  name: "Данные магазина",
+  product: "Товары",
+  receiving: "Доставка и самовывоз",
+  payment: "Оплата",
+};

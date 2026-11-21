@@ -27,6 +27,19 @@ export function calendarDate(date: string, offset: number) {
   return day.toISOString().slice(0, 10);
 }
 
+export function shopDayStart(date: string, timeZone: string) {
+  const minute = 60_000;
+  const utc = Date.parse(`${date}T00:00:00Z`) / minute;
+  let before = utc - 36 * 60;
+  let after = utc + 36 * 60;
+  while (after - before > 1) {
+    const middle = Math.floor((before + after) / 2);
+    if (shopDateTime(middle * minute, timeZone).date < date) before = middle;
+    else after = middle;
+  }
+  return after * minute;
+}
+
 export function formatShopDay(date: string, timeZone: string, now = Date.now(), compact = false) {
   const { date: today } = shopDateTime(now, timeZone);
   const relative = date === today ? "Сегодня" : date === calendarDate(today, 1) ? "Завтра" : undefined;
