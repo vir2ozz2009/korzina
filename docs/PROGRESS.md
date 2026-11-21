@@ -16,8 +16,9 @@
 - [x] Сервер S4. [Правила и проверки](progress/S4.md).
 - [x] Сервер S5. [Правила и проверки](progress/S5.md).
 - [x] Сервер S6. [Правила и проверки](progress/S6.md).
-- [ ] Экраны, demo, smoke.
-- [ ] **СТОП:** чек-лист `docs/progress/shop-settings-local-check.md` с таблицей покрытия спецификации → «➡️ Локальный Codex».
+- [x] Экраны S4–S6 на demo `f62f6dc`. Check, smoke на превью и Demo smoke прошли. [PR #152](https://github.com/vir2ozz2009/korzina/pull/152) · [Снимки](https://github.com/vir2ozz2009/korzina/actions/runs/44874613774/artifacts/14695721227) · [Demo smoke](https://github.com/vir2ozz2009/korzina/actions/runs/44874891374).
+- [x] Подготовлен [чек-лист локальной проверки](progress/shop-settings-local-check.md) с таблицей покрытия.
+- [ ] **СТОП:** сверка покрытия Claude, затем проверка на устройствах у Андрея.
 
 ### Шаги блока 6 · Каталог продавца
 
