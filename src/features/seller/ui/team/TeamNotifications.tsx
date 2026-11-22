@@ -6,6 +6,7 @@ import { type Notifications, roleName, teamKey, teamRequest, useStaffBot, useTea
 
 const topicName: Record<NotificationTopic, string> = {
   newOrders: "Новые заказы",
+  lowStock: "Товар заканчивается",
   paymentsAndReceipts: "Оплаты и чеки",
   cancellations: "Отмены",
 };

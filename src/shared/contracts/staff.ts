@@ -62,6 +62,6 @@ export type StaffInvite = z.infer<typeof staffInvite>;
 export const staffVersion = z.strictObject({ version: z.int().nonnegative() });
 export const staffUpdate = z.strictObject({ version: staffVersion.shape.version, access: staffAccess });
 
-export const notificationTopic = z.enum(["newOrders", "paymentsAndReceipts", "cancellations"]);
+export const notificationTopic = z.enum(["newOrders", "paymentsAndReceipts", "cancellations", "lowStock"]);
 export type NotificationTopic = z.infer<typeof notificationTopic>;
 export const notificationChange = z.strictObject({ role: teamRole, topic: notificationTopic, enabled: z.boolean() });
