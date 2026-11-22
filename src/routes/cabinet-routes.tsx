@@ -1,4 +1,6 @@
 import { createRoute, lazyRouteComponent } from "@tanstack/react-router";
+import type { SellerOrdersQuery } from "../shared/contracts/seller-order";
+import { workdayDay, workdayFocus, workdayMonth } from "../shared/contracts/workday";
 import { rootRoute } from "./root";
 
 const sellerScreen = lazyRouteComponent(() => import("../features/seller/ui/CabinetScreen"), "CabinetScreen");
@@ -37,20 +39,46 @@ const catalogSearch = (input: Record<string, unknown>) => ({
 });
 const list = lazyRouteComponent(() => import("../features/seller/ui/orders/SellerOrdersList"), "SellerOrdersList");
 const order = lazyRouteComponent(() => import("../features/seller/ui/orders/SellerOrderScreen"), "SellerOrderScreen");
+const workdayBack = (input: unknown) =>
+  typeof input === "string" && /^\/seller(?:\/(?:orders|workday\/(?:packing|calendar)))?(?:\?|$)/u.test(input)
+    ? input
+    : undefined;
+const day = (input: unknown) => workdayDay.shape.day.safeParse(input).data;
+type WorkdaySearch = ReturnType<typeof search> & {
+  day?: string;
+  month?: string;
+  view?: "day" | "time";
+  window?: string;
+  purpose?: "packing" | "orders";
+  back?: string;
+};
+const workdaySearch = (input: Record<string, unknown>): WorkdaySearch => ({
+  ...search(input),
+  day: day(input.day),
+  month: workdayMonth.shape.month.safeParse(input.month).data,
+  view: input.view === "day" ? ("day" as const) : input.view === "time" ? ("time" as const) : undefined,
+  window:
+    typeof input.window === "string" && /^\d{2}:\d{2}-\d{2}:\d{2}$/u.test(input.window) ? input.window : undefined,
+  purpose: input.purpose === "packing" || input.purpose === "orders" ? input.purpose : undefined,
+  back: workdayBack(input.back),
+});
 const listSearch = (
   input: Record<string, unknown>,
-): ReturnType<typeof search> & {
-  tab?: "active" | "completed";
-  method?: "pickup" | "delivery";
-  debt?: "1";
-} => ({
+): ReturnType<typeof search> &
+  Partial<Pick<SellerOrdersQuery, "tab" | "method" | "debt" | "day" | "focus">> & { back?: string } => ({
   ...search(input),
   tab: input.tab === "active" || input.tab === "completed" ? input.tab : undefined,
+  day: day(input.day),
+  focus: workdayFocus.safeParse(input.focus).data,
+  back: workdayBack(input.back),
   method: input.method === "pickup" || input.method === "delivery" ? input.method : undefined,
   debt: input.debt === 1 || input.debt === "1" ? ("1" as const) : undefined,
 });
-const orderSearch = (input: Record<string, unknown>) => ({
+const orderSearch = (
+  input: Record<string, unknown>,
+): ReturnType<typeof search> & { back?: string; action?: "next" | "packing" } => ({
   ...search(input),
+  back: workdayBack(input.back),
   action: input.action === "next" || input.action === "packing" ? input.action : undefined,
 });
 const catalogRoutes = [
@@ -93,6 +121,20 @@ export const sellerRoutes = [
       component: catalog,
     }),
   ),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/seller/workday/packing",
+    validateSearch: workdaySearch,
+    staticData: { template: "list", transition: "push", title: "Список сборки" },
+    component: lazyRouteComponent(() => import("../features/seller/ui/workday/WorkdayScreens"), "PackingScreen"),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/seller/workday/calendar",
+    validateSearch: workdaySearch,
+    staticData: { template: "list", transition: "push", title: "Календарь" },
+    component: lazyRouteComponent(() => import("../features/seller/ui/workday/WorkdayScreens"), "OrderCalendarScreen"),
+  }),
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/seller/orders",

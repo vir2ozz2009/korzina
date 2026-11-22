@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { QueryBoundary } from "../../../../app/shell/QueryBoundary";
 import { sellerHistory } from "../../../../app/shell/tab-history";
 import type { SellerOrderPage, SellerOrderSummary, SellerOrdersQuery } from "../../../../shared/contracts/seller-order";
+import { workdayFocus } from "../../../../shared/contracts/workday";
 import { formatShopDay, shopDateTime } from "../../../../shared/datetime";
 import { Button } from "../../../../ui/Button";
 import { Card } from "../../../../ui/Card";
@@ -16,18 +17,27 @@ import { SearchField } from "../../../../ui/SearchField";
 import { Sheet } from "../../../../ui/Sheet";
 import { sellerOrderSearch } from "../../order-search";
 import { moreSellerOrders, useSellerOrderCommand, useSellerOrderList } from "../../orders-api";
+import { WorkdayDays, workdayLabels } from "../workday/workday-ui";
 import { methodLabel, stages } from "./OrderIndicators";
 import { OrderListCard } from "./OrderListCard";
 import { SellerOrdersShell } from "./SellerOrdersShell";
 
 export function SellerOrdersList() {
-  return <SellerOrdersShell title="Заказы">{(store) => <OrderList key={store} store={store} />}</SellerOrdersShell>;
+  const scope = useRouterState({ select: (state) => state.location.search.back });
+  return (
+    <SellerOrdersShell title="Заказы">
+      {(store) => <OrderList key={`${store}:${scope ?? ""}`} store={store} />}
+    </SellerOrdersShell>
+  );
 }
 
 function OrderList({ store }: { store: string }) {
   const location = useRouterState({ select: (state) => state.location });
   const navigate = useNavigate();
-  const [search, setSearch] = useState(() => sellerOrderSearch.get(store) ?? "");
+  const day = typeof location.search.day === "string" ? location.search.day : undefined;
+  const focus = workdayFocus.safeParse(location.search.focus).data;
+  const scoped = !!day || !!focus;
+  const [search, setSearch] = useState(() => (scoped ? "" : (sellerOrderSearch.get(store) ?? "")));
   const [settled, setSettled] = useState(search);
   useEffect(() => {
     const timeout = setTimeout(() => setSettled(search), 220);
@@ -35,19 +45,28 @@ function OrderList({ store }: { store: string }) {
   }, [search]);
   function changeSearch(value: string) {
     const text = value.slice(0, 80);
-    if (text) sellerOrderSearch.set(store, text);
-    else sellerOrderSearch.delete(store);
+    if (!scoped) {
+      if (text) sellerOrderSearch.set(store, text);
+      else sellerOrderSearch.delete(store);
+    }
     setSearch(text);
   }
   const tab = location.search.tab === "completed" ? "completed" : "active";
   const method =
     location.search.method === "pickup" || location.search.method === "delivery" ? location.search.method : undefined;
   const debt = tab === "completed" && location.search.debt === "1" ? "1" : undefined;
-  const selection: Omit<SellerOrdersQuery, "rev" | "cursor"> = { tab, method, debt, search: settled.trim() };
-  function changeFilters(next: { tab?: "active" | "completed"; method?: "pickup" | "delivery"; debt?: "1" }) {
+  const selection: Omit<SellerOrdersQuery, "rev" | "cursor"> = {
+    tab,
+    method,
+    debt,
+    day,
+    focus,
+    search: settled.trim(),
+  };
+  function changeFilters(next: Partial<Omit<SellerOrdersQuery, "cursor" | "rev" | "search">>) {
     void navigate({
       to: "/seller/orders",
-      search: { shop: location.search.shop, tab, method, debt, store, ...next },
+      search: { shop: location.search.shop, tab, method, debt, day, focus, back: location.search.back, store, ...next },
       replace: true,
     });
   }
@@ -81,17 +100,48 @@ function OrderList({ store }: { store: string }) {
       command: { action: "accept", expectedRevision: order.revision },
     });
   }
-  const reset = () => changeFilters({ method: undefined, debt: undefined });
+  const reset = () => changeFilters({ method: undefined, debt: undefined, day: undefined, focus: undefined });
   return (
     <>
-      <div className="grid grid-cols-2 gap-1 rounded-lg bg-card p-1">
-        <Chip selected={tab === "active"} onClick={() => changeFilters({ tab: "active", debt: undefined })}>
-          В работе{list.data ? ` · ${list.data.active}` : ""}
-        </Chip>
-        <Chip selected={tab === "completed"} onClick={() => changeFilters({ tab: "completed" })}>
-          Завершённые
-        </Chip>
-      </div>
+      {scoped ? (
+        <fieldset className="flex flex-wrap gap-2" aria-label="Применённые фильтры">
+          {day && (
+            <Chip selected onClick={() => changeFilters({ day: undefined })}>
+              {formatShopDay(day, list.data?.timeZone ?? "UTC")}
+            </Chip>
+          )}
+          {focus && (
+            <Chip selected onClick={() => changeFilters({ focus: undefined })}>
+              {workdayLabels[focus]}
+            </Chip>
+          )}
+          <Button variant="ghost" onClick={reset}>
+            Сбросить фильтры
+          </Button>
+        </fieldset>
+      ) : (
+        <div className="grid grid-cols-2 gap-1 rounded-lg bg-card p-1">
+          <Chip selected={tab === "active"} onClick={() => changeFilters({ tab: "active", debt: undefined })}>
+            В работе{list.data ? ` · ${list.data.active}` : ""}
+          </Chip>
+          <Chip selected={tab === "completed"} onClick={() => changeFilters({ tab: "completed" })}>
+            Завершённые
+          </Chip>
+        </div>
+      )}
+      {day && list.data && (
+        <WorkdayDays
+          day={day}
+          today={shopDateTime(Date.now(), list.data.timeZone).date}
+          select={(nextDay) => changeFilters({ day: nextDay })}
+          calendar={() =>
+            void navigate({
+              to: "/seller/workday/calendar",
+              search: { store, day, month: day.slice(0, 7), purpose: "orders", back: location.href },
+            })
+          }
+        />
+      )}
       <div className="space-y-1 rounded-xl bg-card p-2">
         <div className="flex items-center gap-1">
           <div className="min-w-0 flex-1">
@@ -123,13 +173,15 @@ function OrderList({ store }: { store: string }) {
                     title={
                       settled
                         ? "Ничего не найдено"
-                        : method || debt
+                        : method || debt || focus
                           ? "По этим фильтрам заказов нет"
-                          : tab === "active"
-                            ? "Заказов в работе пока нет"
-                            : "Завершённых заказов пока нет"
+                          : day
+                            ? "На этот день заказов нет"
+                            : tab === "active"
+                              ? "Заказов в работе пока нет"
+                              : "Завершённых заказов пока нет"
                     }
-                    action={settled ? "Очистить поиск" : method || debt ? "Сбросить фильтры" : undefined}
+                    action={settled ? "Очистить поиск" : method || debt || scoped ? "Сбросить фильтры" : undefined}
                     onAction={settled ? () => changeSearch("") : reset}
                   />
                 </Card>

@@ -8,8 +8,11 @@ export function useBack(fallback = "/") {
     const href = router.state.location.href;
     if (href.startsWith("/seller")) {
       void import("./tab-history").then(async ({ sellerHistory, sellerTab }) => {
-        if (router.state.location.pathname === sellerTab(href)) return;
-        const target = new URL(sellerHistory.back(href), window.location.origin);
+        const explicit = router.state.location.search.back;
+        const targetHref = typeof explicit === "string" ? explicit : undefined;
+        if (!targetHref && router.state.location.pathname === sellerTab(href)) return;
+        const target = new URL(targetHref ?? sellerHistory.back(href), window.location.origin);
+        if (target.origin !== window.location.origin) return;
         const current = new URL(href, window.location.origin);
         for (const key of ["shop", "store"]) {
           const value = current.searchParams.get(key);

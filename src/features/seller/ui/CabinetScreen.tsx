@@ -14,7 +14,7 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useRef, useState } from "react";
 import { openCabinetStorefront } from "../../../app/cabinet-storefront";
 import { Header } from "../../../app/shell/Header";
 import { QueryBoundary } from "../../../app/shell/QueryBoundary";
@@ -34,6 +34,10 @@ import { CabinetLogin } from "./CabinetLogin";
 import { LaunchReadiness } from "./LaunchReadiness";
 import { PauseCard } from "./settings/PauseCard";
 import { ReconnectStaffBot } from "./team/ReconnectStaffBot";
+
+const WorkdaySummary = lazy(() =>
+  import("./workday/WorkdaySummary").then((module) => ({ default: module.WorkdaySummary })),
+);
 
 const statusNames: Record<string, string> = { draft: "Черновик", active: "Открыт", paused: "Пауза" };
 
@@ -71,7 +75,7 @@ export function CabinetScreen() {
       }
       header={
         <Header
-          title={needsLogin ? "Вход" : title}
+          title={needsLogin ? "Вход" : pathname === "/seller" && current ? "Главная" : title}
           actions={
             query.data &&
             !query.isError &&
@@ -195,12 +199,18 @@ export function CabinetScreen() {
                 </>
               ) : shop ? (
                 <>
+                  {shop.status === "draft" && shop.permissions?.includes("publish") ? (
+                    <LaunchReadiness key={shop.id} store={shop.slug}>
+                      {storefrontAction}
+                    </LaunchReadiness>
+                  ) : shop.status === "draft" ? (
+                    storefrontAction
+                  ) : null}
                   <Card size="lg">
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-center gap-3">
                       <Avatar name={shop.name} />
                       <div className="min-w-0 flex-1">
                         <h2 className="text-title-2">{shop.name}</h2>
-                        <p className="mt-1 break-all text-small text-muted-foreground">{shop.storefrontUrl}</p>
                       </div>
                       <StatusPill
                         tone={shop.status === "active" ? "success" : shop.status === "paused" ? "warning" : "neutral"}
@@ -212,16 +222,20 @@ export function CabinetScreen() {
                       <p className="text-small text-muted-foreground">Витрина пока закрыта</p>
                     )}
                   </Card>
-                  {shop.status === "draft" && shop.permissions?.includes("publish") ? (
-                    <LaunchReadiness key={shop.id} store={shop.slug}>
-                      {storefrontAction}
-                    </LaunchReadiness>
-                  ) : (
-                    storefrontAction
-                  )}
                   {shop.status !== "draft" && (!shop.teamRole || shop.permissions.includes("shop_settings")) && (
                     <PauseCard key={shop.id} store={shop.slug} />
                   )}
+                  {shop.status !== "draft" && shop.permissions.includes("orders") && (
+                    <Suspense fallback={null}>
+                      <WorkdaySummary
+                        key={shop.id}
+                        store={shop.slug}
+                        money={shop.permissions.includes("payments")}
+                        assembly={shop.permissions.includes("assembly")}
+                      />
+                    </Suspense>
+                  )}
+                  {shop.status !== "draft" && storefrontAction}
                 </>
               ) : (
                 <Card>
