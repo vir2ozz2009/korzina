@@ -21,9 +21,10 @@ type Queued = {
 
 async function expandNewOrders(storage: DurableObjectStorage, env: Env & AuthSecrets, shop: string, now: number) {
   const orders = storage.sql
-    .exec<{ number: number; total: number; currency: string }>(
-      `SELECT p.order_number AS number,i.total_minor AS total,i.currency
-    FROM order_outbox p JOIN seller_order_index i ON i.number=p.order_number
+    .exec<{ number: number; total: number; currency: string; created: number; receipt: number }>(
+      `SELECT p.order_number AS number,i.total_minor AS total,i.currency,p.created_at AS created,
+      json_extract(o.snapshot,'$.paymentStatus')='pending_review' AS receipt
+    FROM order_outbox p JOIN seller_order_index i ON i.number=p.order_number JOIN orders o ON o.number=i.number
     WHERE p.order_number>CAST((SELECT value FROM settings WHERE key='seller_notification_watermark') AS INTEGER)
     ORDER BY p.order_number LIMIT 20`,
     )
@@ -32,7 +33,14 @@ async function expandNewOrders(storage: DurableObjectStorage, env: Env & AuthSec
   const bot = await staffBot(env.PLATFORM, shop, env);
   const recipients = await staffRecipients(env.PLATFORM, shop, bot.id);
   storage.transactionSync(() => {
-    for (const order of orders)
+    for (const order of orders) {
+      if (order.receipt && order.created + 86_400_000 > now)
+        storage.sql.exec(
+          "INSERT OR IGNORE INTO workday_notice(id,kind,order_number,expires_at) VALUES(?,'receipt',?,?)",
+          `receipt:${order.number}:initial`,
+          order.number,
+          order.created + 86_400_000,
+        );
       for (const recipient of recipients)
         storage.sql.exec(
           `INSERT OR IGNORE INTO order_notification_outbox(event_key,kind,order_number,recipient,amount,currency,due_at)
@@ -44,6 +52,7 @@ async function expandNewOrders(storage: DurableObjectStorage, env: Env & AuthSec
           order.currency,
           now,
         );
+    }
     storage.sql.exec(
       "UPDATE settings SET value=? WHERE key='seller_notification_watermark'",
       orders.at(-1)?.number ?? 0,
@@ -57,8 +66,8 @@ export async function sendOrderNotifications(storage: DurableObjectStorage, env:
     .exec<{ value: string }>("SELECT value FROM settings WHERE key='shop_id'")
     .toArray()[0]?.value;
   if (!shop) return;
-  await sendWorkdayNotifications(storage, env, shop, now);
   const more = await expandNewOrders(storage, env, shop, now);
+  await sendWorkdayNotifications(storage, env, shop, now);
   const queue = storage.sql
     .exec<Queued>("SELECT * FROM order_notification_outbox WHERE due_at<=? ORDER BY due_at LIMIT 10", now)
     .toArray();

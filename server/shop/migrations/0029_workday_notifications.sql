@@ -25,12 +25,6 @@ CREATE INDEX workday_notice_due ON workday_notice_delivery(due_at) WHERE outcome
 --> statement-breakpoint
 CREATE INDEX workday_notice_expiry ON workday_notice(expires_at);
 --> statement-breakpoint
-CREATE TRIGGER workday_notice_initial_receipt AFTER INSERT ON orders
-WHEN NEW.payment_status='pending_review' AND NEW.proof_media_id IS NOT NULL BEGIN
-  INSERT OR IGNORE INTO workday_notice(id,kind,order_number,expires_at)
-  VALUES('receipt:'||NEW.number||':'||NEW.proof_media_id,'receipt',NEW.number,unixepoch('subsec')*1000+86400000);
-END;
---> statement-breakpoint
 CREATE TRIGGER workday_notice_replacement_receipt AFTER UPDATE OF proof_media_id ON orders
 WHEN NEW.payment_status='pending_review' AND NEW.proof_media_id IS NOT NULL
   AND NEW.proof_media_id IS NOT OLD.proof_media_id BEGIN
