@@ -7,6 +7,8 @@ import type {
 } from "../../../src/shared/contracts/seller-order";
 import { ApiError } from "../../../src/shared/errors";
 
+import { daySelection, focusSelection, localTimestamp } from "./workday-selection";
+
 const cursorInput = z.tuple([z.int(), z.string(), z.int(), z.string(), z.int()]);
 const stageOrder =
   "CASE stage WHEN 'placed' THEN 0 WHEN 'accepted' THEN 1 WHEN 'ready' THEN 2 WHEN 'handed' THEN 3 ELSE 4 END";
@@ -36,20 +38,39 @@ export function orderListRevision(storage: DurableObjectStorage) {
 
 export function sellerOrders(storage: DurableObjectStorage, input: SellerOrdersQuery, timeZone: string) {
   const rev = orderListRevision(storage);
-  if (input.rev === rev && !input.cursor) return { rev, timeZone, unchanged: true as const };
+  if (input.rev === rev && !input.cursor && input.focus !== "overdue")
+    return { rev, timeZone, unchanged: true as const };
   const search = input.search?.toLocaleLowerCase("ru") ?? "";
   const method = input.method ?? "";
   const completed = input.tab === "completed";
   const debt = completed && input.debt === "1";
-  const fingerprint = JSON.stringify([input.tab, method, debt, search]);
+  const cutoff = localTimestamp(Date.now(), timeZone);
+  const focus = input.focus && focusSelection(input.focus, cutoff);
+  const scopedDay = input.day && daySelection(input.day, timeZone);
+  const fingerprint = JSON.stringify([
+    input.tab,
+    method,
+    debt,
+    search,
+    input.day,
+    input.focus,
+    input.focus === "overdue" ? cutoff : null,
+  ]);
   const match = searchFilter(search);
   const query = [
-    `stage IN (${completed ? closed : active})`,
+    ...(focus || scopedDay ? [] : [`stage IN (${completed ? closed : active})`]),
+    ...(scopedDay ? [scopedDay.where] : []),
+    ...(focus ? [focus.where] : []),
     ...(method ? ["method=?"] : []),
     ...(debt ? ["debt_minor>0"] : []),
     ...(match.where ? [match.where] : []),
   ].join(" AND ");
-  const filters = [...(method ? [method] : []), ...match.values];
+  const filters = [
+    ...(scopedDay ? scopedDay.values : []),
+    ...(focus ? focus.values : []),
+    ...(method ? [method] : []),
+    ...match.values,
+  ];
   let after: [number, string, number] | undefined;
   if (input.cursor) {
     const parsed = cursorInput.safeParse(JSON.parse(readCursor(input.cursor)));

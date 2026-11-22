@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { orderNumberInput } from "../../../src/shared/contracts/buyer-order";
 import { sellerOrderCommand, sellerOrdersQuery } from "../../../src/shared/contracts/seller-order";
+import { workdayDay, workdayMonth } from "../../../src/shared/contracts/workday";
 import { defaultShopTimeZone } from "../../../src/shared/datetime";
 import { ApiError } from "../../../src/shared/errors";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
@@ -13,6 +14,8 @@ import { orderListRevision, sellerOrders } from "./list";
 import { sellerLiveTicket, upgradeSellerOrders } from "./live";
 import { sellerOrder } from "./order";
 import { sellerReceipt } from "./receipt";
+import { sellerOrderCalendar, sellerWorkday } from "./workday";
+import { sellerPacking } from "./workday-packing";
 
 type SellerOrderEnv = ShopEnv & { Variables: ShopEnv["Variables"] & { seller: Seller } };
 const params = zValidator("param", z.object({ number: orderNumberInput }), validationFailure);
@@ -28,8 +31,36 @@ export const sellerOrderRoutes = new Hono<SellerOrderEnv>()
     c.set("seller", seller);
     await next();
   })
-  .get("/", zValidator("query", sellerOrdersQuery, validationFailure), (c) =>
-    c.json(sellerOrders(c.env.storage, c.req.valid("query"), c.env.timeZone ?? defaultShopTimeZone)),
+  .get("/", zValidator("query", sellerOrdersQuery, validationFailure), (c) => {
+    const query = c.req.valid("query");
+    if (query.focus === "receipt" || query.focus === "payment" || query.focus === "debt")
+      permitted(c.get("seller"), "payments");
+    return c.json(sellerOrders(c.env.storage, query, c.env.timeZone ?? defaultShopTimeZone));
+  })
+  .get("/workday", zValidator("query", workdayDay, validationFailure), (c) => {
+    const seller = c.get("seller");
+    const timeZone = c.env.timeZone ?? defaultShopTimeZone;
+    return c.json(
+      sellerWorkday(
+        { storage: c.env.storage, timeZone, now: Date.now() },
+        seller.role === "owner" || seller.permissions.includes("payments"),
+        c.req.valid("query").version,
+      ),
+    );
+  })
+  .get("/packing", zValidator("query", workdayDay, validationFailure), (c) => {
+    permitted(c.get("seller"), "assembly");
+    return c.json(
+      sellerPacking(c.env.storage, c.env.timeZone ?? defaultShopTimeZone, Date.now(), c.req.valid("query").day),
+    );
+  })
+  .get("/calendar", zValidator("query", workdayMonth, validationFailure), (c) =>
+    c.json(
+      sellerOrderCalendar(
+        { storage: c.env.storage, timeZone: c.env.timeZone ?? defaultShopTimeZone, now: Date.now() },
+        c.req.valid("query").month,
+      ),
+    ),
   )
   .get(
     "/:number/receipts/:id",

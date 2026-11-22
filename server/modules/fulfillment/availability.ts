@@ -1,5 +1,6 @@
 import {
   type ReceivingMethod,
+  type Schedule,
   scheduleInput,
   type TimeChoice,
   type TimeCommand,
@@ -17,8 +18,12 @@ export function readSchedule(storage: DurableObjectStorage) {
   return row ? scheduleInput.parse(JSON.parse(row.value)) : null;
 }
 
-function availabilityFor(storage: DurableObjectStorage, method: ReceivingMethod, now: number) {
-  const schedule = readSchedule(storage);
+function availabilityFor(
+  storage: DurableObjectStorage,
+  method: ReceivingMethod,
+  now: number,
+  schedule = readSchedule(storage),
+) {
   const methodSchedule = schedule?.[method];
   if (!schedule || !methodSchedule) throw new ApiError("NOT_FOUND", "Расписание недоступно");
   const { timeZone } = schedule;
@@ -42,8 +47,13 @@ function availabilityFor(storage: DurableObjectStorage, method: ReceivingMethod,
   return { methodSchedule, response: { mode, timeZone, days } };
 }
 
-export function readAvailability(storage: DurableObjectStorage, method: ReceivingMethod, now = Date.now()) {
-  return availabilityFor(storage, method, now).response;
+export function readAvailability(
+  storage: DurableObjectStorage,
+  method: ReceivingMethod,
+  now = Date.now(),
+  schedule?: Schedule,
+) {
+  return availabilityFor(storage, method, now, schedule).response;
 }
 
 function unavailableTime() {
