@@ -13,8 +13,8 @@
 
 - [x] [Спецификация O3–O4](specs/workday-notifications.md) подготовлена 22.11.2026. Ответы Андрея в §11 и правки холста в §12–§14 покрыты строками §7. [PR #186](https://github.com/vir2ozz2009/korzina/pull/186) · [PR #189](https://github.com/vir2ozz2009/korzina/pull/189) · [PR #190](https://github.com/vir2ozz2009/korzina/pull/190) · [PR #191](https://github.com/vir2ozz2009/korzina/pull/191).
 - [x] Андрей одобрил 22.11.2026 холст блока 9 по §13 и §14 из `main 6f13a5b`, ревизия `475172126249336832`. [Холст](https://designs.magicpath.ai/v1/vibrant-creek-7051?revisionId=475172126249336832&history=design) · [Отчёт](progress/workday-notifications-canvas.md) · [PR #187](https://github.com/vir2ozz2009/korzina/pull/187).
-- [ ] Сервер O4 → O3, экраны, demo, smoke.
-- [ ] **СТОП:** чек-лист `docs/progress/workday-notifications-local-check.md` с таблицей покрытия → «➡️ Локальный Codex».
+- [x] O4, O3 и экраны на demo `510af1d`. Check, preview smoke и Demo smoke прошли. [O4 #192](https://github.com/vir2ozz2009/korzina/pull/192) · [O3 и экраны #193](https://github.com/vir2ozz2009/korzina/pull/193) · [Demo smoke](https://github.com/vir2ozz2009/korzina/actions/runs/45008912544).
+- [x] Подготовлен [чек-лист локальной проверки](progress/workday-notifications-local-check.md) с таблицей покрытия и снимками. **СТОП:** «➡️ Локальный Codex».
 
 ### Шаги блока 8 · Бот, сотрудники, первый запуск
 
