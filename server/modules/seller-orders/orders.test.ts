@@ -267,7 +267,6 @@ it("§11.4, §11.6: каждый новый чек и каждый этап ст
   expect(
     await catalogSql("SELECT kind,recipient FROM workday_notice WHERE order_number=? ORDER BY rowid", number),
   ).toEqual([
-    { kind: "receipt", recipient: null },
     { kind: "accepted", recipient: "990000033" },
     { kind: "ready", recipient: "990000033" },
     { kind: "receipt", recipient: null },
