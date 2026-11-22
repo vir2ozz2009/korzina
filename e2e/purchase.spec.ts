@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import type { StorefrontReceiving } from "../src/shared/contracts/receiving-time";
 import { verifyBuyerOrderReload, verifyFavoriteCart, verifyOrderCancellation, verifySavedAddress } from "./after-order";
 import { verifyPaymentHelp } from "./payment-help";
 import { chooseDeliveryAddress } from "./purchase-address";
@@ -24,6 +25,23 @@ test("B10: товар, доставка и заказ наличными", async
   const local = !!baseURL && new URL(baseURL).hostname === "127.0.0.1";
   test.setTimeout(local ? 145_000 : 105_000);
   page.setDefaultTimeout(12_000);
+  if (!local) {
+    const response = await page.request.get("/api/receiving/next?shop=test2");
+    if (response.ok()) {
+      const { methods, banners }: StorefrontReceiving = await response.json();
+      if (!methods.length && banners.length) {
+        await page.goto("/?shop=test2");
+        await expect(page.getByRole("status").filter({ hasText: banners[0].text })).toBeVisible();
+        test
+          .info()
+          .annotations.push({
+            type: "demo",
+            description: "Оба способа получения на паузе. Проверена плашка. Заказ проверяется в локальном окружении.",
+          });
+        return;
+      }
+    }
+  }
   await page.goto("/p/product-17?shop=test2&variant=sku-20");
   const cartWrite = () =>
     page.waitForResponse(

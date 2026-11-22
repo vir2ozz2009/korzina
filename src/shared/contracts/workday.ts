@@ -1,8 +1,9 @@
 import { z } from "zod";
 
-export const workdayStages = ["placed", "accepted", "ready", "handed"] as const;
-export const workdayActions = ["accept", "receipt", "payment", "overdue"] as const;
-export const workdayFocus = z.enum([...workdayStages, ...workdayActions, "debt"]);
+import { workdayActions, workdayFocuses, workdayStages } from "../workday-kinds";
+
+export { workdayActions, workdayStages };
+export const workdayFocus = z.enum(workdayFocuses);
 export type WorkdayFocus = z.infer<typeof workdayFocus>;
 export const workdayDay = z.object({ day: z.iso.date().optional(), version: z.string().max(250).optional() });
 export const workdayMonth = z.object({

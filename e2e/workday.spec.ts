@@ -82,3 +82,22 @@ test("Блок 9 · ближайшее получение, рабочий ден
     await Promise.all([buyer.close(), seller.close()]);
   }
 });
+
+test("Блок 9 · ближайшее время и пауза на demo", async ({ page, baseURL }) => {
+  test.skip(!baseURL || new URL(baseURL).hostname !== "demo.korzina.app", "Публичная проверка опубликованного demo");
+  for (const shop of ["test2", "lavka"]) {
+    const response = await page.request.get(`/api/receiving/next?shop=${shop}`);
+    expect(response.ok()).toBe(true);
+    const data: StorefrontReceiving = await response.json();
+    expect(data.banners.length + data.methods.length).toBeGreaterThan(0);
+    await page.goto(`/?shop=${shop}`);
+    if (data.banners.length)
+      await expect(page.getByRole("status").filter({ hasText: data.banners[0].text })).toBeVisible();
+    if (data.methods.length)
+      await expect(
+        page
+          .getByText(/Ближайшая доставка:|Самовывоз:|Время (доставки|самовывоза) согласуем|Время уточнит магазин/)
+          .first(),
+      ).toBeVisible();
+  }
+});

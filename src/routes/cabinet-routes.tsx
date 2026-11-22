@@ -1,6 +1,6 @@
 import { createRoute, lazyRouteComponent } from "@tanstack/react-router";
 import type { SellerOrdersQuery } from "../shared/contracts/seller-order";
-import { workdayDay, workdayFocus, workdayMonth } from "../shared/contracts/workday";
+import { workdayFocuses } from "../shared/workday-kinds";
 import { rootRoute } from "./root";
 
 const sellerScreen = lazyRouteComponent(() => import("../features/seller/ui/CabinetScreen"), "CabinetScreen");
@@ -43,7 +43,11 @@ const workdayBack = (input: unknown) =>
   typeof input === "string" && /^\/seller(?:\/(?:orders|workday\/(?:packing|calendar)))?(?:\?|$)/u.test(input)
     ? input
     : undefined;
-const day = (input: unknown) => workdayDay.shape.day.safeParse(input).data;
+const day = (input: unknown) => {
+  if (typeof input !== "string" || !/^\d{4}-\d{2}-\d{2}$/u.test(input)) return undefined;
+  const parsed = new Date(`${input}T00:00:00Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().startsWith(input) ? input : undefined;
+};
 type WorkdaySearch = ReturnType<typeof search> & {
   day?: string;
   month?: string;
@@ -55,7 +59,7 @@ type WorkdaySearch = ReturnType<typeof search> & {
 const workdaySearch = (input: Record<string, unknown>): WorkdaySearch => ({
   ...search(input),
   day: day(input.day),
-  month: workdayMonth.shape.month.safeParse(input.month).data,
+  month: typeof input.month === "string" && /^\d{4}-(0[1-9]|1[0-2])$/u.test(input.month) ? input.month : undefined,
   view: input.view === "day" ? ("day" as const) : input.view === "time" ? ("time" as const) : undefined,
   window:
     typeof input.window === "string" && /^\d{2}:\d{2}(?:-\d{2}:\d{2})?$/u.test(input.window) ? input.window : undefined,
@@ -69,7 +73,7 @@ const listSearch = (
   ...search(input),
   tab: input.tab === "active" || input.tab === "completed" ? input.tab : undefined,
   day: day(input.day),
-  focus: workdayFocus.safeParse(input.focus).data,
+  focus: workdayFocuses.find((value) => value === input.focus),
   back: workdayBack(input.back),
   method: input.method === "pickup" || input.method === "delivery" ? input.method : undefined,
   debt: input.debt === 1 || input.debt === "1" ? ("1" as const) : undefined,
