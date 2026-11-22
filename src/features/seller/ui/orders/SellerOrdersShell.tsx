@@ -16,7 +16,7 @@ export function SellerOrdersShell({
   footer,
 }: {
   title: string;
-  children: (store: string) => ReactNode;
+  children: (store: string, money: boolean) => ReactNode;
   footer?: ReactNode;
 }) {
   const search = useRouterState({ select: (state) => state.location.search });
@@ -56,7 +56,13 @@ export function SellerOrdersShell({
         />
       ) : (
         <QueryBoundary query={cabinet} template="list">
-          {({ current }) => (current ? children(current.slug) : <EmptyState title="Заказы недоступны" />)}
+          {({ current }) =>
+            current ? (
+              children(current.slug, current.role === "owner" || current.permissions.includes("payments"))
+            ) : (
+              <EmptyState title="Заказы недоступны" />
+            )
+          }
         </QueryBoundary>
       )}
     </Screen>

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { isTimeAvailable } from "../../shared/receiving-hours";
+import { isTimeAvailable, requiresReceivingTime } from "../../shared/receiving-hours";
 import { type ReceivingState, useAvailability, useSaveTime } from "./api";
 
 export function useReceivingTime(data: ReceivingState | undefined, enabled = true) {
@@ -7,6 +7,8 @@ export function useReceivingTime(data: ReceivingState | undefined, enabled = tru
   const { mutate, variables, isPending, error, reset } = useSaveTime();
   const saved = data?.time ?? null;
   const revision = data?.revision;
+  const availability = schedule.data;
+  const schedulingLater = !!availability && !requiresReceivingTime(availability.mode, availability.days);
   const invalid = !!(saved && schedule.data && !isTimeAvailable(schedule.data.mode, schedule.data.days, saved));
   const checked = schedule.isSuccess && !schedule.isFetching;
   const clearedRevision = variables?.expectedRevision;
@@ -21,7 +23,8 @@ export function useReceivingTime(data: ReceivingState | undefined, enabled = tru
     schedule,
     time: invalid ? null : saved,
     changed: invalid || (!saved && !!variables),
-    needsTime: schedule.data?.mode !== "after_order" && (invalid || !saved),
+    schedulingLater,
+    needsTime: !schedulingLater && (invalid || !saved),
     checking: schedule.isPending || schedule.isFetching || isPending || (invalid && !error),
     error: error ?? (schedule.isError ? schedule.error : null),
     retry() {

@@ -2,9 +2,13 @@ import type { AvailabilityDay, MethodSchedule, Preparation, TimeChoice } from ".
 
 export const timeChangedMessage = "Время изменилось, выберите заново";
 
+export function requiresReceivingTime(mode: MethodSchedule["mode"], days: AvailabilityDay[]) {
+  return mode !== "after_order" && days.some(({ available }) => available);
+}
+
 export function isTimeAvailable(mode: MethodSchedule["mode"], days: AvailabilityDay[], time: TimeChoice | null) {
-  if (mode === "after_order") return time === null;
-  if (!time) return false;
+  if (!time) return !requiresReceivingTime(mode, days);
+  if (mode === "after_order") return false;
   const day = days.find(({ date }) => date === time.date);
   return (
     !!day?.available &&

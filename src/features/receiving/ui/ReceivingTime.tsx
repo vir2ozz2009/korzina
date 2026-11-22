@@ -171,13 +171,14 @@ export function ReceivingTime({
   disabled?: boolean;
 }) {
   const method = data.receiving?.mode;
-  const { schedule: query, time, changed, error, retry } = selection;
+  const { schedule: query, time, changed, schedulingLater, error, retry } = selection;
   const availability = query.data;
   const close = () => setOpen(false);
   if (!method) return null;
   const title = method === "delivery" ? "Когда привезти" : "Когда заберёте";
   const sheetTitle = method === "delivery" ? "Когда привезти заказ" : "Когда заберёте заказ";
-  const notice = changed && (
+  const sheetOpen = open && !schedulingLater;
+  const notice = changed && !schedulingLater && (
     <p role="status" className="px-3 text-meta">
       {timeChangedMessage}
     </p>
@@ -185,9 +186,9 @@ export function ReceivingTime({
   return (
     <>
       <ListItem
-        title={availability?.mode === "after_order" ? "Договоримся после заказа" : title}
+        title={schedulingLater ? "Договоримся после заказа" : title}
         subtitle={
-          availability?.mode === "after_order"
+          schedulingLater
             ? "Магазин свяжется с вами"
             : time
               ? formatReceivingTime(time, availability?.timeZone ?? shopTimeZone)
@@ -195,7 +196,7 @@ export function ReceivingTime({
         }
         icon={<Clock size={22} />}
         onClick={
-          disabled || availability?.mode === "after_order"
+          disabled || schedulingLater
             ? undefined
             : () => {
                 setOpen(true);
@@ -203,15 +204,15 @@ export function ReceivingTime({
               }
         }
       />
-      {!open && notice}
-      {error && !open && (
+      {!sheetOpen && notice}
+      {error && !sheetOpen && (
         <Button variant="secondary" onClick={() => void retry()}>
           Повторить проверку времени
         </Button>
       )}
-      <Sheet title={sheetTitle} open={open} onOpenChange={setOpen}>
-        {open && notice}
-        {open &&
+      <Sheet title={sheetTitle} open={sheetOpen} onOpenChange={setOpen}>
+        {sheetOpen && notice}
+        {sheetOpen &&
           (error ? (
             <div className="space-y-3">
               <p role="alert">{navigator.onLine ? "Не удалось проверить время" : "Нет подключения к интернету"}</p>

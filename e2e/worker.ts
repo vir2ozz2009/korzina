@@ -32,10 +32,10 @@ export class Shop extends Store {
     if (await expandNewOrders(storage, this.env, shopId, Date.now())) await schedulePlatformOrders(storage);
   }
 
-  async setE2eWorkday(active: boolean) {
+  async setE2eWorkday(action: "setup" | "empty" | "restore") {
     if (!this.isTestShop) throw new Error("Wrong test shop");
     const sql = this.ctx.storage.sql;
-    if (!active) {
+    if (action === "restore") {
       if (this.previousSchedule !== undefined)
         sql.exec("UPDATE settings SET value=? WHERE key='receiving_schedule'", this.previousSchedule);
       this.previousSchedule = undefined;
@@ -49,7 +49,8 @@ export class Shop extends Store {
     const timeZone = offset === 0 ? "Etc/UTC" : `Etc/GMT${offset > 0 ? "-" : "+"}${Math.abs(offset)}`;
     const pickup = {
       mode: "slots",
-      days: Object.fromEntries(weekdays.map((day) => [day, [{ start: "12:00", end: "13:00" }]])),
+      days:
+        action === "empty" ? {} : Object.fromEntries(weekdays.map((day) => [day, [{ start: "12:00", end: "13:00" }]])),
       preparationMinutes: 0,
     };
     sql.exec(
@@ -147,8 +148,8 @@ export default {
     const shop = namespace.get(namespace.idFromName(shopId));
     if (url.pathname === workdayPath) {
       const action = await request.text();
-      if (action !== "setup" && action !== "restore") return new Response(null, { status: 400 });
-      await shop.setE2eWorkday(action === "setup");
+      if (action !== "setup" && action !== "empty" && action !== "restore") return new Response(null, { status: 400 });
+      await shop.setE2eWorkday(action);
       return new Response(null, { status: 204 });
     }
     if (url.pathname === orderMessagePath) {

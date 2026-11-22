@@ -10,12 +10,14 @@ import { mainAction } from "./order-actions";
 
 export function OrderListCard({
   order,
+  money,
   timeZone,
   pending,
   open,
   next,
 }: {
   order: SellerOrderSummary;
+  money: boolean;
   timeZone: string;
   pending: boolean;
   open: () => void;
@@ -41,7 +43,7 @@ export function OrderListCard({
           <span className="block truncate text-meta text-muted-foreground">{order.name ?? "Имя не указано"}</span>
         </span>
         <span className="flex shrink-0 items-center gap-2 whitespace-nowrap text-price">
-          {formatMinor(order.totalMinor, order.currency)}
+          {money && order.totalMinor !== undefined && order.currency && formatMinor(order.totalMinor, order.currency)}
           <ChevronRight aria-hidden="true" size={18} className="text-muted-foreground" />
         </span>
       </button>
@@ -60,9 +62,9 @@ export function OrderListCard({
         <PaymentPill
           status={order.paymentStatus}
           stage={order.stage}
-          debt={order.debtMinor}
-          refund={order.refundMinor}
-          currency={order.currency}
+          debt={money ? order.debtMinor : undefined}
+          refund={money ? order.refundMinor : undefined}
+          currency={money ? order.currency : undefined}
         />
         {overdue && <StatusPill tone="danger">Просрочен</StatusPill>}
       </div>

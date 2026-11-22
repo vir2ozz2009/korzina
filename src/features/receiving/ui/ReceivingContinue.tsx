@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { QuoteResponse } from "../../../shared/contracts/checkout";
 import { HttpError } from "../../../shared/http-error";
 import { formatMinor } from "../../../shared/money";
-import { isTimeAvailable } from "../../../shared/receiving-hours";
+import { isTimeAvailable, requiresReceivingTime } from "../../../shared/receiving-hours";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { StickyFooter } from "../../../ui/StickyFooter";
@@ -24,7 +24,7 @@ export function ReceivingContinue({
   onDetails: (field: ReceivingState["requiredDetails"][number]) => void;
 }) {
   const navigate = useNavigate();
-  const { schedule, needsTime, checking, error: timeError } = timeSelection;
+  const { schedule, needsTime, schedulingLater, checking, error: timeError } = timeSelection;
   const summary = usePurchaseSummary(data.revision);
   const prepare = usePrepareQuote();
   const [updated, setUpdated] = useState<QuoteResponse>();
@@ -75,7 +75,7 @@ export function ReceivingContinue({
         const current = await schedule.refetch();
         if (data.time && current.data && !isTimeAvailable(current.data.mode, current.data.days, data.time))
           prepare.reset();
-        if (current.data && current.data.mode !== "after_order") onTime();
+        if (current.data && requiresReceivingTime(current.data.mode, current.data.days)) onTime();
       }
     }
   }
@@ -103,7 +103,9 @@ export function ReceivingContinue({
           subtitle={
             schedule.data?.mode === "after_order"
               ? "Дату и время согласуем после заказа"
-              : deliveryLabel(data.availability, total.currency)
+              : schedulingLater
+                ? "Время уточнит магазин после заказа"
+                : deliveryLabel(data.availability, total.currency)
           }
           onClick={() => void next()}
         >

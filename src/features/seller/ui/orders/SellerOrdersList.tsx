@@ -27,12 +27,14 @@ export function SellerOrdersList() {
   if (pathname.replace(/\/$/u, "") !== "/seller/orders") return null;
   return (
     <SellerOrdersShell title="Заказы">
-      {(store) => <OrderList key={`${store}:${search.back ?? ""}`} store={store} />}
+      {(store, money) => <OrderList key={`${store}:${search.back ?? ""}`} store={store} money={money} />}
     </SellerOrdersShell>
   );
 }
 
-function OrderList({ store }: { store: string }) {
+type ListFilters = Omit<SellerOrdersQuery, "rev" | "cursor" | "cachedMoney">;
+
+function OrderList({ store, money }: { store: string; money: boolean }) {
   const location = useRouterState({ select: (state) => state.location });
   const navigate = useNavigate();
   const day = typeof location.search.day === "string" ? location.search.day : undefined;
@@ -54,8 +56,8 @@ function OrderList({ store }: { store: string }) {
   const tab = location.search.tab === "completed" ? "completed" : "active";
   const method =
     location.search.method === "pickup" || location.search.method === "delivery" ? location.search.method : undefined;
-  const debt = tab === "completed" && location.search.debt === "1" ? "1" : undefined;
-  const selection: Omit<SellerOrdersQuery, "rev" | "cursor"> = {
+  const debt = money && tab === "completed" && location.search.debt === "1" ? "1" : undefined;
+  const selection: ListFilters = {
     tab,
     method,
     debt,
@@ -63,7 +65,7 @@ function OrderList({ store }: { store: string }) {
     focus,
     search: settled.trim(),
   };
-  function changeFilters(next: Partial<Omit<SellerOrdersQuery, "cursor" | "rev" | "search">>) {
+  function changeFilters(next: Partial<Omit<ListFilters, "search">>) {
     const nextDay = "day" in next ? next.day : day;
     const nextFocus = "focus" in next ? next.focus : focus;
     if ((nextDay || nextFocus) && (nextDay !== day || nextFocus !== focus)) {
@@ -77,7 +79,7 @@ function OrderList({ store }: { store: string }) {
       replace: true,
     });
   }
-  const { list, more } = useSellerOrderList(store, selection);
+  const { list, more } = useSellerOrderList(store, selection, money);
   const [filter, setFilter] = useState<"all" | "pickup" | "delivery">();
   const mutation = useSellerOrderCommand(store);
   const [attempt, setAttempt] = useState<{ number: number; revision: number; key: string }>();
@@ -153,7 +155,7 @@ function OrderList({ store }: { store: string }) {
             <SlidersHorizontal size={20} aria-hidden="true" />
           </IconButton>
         </div>
-        {tab === "completed" && (
+        {money && tab === "completed" && (
           <Checkbox
             label="Только с долгом"
             checked={!!debt}
@@ -208,6 +210,7 @@ function OrderList({ store }: { store: string }) {
                       <OrderListCard
                         key={order.number}
                         order={order}
+                        money={money}
                         timeZone={page.timeZone}
                         pending={mutation.isPending && mutation.variables?.number === order.number}
                         open={() => open(order)}

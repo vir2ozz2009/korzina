@@ -14,6 +14,7 @@ import { Dialog } from "../../../../ui/Dialog";
 import { Select } from "../../../../ui/Select";
 import { Sheet } from "../../../../ui/Sheet";
 import { Switch } from "../../../../ui/Switch";
+import { ShareLinkField } from "../ShareLinkField";
 import { useShareLink } from "../useShareLink";
 import { roleName, teamKey, teamRequest, useTeamCommand } from "./team-api";
 
@@ -56,7 +57,7 @@ export function TeamInviteForm({ store, id, close }: { store: string; id?: strin
   const [access, setAccess] = useState<StaffAccess>({ role: "picker" });
   const [issued, setIssued] = useState<StaffInvite>();
   const [confirm, setConfirm] = useState(false);
-  const share = useShareLink();
+  const { share, manualUrl } = useShareLink();
   const command = useTeamCommand<StaffInvite>(store);
   const invite = useQuery({
     queryKey: [...teamKey(store), "invite", id],
@@ -71,8 +72,12 @@ export function TeamInviteForm({ store, id, close }: { store: string; id?: strin
       </p>
       {item.url && item.state === "pending" && (
         <>
-          <p className="break-all text-small">{item.url}</p>
-          <Button full onClick={() => void share(item.url ?? "", false)}>
+          {manualUrl === item.url ? (
+            <ShareLinkField url={item.url} />
+          ) : (
+            <p className="break-all text-small">{item.url}</p>
+          )}
+          <Button full onClick={() => void share(item.url ?? "", true)}>
             Скопировать ссылку
           </Button>
           <Button full variant="secondary" onClick={() => void share(item.url ?? "")}>
