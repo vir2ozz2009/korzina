@@ -1,8 +1,9 @@
 import { beforeAll, expect, it } from "vitest";
+import { assertSqlBudget } from "../../metrics";
 import { getAuth, sellerFixture } from "../../testing/auth";
 import { placeFixtureOrder, proof } from "../../testing/orders";
 import { setupPlatform } from "../../testing/platform";
-import { catalogSql } from "../catalog/testing";
+import { catalogSql, shopRequest } from "../catalog/testing";
 
 beforeAll(setupPlatform);
 
@@ -54,4 +55,32 @@ it("§9.1, §11.1, §12–§14: сводка, фильтр, календарь �
   expect(await read(`/workday?store=lavka&version=${encodeURIComponent(summary.version)}`)).toMatchObject({
     unchanged: true,
   });
+});
+
+it("Блок 9 · 03: календарь сверяет неизменившийся месяц одним SQL и перечитывает его при новой ревизии", async () => {
+  const { headers } = await sellerFixture("korzina-demo-lavka");
+  await catalogSql("SELECT 1");
+  const calendar = (version?: string) =>
+    shopRequest(
+      `seller/orders/calendar?${new URLSearchParams({ month: "2099-11", ...(version && { version }) })}`,
+      headers,
+    );
+  const initial = await calendar();
+  expect(initial.status).toBe(200);
+  const { version } = await initial.json<{ version: string }>();
+  expect(version).toBeTruthy();
+  assertSqlBudget(JSON.parse(initial.headers.get("x-korzina-sql") ?? "null"), { sql: 2, rowsWritten: 0 });
+
+  const cached = await calendar(version);
+  expect(await cached.json()).toEqual({ unchanged: true });
+  assertSqlBudget(JSON.parse(cached.headers.get("x-korzina-sql") ?? "null"), { sql: 1, rowsRead: 1, rowsWritten: 0 });
+
+  const buyer = "guest:calendar-budget";
+  const order = await placeFixtureOrder(buyer, await proof(buyer, "attached"));
+  await catalogSql(
+    "UPDATE orders SET snapshot=json_set(snapshot,'$.time',json(?)) WHERE number=?",
+    JSON.stringify({ date: "2099-11-25", slotId: "14:00-16:00" }),
+    order,
+  );
+  expect(await (await calendar(version)).json()).toMatchObject({ counts: { "2099-11-25": 1 } });
 });

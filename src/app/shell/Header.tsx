@@ -9,11 +9,13 @@ export function Header({
   title,
   actions,
   onBack,
+  sellerShop,
   catalog = false,
 }: {
   title: string;
   actions?: ReactNode;
   onBack?: () => void;
+  sellerShop?: { name: string; storefrontUrl: string } | null;
   catalog?: boolean;
 }) {
   const back = useBack();
@@ -26,9 +28,13 @@ export function Header({
         headingLevel={catalog ? 1 : 2}
         actions={
           actions ??
-          (!catalog && (
-            <a href="/" className="flex size-11 shrink-0 items-center justify-center" aria-label="На главную">
-              <StoreLogo name={bootstrap?.name ?? "Магазин"} />
+          (!catalog && sellerShop !== null && (
+            <a
+              href={sellerShop?.storefrontUrl ?? "/"}
+              className="flex size-11 shrink-0 items-center justify-center"
+              aria-label="На главную"
+            >
+              <StoreLogo name={sellerShop?.name ?? bootstrap?.name ?? "Магазин"} />
             </a>
           ))
         }

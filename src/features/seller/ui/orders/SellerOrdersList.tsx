@@ -3,7 +3,7 @@ import { SlidersHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
 import { QueryBoundary } from "../../../../app/shell/QueryBoundary";
 import { sellerHistory } from "../../../../app/shell/tab-history";
-import type { SellerOrderPage, SellerOrderSummary, SellerOrdersQuery } from "../../../../shared/contracts/seller-order";
+import type { SellerOrderSummary, SellerOrdersQuery } from "../../../../shared/contracts/seller-order";
 import { workdayFocus } from "../../../../shared/contracts/workday";
 import { formatShopDay, shopDateTime } from "../../../../shared/datetime";
 import { Button } from "../../../../ui/Button";
@@ -16,17 +16,18 @@ import { Radio } from "../../../../ui/Radio";
 import { SearchField } from "../../../../ui/SearchField";
 import { Sheet } from "../../../../ui/Sheet";
 import { sellerOrderSearch } from "../../order-search";
-import { moreSellerOrders, useSellerOrderCommand, useSellerOrderList } from "../../orders-api";
+import { useSellerOrderCommand, useSellerOrderList } from "../../orders-api";
 import { WorkdayDays, workdayLabels } from "../workday/workday-ui";
 import { methodLabel, stages } from "./OrderIndicators";
 import { OrderListCard } from "./OrderListCard";
 import { SellerOrdersShell } from "./SellerOrdersShell";
 
 export function SellerOrdersList() {
-  const scope = useRouterState({ select: (state) => state.location.search.back });
+  const { pathname, search } = useRouterState({ select: (state) => state.location });
+  if (pathname.replace(/\/$/u, "") !== "/seller/orders") return null;
   return (
     <SellerOrdersShell title="Заказы">
-      {(store) => <OrderList key={`${store}:${scope ?? ""}`} store={store} />}
+      {(store) => <OrderList key={`${store}:${search.back ?? ""}`} store={store} />}
     </SellerOrdersShell>
   );
 }
@@ -37,7 +38,8 @@ function OrderList({ store }: { store: string }) {
   const day = typeof location.search.day === "string" ? location.search.day : undefined;
   const focus = workdayFocus.safeParse(location.search.focus).data;
   const scoped = !!day || !!focus;
-  const [search, setSearch] = useState(() => (scoped ? "" : (sellerOrderSearch.get(store) ?? "")));
+  const searchKey = scoped ? JSON.stringify([store, day, focus]) : store;
+  const [search, setSearch] = useState(() => sellerOrderSearch.get(searchKey) ?? "");
   const [settled, setSettled] = useState(search);
   useEffect(() => {
     const timeout = setTimeout(() => setSettled(search), 220);
@@ -45,10 +47,8 @@ function OrderList({ store }: { store: string }) {
   }, [search]);
   function changeSearch(value: string) {
     const text = value.slice(0, 80);
-    if (!scoped) {
-      if (text) sellerOrderSearch.set(store, text);
-      else sellerOrderSearch.delete(store);
-    }
+    if (text) sellerOrderSearch.set(searchKey, text);
+    else sellerOrderSearch.delete(searchKey);
     setSearch(text);
   }
   const tab = location.search.tab === "completed" ? "completed" : "active";
@@ -64,18 +64,20 @@ function OrderList({ store }: { store: string }) {
     search: settled.trim(),
   };
   function changeFilters(next: Partial<Omit<SellerOrdersQuery, "cursor" | "rev" | "search">>) {
+    const nextDay = "day" in next ? next.day : day;
+    const nextFocus = "focus" in next ? next.focus : focus;
+    if ((nextDay || nextFocus) && (nextDay !== day || nextFocus !== focus)) {
+      const nextKey = JSON.stringify([store, nextDay, nextFocus]);
+      if (search) sellerOrderSearch.set(nextKey, search);
+      else sellerOrderSearch.delete(nextKey);
+    }
     void navigate({
       to: "/seller/orders",
       search: { shop: location.search.shop, tab, method, debt, day, focus, back: location.search.back, store, ...next },
       replace: true,
     });
   }
-  const list = useSellerOrderList(store, selection);
-  const queryKey = JSON.stringify(selection);
-  const [extra, setExtra] = useState<{ key: string; page: SellerOrderPage }>();
-  const extraPage = extra?.key === queryKey && extra.page.rev === list.data?.rev ? extra.page : undefined;
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [moreError, setMoreError] = useState("");
+  const { list, more } = useSellerOrderList(store, selection);
   const [filter, setFilter] = useState<"all" | "pickup" | "delivery">();
   const mutation = useSellerOrderCommand(store);
   const [attempt, setAttempt] = useState<{ number: number; revision: number; key: string }>();
@@ -84,7 +86,7 @@ function OrderList({ store }: { store: string }) {
     void navigate({
       to: "/seller/orders/$number",
       params: { number: String(order.number) },
-      search: { shop: location.search.shop, store, action },
+      search: { shop: location.search.shop, store, action, back: location.href },
     });
   }
   function next(order: SellerOrderSummary) {
@@ -162,8 +164,9 @@ function OrderList({ store }: { store: string }) {
       {mutation.error && <p role="alert">{mutation.error.message}</p>}
       <QueryBoundary query={list} template="list">
         {(page) => {
-          const orders = extraPage ? [...page.orders, ...extraPage.orders] : page.orders;
-          const cursor = extraPage ? extraPage.cursor : page.cursor;
+          const orders = page.extra ? [...page.orders, ...page.extra.orders] : page.orders;
+          const cursor = (page.extra ?? page).cursor;
+          const moreError = more.variables === cursor ? more.error?.message : undefined;
           const groups = groupOrders(orders, tab, page.timeZone);
           return (
             <>
@@ -219,23 +222,8 @@ function OrderList({ store }: { store: string }) {
                 <Button
                   full
                   variant="secondary"
-                  loading={loadingMore}
-                  onClick={() => {
-                    setLoadingMore(true);
-                    setMoreError("");
-                    void moreSellerOrders(store, selection, cursor)
-                      .then((nextPage) =>
-                        setExtra({
-                          key: queryKey,
-                          page: { ...nextPage, orders: [...(extraPage?.orders ?? []), ...nextPage.orders] },
-                        }),
-                      )
-                      .catch((error: Error) => {
-                        setMoreError(error.message);
-                        void list.refetch();
-                      })
-                      .finally(() => setLoadingMore(false));
-                  }}
+                  loading={more.isPending && more.variables === cursor}
+                  onClick={() => more.mutate(cursor)}
                 >
                   {moreError ? "Повторить" : "Показать ещё"}
                 </Button>
