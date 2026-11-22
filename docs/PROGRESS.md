@@ -9,10 +9,10 @@
 
 ### Шаги блока 9 · Рабочий день и уведомления
 
-Порядок — `docs/specs/README.md`. Карточки O3, O4 сверены, решения Андрея 22.11.2026 — в карточках и DECISIONS. Холст подготовлен по отдельной команде Андрея. Код блока 9 — после приёмки блока 8.
+Порядок — `docs/specs/README.md`. Карточки O3, O4 сверены, решения Андрея 22.11.2026 — в карточках и DECISIONS. Блок 8 принят.
 
-- [x] [Спецификация O3–O4](specs/workday-notifications.md) подготовлена 22.11.2026. Ответы Андрея в §11, проверки всех восьми ответов в §7. [PR #186](https://github.com/vir2ozz2009/korzina/pull/186).
-- [ ] Подготовлен холст блока 9 из `main bae2d6e` 22.11.2026. Ревизия `475132005802188800`. [Холст](https://designs.magicpath.ai/v1/vibrant-creek-7051?revisionId=475132005802188800&history=design) · [Отчёт](progress/workday-notifications-canvas.md). **СТОП:** «Одобряю холст».
+- [x] [Спецификация O3–O4](specs/workday-notifications.md) подготовлена 22.11.2026. Ответы Андрея в §11 и правки холста в §12 покрыты строками §7. [PR #186](https://github.com/vir2ozz2009/korzina/pull/186) · [PR #189](https://github.com/vir2ozz2009/korzina/pull/189).
+- [ ] Холст блока 9 обновлён по §12 из `main 66fdec4`. Ревизия `475164852181155840`. [Холст](https://designs.magicpath.ai/v1/vibrant-creek-7051?revisionId=475164852181155840&history=design) · [Отчёт](progress/workday-notifications-canvas.md) · [PR #187](https://github.com/vir2ozz2009/korzina/pull/187). **СТОП:** «Одобряю холст».
 - [ ] Сервер O4 → O3, экраны, demo, smoke.
 - [ ] **СТОП:** чек-лист `docs/progress/workday-notifications-local-check.md` с таблицей покрытия → «➡️ Локальный Codex».
 
