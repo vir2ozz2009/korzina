@@ -16,6 +16,8 @@
 - [x] O4, O3 и экраны на demo `510af1d`. Check, preview smoke и Demo smoke прошли. [O4 #192](https://github.com/vir2ozz2009/korzina/pull/192) · [O3 и экраны #193](https://github.com/vir2ozz2009/korzina/pull/193) · [Demo smoke](https://github.com/vir2ozz2009/korzina/actions/runs/45008912544).
 - [x] Подготовлен [чек-лист локальной проверки](progress/workday-notifications-local-check.md) с таблицей покрытия и снимками. **СТОП:** «➡️ Локальный Codex».
 
+- [ ] [Проверка блока 9 на demo](progress/workday-notifications-demo-check.md) 22.11.2026, `main 97ca59e`. Зафиксированы сброс второй страницы после возврата и старая иконка магазина в Mini App. Учебные №70–71 закрыты, настройки и остаток `test2` восстановлены. Для приёмки остаются непроверенные сценарии и замечания из отчёта. **СТОП.**
+
 ### Шаги блока 8 · Бот, сотрудники, первый запуск
 
 Порядок — `docs/specs/README.md` «Стандартный порядок блока». Карточки S7 (сокращена), S8, S9 сверены, решения Андрея 21.11.2026 — в карточках и DECISIONS.
