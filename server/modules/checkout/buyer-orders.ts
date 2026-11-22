@@ -45,7 +45,7 @@ export function buyerOrderRow(storage: DurableObjectStorage, customer: string, n
   return row;
 }
 
-export function unpackOrder(row: OrderRow) {
+export function unpackOrder(row: Pick<OrderRow, "snapshot">) {
   return JSON.parse(row.snapshot) as ReservedOrder;
 }
 

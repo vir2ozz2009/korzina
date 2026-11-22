@@ -221,7 +221,7 @@ it("§3.5: «Новый заказ» отделяет сумму от даты, 
         number,
       );
       const message = telegramMessage(storage, "https://demo.korzina.app", shop, event, now);
-      expect(message.text).toBe(`Новый заказ №${number} · 151\u00a0000\u00a0₫\n${deliveryLine}`);
+      expect(message.text).toBe(`Новый заказ №${number} · 151\u00a0000\u00a0₫\n${deliveryLine}\nТоматы · 500 г × 1`);
     }
   });
 });
@@ -248,4 +248,28 @@ it("§13.1: кнопки в Telegram открывают заказ покупа�
       }
     }
   });
+});
+
+it("§11.4, §11.6: каждый новый чек и каждый этап ставятся в очередь один раз", async () => {
+  const { number, call, buyer } = await fixture();
+  await catalogSql(
+    "UPDATE orders SET customer='telegram:990000033',snapshot=json_set(snapshot,'$.telegramLinked',json('true')) WHERE number=?",
+    number,
+  );
+  expect((await call({ action: "accept" }, 0)).status).toBe(200);
+  expect((await call({ action: "rollback", reason: "Повторная проверка" }, 1)).status).toBe(200);
+  expect((await call({ action: "accept" }, 2)).status).toBe(200);
+  expect((await call({ action: "setAllPacked", packed: true }, 3)).status).toBe(200);
+  expect((await call({ action: "markReady" }, 4)).status).toBe(200);
+  const replacement = await proof(buyer.subject, "attached");
+  await catalogSql("UPDATE orders SET proof_media_id=? WHERE number=?", replacement, number);
+  await catalogSql("UPDATE orders SET proof_media_id=? WHERE number=?", replacement, number);
+  expect(
+    await catalogSql("SELECT kind,recipient FROM workday_notice WHERE order_number=? ORDER BY rowid", number),
+  ).toEqual([
+    { kind: "receipt", recipient: null },
+    { kind: "accepted", recipient: "990000033" },
+    { kind: "ready", recipient: "990000033" },
+    { kind: "receipt", recipient: null },
+  ]);
 });

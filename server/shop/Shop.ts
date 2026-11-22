@@ -207,6 +207,7 @@ export class Shop extends DurableObject<Env> {
       } else {
         await scheduleCleanup(this.ctx.storage);
         if (path.startsWith("/api/seller/catalog/") || path === "/api/seller/profile/data") {
+          if (path.startsWith("/api/seller/catalog/")) await schedulePlatformOrders(this.ctx.storage);
           this.saleDeadline = nextSaleDeadline(this.ctx.storage);
           await this.scheduleSaleDeadline();
         }

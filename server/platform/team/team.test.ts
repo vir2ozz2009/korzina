@@ -131,6 +131,7 @@ it("§11.3–§11.5 право, переключатель роли и теку�
       { topic: "newOrders", available: true, enabled: true },
       { topic: "paymentsAndReceipts", available: false, enabled: false },
       { topic: "cancellations", available: true, enabled: true },
+      { topic: "lowStock", available: false, enabled: false },
     ],
   });
   const context = {

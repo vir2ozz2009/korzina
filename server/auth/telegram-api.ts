@@ -1,7 +1,11 @@
 import { ApiError } from "../../src/shared/errors";
 
 export class TelegramRequestError extends ApiError {
-  constructor(public readonly retryable = false) {
+  constructor(
+    public readonly retryable = false,
+    public readonly retryAfterMs = 0,
+    public readonly permanent = false,
+  ) {
     super("AUTH_UNAVAILABLE", "Telegram временно недоступен");
   }
 }
@@ -17,8 +21,16 @@ export async function telegramApi(token: string, method: string, body: object): 
     });
     if (response.status === 401 || response.status === 404) throw new ApiError("AUTH_FAILED", "Токен не подошёл");
     if (!response.ok) {
-      const error = await response.json<{ ok?: boolean }>().catch(() => undefined);
-      throw new TelegramRequestError(response.status === 429 || (response.status >= 500 && error?.ok === false));
+      const error = await response
+        .json<{ ok?: boolean; parameters?: { retry_after?: number } }>()
+        .catch(() => undefined);
+      const retryable = response.status === 429 || (response.status >= 500 && error?.ok === false);
+      const seconds = Number(response.headers.get("Retry-After") ?? error?.parameters?.retry_after ?? 0);
+      throw new TelegramRequestError(
+        retryable,
+        Number.isFinite(seconds) ? Math.max(seconds, 0) * 1000 : 0,
+        response.status < 500 && !retryable,
+      );
     }
     const payload: unknown = await response.json();
     if (!payload || typeof payload !== "object" || !("ok" in payload) || payload.ok !== true || !("result" in payload))

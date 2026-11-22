@@ -6,6 +6,8 @@ import { storefrontUrl } from "../../platform/storefront-url";
 import { staffBot, staffBotToken } from "../../platform/team/bot";
 import { staffRecipients } from "../../platform/team/notifications";
 import { shopTimeZoneSql } from "../../shop/time-zone";
+import { unpackOrder } from "../checkout/buyer-orders";
+import { sendWorkdayNotifications } from "./workday-notifications";
 
 type Queued = {
   event_key: string;
@@ -55,6 +57,7 @@ export async function sendOrderNotifications(storage: DurableObjectStorage, env:
     .exec<{ value: string }>("SELECT value FROM settings WHERE key='shop_id'")
     .toArray()[0]?.value;
   if (!shop) return;
+  await sendWorkdayNotifications(storage, env, shop, now);
   const more = await expandNewOrders(storage, env, shop, now);
   const queue = storage.sql
     .exec<Queued>("SELECT * FROM order_notification_outbox WHERE due_at<=? ORDER BY due_at LIMIT 10", now)
@@ -133,11 +136,11 @@ export function telegramMessage(
     return { chat_id, text, ...(url && { reply_markup: orderKeyboard(url, "Открыть заказ") }) };
   }
   const order = storage.sql
-    .exec<{ date: string | null; start: string | null; method: string; timeZone: string }>(
+    .exec<{ date: string | null; start: string | null; method: string; timeZone: string; snapshot: string }>(
       `SELECT json_extract(snapshot,'$.time.date') AS date,
         substr(json_extract(snapshot,'$.time.slotId'),1,5) AS start,
         json_extract(snapshot,'$.receiving.mode') AS method,
-        ${shopTimeZoneSql} AS timeZone
+        ${shopTimeZoneSql} AS timeZone, snapshot
       FROM orders WHERE number=?`,
       number,
     )
@@ -148,9 +151,12 @@ export function telegramMessage(
   const method = order.method === "delivery" ? "Доставка" : "Самовывоз";
   const receiving = [order.start || "Время согласуем", method];
   if (order.date) receiving.unshift(formatShopDay(order.date, order.timeZone, now));
+  const lines = unpackOrder(order).lines;
+  const composition = lines.slice(0, 5).map(({ name, unit, quantity }) => `${name} · ${unit} × ${quantity}`);
+  if (lines.length > 5) composition.push(`Ещё ${lines.length - 5} поз.`);
   return {
     chat_id,
-    text: `Новый заказ №${number} · ${amount}\n${receiving.join(" · ")}`,
+    text: `Новый заказ №${number} · ${amount}\n${[receiving.join(" · "), ...composition].join("\n")}`,
     reply_markup: orderKeyboard(url, "Открыть"),
   };
 }

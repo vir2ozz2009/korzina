@@ -10,7 +10,12 @@ import { ApiError } from "../../../src/shared/errors";
 import { effectiveSellerPermissions } from "../../auth/roles";
 import { notificationManager, type TeamCommand, teamMutation, teamReplay } from "./mutation";
 
-const requiredPermission = { newOrders: "orders", paymentsAndReceipts: "payments", cancellations: "orders" } as const;
+const requiredPermission = {
+  newOrders: "orders",
+  paymentsAndReceipts: "payments",
+  cancellations: "orders",
+  lowStock: "stock",
+} as const;
 type Person = { telegram: string | null; name: string; role: TeamRole; permitted: string[]; connected: boolean };
 type Row = {
   id: string;
@@ -25,6 +30,7 @@ type Row = {
 type Override = { role: string; topic: string; enabled: number };
 
 function defaultNotification(role: TeamRole, topic: NotificationTopic) {
+  if (topic === "lowStock") return role === "owner" || role === "manager";
   return role !== "accountant" || topic === "paymentsAndReceipts";
 }
 
@@ -109,10 +115,19 @@ export async function staffNotificationSettings(database: D1Database, shop: stri
   return { rows, recipients };
 }
 
-export async function staffRecipients(database: D1Database, shop: string, bot: string, telegram?: string) {
+export async function staffRecipients(
+  database: D1Database,
+  shop: string,
+  bot: string,
+  telegram?: string,
+  topic: NotificationTopic = "newOrders",
+) {
   const { members, enabled } = await readNotificationModel(database, shop, bot, telegram);
   return members.flatMap((person) =>
-    person.telegram && person.connected && person.permitted.includes("orders") && enabled(person.role, "newOrders")
+    person.telegram &&
+    person.connected &&
+    person.permitted.includes(requiredPermission[topic]) &&
+    enabled(person.role, topic)
       ? [person.telegram]
       : [],
   );
