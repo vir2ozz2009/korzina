@@ -24,6 +24,8 @@
 - [x] Андрей одобрил холст блока 8 по §12.5–§12.7 21.11.2026. «Витрина глазами покупателя» открывается внутри кабинета. В Chromium на 390 px проверены переходы, оформление на демоданных и возврат. [Кабинет `474938204991139840`](https://designs.magicpath.ai/v1/gently-cliff-1486?revisionId=474938204991139840&history=design) · [Приёмка в #178](https://github.com/vir2ozz2009/korzina/pull/178).
 - [x] Сервер команды и запуска, бот, кабинет и витрина по §12.5–§12.7 на demo `c1cbb7c`. Check, smoke на превью и Demo smoke прошли. [S8 #180](https://github.com/vir2ozz2009/korzina/pull/180) · [S9 #181](https://github.com/vir2ozz2009/korzina/pull/181) · [Экраны #182](https://github.com/vir2ozz2009/korzina/pull/182) · [Demo smoke](https://github.com/vir2ozz2009/korzina/actions/runs/44935450707).
 - [x] Подготовлен [чек-лист локальной проверки](progress/team-and-launch-local-check.md) с таблицей покрытия.
+- [ ] [Прогон блока 8 на demo](progress/team-and-launch-demo-check.md) от 22.11.2026, `main e689b33`, Telegram Web и Chrome. Проверены предпросмотр, заказ с отменой и открытие. Приёмка ждёт живой проверки ролей, уведомлений, перевода с чеком и мобильных клиентов.
+- [ ] Блок 8 · Живую проверку принятия приглашения вторым аккаунтом Telegram перенесли на проверку перед запуском. [Отложенные проверки](BACKLOG.md#проверки-перед-запуском) · [PR #184](https://github.com/vir2ozz2009/korzina/pull/184).
 - [ ] **СТОП:** Claude сверяет покрытие чек-листа по шагу 7 [правил блока](specs/README.md). После сверки проводится локальная проверка в браузере и Telegram.
 
 ### Шаги блока 7 · Настройки магазина
