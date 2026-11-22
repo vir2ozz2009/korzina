@@ -1,4 +1,4 @@
-import { type APIRequestContext, type Browser, expect } from "@playwright/test";
+import { type APIRequestContext, type Browser, expect, test } from "@playwright/test";
 import type { OrderResult, QuoteResponse } from "../src/shared/contracts/checkout";
 import type { AvailabilityDay } from "../src/shared/contracts/receiving-time";
 import type { SellerOrder } from "../src/shared/contracts/seller-order";
@@ -173,12 +173,31 @@ export async function verifySellerOrders(browser: Browser, baseURL: string) {
     await expect(page).toHaveURL(new RegExp(`/orders/${debt.number}\\?shop=test2$`));
     await expect(page.getByRole("heading", { name: "Выдан", exact: true })).toBeVisible();
     await expect(page.getByText(/Доплатите/)).toBeVisible();
-    await cabinet.goto("/seller?store=test2");
-    const storefront = new URL("/?shop=test2", baseURL);
-    await expect(cabinet.getByText(storefront.href, { exact: true })).toBeVisible();
-    await cabinet.screenshot({ path: "test-results/seller-storefront-390.png", animations: "disabled" });
-    await cabinet.getByRole("button", { name: "Открыть витрину", exact: true }).click();
-    await expect(cabinet).toHaveURL(storefront.href);
+    const cabinetPath = "/seller?store=test2";
+    const storefront = new URL("/?shop=test2", baseURL).href;
+    await test.step("Блок 5 §13.3 · единый публичный адрес витрины", async () => {
+      const [response] = await Promise.all([
+        cabinet.waitForResponse(new URL("/api/seller/cabinet?store=test2", baseURL).href),
+        cabinet.goto(cabinetPath),
+      ]);
+      expect(response.ok()).toBe(true);
+      expect(await response.json()).toMatchObject({ current: { slug: "test2", storefrontUrl: storefront } });
+      await page.goto(storefront);
+      await expect(page).toHaveURL(storefront);
+      await expect(page.getByRole("heading", { name: "Категории", exact: true })).toBeVisible();
+    });
+    await test.step("Блок 8 §12.7 · витрина внутри кабинета и возврат", async () => {
+      const open = cabinet.getByRole("button", { name: "Открыть витрину как покупатель", exact: true });
+      await expect(open).toBeVisible();
+      await cabinet.screenshot({ path: "test-results/seller-storefront-390.png", animations: "disabled" });
+      await open.click();
+      await expect(cabinet).toHaveURL(`${storefront}&viewer=team`);
+      await expect(cabinet.getByRole("heading", { name: "Витрина глазами покупателя", exact: true })).toBeVisible();
+      await expect(cabinet.getByRole("heading", { name: "Категории", exact: true })).toBeVisible();
+      await cabinet.getByRole("button", { name: "Вернуться в кабинет", exact: true }).click();
+      await expect(cabinet).toHaveURL(new URL(cabinetPath, baseURL).href);
+      await expect(open).toBeVisible();
+    });
   } finally {
     await Promise.all([buyer.close(), seller.close()]);
   }
