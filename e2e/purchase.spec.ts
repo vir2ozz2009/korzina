@@ -32,12 +32,11 @@ test("B10: товар, доставка и заказ наличными", async
       if (!methods.length && banners.length) {
         await page.goto("/?shop=test2");
         await expect(page.getByRole("status").filter({ hasText: banners[0].text })).toBeVisible();
-        test
-          .info()
-          .annotations.push({
-            type: "demo",
-            description: "Оба способа получения на паузе. Проверена плашка. Заказ проверяется в локальном окружении.",
-          });
+        const annotations = test.info().annotations;
+        annotations.push({
+          type: "demo",
+          description: "Оба способа получения на паузе. Проверена плашка. Заказ проверяется локально.",
+        });
         return;
       }
     }
