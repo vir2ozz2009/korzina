@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { StorefrontReceiving } from "../src/shared/contracts/receiving-time";
+import type { SellerOrder } from "../src/shared/contracts/seller-order";
 import { placePickup } from "./seller-orders";
 
 test("Блок 9 · ближайшее получение, рабочий день и заказы в сборке", async ({ browser, baseURL }) => {
@@ -11,14 +12,16 @@ test("Блок 9 · ближайшее получение, рабочий ден
   try {
     expect((await seller.request.post("/__e2e/test2/seller")).status()).toBe(204);
     const storefront = await buyer.newPage();
-    const next = storefront.waitForResponse((response) => new URL(response.url()).pathname === "/api/receiving/next");
     await storefront.goto("/?shop=test2");
-    const availability: StorefrontReceiving = await (await next).json();
+    const availability: StorefrontReceiving = await (await buyer.request.get("/api/receiving/next?shop=test2")).json();
     expect(availability.methods.some(({ method }) => method === "pickup")).toBe(true);
     await expect(storefront.getByText(/Самовывоз:|Время самовывоза согласуем/).first()).toBeVisible();
     await storefront.screenshot({ path: "test-results/workday-storefront-390.png", animations: "disabled" });
 
     const order = await placePickup(buyer.request, true);
+    const pickup = availability.methods.find(({ method }) => method === "pickup");
+    expect(order.time?.date).toBe(pickup?.date);
+    if (pickup?.mode === "slots") expect(order.time?.slotId).toBe(`${pickup.start}-${pickup.end}`);
     const cabinet = await seller.newPage();
     await cabinet.goto("/seller?store=test2");
     const receipt = cabinet.getByRole("button", { name: /^Проверить чек/ });
@@ -56,6 +59,25 @@ test("Блок 9 · ближайшее получение, рабочий ден
     await cabinet.getByRole("button", { name: "Назад", exact: true }).click();
     await expect(cabinet).toHaveURL(/view=day/);
     await expect(product).toBeVisible();
+
+    const sellerOrder = `/api/seller/orders/${order.number}`;
+    let current: SellerOrder = await (await seller.request.get(`${sellerOrder}?store=test2`)).json();
+    for (const step of [
+      { action: "accept" },
+      { action: "setAllPacked", packed: true },
+      { action: "markReady" },
+      { action: "confirmTransfer", proof: current.receipts[0].id, amountMinor: order.totalMinor },
+      { action: "markPickedUp" },
+    ]) {
+      const response = await seller.request.post(`${sellerOrder}/transition?store=test2`, {
+        data: { ...step, expectedRevision: current.revision },
+        headers: { "Idempotency-Key": crypto.randomUUID() },
+      });
+      expect(response.ok(), await response.text()).toBe(true);
+      current = await response.json();
+    }
+    await storefront.goto(`/orders/${order.number}?shop=test2`);
+    await expect(storefront.getByRole("heading", { name: "Выдан", exact: true })).toBeVisible();
   } finally {
     await Promise.all([buyer.close(), seller.close()]);
   }

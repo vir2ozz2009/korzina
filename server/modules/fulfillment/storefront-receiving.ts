@@ -9,8 +9,8 @@ export function storefrontReceiving(
   maps: boolean,
   timeZone: string,
   now = Date.now(),
+  settings = readFulfillment(storage, maps),
 ): StorefrontReceiving {
-  const settings = readFulfillment(storage, maps);
   const schedule = readSchedule(storage);
   const zone = schedule?.timeZone ?? timeZone;
   const { banners } = pauseStatus(settings, zone, now);

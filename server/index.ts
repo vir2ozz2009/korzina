@@ -61,7 +61,7 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
   .route("/seller/team", teamRoutes)
   .get("/shop", async (c) => {
     c.header("Cache-Control", "no-store");
-    const shop = await shopContexts.read(c.req.raw, c.env, false, true);
+    const shop = await shopContexts.read(c.req.raw, c.env, false, true, c.req.query("receiving") === "1");
     const teamPreview = await authorizeBuyerShop(c.req.raw, c.env.PLATFORM, shop);
     return c.json(teamPreview ? { ...shop, teamPreview } : shop);
   })

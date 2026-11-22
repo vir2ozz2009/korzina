@@ -58,7 +58,7 @@ const workdaySearch = (input: Record<string, unknown>): WorkdaySearch => ({
   month: workdayMonth.shape.month.safeParse(input.month).data,
   view: input.view === "day" ? ("day" as const) : input.view === "time" ? ("time" as const) : undefined,
   window:
-    typeof input.window === "string" && /^\d{2}:\d{2}-\d{2}:\d{2}$/u.test(input.window) ? input.window : undefined,
+    typeof input.window === "string" && /^\d{2}:\d{2}(?:-\d{2}:\d{2})?$/u.test(input.window) ? input.window : undefined,
   purpose: input.purpose === "packing" || input.purpose === "orders" ? input.purpose : undefined,
   back: workdayBack(input.back),
 });

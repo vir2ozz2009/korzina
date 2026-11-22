@@ -23,6 +23,7 @@ export class ShopContextCache {
     env: Pick<Env, "PLATFORM"> & Partial<Pick<Env, "APP_ENV" | "MEDIA_PUBLIC_URL">>,
     fresh = false,
     refreshSettings = false,
+    includeReceiving = false,
   ): Promise<ShopContext> {
     const started = this.now();
     const shop = await resolveShop(request, env.PLATFORM, env.APP_ENV, fresh);
@@ -42,14 +43,18 @@ export class ShopContextCache {
     const hit = this.entries.get(shop.id);
     const usable =
       hit && hit.expires > this.now() && JSON.stringify(hit.value.adminSettings) === JSON.stringify(adminSettings);
-    if (usable && !refreshSettings) return { ...hit.value, status: shop.status, mediaOrigin };
+    if (usable && !refreshSettings && !includeReceiving) return { ...hit.value, status: shop.status, mediaOrigin };
     if (!usable) {
       this.entries.delete(shop.id);
       await applyDemoSeed(env.PLATFORM, env.APP_ENV, shop.id);
     }
     const features = usable ? hit.value.features : await readFeatures(env.PLATFORM, shop.id);
     const response = await forwardToShop(
-      { req: { raw: new Request("https://internal/api/shop") } },
+      {
+        req: {
+          raw: new Request(includeReceiving ? "https://internal/api/shop?receiving=1" : "https://internal/api/shop"),
+        },
+      },
       { ...shop, features, adminSettings },
     );
     if (!response.ok) throw new ApiError("INTERNAL", "Не удалось загрузить оформление магазина");
@@ -67,7 +72,7 @@ export class ShopContextCache {
     });
     if (this.entries.size >= 500) this.entries.delete(this.entries.keys().next().value as string);
     this.entries.set(shop.id, { value, expires: usable ? hit.expires : started + CONTEXT_TTL });
-    return value;
+    return includeReceiving && settings.receiving ? { ...value, receiving: settings.receiving } : value;
   }
 }
 

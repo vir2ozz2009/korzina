@@ -24,7 +24,7 @@ export type SellerWorkday = {
   actions: Partial<Record<(typeof workdayActions)[number], number>>;
   upcoming?: { window: string; count: number };
 };
-export type SellerPackingOrder = { number: number; name: string | null; quantity: number; window?: string };
+type SellerPackingOrder = { number: number; name: string | null; quantity: number; window?: string };
 export type SellerPackingRow = {
   productId: string;
   variantId: string;
