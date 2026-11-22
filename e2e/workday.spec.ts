@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test";
+import type { OrderResult } from "../src/shared/contracts/checkout";
 import type { StorefrontReceiving } from "../src/shared/contracts/receiving-time";
 import type { SellerOrder } from "../src/shared/contracts/seller-order";
 import { calendarDate, formatShopDay } from "../src/shared/datetime";
-import { placePickup } from "./seller-orders";
+import { placePickup, preparePickup } from "./seller-orders";
 
 test("Блок 9 · ближайшее получение, рабочий день и заказы в сборке", async ({ browser, baseURL }) => {
   test.skip(!baseURL || new URL(baseURL).hostname !== "127.0.0.1", "Нужна локальная учебная сессия кабинета");
@@ -142,6 +143,27 @@ test("Блок 9 · ближайшее получение, рабочий ден
     }
     await storefront.goto(`/orders/${order.number}?shop=test2`);
     await expect(storefront.getByRole("heading", { name: "Выдан", exact: true })).toBeVisible();
+    await test.step("Блок 9 · 07, §11.8: оформление без выбора времени при пустом горизонте", async () => {
+      expect((await seller.request.post(fixture, { data: "empty" })).status()).toBe(204);
+      await preparePickup(buyer.request);
+      await storefront.goto("/checkout/receiving?shop=test2");
+      await expect(storefront.getByText("Время уточнит магазин после заказа", { exact: true })).toBeVisible();
+      await expect(storefront.getByRole("button", { name: /Выбрать время|Когда заберёте/ })).toHaveCount(0);
+      await storefront.screenshot({ path: "test-results/workday-empty-horizon-390.png", animations: "disabled" });
+      await storefront.getByRole("button", { name: /^К оплате/ }).click();
+      await expect(storefront.getByRole("heading", { name: "Оплата", exact: true })).toBeVisible();
+      await storefront.getByRole("radio", { name: "Наличные", exact: true }).check();
+      const [created] = await Promise.all([
+        storefront.waitForResponse(
+          (response) => new URL(response.url()).pathname === "/api/checkout" && response.request().method() === "POST",
+        ),
+        storefront.getByRole("button", { name: /^Оформить заказ/ }).click(),
+      ]);
+      expect(created.status()).toBe(201);
+      const withoutTime: OrderResult = await created.json();
+      expect(withoutTime.time).toBeNull();
+      await expect(storefront.getByRole("heading", { name: `Заказ №${withoutTime.number}` })).toBeVisible();
+    });
   } finally {
     try {
       expect((await seller.request.post(fixture, { data: "restore" })).status()).toBe(204);

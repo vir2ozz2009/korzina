@@ -84,3 +84,41 @@ it("Блок 9 · 03: календарь сверяет неизменивший
   );
   expect(await (await calendar(version)).json()).toMatchObject({ counts: { "2099-11-25": 1 } });
 });
+
+it("Блок 9 · 08: §11.3 без права «Деньги» сводка и списки не содержат сумм", async () => {
+  const owner = await sellerFixture("korzina-demo-lavka");
+  const picker = await sellerFixture("korzina-demo-lavka", "employee", ["orders", "assembly"]);
+  const buyer = "guest:workday-permissions";
+  const active = await placeFixtureOrder(buyer, await proof(buyer, "attached"));
+  const closed = await placeFixtureOrder(buyer, await proof(buyer, "attached"));
+  await catalogSql("UPDATE orders SET status='completed' WHERE number=?", closed);
+  await catalogSql("UPDATE seller_order_index SET refund_minor=9000 WHERE number=?", active);
+  await catalogSql("UPDATE seller_order_index SET debt_minor=17000 WHERE number=?", closed);
+  const read = async (path: string, headers = owner.headers) => {
+    const response = await getAuth(`/api/seller/orders${path}`, headers);
+    expect(response.status).toBe(200);
+    return response.json();
+  };
+  const summary = (await read("/workday?store=lavka")) as { version: string };
+  expect(summary).toMatchObject({ count: 2, currency: "VND", totalMinor: 98000, debtMinor: 17000 });
+  const restricted = await read(`/workday?store=lavka&version=${encodeURIComponent(summary.version)}`, picker.headers);
+  expect(restricted).toMatchObject({ count: 2 });
+  for (const key of ["totalMinor", "debtMinor", "currency", "actions.receipt", "actions.payment"])
+    expect(restricted).not.toHaveProperty(key);
+
+  for (const [tab, number, amounts] of [
+    ["active", active, { refundMinor: 9000 }],
+    ["completed", closed, { debtMinor: 17000 }],
+  ] as const) {
+    const path = `?store=lavka&tab=${tab}`;
+    const page = (await read(path)) as { rev: number; orders: { number: number }[] };
+    expect(page.orders).toContainEqual(expect.objectContaining({ number, totalMinor: 49000, ...amounts }));
+    const restrictedPage = (await read(`${path}&rev=${page.rev}&cachedMoney=1`, picker.headers)) as typeof page;
+    expect(restrictedPage.orders.map((order) => order.number)).toEqual(page.orders.map((order) => order.number));
+    for (const order of restrictedPage.orders)
+      for (const key of ["totalMinor", "debtMinor", "refundMinor", "currency"]) expect(order).not.toHaveProperty(key);
+    expect(await read(`${path}&rev=${page.rev}&cachedMoney=0`, picker.headers)).toMatchObject({ unchanged: true });
+  }
+  for (const query of ["focus=receipt", "focus=payment", "focus=debt", "tab=completed&debt=1"])
+    expect((await getAuth(`/api/seller/orders?store=lavka&${query}`, picker.headers)).status).toBe(403);
+});

@@ -178,6 +178,31 @@ it("прежний расчёт отклоняется после изменен
   });
 });
 
+it("Блок 9 · 07, §11.8: заполненный горизонт позволяет оформить заказ без времени", async () => {
+  const days = Object.fromEntries(weekdays.map((day) => [day, [{ start: "09:00", end: "20:00" }]]));
+  await catalogSql(
+    "UPDATE settings SET value=? WHERE key='receiving_schedule'",
+    JSON.stringify({ timeZone: "Asia/Ho_Chi_Minh", pickup: { mode: "day", days, dayCapacity: 1 } }),
+  );
+  const cookie = await customer("sku-01");
+  expect((await buy("quote", {}, cookie)).status).toBe(409);
+  const response = await getAuth("/api/receiving/availability?shop=lavka&method=pickup");
+  const { days: horizon } = await response.json<{ days: AvailabilityDay[] }>();
+  expect(horizon).toHaveLength(7);
+  for (const { date } of horizon)
+    await catalogSql(
+      "INSERT INTO receiving_seats(method,date,slot,booked,expires_at) VALUES('pickup',?,'',1,?)",
+      date,
+      Date.now() + 86_400_000,
+    );
+  const quote = await getQuote(cookie);
+  expect(quote.time).toBeNull();
+  const placed = await buy("checkout", { quoteRevision: quote.quoteRevision, payment: "cash" }, cookie);
+  expect(placed.status).toBe(201);
+  expect(await placed.json()).toMatchObject({ time: null });
+  expect(await catalogSql("SELECT SUM(booked) AS booked FROM receiving_seats")).toEqual([{ booked: 7 }]);
+});
+
 it.each(["day", "after_order"] as const)(
   "§14.3 переход с интервалов на %s отклоняет прежнее время при расчёте и оформлении",
   async (mode) => {

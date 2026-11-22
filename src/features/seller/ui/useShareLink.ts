@@ -1,18 +1,36 @@
+import { useState } from "react";
 import { useToast } from "../../../app/shell/ToastProvider";
 
 export function useShareLink() {
   const notify = useToast();
-  return async (url: string, native = true) => {
-    const systemShare = native && typeof navigator.share === "function";
-    try {
-      if (systemShare) await navigator.share({ url });
-      else {
-        await navigator.clipboard.writeText(url);
-        notify("Ссылка скопирована");
+  const [manualUrl, setManualUrl] = useState<string>();
+
+  async function share(url: string, copyOnly = false) {
+    setManualUrl(undefined);
+    if (!copyOnly) {
+      const telegram = window.Telegram?.WebApp;
+      if (telegram?.openTelegramLink) {
+        const target = new URL("https://t.me/share/url");
+        target.searchParams.set("url", url);
+        telegram.openTelegramLink(target.href);
+        return;
       }
-    } catch (error) {
-      if (!(systemShare && error instanceof DOMException && error.name === "AbortError"))
-        notify(systemShare ? "Не удалось поделиться ссылкой" : "Не удалось скопировать");
+      if (typeof navigator.share === "function") {
+        try {
+          await navigator.share({ url });
+          return;
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError") return;
+        }
+      }
     }
-  };
+    try {
+      await navigator.clipboard.writeText(url);
+      notify("Ссылка скопирована");
+    } catch {
+      setManualUrl(url);
+    }
+  }
+
+  return { share, manualUrl };
 }

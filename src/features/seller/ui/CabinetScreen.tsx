@@ -32,6 +32,7 @@ import { StatusPill } from "../../../ui/StatusPill";
 import { useCabinet, useSellerLogout } from "../api";
 import { CabinetLogin } from "./CabinetLogin";
 import { LaunchReadiness } from "./LaunchReadiness";
+import { ShareLinkField } from "./ShareLinkField";
 import { PauseCard } from "./settings/PauseCard";
 import { ReconnectStaffBot } from "./team/ReconnectStaffBot";
 import { useShareLink } from "./useShareLink";
@@ -51,7 +52,7 @@ export function CabinetScreen() {
   const refetch = query.refetch;
   const refresh = useCallback(() => void refetch(), [refetch]);
   const navigate = useNavigate();
-  const share = useShareLink();
+  const { share, manualUrl } = useShareLink();
   const [sheet, setSheet] = useState<"shops" | "logout">();
   const more = pathname === "/seller/more";
   const profile = pathname === "/seller/profile";
@@ -222,7 +223,13 @@ export function CabinetScreen() {
                       </StatusPill>
                     </div>
                     <div className="flex items-center gap-2">
-                      <p className="min-w-0 flex-1 break-all text-small">{shop.storefrontUrl}</p>
+                      <div className="min-w-0 flex-1">
+                        {manualUrl === shop.storefrontUrl ? (
+                          <ShareLinkField url={shop.storefrontUrl} />
+                        ) : (
+                          <p className="break-all text-small">{shop.storefrontUrl}</p>
+                        )}
+                      </div>
                       <Button variant="secondary" onClick={() => void share(shop.storefrontUrl)}>
                         Поделиться
                       </Button>

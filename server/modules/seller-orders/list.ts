@@ -36,9 +36,15 @@ export function orderListRevision(storage: DurableObjectStorage) {
     .one().rev;
 }
 
-export function sellerOrders(storage: DurableObjectStorage, input: SellerOrdersQuery, timeZone: string) {
+export function sellerOrders(
+  storage: DurableObjectStorage,
+  input: SellerOrdersQuery,
+  timeZone: string,
+  money: boolean,
+) {
   const rev = orderListRevision(storage);
-  if (input.rev === rev && !input.cursor && input.focus !== "overdue")
+  const cachedMoney = input.cachedMoney !== "0";
+  if (input.rev === rev && cachedMoney === money && !input.cursor && input.focus !== "overdue")
     return { rev, timeZone, unchanged: true as const };
   const search = input.search?.toLocaleLowerCase("ru") ?? "";
   const method = input.method ?? "";
@@ -55,6 +61,7 @@ export function sellerOrders(storage: DurableObjectStorage, input: SellerOrdersQ
     input.day,
     input.focus,
     input.focus === "overdue" ? cutoff : null,
+    money,
   ]);
   const match = searchFilter(search);
   const query = [
@@ -87,13 +94,16 @@ export function sellerOrders(storage: DurableObjectStorage, input: SellerOrdersQ
     .toArray();
   const day = completed ? "receiving_at" : "CASE WHEN receiving_at='' THEN '9999' ELSE receiving_at END";
   const order = completed ? "section,sort_at DESC,sort_number DESC" : "section,sort_at,sort_number";
+  const amounts = money
+    ? "currency,total_minor AS totalMinor,debt_minor AS debtMinor,refund_minor AS refundMinor,"
+    : "";
   type Row = SellerOrderSummary & { section: number; sort_at: string; sort_number: number };
   const rows = storage.sql
     .exec<Row>(
       `WITH selection AS (
-      SELECT number,stage,revision,method,receiving_at AS receivingAt,created_at AS createdAt,name,currency,
-        total_minor AS totalMinor,payment_status AS paymentStatus,packed,lines,debt_minor AS debtMinor,
-        refund_minor AS refundMinor,${stageOrder} AS section,${day} AS sort_at,number AS sort_number
+      SELECT number,stage,revision,method,receiving_at AS receivingAt,created_at AS createdAt,name,
+        ${amounts}payment_status AS paymentStatus,packed,lines,
+        ${stageOrder} AS section,${day} AS sort_at,number AS sort_number
       FROM seller_order_index WHERE ${query}
     ) SELECT * FROM selection
     ${after ? `WHERE (section,sort_at,sort_number) ${completed ? "<" : ">"} (?,?,?)` : ""}
@@ -110,6 +120,7 @@ export function sellerOrders(storage: DurableObjectStorage, input: SellerOrdersQ
       : undefined;
   return {
     rev,
+    money,
     timeZone,
     orders,
     active: counts

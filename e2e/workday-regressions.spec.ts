@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import type { SellerOrder, SellerOrderSummary } from "../src/shared/contracts/seller-order";
 
 import { cabinetFixture, day } from "./workday-fixture";
+import { checkWorkdayShare } from "./workday-share";
 
 const orderUrl = /\/api\/seller\/orders(?:\?|$)/;
 const emptyPage = { rev: 7, timeZone: "UTC", active: 0, newlyPlaced: 0, counts: {}, orders: [] };
@@ -14,11 +15,11 @@ const summary: Omit<SellerOrderSummary, "number"> = {
   createdAt: 0,
   name: "Тестовый покупатель",
   currency: "VND",
-  totalMinor: 0,
+  totalMinor: 49000,
   paymentStatus: "unpaid",
   packed: 0,
   lines: 0,
-  debtMinor: 0,
+  debtMinor: 17000,
   refundMinor: 0,
 };
 
@@ -72,6 +73,9 @@ test("Блок 9 · 01: возврат из заказа сохраняет тр
   const more = page.getByRole("button", { name: "Показать ещё" });
   const cards = page.getByRole("button", { name: /^Открыть заказ №/ });
   await expect(cards).toHaveCount(20);
+  await test.step("Блок 9 · 08, §11.3: в карточках списка сборщика нет сумм", async () => {
+    await expect(page.getByText(/₫|Долг клиента/)).toHaveCount(0);
+  });
   await more.click();
   await expect(cards).toHaveCount(40);
   await more.click();
@@ -177,48 +181,6 @@ test("Блок 9 · 03: быстрый возврат и смена месяца
   }
 });
 
-test("Блок 9 · 05, §15.1: команда делится публичной ссылкой открытого магазина и черновика", async ({
-  page,
-  baseURL,
-}) => {
-  await cabinetFixture(page, false);
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, "share", {
-      configurable: true,
-      value: ({ url }: ShareData) => {
-        document.body.dataset.sharedUrl = url;
-        return Promise.resolve();
-      },
-    });
-    Object.defineProperty(navigator, "clipboard", {
-      value: {
-        writeText: (url: string) => {
-          document.body.dataset.copiedUrl = url;
-          return Promise.resolve();
-        },
-      },
-    });
-  });
-  await page.goto("/seller?store=test2");
-  const share = page.getByRole("button", { name: "Поделиться", exact: true });
-  const firstUrl = new URL("/?shop=test2", baseURL).href;
-  await expect(page.getByText(firstUrl, { exact: true })).toBeVisible();
-  await share.click();
-  await expect(page.locator("body")).toHaveAttribute("data-shared-url", firstUrl);
-  await expect(page.locator("body")).not.toHaveAttribute("data-copied-url");
-  await page.screenshot({ path: "test-results/workday-public-address-390.png", animations: "disabled" });
-
-  await page.evaluate(() => Object.defineProperty(navigator, "share", { value: undefined }));
-  await page.getByRole("button", { name: "Выбрать магазин" }).click();
-  await page.getByRole("button", { name: /Черновик магазина/ }).click();
-  const draftUrl = new URL("/?shop=workday-draft", baseURL).href;
-  await expect(page.getByText(draftUrl, { exact: true })).toBeVisible();
-  await share.click();
-  await expect(page.locator("body")).toHaveAttribute("data-copied-url", draftUrl);
-  await expect(page.getByText("Ссылка скопирована", { exact: true })).toBeVisible();
-  await page.evaluate(() => {
-    navigator.clipboard.writeText = () => Promise.reject(new DOMException("Clipboard unavailable", "NotAllowedError"));
-  });
-  await share.click();
-  await expect(page.getByText("Не удалось скопировать", { exact: true })).toBeVisible();
+test("Блок 9 · 05–06, §15.1: публичный адрес, отправка и ручное копирование", async ({ page, baseURL }) => {
+  await checkWorkdayShare(page, baseURL);
 });

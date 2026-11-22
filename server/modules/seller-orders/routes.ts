@@ -33,9 +33,11 @@ export const sellerOrderRoutes = new Hono<SellerOrderEnv>()
   })
   .get("/", zValidator("query", sellerOrdersQuery, validationFailure), (c) => {
     const query = c.req.valid("query");
-    if (query.focus === "receipt" || query.focus === "payment" || query.focus === "debt")
-      permitted(c.get("seller"), "payments");
-    return c.json(sellerOrders(c.env.storage, query, c.env.timeZone ?? defaultShopTimeZone));
+    const seller = c.get("seller");
+    if (query.focus === "receipt" || query.focus === "payment" || query.focus === "debt" || query.debt)
+      permitted(seller, "payments");
+    const money = seller.role === "owner" || seller.permissions.includes("payments");
+    return c.json(sellerOrders(c.env.storage, query, c.env.timeZone ?? defaultShopTimeZone, money));
   })
   .get("/workday", zValidator("query", workdayDay, validationFailure), (c) => {
     const seller = c.get("seller");

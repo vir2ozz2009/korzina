@@ -13,7 +13,7 @@ import { sellerSessionHeaders } from "./api";
 const root = (store: string) => ["seller-orders", store] as const;
 const orderKey = (store: string, number: number) => [...root(store), "order", number] as const;
 const badgeKey = (store: string) => [...root(store), "badge"] as const;
-type ListSelection = Omit<SellerOrdersQuery, "rev" | "cursor">;
+type ListSelection = Omit<SellerOrdersQuery, "rev" | "cursor" | "cachedMoney">;
 type CachedOrderPage = SellerOrderPage & { extra?: Pick<SellerOrderPage, "orders" | "cursor"> };
 
 async function request(store: string, path: string, params: Record<string, unknown> = {}, init: RequestInit = {}) {
@@ -30,16 +30,21 @@ async function request(store: string, path: string, params: Record<string, unkno
   return answer;
 }
 
-export function useSellerOrderList(store: string, selection: ListSelection) {
+export function useSellerOrderList(store: string, selection: ListSelection, money: boolean) {
   const client = useQueryClient();
-  const key = [...root(store), "list", selection] as const;
+  const key = [...root(store), "list", selection, money] as const;
   const list = useQuery({
     queryKey: key,
     enabled: !!store,
     queryFn: async ({ signal }): Promise<CachedOrderPage> => {
       const known = client.getQueryData<CachedOrderPage>(key);
       const result: SellerOrderPage | { unchanged: true; timeZone?: string } = await (
-        await request(store, "", { ...selection, rev: known?.rev }, { signal })
+        await request(
+          store,
+          "",
+          { ...selection, rev: known?.rev, cachedMoney: known && (known.money ? "1" : "0") },
+          { signal },
+        )
       ).json();
       const previous = client.getQueryData<CachedOrderPage>(key);
       if ("unchanged" in result) {
@@ -49,7 +54,10 @@ export function useSellerOrderList(store: string, selection: ListSelection) {
           : previous;
       }
       client.setQueryData(badgeKey(store), { rev: result.rev, count: result.newlyPlaced });
-      return previous?.rev === result.rev && previous.cursor === result.cursor && previous.timeZone === result.timeZone
+      return previous?.rev === result.rev &&
+        previous.cursor === result.cursor &&
+        previous.timeZone === result.timeZone &&
+        previous.money === result.money
         ? { ...result, extra: previous.extra }
         : result;
     },
@@ -59,7 +67,13 @@ export function useSellerOrderList(store: string, selection: ListSelection) {
     mutationFn: async (cursor: string) => {
       const next: SellerOrderPage = await (await request(store, "", { ...selection, cursor })).json();
       client.setQueryData<CachedOrderPage>(key, (previous) => {
-        if (!previous || previous.rev !== next.rev || (previous.extra ?? previous).cursor !== cursor) return previous;
+        if (
+          !previous ||
+          previous.rev !== next.rev ||
+          previous.money !== next.money ||
+          (previous.extra ?? previous).cursor !== cursor
+        )
+          return previous;
         return {
           ...previous,
           extra: { cursor: next.cursor, orders: [...(previous.extra?.orders ?? []), ...next.orders] },

@@ -44,17 +44,17 @@ export function PaymentPill({
 }: {
   status: PaymentState;
   stage: OrderStage;
-  debt: number;
-  refund: number;
-  currency: string;
+  debt?: number;
+  refund?: number;
+  currency?: string;
 }) {
-  if (refund)
+  if (refund && currency)
     return (
       <StatusPill tone="warning">
         {stage === "cancelled" ? "Вернуть" : "Клиент переплатил"} {formatMinor(refund, currency)}
       </StatusPill>
     );
-  if (debt) return <StatusPill tone="danger">Долг клиента {formatMinor(debt, currency)}</StatusPill>;
+  if (debt && currency) return <StatusPill tone="danger">Долг клиента {formatMinor(debt, currency)}</StatusPill>;
   if (status === "confirmed") return <StatusPill tone="success">Оплачен</StatusPill>;
   return <StatusPill tone="warning">{status === "pending_review" ? "Чек на проверке" : "Не оплачен"}</StatusPill>;
 }
