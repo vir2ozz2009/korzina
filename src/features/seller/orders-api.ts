@@ -5,6 +5,7 @@ import type {
   SellerOrderPage,
   SellerOrdersQuery,
 } from "../../shared/contracts/seller-order";
+import type { SellerOrderCalendar, SellerPackingList, SellerWorkday } from "../../shared/contracts/workday";
 import { checkResponse, HttpError } from "../../shared/http-error";
 import { commandHeaders } from "../../shared/shop-api";
 import { sellerSessionHeaders } from "./api";
@@ -155,5 +156,38 @@ export function invalidateSellerOrders(
       const data = state.data as { rev?: number } | undefined;
       return (data?.rev ?? -1) < cursor;
     },
+  });
+}
+
+export function useSellerWorkday(store: string, money: boolean) {
+  const client = useQueryClient();
+  const key = [...root(store), "workday", money] as const;
+  return useQuery({
+    queryKey: key,
+    queryFn: async ({ signal }): Promise<SellerWorkday> => {
+      const previous = client.getQueryData<SellerWorkday>(key);
+      const result: SellerWorkday | { unchanged: true } = await (
+        await request(store, "/workday", { version: previous?.version }, { signal })
+      ).json();
+      if ("unchanged" in result) {
+        if (!previous) throw new Error("Сводка недоступна");
+        return previous;
+      }
+      return result;
+    },
+  });
+}
+export function useSellerPacking(store: string, day?: string) {
+  return useQuery({
+    queryKey: [...root(store), "packing", day],
+    queryFn: async ({ signal }): Promise<SellerPackingList> =>
+      (await request(store, "/packing", { day }, { signal })).json(),
+  });
+}
+export function useSellerCalendar(store: string, month?: string) {
+  return useQuery({
+    queryKey: [...root(store), "calendar", month],
+    queryFn: async ({ signal }): Promise<SellerOrderCalendar> =>
+      (await request(store, "/calendar", { month }, { signal })).json(),
   });
 }

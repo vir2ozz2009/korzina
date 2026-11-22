@@ -4,6 +4,7 @@ import { Header } from "../../../../app/shell/Header";
 import { QueryBoundary } from "../../../../app/shell/QueryBoundary";
 import { Screen } from "../../../../app/shell/Screen";
 import { SellerTabs } from "../../../../app/shell/SellerTabs";
+import { useBack } from "../../../../app/shell/useBack";
 import { HttpError } from "../../../../shared/http-error";
 import { EmptyState } from "../../../../ui/EmptyState";
 import { useCabinet } from "../../api";
@@ -25,11 +26,12 @@ export function SellerOrdersShell({
   const refresh = useCallback(() => void refetch(), [refetch]);
   const tried = useRef(false);
   const navigate = useNavigate();
+  const back = useBack();
   const login = cabinet.error instanceof HttpError && cabinet.error.status === 401;
   const denied = cabinet.error instanceof HttpError && cabinet.error.status === 403;
   return (
     <Screen
-      header={<Header title={login ? "Вход" : title} />}
+      header={<Header title={login ? "Вход" : title} onBack={search.back && !login ? back : undefined} />}
       template="list"
       after={
         cabinet.data?.current && !cabinet.isError ? (

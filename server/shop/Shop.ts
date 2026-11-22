@@ -207,7 +207,11 @@ export class Shop extends DurableObject<Env> {
       } else {
         await scheduleCleanup(this.ctx.storage);
         if (path.startsWith("/api/seller/catalog/") || path === "/api/seller/profile/data") {
-          if (path.startsWith("/api/seller/catalog/")) await schedulePlatformOrders(this.ctx.storage);
+          if (
+            path.startsWith("/api/seller/catalog/") &&
+            storage.sql.exec("SELECT 1 FROM workday_notice WHERE expanded=0 AND kind='stock' LIMIT 1").toArray().length
+          )
+            await schedulePlatformOrders(storage);
           this.saleDeadline = nextSaleDeadline(this.ctx.storage);
           await this.scheduleSaleDeadline();
         }

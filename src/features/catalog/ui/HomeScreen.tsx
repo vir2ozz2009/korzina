@@ -7,12 +7,12 @@ import { HttpError } from "../../../shared/http-error";
 import { AboutStore } from "../../../ui/AboutStore";
 import { ErrorState } from "../../../ui/AsyncErrorState";
 import { Button } from "../../../ui/Button";
-import { Card } from "../../../ui/Card";
 import { StoreHeader } from "../../../ui/StoreHeader";
 import { useCart } from "../../cart";
 import { ActiveOrders } from "../../orders";
 import { useCatalog, useOffers } from "../api";
 import { HomeView } from "./HomeView";
+import { OrderingBanner } from "./OrderingBanner";
 import { toTiles } from "./toTiles";
 
 const VariantsSheet = lazy(() => import("./VariantsSheet").then((module) => ({ default: module.VariantsSheet })));
@@ -123,23 +123,4 @@ export function HomeScreen() {
       )}
     </>
   );
-}
-
-function OrderingBanner() {
-  const [now, setNow] = useState(Date.now);
-  const active = bootstrap?.orderBanners?.filter(({ expires }) => expires === null || expires > now) ?? [];
-  const nextExpiry = active.reduce<number | undefined>(
-    (soonest, { expires }) => (expires === null ? soonest : Math.min(soonest ?? expires, expires)),
-    undefined,
-  );
-  useEffect(() => {
-    if (!nextExpiry) return;
-    const timer = window.setTimeout(() => setNow(Date.now()), Math.max(0, nextExpiry - Date.now()));
-    return () => window.clearTimeout(timer);
-  }, [nextExpiry]);
-  return active.length ? (
-    <Card role="status" className="bg-status-warning text-status-warning-foreground">
-      {active.map(({ text }) => text).join(". ")}
-    </Card>
-  ) : null;
 }

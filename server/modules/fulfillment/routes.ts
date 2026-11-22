@@ -26,9 +26,15 @@ import {
   saveReceiving,
 } from "./service";
 
+import { storefrontReceiving } from "./storefront-receiving";
+
 const geocodeLimit = sessionLimiter(20);
 const verifyAddressLimit = sessionLimiter(20);
 export const receivingRoutes = new Hono<ShopEnv>()
+  .get("/next", (c) => {
+    c.header("Cache-Control", "no-store");
+    return c.json(storefrontReceiving(c.env.storage, c.env.features.maps, c.env.timeZone ?? defaultShopTimeZone));
+  })
   .get("/availability", zValidator("query", z.object({ method: methodInput }), validationFailure), (c) => {
     const { method } = c.req.valid("query");
     const settings = readFulfillment(c.env.storage, c.env.features.maps);

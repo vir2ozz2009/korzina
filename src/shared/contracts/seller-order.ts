@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { OrderStage, PaymentState } from "./buyer-order";
 import type { OrderResult } from "./checkout";
+import { workdayFocus } from "./workday";
 
 const revision = z.number().int().nonnegative();
 const note = z.string().trim().min(1).max(500);
@@ -72,6 +73,8 @@ export type ReceiptRef = { id: string; createdAt: number; mime: string };
 export const sellerOrdersQuery = z.object({
   tab: z.enum(["active", "completed"]).default("active"),
   method: z.enum(["delivery", "pickup"]).optional(),
+  day: z.iso.date().optional(),
+  focus: workdayFocus.optional(),
   debt: z.literal("1").optional(),
   search: z.string().trim().max(80).optional(),
   cursor: z.string().max(500).optional(),

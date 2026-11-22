@@ -26,7 +26,7 @@ export function storeBuyerToken(token?: string) {
 
 export async function loadCabinetStorefront(): Promise<ShopContext | undefined> {
   if (!cabinetStorefront) return;
-  const endpoint = `/api/shop?shop=${encodeURIComponent(cabinetStorefront)}`;
+  const endpoint = `/api/shop?shop=${encodeURIComponent(cabinetStorefront)}&receiving=1`;
   try {
     let response = await fetch(endpoint, { headers: buyerStorefrontHeaders() });
     if (response.status === 404 && embeddedStorefront && telegramLaunch) {

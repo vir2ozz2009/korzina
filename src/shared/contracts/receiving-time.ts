@@ -60,3 +60,17 @@ export type AvailabilityDay = {
     reason?: "past" | "full";
   }[];
 };
+
+export type StorefrontReceiving = {
+  today: string;
+  timeZone: string;
+  refreshAt: number;
+  banners: { text: string; expires: number | null }[];
+  methods: {
+    method: ReceivingMethod;
+    mode: "after_order" | "unknown" | "day" | "slots";
+    date?: string;
+    start?: string;
+    end?: string;
+  }[];
+};

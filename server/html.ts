@@ -47,7 +47,7 @@ export async function serveHtml(request: Request, env: Env): Promise<Response> {
   if (!response.headers.get("Content-Type")?.includes("text/html") || !response.ok) return response;
   try {
     const isShop = !/^\/(seller|admin)(\/|$)/.test(url.pathname);
-    const shop = await shopContexts.read(request, env, false, isShop);
+    const shop = await shopContexts.read(request, env, false, isShop, url.pathname === "/");
     const teamPreview = shop.status === "draft" && (await hasTeamAccess(request, env.PLATFORM, shop));
     const context =
       shop.status !== "draft"
@@ -64,7 +64,11 @@ export async function serveHtml(request: Request, env: Env): Promise<Response> {
               features: {},
               theme: DEFAULT_THEME,
             });
-    const page = themedHtml(response, context, isShop);
+    const page = themedHtml(
+      response,
+      { ...context, hasReceiving: isShop && (context.status === "active" || teamPreview) },
+      isShop,
+    );
     const name = customerCookie(context.id);
     const token = request.method === "GET" ? cookieValue(request, name) : undefined;
     if (token && /^[a-f0-9]{64}$/u.test(token)) {

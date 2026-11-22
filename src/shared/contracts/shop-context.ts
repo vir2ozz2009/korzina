@@ -8,6 +8,24 @@ export const shopContextContract = z.extend(shopContract, {
   mediaOrigin: z.optional(z.string()),
   timeZone: z.optional(z.string()),
   orderBanners: z.optional(z.array(z.object({ text: z.string(), expires: z.nullable(z.number()) }))),
+  hasReceiving: z.optional(z.boolean()),
+  receiving: z.optional(
+    z.object({
+      today: z.string(),
+      timeZone: z.string(),
+      refreshAt: z.number(),
+      banners: z.array(z.object({ text: z.string(), expires: z.nullable(z.number()) })),
+      methods: z.array(
+        z.object({
+          method: z.enum(["delivery", "pickup"]),
+          mode: z.enum(["after_order", "unknown", "day", "slots"]),
+          date: z.optional(z.string()),
+          start: z.optional(z.string()),
+          end: z.optional(z.string()),
+        }),
+      ),
+    }),
+  ),
   profile: z.optional(
     z.object({
       logo: z.nullable(z.object({ id: z.string(), shape: z.enum(["circle", "square", "wide"]), src: z.string() })),

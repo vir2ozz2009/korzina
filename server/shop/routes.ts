@@ -13,6 +13,7 @@ import { pauseStatus } from "../modules/fulfillment/pause";
 import { receivingRoutes } from "../modules/fulfillment/routes";
 import { sellerReceivingRoutes } from "../modules/fulfillment/seller-routes";
 import { resolveFulfillment } from "../modules/fulfillment/service";
+import { storefrontReceiving } from "../modules/fulfillment/storefront-receiving";
 import { mediaRoutes } from "../modules/media/routes";
 import { profileRoutes } from "../modules/profile/routes";
 import { sellerCatalogRoutes } from "../modules/seller-catalog/routes";
@@ -30,7 +31,12 @@ export function shopRoutes() {
       .get("/shop", async (c) => {
         const settings = readPublicSettings(c.env.db);
         const fulfillment = resolveFulfillment(settings.fulfillment, c.env.features.maps);
-        const { banners } = pauseStatus(fulfillment, settings.timeZone, Date.now());
+        const now = Date.now();
+        const receiving =
+          c.req.query("receiving") === "1" && c.env.shop.status !== "paused"
+            ? storefrontReceiving(c.env.storage, c.env.features.maps, settings.timeZone, now, fulfillment)
+            : undefined;
+        const banners = receiving?.banners ?? pauseStatus(fulfillment, settings.timeZone, now).banners;
         return c.json({
           ...c.env.shop,
           name: settings.name ?? c.env.shop.name,
@@ -38,6 +44,7 @@ export function shopRoutes() {
           timeZone: settings.timeZone,
           profile: settings.profile,
           orderBanners: banners.length ? banners : undefined,
+          receiving,
           features: c.env.features,
         });
       })
