@@ -31,15 +31,17 @@ export function SellerOrdersShell({
   const denied = cabinet.error instanceof HttpError && cabinet.error.status === 403;
   return (
     <Screen
-      header={<Header title={login ? "Вход" : title} onBack={search.back && !login ? back : undefined} />}
+      header={
+        <Header
+          title={login ? "Вход" : title}
+          onBack={search.back && !login ? back : undefined}
+          sellerShop={cabinet.isError ? null : (cabinet.data?.current ?? null)}
+        />
+      }
       template="list"
       after={
         cabinet.data?.current && !cabinet.isError ? (
-          <SellerTabs
-            store={cabinet.data.current.slug}
-            account={cabinet.data.telegramId}
-            permissions={cabinet.data.current.permissions}
-          />
+          <SellerTabs store={cabinet.data.current.slug} permissions={cabinet.data.current.permissions} />
         ) : undefined
       }
       footer={footer}

@@ -14,6 +14,7 @@ import { Dialog } from "../../../../ui/Dialog";
 import { Select } from "../../../../ui/Select";
 import { Sheet } from "../../../../ui/Sheet";
 import { Switch } from "../../../../ui/Switch";
+import { useShareLink } from "../useShareLink";
 import { roleName, teamKey, teamRequest, useTeamCommand } from "./team-api";
 
 const sections = { orders: "Заказы", payments: "Деньги", products: "Товары" } as const;
@@ -55,7 +56,7 @@ export function TeamInviteForm({ store, id, close }: { store: string; id?: strin
   const [access, setAccess] = useState<StaffAccess>({ role: "picker" });
   const [issued, setIssued] = useState<StaffInvite>();
   const [confirm, setConfirm] = useState(false);
-  const notify = useToast();
+  const share = useShareLink();
   const command = useTeamCommand<StaffInvite>(store);
   const invite = useQuery({
     queryKey: [...teamKey(store), "invite", id],
@@ -63,17 +64,6 @@ export function TeamInviteForm({ store, id, close }: { store: string; id?: strin
     queryFn: ({ signal }) => teamRequest<StaffInvite>(store, `invites/${id}`, { signal }),
     retry: false,
   });
-  const share = async (url: string, native: boolean) => {
-    try {
-      if (native && navigator.share) await navigator.share({ url });
-      else {
-        await navigator.clipboard.writeText(url);
-        notify("Ссылка скопирована");
-      }
-    } catch (error) {
-      if (!(error instanceof DOMException && error.name === "AbortError")) notify("Не удалось поделиться ссылкой");
-    }
-  };
   const details = (item: StaffInvite) => (
     <>
       <p>
@@ -85,7 +75,7 @@ export function TeamInviteForm({ store, id, close }: { store: string; id?: strin
           <Button full onClick={() => void share(item.url ?? "", false)}>
             Скопировать ссылку
           </Button>
-          <Button full variant="secondary" onClick={() => void share(item.url ?? "", true)}>
+          <Button full variant="secondary" onClick={() => void share(item.url ?? "")}>
             Поделиться
           </Button>
           <Button full variant="ghost" onClick={() => setConfirm(true)}>

@@ -14,6 +14,7 @@ const root = (store: string) => ["seller-orders", store] as const;
 const orderKey = (store: string, number: number) => [...root(store), "order", number] as const;
 const badgeKey = (store: string) => [...root(store), "badge"] as const;
 type ListSelection = Omit<SellerOrdersQuery, "rev" | "cursor">;
+type CachedOrderPage = SellerOrderPage & { extra?: Pick<SellerOrderPage, "orders" | "cursor"> };
 
 async function request(store: string, path: string, params: Record<string, unknown> = {}, init: RequestInit = {}) {
   const url = new URL(`/api/seller/orders${path}`, location.origin);
@@ -32,14 +33,15 @@ async function request(store: string, path: string, params: Record<string, unkno
 export function useSellerOrderList(store: string, selection: ListSelection) {
   const client = useQueryClient();
   const key = [...root(store), "list", selection] as const;
-  return useQuery({
+  const list = useQuery({
     queryKey: key,
     enabled: !!store,
-    queryFn: async ({ signal }): Promise<SellerOrderPage> => {
-      const previous = client.getQueryData<SellerOrderPage>(key);
+    queryFn: async ({ signal }): Promise<CachedOrderPage> => {
+      const known = client.getQueryData<CachedOrderPage>(key);
       const result: SellerOrderPage | { unchanged: true; timeZone?: string } = await (
-        await request(store, "", { ...selection, rev: previous?.rev }, { signal })
+        await request(store, "", { ...selection, rev: known?.rev }, { signal })
       ).json();
+      const previous = client.getQueryData<CachedOrderPage>(key);
       if ("unchanged" in result) {
         if (!previous) throw new Error("Список недоступен");
         return result.timeZone && result.timeZone !== previous.timeZone
@@ -47,17 +49,29 @@ export function useSellerOrderList(store: string, selection: ListSelection) {
           : previous;
       }
       client.setQueryData(badgeKey(store), { rev: result.rev, count: result.newlyPlaced });
-      return result;
+      return previous?.rev === result.rev && previous.cursor === result.cursor && previous.timeZone === result.timeZone
+        ? { ...result, extra: previous.extra }
+        : result;
     },
   });
-}
-
-export async function moreSellerOrders(
-  store: string,
-  selection: ListSelection,
-  cursor: string,
-): Promise<SellerOrderPage> {
-  return (await request(store, "", { ...selection, cursor })).json();
+  const more = useMutation({
+    mutationKey: key,
+    mutationFn: async (cursor: string) => {
+      const next: SellerOrderPage = await (await request(store, "", { ...selection, cursor })).json();
+      client.setQueryData<CachedOrderPage>(key, (previous) => {
+        if (!previous || previous.rev !== next.rev || (previous.extra ?? previous).cursor !== cursor) return previous;
+        return {
+          ...previous,
+          extra: { cursor: next.cursor, orders: [...(previous.extra?.orders ?? []), ...next.orders] },
+        };
+      });
+    },
+    onError: (error) => {
+      if (error instanceof HttpError && error.code === "VALIDATION")
+        void client.invalidateQueries({ queryKey: key, exact: true });
+    },
+  });
+  return { list, more };
 }
 
 export function useSellerOrderBadge(store: string) {
@@ -185,9 +199,19 @@ export function useSellerPacking(store: string, day?: string) {
   });
 }
 export function useSellerCalendar(store: string, month?: string) {
+  const client = useQueryClient();
+  const key = [...root(store), "calendar", month] as const;
   return useQuery({
-    queryKey: [...root(store), "calendar", month],
-    queryFn: async ({ signal }): Promise<SellerOrderCalendar> =>
-      (await request(store, "/calendar", { month }, { signal })).json(),
+    queryKey: key,
+    // Let a month already in flight fill its cache even if the user leaves the screen.
+    queryFn: async (): Promise<SellerOrderCalendar> => {
+      const previous = client.getQueryData<SellerOrderCalendar>(key);
+      const result: SellerOrderCalendar | { unchanged: true } = await (
+        await request(store, "/calendar", { month, version: previous?.version })
+      ).json();
+      if (!("unchanged" in result)) return result;
+      if (!previous) throw new Error("Календарь недоступен");
+      return previous;
+    },
   });
 }

@@ -54,14 +54,16 @@ export const sellerOrderRoutes = new Hono<SellerOrderEnv>()
       sellerPacking(c.env.storage, c.env.timeZone ?? defaultShopTimeZone, Date.now(), c.req.valid("query").day),
     );
   })
-  .get("/calendar", zValidator("query", workdayMonth, validationFailure), (c) =>
-    c.json(
+  .get("/calendar", zValidator("query", workdayMonth, validationFailure), (c) => {
+    const { month, version } = c.req.valid("query");
+    return c.json(
       sellerOrderCalendar(
         { storage: c.env.storage, timeZone: c.env.timeZone ?? defaultShopTimeZone, now: Date.now() },
-        c.req.valid("query").month,
+        month,
+        version,
       ),
-    ),
-  )
+    );
+  })
   .get(
     "/:number/receipts/:id",
     zValidator("param", z.object({ number: orderNumberInput, id: z.uuid() }), validationFailure),
