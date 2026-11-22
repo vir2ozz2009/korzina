@@ -225,7 +225,7 @@ export function CabinetScreen() {
                   {shop.status !== "draft" && (!shop.teamRole || shop.permissions.includes("shop_settings")) && (
                     <PauseCard key={shop.id} store={shop.slug} />
                   )}
-                  {shop.status !== "draft" && shop.permissions.includes("orders") && (
+                  {shop.status !== "draft" && shop.permissions?.includes("orders") && (
                     <Suspense fallback={null}>
                       <WorkdaySummary
                         key={shop.id}
