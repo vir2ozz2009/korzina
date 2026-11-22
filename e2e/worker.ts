@@ -3,18 +3,78 @@ import worker, { Shop as Store } from "../server";
 import { sellerCookie, sessionCookie } from "../server/auth/cookies";
 import { newToken, tokenHash } from "../server/auth/tokens";
 import catalog from "../server/demo-catalog.json";
-import { telegramMessage } from "../server/modules/seller-orders/notifications";
+import { expandNewOrders, telegramMessage } from "../server/modules/seller-orders/notifications";
 import { invalidateShopAddress } from "../server/platform/resolve-shop";
+import { schedulePlatformOrders } from "../server/shop/order-projection";
+import { weekdays } from "../src/shared/contracts/receiving-time";
 
 export { app } from "../server";
 
 const path = "/__e2e/test2/tomatoes";
 const sellerPath = "/__e2e/test2/seller";
 const orderMessagePath = "/__e2e/test2/order-message";
+const workdayPath = "/__e2e/test2/workday";
 const shopStatusPath = "/__e2e/test2/status";
 const shopId = "korzina-demo-test2";
 
 export class Shop extends Store {
+  private previousSchedule: string | undefined;
+
+  private get isTestShop() {
+    return this.ctx.exports.Shop.idFromName(shopId).equals(this.ctx.id);
+  }
+
+  protected override async dispatchOrderNotifications() {
+    if (!this.isTestShop) return super.dispatchOrderNotifications();
+    // Exercise real recipient selection and enqueueing while leaving the messages
+    // in the local outbox for inspection.
+    const storage = this.ctx.storage;
+    if (await expandNewOrders(storage, this.env, shopId, Date.now())) await schedulePlatformOrders(storage);
+  }
+
+  async setE2eWorkday(active: boolean) {
+    if (!this.isTestShop) throw new Error("Wrong test shop");
+    const sql = this.ctx.storage.sql;
+    if (!active) {
+      if (this.previousSchedule !== undefined)
+        sql.exec("UPDATE settings SET value=? WHERE key='receiving_schedule'", this.previousSchedule);
+      this.previousSchedule = undefined;
+      return;
+    }
+    this.previousSchedule ??= sql
+      .exec<{ value: string }>("SELECT value FROM settings WHERE key='receiving_schedule'")
+      .one().value;
+    // Keep a future window on the shop's current day regardless of the runner's time.
+    const offset = ((9 - new Date().getUTCHours() + 36) % 24) - 12;
+    const timeZone = offset === 0 ? "Etc/UTC" : `Etc/GMT${offset > 0 ? "-" : "+"}${Math.abs(offset)}`;
+    const pickup = {
+      mode: "slots",
+      days: Object.fromEntries(weekdays.map((day) => [day, [{ start: "12:00", end: "13:00" }]])),
+      preparationMinutes: 0,
+    };
+    sql.exec(
+      "UPDATE settings SET value=? WHERE key='receiving_schedule'",
+      JSON.stringify({ ...JSON.parse(this.previousSchedule), timeZone, pickup }),
+    );
+  }
+
+  e2eQueuedOrderMessage(number: number, now: number) {
+    if (!this.isTestShop) throw new Error("Wrong test shop");
+    const storage = this.ctx.storage;
+    const event = storage.sql
+      .exec<Parameters<typeof telegramMessage>[3]>(
+        "SELECT kind,order_number,recipient,amount,currency FROM order_notification_outbox WHERE order_number=? AND kind='new' AND recipient='990000001'",
+        number,
+      )
+      .toArray()[0];
+    return event
+      ? {
+          recipient: event.recipient,
+          text: telegramMessage(storage, "http://127.0.0.1", "test2", event, now).text,
+        }
+      : null;
+  }
+
   e2eOrderMessage(number: number, now: number) {
     if (!this.ctx.exports.Shop.idFromName(shopId).equals(this.ctx.id)) throw new Error("Wrong test shop");
     return telegramMessage(
@@ -45,7 +105,8 @@ export default {
       url.pathname !== path &&
       url.pathname !== sellerPath &&
       url.pathname !== orderMessagePath &&
-      url.pathname !== shopStatusPath
+      url.pathname !== shopStatusPath &&
+      url.pathname !== workdayPath
     )
       return worker.fetch(request, env, ctx);
     if (
@@ -84,11 +145,21 @@ export default {
     }
     const namespace = exports.Shop as unknown as DurableObjectNamespace<Shop>;
     const shop = namespace.get(namespace.idFromName(shopId));
+    if (url.pathname === workdayPath) {
+      const action = await request.text();
+      if (action !== "setup" && action !== "restore") return new Response(null, { status: 400 });
+      await shop.setE2eWorkday(action === "setup");
+      return new Response(null, { status: 204 });
+    }
     if (url.pathname === orderMessagePath) {
       const number = Number(url.searchParams.get("number"));
       const now = Number(url.searchParams.get("now"));
       if (!Number.isSafeInteger(number) || number < 1 || !Number.isSafeInteger(now) || now < 1)
         return new Response(null, { status: 400 });
+      if (url.searchParams.get("queued") === "1") {
+        const message = await shop.e2eQueuedOrderMessage(number, now);
+        return message ? Response.json(message) : new Response(null, { status: 404 });
+      }
       return new Response(await shop.e2eOrderMessage(number, now));
     }
     const change = await request.text();

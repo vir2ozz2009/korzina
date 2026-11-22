@@ -314,6 +314,10 @@ export class Shop extends DurableObject<Env> {
     await scheduleCleanup(this.ctx.storage);
   }
 
+  protected dispatchOrderNotifications() {
+    return sendOrderNotifications(this.ctx.storage, this.env);
+  }
+
   async alarm() {
     if (this.ctx.id.equals(this.ctx.exports.Shop.idFromName(platformCleanupId))) {
       await cleanupSellers(this.env.PLATFORM, this.ctx.storage);
@@ -326,7 +330,7 @@ export class Shop extends DurableObject<Env> {
       const more = await cleanupShop(this.ctx.storage, this.env, Date.now(), projectOrders);
       this.pendingOrders ||= more;
       if (this.pendingOrders) await schedulePlatformOrders(this.ctx.storage);
-      await sendOrderNotifications(this.ctx.storage, this.env);
+      await this.dispatchOrderNotifications();
       await this.scheduleSaleDeadline();
     } catch (error) {
       this.pendingOrders ||= projectOrders;

@@ -19,7 +19,12 @@ type Queued = {
   attempts: number;
 };
 
-async function expandNewOrders(storage: DurableObjectStorage, env: Env & AuthSecrets, shop: string, now: number) {
+export async function expandNewOrders(
+  storage: DurableObjectStorage,
+  env: Env & AuthSecrets,
+  shop: string,
+  now: number,
+) {
   const orders = storage.sql
     .exec<{ number: number; total: number; currency: string; created: number; receipt: number }>(
       `SELECT p.order_number AS number,i.total_minor AS total,i.currency,p.created_at AS created,

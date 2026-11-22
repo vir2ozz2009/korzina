@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { StorefrontReceiving } from "../src/shared/contracts/receiving-time";
 import type { SellerOrder } from "../src/shared/contracts/seller-order";
+import { calendarDate, formatShopDay } from "../src/shared/datetime";
 import { placePickup } from "./seller-orders";
 
 test("Блок 9 · ближайшее получение, рабочий день и заказы в сборке", async ({ browser, baseURL }) => {
@@ -9,19 +10,59 @@ test("Блок 9 · ближайшее получение, рабочий ден
     browser.newContext({ baseURL, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.91" } }),
     browser.newContext({ baseURL, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.92" } }),
   ]);
+  const fixture = "/__e2e/test2/workday";
   try {
     expect((await seller.request.post("/__e2e/test2/seller")).status()).toBe(204);
+    expect((await buyer.request.get("/api/shop?shop=test2")).ok()).toBe(true);
+    expect((await seller.request.post(fixture, { data: "setup" })).status()).toBe(204);
     const storefront = await buyer.newPage();
     await storefront.goto("/?shop=test2");
     const availability: StorefrontReceiving = await (await buyer.request.get("/api/receiving/next?shop=test2")).json();
     expect(availability.methods.some(({ method }) => method === "pickup")).toBe(true);
-    await expect(storefront.getByText(/Самовывоз:|Время самовывоза согласуем/).first()).toBeVisible();
+    for (const entry of availability.methods) {
+      let text: string;
+      if (entry.mode === "after_order") {
+        text =
+          entry.method === "delivery"
+            ? "Время доставки согласуем после заказа"
+            : "Время самовывоза согласуем после заказа";
+      } else if (entry.mode === "unknown") {
+        text = "Время уточнит магазин после заказа";
+      } else {
+        if (!entry.date) throw new Error("У ближайшего получения должна быть дата");
+        if (entry.mode === "slots" && !entry.start) throw new Error("У ближайшего интервала должно быть начало");
+        const label = entry.method === "delivery" ? "Ближайшая доставка" : "Самовывоз";
+        const day =
+          entry.date === availability.today
+            ? "сегодня"
+            : entry.date === calendarDate(availability.today, 1)
+              ? "завтра"
+              : formatShopDay(entry.date, availability.timeZone).toLowerCase();
+        text = `${label}: ${day}${entry.mode === "slots" ? ` с ${entry.start?.replace(/^0/u, "")}` : ""}`;
+      }
+      await expect(storefront.getByText(text, { exact: true }).first()).toBeVisible();
+    }
+    await expect(storefront.locator("body")).not.toContainText(/(?:^|[^\p{L}])закрыто(?:$|[^\p{L}])/iu);
     await storefront.screenshot({ path: "test-results/workday-storefront-390.png", animations: "disabled" });
 
     const order = await placePickup(buyer.request, true);
     const pickup = availability.methods.find(({ method }) => method === "pickup");
-    expect(order.time?.date).toBe(pickup?.date);
-    if (pickup?.mode === "slots") expect(order.time?.slotId).toBe(`${pickup.start}-${pickup.end}`);
+    const date = order.time?.date;
+    const slot = order.time?.slotId;
+    if (!date || !slot || !pickup) throw new Error("Нужен заказ на интервал самовывоза");
+    expect(date).toBe(availability.today);
+    expect(date).toBe(pickup.date);
+    expect(slot).toBe(`${pickup.start}-${pickup.end}`);
+    const messagePath = `/__e2e/test2/order-message?queued=1&number=${order.number}&now=${Date.now()}`;
+    await expect
+      .poll(async () => {
+        const response = await seller.request.post(messagePath);
+        return response.ok() ? response.json() : null;
+      })
+      .toMatchObject({
+        recipient: "990000001",
+        text: expect.stringMatching(new RegExp(`^Новый заказ №${order.number} · `)),
+      });
     const cabinet = await seller.newPage();
     await cabinet.goto("/seller?store=test2");
     const receipt = cabinet.getByRole("button", { name: /^Проверить чек/ });
@@ -36,17 +77,32 @@ test("Блок 9 · ближайшее получение, рабочий ден
 
     await cabinet.getByRole("button", { name: "Календарь", exact: true }).click();
     await expect(cabinet.getByRole("heading", { name: "Календарь", exact: true })).toBeVisible();
-    const date = order.time?.date ?? availability.today;
     const formattedDate = new Intl.DateTimeFormat("ru", { day: "numeric", month: "long", timeZone: "UTC" }).format(
       new Date(date),
     );
-    if (date.slice(0, 7) !== availability.today.slice(0, 7))
-      await cabinet.getByRole("button", { name: "Следующий месяц", exact: true }).click();
     await cabinet.screenshot({ path: "test-results/workday-calendar-390.png", animations: "disabled" });
     await cabinet.getByRole("button", { name: new RegExp(`^${formattedDate},`) }).click();
     await expect(find()).toBeVisible();
 
-    await cabinet.goto(`/seller/workday/packing?store=test2&day=${date}&view=day`);
+    await cabinet.goto("/seller?store=test2");
+    await cabinet.getByRole("button", { name: /^Ближайшие:/ }).click();
+    await expect(cabinet.getByRole("heading", { name: "Список сборки", exact: true })).toBeVisible();
+    const packingUrl = new URL(cabinet.url());
+    expect(packingUrl.pathname).toBe("/seller/workday/packing");
+    expect(packingUrl.searchParams.get("day")).toBe(date);
+    expect(packingUrl.searchParams.get("window")).toBe(slot);
+    await expect(cabinet.getByRole("button", { name: "По времени", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    const window = cabinet.locator(`[id="packing-${slot}"]`);
+    await expect(window.getByRole("heading")).toBeInViewport();
+    await window.getByRole("button", { name: new RegExp(order.lines[0].name, "u") }).click();
+    await expect(
+      cabinet.getByRole("dialog").getByRole("button", { name: new RegExp(`^№${order.number} ·`) }),
+    ).toBeVisible();
+    await cabinet.getByRole("dialog").getByRole("button", { name: "Закрыть" }).click();
+    await cabinet.getByRole("button", { name: "Весь день", exact: true }).click();
     const product = cabinet.getByRole("button", { name: new RegExp(order.lines[0].name, "u") }).first();
     await expect(product).toBeVisible();
     await cabinet.screenshot({ path: "test-results/workday-packing-390.png", animations: "disabled" });
@@ -56,14 +112,22 @@ test("Блок 9 · ближайшее получение, рабочий ден
     await cabinet.screenshot({ path: "test-results/workday-packing-orders-390.png", animations: "disabled" });
     await sheet.getByRole("button", { name: new RegExp(`^№${order.number} ·`) }).click();
     await expect(cabinet.getByRole("heading", { name: `Заказ №${order.number}` })).toBeVisible();
+    const sellerOrder = `/api/seller/orders/${order.number}`;
+    const accepted = cabinet.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === `${sellerOrder}/transition` && response.request().method() === "POST",
+    );
+    await cabinet.getByRole("button", { name: "Принять", exact: true }).click();
+    const acceptResponse = await accepted;
+    expect(acceptResponse.ok()).toBe(true);
+    let current: SellerOrder = await acceptResponse.json();
+    expect(current.stage).toBe("accepted");
+    await expect(cabinet.getByRole("button", { name: "Отметить все собранными" })).toBeVisible();
     await cabinet.getByRole("button", { name: "Назад", exact: true }).click();
     await expect(cabinet).toHaveURL(/view=day/);
     await expect(product).toBeVisible();
 
-    const sellerOrder = `/api/seller/orders/${order.number}`;
-    let current: SellerOrder = await (await seller.request.get(`${sellerOrder}?store=test2`)).json();
     for (const step of [
-      { action: "accept" },
       { action: "setAllPacked", packed: true },
       { action: "markReady" },
       { action: "confirmTransfer", proof: current.receipts[0].id, amountMinor: order.totalMinor },
@@ -79,7 +143,11 @@ test("Блок 9 · ближайшее получение, рабочий ден
     await storefront.goto(`/orders/${order.number}?shop=test2`);
     await expect(storefront.getByRole("heading", { name: "Выдан", exact: true })).toBeVisible();
   } finally {
-    await Promise.all([buyer.close(), seller.close()]);
+    try {
+      expect((await seller.request.post(fixture, { data: "restore" })).status()).toBe(204);
+    } finally {
+      await Promise.all([buyer.close(), seller.close()]);
+    }
   }
 });
 
