@@ -64,7 +64,11 @@ export async function serveHtml(request: Request, env: Env): Promise<Response> {
               features: {},
               theme: DEFAULT_THEME,
             });
-    const page = themedHtml(response, context, isShop);
+    const page = themedHtml(
+      response,
+      { ...context, hasReceiving: isShop && (context.status === "active" || teamPreview) },
+      isShop,
+    );
     const name = customerCookie(context.id);
     const token = request.method === "GET" ? cookieValue(request, name) : undefined;
     if (token && /^[a-f0-9]{64}$/u.test(token)) {

@@ -28,9 +28,10 @@ export function OrderingBanner() {
   const slug = bootstrap?.slug;
   const query = useQuery({
     queryKey: ["storefront-receiving", slug],
-    enabled: !!bootstrap?.receiving,
+    enabled: !!bootstrap?.hasReceiving || !!bootstrap?.receiving,
     initialData: bootstrap?.receiving,
     refetchOnMount: false,
+    refetchOnWindowFocus: true,
     staleTime: 30_000,
     retry: false,
     queryFn: async ({ signal }): Promise<StorefrontReceiving> => {

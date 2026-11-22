@@ -8,6 +8,7 @@ export const shopContextContract = z.extend(shopContract, {
   mediaOrigin: z.optional(z.string()),
   timeZone: z.optional(z.string()),
   orderBanners: z.optional(z.array(z.object({ text: z.string(), expires: z.nullable(z.number()) }))),
+  hasReceiving: z.optional(z.boolean()),
   receiving: z.optional(
     z.object({
       today: z.string(),
