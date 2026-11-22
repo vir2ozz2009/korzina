@@ -16,7 +16,7 @@ export function SellerOrdersShell({
   footer,
 }: {
   title: string;
-  children: (store: string) => ReactNode;
+  children: (store: string, money: boolean) => ReactNode;
   footer?: ReactNode;
 }) {
   const search = useRouterState({ select: (state) => state.location.search });
@@ -31,15 +31,17 @@ export function SellerOrdersShell({
   const denied = cabinet.error instanceof HttpError && cabinet.error.status === 403;
   return (
     <Screen
-      header={<Header title={login ? "Вход" : title} onBack={search.back && !login ? back : undefined} />}
+      header={
+        <Header
+          title={login ? "Вход" : title}
+          onBack={search.back && !login ? back : undefined}
+          sellerShop={cabinet.isError ? null : (cabinet.data?.current ?? null)}
+        />
+      }
       template="list"
       after={
         cabinet.data?.current && !cabinet.isError ? (
-          <SellerTabs
-            store={cabinet.data.current.slug}
-            account={cabinet.data.telegramId}
-            permissions={cabinet.data.current.permissions}
-          />
+          <SellerTabs store={cabinet.data.current.slug} permissions={cabinet.data.current.permissions} />
         ) : undefined
       }
       footer={footer}
@@ -54,7 +56,13 @@ export function SellerOrdersShell({
         />
       ) : (
         <QueryBoundary query={cabinet} template="list">
-          {({ current }) => (current ? children(current.slug) : <EmptyState title="Заказы недоступны" />)}
+          {({ current }) =>
+            current ? (
+              children(current.slug, current.role === "owner" || current.permissions.includes("payments"))
+            ) : (
+              <EmptyState title="Заказы недоступны" />
+            )
+          }
         </QueryBoundary>
       )}
     </Screen>

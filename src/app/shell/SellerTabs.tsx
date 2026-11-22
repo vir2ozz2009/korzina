@@ -3,7 +3,6 @@ import { Boxes, House, MoreHorizontal, Package } from "lucide-react";
 import { useEffect } from "react";
 
 import { useSellerOrderBadge } from "../../features/seller/orders-api";
-import { useSellerOrdersLive } from "../../features/seller/useSellerOrdersLive";
 import type { Permission } from "../../shared/contracts/auth";
 import { sellerHistory, sellerTab } from "./tab-history";
 
@@ -13,18 +12,9 @@ const tabs = [
   { path: "/seller/products", title: "Товары", Icon: Boxes, permission: "products" as const },
   { path: "/seller/more", title: "Ещё", Icon: MoreHorizontal },
 ];
-export function SellerTabs({
-  store = "",
-  account,
-  permissions,
-}: {
-  store?: string;
-  account?: string;
-  permissions?: Permission[];
-}) {
+export function SellerTabs({ store = "", permissions }: { store?: string; permissions?: Permission[] }) {
   const orders = !permissions || permissions.includes("orders") ? store : "";
   const badge = useSellerOrderBadge(orders);
-  useSellerOrdersLive(orders, account);
   const router = useRouter();
   const location = useRouterState({ select: (state) => state.location });
   const active = sellerTab(location.pathname);

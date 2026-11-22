@@ -7,6 +7,7 @@ export const workdayFocus = z.enum(workdayFocuses);
 export type WorkdayFocus = z.infer<typeof workdayFocus>;
 export const workdayDay = z.object({ day: z.iso.date().optional(), version: z.string().max(250).optional() });
 export const workdayMonth = z.object({
+  version: workdayDay.shape.version,
   month: z
     .string()
     .regex(/^\d{4}-(0[1-9]|1[0-2])$/u)
@@ -43,6 +44,7 @@ export type SellerPackingList = {
 };
 export type SellerOrderCalendar = {
   rev: number;
+  version: string;
   month: string;
   today: string;
   counts: Record<string, number>;

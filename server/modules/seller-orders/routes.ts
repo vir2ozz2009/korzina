@@ -33,9 +33,11 @@ export const sellerOrderRoutes = new Hono<SellerOrderEnv>()
   })
   .get("/", zValidator("query", sellerOrdersQuery, validationFailure), (c) => {
     const query = c.req.valid("query");
-    if (query.focus === "receipt" || query.focus === "payment" || query.focus === "debt")
-      permitted(c.get("seller"), "payments");
-    return c.json(sellerOrders(c.env.storage, query, c.env.timeZone ?? defaultShopTimeZone));
+    const seller = c.get("seller");
+    if (query.focus === "receipt" || query.focus === "payment" || query.focus === "debt" || query.debt)
+      permitted(seller, "payments");
+    const money = seller.role === "owner" || seller.permissions.includes("payments");
+    return c.json(sellerOrders(c.env.storage, query, c.env.timeZone ?? defaultShopTimeZone, money));
   })
   .get("/workday", zValidator("query", workdayDay, validationFailure), (c) => {
     const seller = c.get("seller");
@@ -54,14 +56,16 @@ export const sellerOrderRoutes = new Hono<SellerOrderEnv>()
       sellerPacking(c.env.storage, c.env.timeZone ?? defaultShopTimeZone, Date.now(), c.req.valid("query").day),
     );
   })
-  .get("/calendar", zValidator("query", workdayMonth, validationFailure), (c) =>
-    c.json(
+  .get("/calendar", zValidator("query", workdayMonth, validationFailure), (c) => {
+    const { month, version } = c.req.valid("query");
+    return c.json(
       sellerOrderCalendar(
         { storage: c.env.storage, timeZone: c.env.timeZone ?? defaultShopTimeZone, now: Date.now() },
-        c.req.valid("query").month,
+        month,
+        version,
       ),
-    ),
-  )
+    );
+  })
   .get(
     "/:number/receipts/:id",
     zValidator("param", z.object({ number: orderNumberInput, id: z.uuid() }), validationFailure),

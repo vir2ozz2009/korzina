@@ -22,6 +22,10 @@ const formattedDay = (day: string) => dateLabel.format(new Date(`${day}T12:00:00
 const windowLabel = (window: string) => formatInterval(window).replace(/(^|–)0/gu, "$1");
 
 export function PackingScreen() {
+  const active = useRouterState({
+    select: (state) => state.location.pathname.replace(/\/$/u, "") === "/seller/workday/packing",
+  });
+  if (!active) return null;
   return (
     <SellerOrdersShell title="Список сборки">{(store) => <PackingQuery key={store} store={store} />}</SellerOrdersShell>
   );
@@ -173,6 +177,10 @@ function Packing({ store, data }: { store: string; data: SellerPackingList }) {
 }
 
 export function OrderCalendarScreen() {
+  const active = useRouterState({
+    select: (state) => state.location.pathname.replace(/\/$/u, "") === "/seller/workday/calendar",
+  });
+  if (!active) return null;
   return (
     <SellerOrdersShell title="Календарь">{(store) => <CalendarQuery key={store} store={store} />}</SellerOrdersShell>
   );

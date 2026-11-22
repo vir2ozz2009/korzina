@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CheckoutCommand } from "../../shared/contracts/checkout";
-import { checkResponse } from "../../shared/http-error";
+import { checkResponse, errorKind } from "../../shared/http-error";
 import { commandHeaders, shopApi, shopKey } from "../../shared/shop-api";
 
 export function usePurchaseSummary(revision: number | undefined) {
@@ -64,6 +64,8 @@ export type Attempt = { key: string; request: CheckoutCommand; startedAt: number
 
 export function usePlaceOrder() {
   return useMutation({
+    // A lost response can follow a commit. Retry the same command key to recover that order.
+    retry: (count, error) => count === 0 && errorKind(error) === "retry",
     mutationFn: async (attempt: Attempt) => {
       const response = await shopApi.api.checkout.$post(
         { json: attempt.request },

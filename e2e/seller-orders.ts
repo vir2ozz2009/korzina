@@ -23,7 +23,7 @@ function pdfReceipt() {
   return Buffer.from(`${file}trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${start}\n%%EOF\n`);
 }
 
-export async function placePickup(request: APIRequestContext, transfer: boolean) {
+export async function preparePickup(request: APIRequestContext) {
   const read = async <T>(path: string): Promise<T> => {
     const response = await request.get(`${path}${path.includes("?") ? "&" : "?"}shop=test2`);
     expect(response.ok()).toBe(true);
@@ -50,6 +50,11 @@ export async function placePickup(request: APIRequestContext, transfer: boolean)
     expectedRevision: changed.revision,
     complete: true,
   });
+  return { read, write, receiving };
+}
+
+export async function placePickup(request: APIRequestContext, transfer: boolean) {
+  const { read, write, receiving } = await preparePickup(request);
   const availability = await read<{ mode: string; days: AvailabilityDay[] }>(
     "/api/receiving/availability?method=pickup",
   );

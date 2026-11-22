@@ -30,12 +30,8 @@ export function TeamScreen() {
   return (
     <Screen
       template="list"
-      header={<Header title={title} actions={null} />}
-      after={
-        current ? (
-          <SellerTabs store={current.slug} account={cabinet.data?.telegramId} permissions={current.permissions} />
-        ) : undefined
-      }
+      header={<Header title={title} sellerShop={cabinet.isError ? null : (current ?? null)} />}
+      after={current ? <SellerTabs store={current.slug} permissions={current.permissions} /> : undefined}
     >
       <QueryBoundary query={cabinet} template="list">
         {({ current }) =>

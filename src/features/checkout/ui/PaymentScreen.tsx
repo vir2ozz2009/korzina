@@ -4,7 +4,7 @@ import { MapPin, Phone, Store } from "lucide-react";
 import { useState } from "react";
 import { Header } from "../../../app/shell/Header";
 import { Screen } from "../../../app/shell/Screen";
-import type { CheckoutCommand, QuoteResponse } from "../../../shared/contracts/checkout";
+import type { CheckoutCommand, OrderResult, QuoteResponse } from "../../../shared/contracts/checkout";
 import { HttpError } from "../../../shared/http-error";
 import { formatMinor } from "../../../shared/money";
 import { timeChangedMessage } from "../../../shared/receiving-hours";
@@ -35,7 +35,7 @@ export function PaymentScreen() {
   const [contactOpen, setContactOpen] = useState(false);
   const [attempt, setAttempt] = useState(readAttempt);
   const [before, setBefore] = useState<QuoteResponse>();
-  const [failure, setFailure] = useState("");
+  const [failure, setFailure] = useState(attempt ? "Проверьте результат оформления." : "");
   const place = usePlaceOrder();
   const draft = receiving.data;
   const timeSelection = useReceivingTime(draft, !attempt);
@@ -73,22 +73,9 @@ export function PaymentScreen() {
     setFailure("");
     setAttempt(next);
     storeAttempt(next);
+    let order: OrderResult;
     try {
-      const order = await place.mutateAsync(next);
-      rememberBuyer(true);
-      void client.invalidateQueries({ queryKey: orderKeys });
-      client.setQueryData(["shop", shopKey, "order", order.number], order);
-      storeOrderNumber(order.number);
-      receipt.complete();
-      storeAttempt();
-      void client.invalidateQueries({ queryKey: ["shop", shopKey, "cart"] });
-      void client.invalidateQueries({ queryKey: ["shop", shopKey, "receiving"] });
-      void client.invalidateQueries({ queryKey: ["shop", shopKey, "purchase-summary"] });
-      await navigate({
-        to: "/checkout/done",
-        search: (previous) => ({ shop: previous.shop, order: order.number }),
-        replace: true,
-      });
+      order = await place.mutateAsync(next);
     } catch (error) {
       if (error instanceof HttpError && error.status < 500 && error.status !== 429) {
         storeAttempt();
@@ -102,9 +89,24 @@ export function PaymentScreen() {
           setTimeOpen(true);
         }
       } else {
-        setFailure("Ответ об оформлении не получен");
+        setFailure("Результат оформления пока неизвестен. Проверьте ещё раз.");
       }
+      return;
     }
+    rememberBuyer(true);
+    void client.invalidateQueries({ queryKey: orderKeys });
+    client.setQueryData(["shop", shopKey, "order", order.number], order);
+    storeOrderNumber(order.number);
+    receipt.complete();
+    storeAttempt();
+    void client.invalidateQueries({ queryKey: ["shop", shopKey, "cart"] });
+    void client.invalidateQueries({ queryKey: ["shop", shopKey, "receiving"] });
+    void client.invalidateQueries({ queryKey: ["shop", shopKey, "purchase-summary"] });
+    void navigate({
+      to: "/checkout/done",
+      search: (previous) => ({ shop: previous.shop, order: order.number }),
+      replace: true,
+    });
   }
 
   function submit() {
@@ -157,10 +159,12 @@ export function PaymentScreen() {
     >
       {attempt ? (
         <Card role="status">
-          <p>{place.isPending ? "Проверяем результат…" : failure || "Ответ об оформлении не получен"}</p>
-          <Button full loading={place.isPending} onClick={() => void send(attempt)}>
-            Проверить ещё раз
-          </Button>
+          <p>{failure || "Проверяем результат…"}</p>
+          {failure && (
+            <Button full onClick={() => void send(attempt)}>
+              Проверить ещё раз
+            </Button>
+          )}
         </Card>
       ) : (
         <>

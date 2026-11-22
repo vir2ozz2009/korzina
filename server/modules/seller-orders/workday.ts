@@ -68,9 +68,12 @@ export function sellerWorkday({ storage, timeZone, now }: Context, money: boolea
   } satisfies SellerWorkday;
 }
 
-export function sellerOrderCalendar({ storage, timeZone, now }: Context, month?: string): SellerOrderCalendar {
+export function sellerOrderCalendar({ storage, timeZone, now }: Context, month?: string, previous?: string) {
   const today = shopDateTime(now, timeZone).date;
   month ??= today.slice(0, 7);
+  const rev = orderListRevision(storage);
+  const version = JSON.stringify([rev, month, today, timeZone]);
+  if (previous === version) return { unchanged: true as const };
   const first = `${month}-01`;
   const days = [];
   for (let day = first; day.startsWith(month); day = calendarDate(day, 1)) {
@@ -88,9 +91,10 @@ export function sellerOrderCalendar({ storage, timeZone, now }: Context, month?:
     )
     .toArray();
   return {
-    rev: orderListRevision(storage),
+    rev,
+    version,
     month,
     today,
     counts: Object.fromEntries(counts.map((row) => [row.day, row.count])),
-  };
+  } satisfies SellerOrderCalendar;
 }

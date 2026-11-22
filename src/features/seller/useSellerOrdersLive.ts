@@ -1,10 +1,20 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useCabinet } from "./api";
 import { invalidateSellerOrders, sellerOrdersSocket } from "./orders-api";
 
 type Update = { topic: "orders"; cursor: number; id?: number };
 
-export function useSellerOrdersLive(store: string, account: string | undefined) {
+export function SellerOrderUpdates() {
+  const store = useRouterState({ select: (state) => state.location.search.store });
+  const cabinet = useCabinet(store);
+  const current = cabinet.isError ? undefined : cabinet.data?.current;
+  useSellerOrdersLive(current?.permissions?.includes("orders") ? current.slug : "", cabinet.data?.telegramId);
+  return null;
+}
+
+function useSellerOrdersLive(store: string, account: string | undefined) {
   const client = useQueryClient();
   useEffect(() => {
     if (!store || !account) return;
@@ -82,7 +92,6 @@ export function useSellerOrdersLive(store: string, account: string | undefined) 
       if (session) return;
       session = new AbortController();
       const { signal } = session;
-      refresh();
       if (navigator.locks && channel) {
         void navigator.locks
           .request(name, { signal }, () => lead(signal))

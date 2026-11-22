@@ -1,6 +1,6 @@
 import { Outlet, useRouterState } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
-import { type TouchEvent, useEffect, useRef } from "react";
+import { lazy, Suspense, type TouchEvent, useEffect, useRef } from "react";
 import { CartProvider } from "../../features/cart";
 import { FavoritesProvider } from "../../features/favorites";
 import { FeatureProvider } from "../../shared/useFeature";
@@ -15,6 +15,12 @@ import { ToastProvider } from "./ToastProvider";
 import { Transition } from "./Transition";
 import { useBack } from "./useBack";
 import { useViewport } from "./useViewport";
+
+const SellerOrderUpdates = lazy(() =>
+  import("../../features/seller/useSellerOrdersLive").then(({ SellerOrderUpdates }) => ({
+    default: SellerOrderUpdates,
+  })),
+);
 
 export function AppShell() {
   const keyboardOpen = useViewport();
@@ -75,6 +81,11 @@ export function AppShell() {
           <FavoritesProvider>
             <ShopNavigation>
               <TelegramBridge />
+              {seller && (
+                <Suspense fallback={null}>
+                  <SellerOrderUpdates />
+                </Suspense>
+              )}
               <div
                 className={`mx-auto min-h-(--app-height) max-w-(--content-max) overflow-x-clip pt-(--safe-top) pl-(--safe-left) pr-(--safe-right) pb-[calc(var(--tab-height)+var(--safe-bottom))] ${seller ? "[--tab-height:var(--seller-tab-height)]" : ""}`}
                 data-seller={seller}

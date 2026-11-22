@@ -32,8 +32,10 @@ import { StatusPill } from "../../../ui/StatusPill";
 import { useCabinet, useSellerLogout } from "../api";
 import { CabinetLogin } from "./CabinetLogin";
 import { LaunchReadiness } from "./LaunchReadiness";
+import { ShareLinkField } from "./ShareLinkField";
 import { PauseCard } from "./settings/PauseCard";
 import { ReconnectStaffBot } from "./team/ReconnectStaffBot";
+import { useShareLink } from "./useShareLink";
 
 const WorkdaySummary = lazy(() =>
   import("./workday/WorkdaySummary").then((module) => ({ default: module.WorkdaySummary })),
@@ -50,6 +52,7 @@ export function CabinetScreen() {
   const refetch = query.refetch;
   const refresh = useCallback(() => void refetch(), [refetch]);
   const navigate = useNavigate();
+  const { share, manualUrl } = useShareLink();
   const [sheet, setSheet] = useState<"shops" | "logout">();
   const more = pathname === "/seller/more";
   const profile = pathname === "/seller/profile";
@@ -70,12 +73,13 @@ export function CabinetScreen() {
       template="form"
       after={
         query.data && !query.isError ? (
-          <SellerTabs store={current?.slug} account={query.data.telegramId} permissions={current?.permissions} />
+          <SellerTabs store={current?.slug} permissions={current?.permissions} />
         ) : undefined
       }
       header={
         <Header
           title={needsLogin ? "Вход" : pathname === "/seller" && current ? "Главная" : title}
+          sellerShop={query.isError ? null : (current ?? null)}
           actions={
             query.data &&
             !query.isError &&
@@ -217,6 +221,18 @@ export function CabinetScreen() {
                       >
                         {statusNames[shop.status]}
                       </StatusPill>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        {manualUrl === shop.storefrontUrl ? (
+                          <ShareLinkField url={shop.storefrontUrl} />
+                        ) : (
+                          <p className="break-all text-small">{shop.storefrontUrl}</p>
+                        )}
+                      </div>
+                      <Button variant="secondary" onClick={() => void share(shop.storefrontUrl)}>
+                        Поделиться
+                      </Button>
                     </div>
                     {shop.status === "draft" && (
                       <p className="text-small text-muted-foreground">Витрина пока закрыта</p>

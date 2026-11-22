@@ -79,6 +79,7 @@ export const sellerOrdersQuery = z.object({
   search: z.string().trim().max(80).optional(),
   cursor: z.string().max(500).optional(),
   rev: z.coerce.number().int().nonnegative().optional(),
+  cachedMoney: z.enum(["0", "1"]).optional(),
 });
 export type SellerOrdersQuery = z.infer<typeof sellerOrdersQuery>;
 export type SellerOrderSummary = {
@@ -89,16 +90,17 @@ export type SellerOrderSummary = {
   receivingAt: string;
   createdAt: number;
   name: string | null;
-  currency: string;
-  totalMinor: number;
+  currency?: string;
+  totalMinor?: number;
   paymentStatus: PaymentState;
   packed: number;
   lines: number;
-  debtMinor: number;
-  refundMinor: number;
+  debtMinor?: number;
+  refundMinor?: number;
 };
 export type SellerOrderPage = {
   rev: number;
+  money: boolean;
   timeZone: string;
   orders: SellerOrderSummary[];
   active: number;
