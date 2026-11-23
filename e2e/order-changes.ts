@@ -11,6 +11,17 @@ export async function checkOrderChanges(browser: Browser, baseURL: string) {
     browser.newContext({ baseURL, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.112" } }),
     browser.newContext({ baseURL, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.113" } }),
   ]);
+  const origin = new URL(baseURL).origin;
+  for (const context of [buyer, seller]) {
+    await context.route(
+      (url) => url.origin !== origin,
+      async (route) => {
+        const headers = await route.request().allHeaders();
+        delete headers["cf-connecting-ip"];
+        await route.continue({ headers });
+      },
+    );
+  }
   const schedule = "/__e2e/test2/workday";
   try {
     expect((await buyer.request.get("/api/shop?shop=test2")).ok()).toBe(true);
@@ -75,8 +86,10 @@ export async function checkOrderChanges(browser: Browser, baseURL: string) {
     await expect(images).toHaveCount(2);
     await expect
       .poll(async () =>
-        images.evaluateAll((photos) =>
-          photos.every((photo) => photo instanceof HTMLImageElement && photo.complete && photo.naturalWidth > 0),
+        images.evaluateAll(
+          (photos) =>
+            photos.length === 2 &&
+            photos.every((photo) => photo instanceof HTMLImageElement && photo.complete && photo.naturalWidth > 0),
         ),
       )
       .toBe(true);

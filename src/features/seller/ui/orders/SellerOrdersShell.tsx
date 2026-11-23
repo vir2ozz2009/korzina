@@ -36,7 +36,7 @@ export function SellerOrdersShell({
         <Header
           title={login ? "Вход" : title}
           extraActions={
-            !cabinet.isError && cabinet.data?.current?.permissions.includes("chat") ? (
+            !cabinet.isError && cabinet.data?.current?.permissions?.includes("chat") ? (
               <SellerChatButton store={cabinet.data.current.slug} />
             ) : undefined
           }

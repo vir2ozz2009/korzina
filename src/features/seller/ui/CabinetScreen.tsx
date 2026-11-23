@@ -69,7 +69,7 @@ export function CabinetScreen() {
           title={needsLogin ? "Вход" : pathname === "/seller" && current ? "Главная" : title}
           sellerShop={query.isError ? null : (current ?? null)}
           extraActions={
-            !query.isError && current?.permissions.includes("chat") ? (
+            !query.isError && current?.permissions?.includes("chat") ? (
               <SellerChatButton store={current.slug} />
             ) : undefined
           }
