@@ -3,7 +3,7 @@ import { orderLineKey } from "../../../src/shared/contracts/order-changes";
 import { ApiError } from "../../../src/shared/errors";
 import { addMinor, multiplyMinor } from "../../../src/shared/money";
 import type { ShopEnv } from "../../shop/env";
-import { type ChangeState, compositionTotals, pendingComposition, requireChangeable } from "./state";
+import { type ChangeState, compositionTotals, hasPendingOrderChange, requireChangeable } from "./state";
 import { replacementLine, replacementOffers } from "./stock";
 
 const pendingError = () => new ApiError("ANOTHER_CHANGE_PENDING", "По заказу уже ждём ответа");
@@ -17,7 +17,7 @@ export function planComposition(env: ShopEnv["Bindings"], state: ChangeState, in
   const requests = new Map<string, number>();
   for (const edit of edits) {
     if (edit.kind === "unavailable") continue;
-    if (pendingComposition(work.composition)) throw pendingError();
+    if (hasPendingOrderChange(work)) throw pendingError();
     requests.set(edit.variantId, (requests.get(edit.variantId) ?? 0) + edit.quantity);
   }
   const offers = replacementOffers(env, [...requests.keys()]);

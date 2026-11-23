@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Cart } from "./cart";
 import type { OrderResult } from "./checkout";
-import type { CompositionSummary } from "./order-changes";
+import type { CompositionSummary, TimeChange } from "./order-changes";
 import type { TimeChoice } from "./receiving-time";
 
 export const orderNumberInput = z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER);
@@ -32,6 +32,7 @@ export type BuyerOrder = Omit<OrderResult, "paymentStatus"> &
     version: number;
     paymentStatus: PaymentState;
     composition?: CompositionSummary;
+    timeChange?: TimeChange;
     canCancel: boolean;
     canReplaceProof: boolean;
     refundMinor?: number;

@@ -13,7 +13,7 @@ import { revisionResponse } from "../../revisions";
 import type { ShopEnv } from "../../shop/env";
 import { sessions } from "../../shop/schema";
 import { readCustomerWith } from "../auth/service";
-import { orderComposition } from "../order-changes/state";
+import { orderComposition, orderTimeChange } from "../order-changes/state";
 import type { ReservedOrder } from "./order-reservation";
 import { orderBalance, orderFinance, orderWorkflow } from "./order-workflow";
 import { buyerOrderRevisions } from "./schema";
@@ -65,6 +65,7 @@ export function buyerOrder(row: OrderRow): BuyerOrder {
     version: row.version,
     paymentStatus: row.payment_status,
     composition: orderComposition({ row, snapshot, work }),
+    timeChange: orderTimeChange(row, work),
     canCancel: isActiveOrder(row.status) && row.status !== "handed" && !work.handedOff,
     canReplaceProof:
       row.status !== "cancelled" &&
