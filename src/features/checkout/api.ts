@@ -7,7 +7,8 @@ export function usePurchaseSummary(revision: number | undefined) {
   return useQuery({
     queryKey: ["shop", shopKey, "purchase-summary", revision],
     enabled: revision !== undefined,
-    staleTime: 30_000,
+    // Shop minimums and tariffs can change without a new cart revision.
+    refetchOnMount: "always",
     queryFn: async ({ signal }) => {
       const response = await shopApi.api.checkout.summary.$get({}, { init: { signal } });
       await checkResponse(response);

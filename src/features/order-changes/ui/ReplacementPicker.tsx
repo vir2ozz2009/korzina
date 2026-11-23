@@ -23,9 +23,10 @@ export function ReplacementPicker({
 }) {
   const [search, setSearch] = useState("");
   const [choice, setChoice] = useState<ReplacementPick>();
-  const [quantity, setQuantity] = useState(line.quantity);
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const query = useReplacementPicks(store, number, useDeferredValue(search.trim()), !choice);
   const max = choice?.stock ?? 999;
+  const quantity = (choice && quantities[choice.variantId]) ?? line.quantity;
   return (
     <Sheet
       open
@@ -41,7 +42,11 @@ export function ReplacementPicker({
             {choice.name} · {choice.unit}
           </p>
           {quantity > max && <p role="alert">Доступно {max}. Уменьшите количество.</p>}
-          <Stepper value={quantity} max={max} onChange={setQuantity} />
+          <Stepper
+            value={quantity}
+            max={max}
+            onChange={(value) => setQuantities((draft) => ({ ...draft, [choice.variantId]: value }))}
+          />
           <Button full disabled={quantity > max} onClick={() => choose(choice.variantId, quantity)}>
             Выбрать
           </Button>
@@ -58,10 +63,7 @@ export function ReplacementPicker({
                     key={item.variantId}
                     title={item.name}
                     subtitle={item.unit}
-                    onClick={() => {
-                      setChoice(item);
-                      setQuantity(line.quantity);
-                    }}
+                    onClick={() => setChoice(item)}
                   />
                 ))
               ) : (

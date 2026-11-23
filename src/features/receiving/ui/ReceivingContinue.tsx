@@ -33,6 +33,16 @@ export function ReceivingContinue({
   const selection = data.receiving;
   const toCart = () => void navigate({ to: "/cart", search: (previous) => ({ shop: previous.shop }) });
   const toPayment = () => void navigate({ to: "/checkout/payment", search: (previous) => ({ shop: previous.shop }) });
+  if (summary.isFetching) return null;
+  if (summary.isError)
+    return (
+      <Card role="alert">
+        Не удалось пересчитать заказ{" "}
+        <Button variant="secondary" onClick={() => void summary.refetch()}>
+          Повторить
+        </Button>
+      </Card>
+    );
   if (!selection || !total?.currency) return null;
   if (!total.acceptingOrders || total.unavailable?.[selection.mode])
     return (
@@ -99,7 +109,7 @@ export function ReceivingContinue({
           size="xl"
           className="shadow-float"
           loading={prepare.isPending}
-          disabled={checking || !!timeError || summary.isFetching || !!currentUpdate}
+          disabled={checking || !!timeError || !!currentUpdate}
           subtitle={
             schedule.data?.mode === "after_order"
               ? "Дату и время согласуем после заказа"

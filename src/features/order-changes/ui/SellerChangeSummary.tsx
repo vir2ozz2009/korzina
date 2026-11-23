@@ -1,6 +1,7 @@
 import type { CompositionSummary } from "../../../shared/contracts/order-changes";
 import { shopDateTime } from "../../../shared/datetime";
 import { Card } from "../../../ui/Card";
+import { StatusPill } from "../../../ui/StatusPill";
 import { ChangeAmount } from "./ChangeTotals";
 
 export function SellerChangeSummary({ change, timeZone }: { change: CompositionSummary; timeZone: string }) {
@@ -20,7 +21,7 @@ export function SellerChangeSummary({ change, timeZone }: { change: CompositionS
         <div key={line.id} className="flex flex-wrap items-center justify-between gap-1 border-t border-border py-2">
           <div>
             <p className="text-label">{line.before?.name ?? line.after?.name}</p>
-            {line.kind === "decrease" ? (
+            {line.status === "declined" ? null : line.kind === "decrease" ? (
               <p>
                 Есть {line.after?.quantity} из {line.before?.quantity}
               </p>
@@ -31,16 +32,17 @@ export function SellerChangeSummary({ change, timeZone }: { change: CompositionS
             ) : line.status === "accepted" ? (
               <p>Замена: {line.after?.name} · согласен ✓</p>
             ) : (
-              <p>
-                {line.status === "declined"
-                  ? "Отказался"
-                  : line.status === "expired"
-                    ? "Срок ответа истёк"
-                    : "Предложение закрыто"}
-              </p>
+              <p>{line.status === "expired" ? "Срок ответа истёк" : "Предложение закрыто"}</p>
             )}
           </div>
-          <ChangeAmount delta={line.deltaMinor} currency={change.totals.currency} pending={line.status === "pending"} />
+          <div className="flex flex-wrap gap-1" role={line.status === "applied" ? undefined : "status"}>
+            {line.status === "declined" && <StatusPill>Отказался</StatusPill>}
+            <ChangeAmount
+              delta={line.deltaMinor}
+              currency={change.totals.currency}
+              pending={line.status === "pending"}
+            />
+          </div>
         </div>
       ))}
     </Card>

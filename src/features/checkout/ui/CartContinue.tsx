@@ -27,7 +27,7 @@ export function CartContinue({
   const buyer = useContact();
   const save = useSaveReceiving();
   const [error, setError] = useState("");
-  const data = summary.data;
+  const data = summary.isFetching || summary.isError ? undefined : summary.data;
   const selection = receiving.data;
   if (!data?.currency || !selection)
     return summary.isError ? (
@@ -83,9 +83,7 @@ export function CartContinue({
             size="xl"
             className="shadow-float"
             loading={save.isPending}
-            disabled={
-              disabled || !method || !buyer.data || summary.isError || summary.isFetching || receiving.isFetching
-            }
+            disabled={disabled || !method || !buyer.data || receiving.isFetching}
             subtitle={
               needsAddress
                 ? "Укажите адрес доставки"
