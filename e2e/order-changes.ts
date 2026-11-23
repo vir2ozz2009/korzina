@@ -1,4 +1,4 @@
-import { type Browser, expect } from "@playwright/test";
+import { type Browser, expect, test } from "@playwright/test";
 import type { BuyerOrder } from "../src/shared/contracts/buyer-order";
 import type { AvailabilityDay } from "../src/shared/contracts/receiving-time";
 import type { SellerOrder } from "../src/shared/contracts/seller-order";
@@ -69,13 +69,21 @@ export async function checkOrderChanges(browser: Browser, baseURL: string) {
     await cabinet.getByRole("button", { name: `Изменить ${first.name}`, exact: true }).click();
     await cabinet.getByRole("button", { name: "Заменить", exact: true }).click();
     await cabinet.getByRole("searchbox", { name: "Поиск по товарам магазина" }).fill(replacement.name);
-    await cabinet
+    const option = cabinet
       .getByRole("dialog")
       .getByRole("button")
       .filter({ hasText: replacement.name })
       .filter({ hasText: replacement.unit })
-      .first()
-      .click();
+      .first();
+    await option.click();
+    await test.step("#228 · 05: фасовка помнит количество после возврата к списку", async () => {
+      await cabinet.getByRole("button", { name: "Уменьшить количество", exact: true }).click();
+      await cabinet.getByRole("dialog").getByRole("button", { name: "Назад", exact: true }).click();
+      await option.click();
+      await expect(cabinet.getByLabel("Количество", { exact: true })).toHaveText(String(first.quantity - 1));
+      await cabinet.screenshot({ path: "test-results/block10-replacement-quantity-390.png", animations: "disabled" });
+      await cabinet.getByRole("button", { name: "Увеличить количество", exact: true }).click();
+    });
     await cabinet.getByRole("button", { name: "Выбрать", exact: true }).click();
     await cabinet.getByRole("button", { name: "Сообщить покупателю (1)", exact: true }).click();
     const orderChange = storefront.getByRole("button", { name: /Магазин предлагает замену/ });
@@ -150,6 +158,34 @@ export async function checkOrderChanges(browser: Browser, baseURL: string) {
     expect(completed).toMatchObject({ stage: "completed", balance: { outstandingMinor: 0, debtMinor: 0 } });
     await storefront.getByRole("button", { name: `Открыть заказ №${order.number}`, exact: true }).click();
     await expect(storefront.getByRole("heading", { name: "Выдан", exact: true })).toBeVisible();
+
+    await test.step("#228 · 03а, §13.2: «Не нужно» обновляет строку продавца без перезагрузки", async () => {
+      const declined = await placePickup(buyer.request, false);
+      const path = `/api/seller/orders/${declined.number}/composition`;
+      const edit = {
+        expectedVersion: declined.revision,
+        edits: [
+          { kind: "replace", lineId: declined.lines[0].variantId, variantId: replacement.variantId, quantity: 1 },
+        ],
+      };
+      const quote = await seller.request.post(`${path}/quote?store=test2`, { data: edit });
+      expect(quote.ok(), await quote.text()).toBe(true);
+      const proposal = await seller.request.post(`${path}?store=test2`, {
+        data: { ...edit, quote: (await quote.json()).quote },
+        headers: { "Idempotency-Key": crypto.randomUUID() },
+      });
+      expect(proposal.ok(), await proposal.text()).toBe(true);
+      await Promise.all([
+        storefront.goto(`/orders/${declined.number}/changes?shop=test2`),
+        cabinet.goto(`/seller/orders/${declined.number}?store=test2`),
+      ]);
+      await expect(cabinet.getByRole("status").filter({ hasText: /ждём ответа/iu })).toBeVisible();
+      await storefront.getByRole("button", { name: "Не нужно", exact: true }).click();
+      const refusal = cabinet.getByRole("status").filter({ hasText: "Отказался" });
+      await expect(refusal).toBeVisible();
+      await expect(cabinet.getByRole("status").filter({ hasText: /ждём ответа/iu })).toHaveCount(0);
+      await cabinet.screenshot({ path: "test-results/block10-seller-declined-390.png", animations: "disabled" });
+    });
   } finally {
     await seller.request.post(schedule, { data: "restore" });
     await Promise.all([buyer.close(), seller.close()]);

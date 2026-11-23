@@ -101,7 +101,8 @@ export function AddressSheet({
 
   function change(address: DeliveryAddress) {
     setError("");
-    setDraft(address);
+    const unchanged = normalize(address.address) === normalize(draft.address);
+    setDraft({ ...address, acceptedWithoutPoint: unchanged ? address.acceptedWithoutPoint : undefined });
   }
 
   async function saveAddress(address: DeliveryAddress, verify = false) {
@@ -130,7 +131,8 @@ export function AddressSheet({
     if (districts.length && !draft.districtId) return setError("Выберите район");
     if (!onMap && data.requiredDetails.some((field) => !draft[field]?.trim()))
       return setError("Заполните обязательные поля");
-    void saveAddress({ ...draft, address, point: undefined, acceptedWithoutPoint: undefined }, onMap);
+    const acceptedWithoutPoint = onMap ? draft.acceptedWithoutPoint : undefined;
+    void saveAddress({ ...draft, address, point: undefined, acceptedWithoutPoint }, onMap && !acceptedWithoutPoint);
   }
 
   return (

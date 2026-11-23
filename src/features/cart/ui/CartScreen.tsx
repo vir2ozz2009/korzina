@@ -48,8 +48,9 @@ export function CartScreen() {
   const currency = cart?.currency;
   const available = cart?.lines.filter((line) => line.available) ?? [];
   const summary = usePurchaseSummary(available.length > 0 ? cart?.revision : undefined);
+  const total = !checking && !summary.isFetching && !summary.isError ? summary.data : undefined;
   const receiving = useReceiving(!!cart?.lines.length);
-  const shipping = summary.data?.availability ?? receiving.data?.availability ?? null;
+  const shipping = total?.availability ?? receiving.data?.availability ?? null;
   const method = receiving.data ? activeReceiving(receiving.data) : undefined;
   const courier =
     shipping?.mode === "delivery" && shipping.available && shipping.payee === "courier" && shipping.tariff !== "free";
@@ -193,14 +194,14 @@ export function CartScreen() {
                 </span>
               </div>
             )}
-            {summary.data && (
+            {total && (
               <>
                 <Divider />
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-label">
                     {courier ? "К оплате магазину" : late ? "Итого за товары" : "Итого"}
                   </span>
-                  <strong className="text-title-3">{formatMinor(summary.data.totalMinor, currency)}</strong>
+                  <strong className="text-title-3">{formatMinor(total.totalMinor, currency)}</strong>
                 </div>
               </>
             )}
@@ -213,7 +214,7 @@ export function CartScreen() {
           )}
         </>
       )}
-      {available.length > 0 && cart && !cart.review && (
+      {available.length > 0 && cart && !cart.review && !checking && (
         <CartContinue
           revision={cart.revision}
           summary={summary}
