@@ -11,6 +11,7 @@ export async function checkStaffInvite(browser: Browser, baseURL: string) {
   try {
     expect((await owner.request.post("/__e2e/test2/seller")).status()).toBe(204);
     const ownerPage = await owner.newPage();
+    ownerPage.setDefaultTimeout(8_000);
     await ownerPage.goto("/seller/team?store=test2");
     await ownerPage.getByRole("button", { name: "Добавить сотрудника", exact: true }).click();
     const form = ownerPage.getByRole("dialog", { name: "Добавить сотрудника" });
@@ -23,8 +24,8 @@ export async function checkStaffInvite(browser: Browser, baseURL: string) {
     const invitation = await created;
     expect(invitation.status(), await invitation.text()).toBe(201);
     const { url } = (await invitation.json()) as StaffInvite;
-    expect(url).toBeTruthy();
-    await expect(form.getByText(url ?? "")).toBeVisible();
+    if (!url) throw new Error("Сервер не вернул ссылку приглашения");
+    await expect(ownerPage.getByRole("dialog", { name: "Приглашение" }).getByText(url, { exact: true })).toBeVisible();
 
     const openInvite = (context: typeof owner, user: "owner" | "picker") =>
       context.request.post("/__e2e/test2/staff-invite", { data: { url, user } });
@@ -47,6 +48,7 @@ export async function checkStaffInvite(browser: Browser, baseURL: string) {
         ]),
       });
       const page = await picker.newPage();
+      page.setDefaultTimeout(8_000);
       await page.goto("/seller/orders?store=test2");
       const card = page.getByRole("button", { name: `Открыть заказ №${order.number}`, exact: true });
       await expect(card).toBeVisible();
@@ -56,11 +58,12 @@ export async function checkStaffInvite(browser: Browser, baseURL: string) {
       await tabs.getByRole("button", { name: "Ещё", exact: true }).click();
       await expect(page.getByRole("button", { name: "Профиль продавца" })).toBeVisible();
       await expect(page.getByRole("button", { name: "Сотрудники", exact: true })).toHaveCount(0);
-      await tabs.getByRole("button", { name: "Заказы", exact: true }).click();
+      await tabs.getByRole("button", { name: /Заказы$/u }).click();
       await expect(card).toBeVisible();
 
       await ownerPage.goto("/seller/team?store=test2");
-      const member = ownerPage.getByRole("button", { name: /Учебный сборщик/ });
+      const inviteCode = new URL(url).searchParams.get("start")?.slice(-6);
+      const member = ownerPage.getByRole("button").filter({ hasText: `Учебный сборщик ${inviteCode}` });
       await expect(member).toHaveCount(1);
       await member.click();
       await ownerPage.getByRole("button", { name: "Отозвать доступ", exact: true }).click();

@@ -115,7 +115,7 @@ export default {
         request,
         {
           ...env,
-          PLATFORM_BOT_USERNAME: "KorzinaFixtureBot",
+          PLATFORM_BOT_USERNAME: "korzinaapp_demo_bot",
           PLATFORM_BOT_TOKEN: "local-e2e-placeholder",
           ENCRYPTION_KEY: "ab".repeat(32),
         } as Env,
