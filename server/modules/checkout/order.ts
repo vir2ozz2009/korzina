@@ -142,6 +142,7 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
       .one();
     storage.sql.exec("INSERT INTO order_outbox(order_number,event,created_at) VALUES(?,'order.placed',?)", number, now);
     removeOrderedLines(storage, subject, cart, storedReceiving);
+    env.changes.orderPlaced(number);
     const body: OrderResult = { ...order, number };
     return { status: 201, body };
   });

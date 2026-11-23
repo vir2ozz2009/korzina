@@ -1,19 +1,5 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import {
-  ArrowUpRight,
-  Bell,
-  ChevronDown,
-  Clock3,
-  CreditCard,
-  History,
-  Info,
-  LogOut,
-  MessageCircle,
-  Store,
-  Truck,
-  UserRound,
-  Users,
-} from "lucide-react";
+import { ArrowUpRight, ChevronDown, MessageCircle } from "lucide-react";
 import { lazy, Suspense, useCallback, useRef, useState } from "react";
 import { openCabinetStorefront } from "../../../app/cabinet-storefront";
 import { Header } from "../../../app/shell/Header";
@@ -31,6 +17,7 @@ import { Sheet } from "../../../ui/Sheet";
 import { StatusPill } from "../../../ui/StatusPill";
 import { useCabinet, useSellerLogout } from "../api";
 import { CabinetLogin } from "./CabinetLogin";
+import { CabinetMore } from "./CabinetMore";
 import { LaunchReadiness } from "./LaunchReadiness";
 import { ShareLinkField } from "./ShareLinkField";
 import { PauseCard } from "./settings/PauseCard";
@@ -114,93 +101,7 @@ export function CabinetScreen() {
                   icon={<MessageCircle size={21} />}
                 />
               ) : more ? (
-                <>
-                  {shop && (
-                    <>
-                      {shop.role === "owner" && (
-                        <ListItem
-                          title="Сотрудники"
-                          icon={<Users size={20} />}
-                          onClick={() => void navigate({ to: "/seller/team", search: { ...search, store: shop.slug } })}
-                        />
-                      )}
-                      {(shop.role === "owner" || shop.teamRole === "manager") && (
-                        <>
-                          <ListItem
-                            title="Бот магазина"
-                            icon={<MessageCircle size={20} />}
-                            onClick={() =>
-                              void navigate({ to: "/seller/bot", search: { ...search, store: shop.slug } })
-                            }
-                          />
-                          <ListItem
-                            title="Уведомления"
-                            icon={<Bell size={20} />}
-                            onClick={() =>
-                              void navigate({ to: "/seller/notifications", search: { ...search, store: shop.slug } })
-                            }
-                          />
-                          <ListItem
-                            title="История действий"
-                            icon={<History size={20} />}
-                            onClick={() =>
-                              void navigate({ to: "/seller/history", search: { ...search, store: shop.slug } })
-                            }
-                          />
-                        </>
-                      )}
-                      {(!shop.teamRole || shop.permissions.includes("shop_settings")) && (
-                        <>
-                          <ListItem
-                            title="Доставка и самовывоз"
-                            icon={<Truck size={20} />}
-                            onClick={() =>
-                              void navigate({ to: "/seller/receiving", search: { ...search, store: shop.slug } })
-                            }
-                          />
-                          <ListItem
-                            title="Часы работы"
-                            icon={<Clock3 size={20} />}
-                            onClick={() =>
-                              void navigate({ to: "/seller/hours", search: { ...search, store: shop.slug } })
-                            }
-                          />
-                          <ListItem
-                            title="Оплата"
-                            icon={<CreditCard size={20} />}
-                            onClick={() =>
-                              void navigate({ to: "/seller/payments", search: { ...search, store: shop.slug } })
-                            }
-                          />
-                          <ListItem
-                            title="О магазине"
-                            icon={<Info size={20} />}
-                            onClick={() =>
-                              void navigate({ to: "/seller/shop-data", search: { ...search, store: shop.slug } })
-                            }
-                          />
-                        </>
-                      )}
-                    </>
-                  )}
-                  {(!shop?.teamRole || shop.permissions.includes("products")) && (
-                    <ListItem
-                      title="Витрина"
-                      icon={<Store size={20} />}
-                      onClick={() =>
-                        void navigate({
-                          href: `/seller/showcase${shop ? `?store=${encodeURIComponent(shop.slug)}` : ""}`,
-                        })
-                      }
-                    />
-                  )}
-                  <ListItem
-                    title="Профиль продавца"
-                    icon={<UserRound size={20} />}
-                    onClick={() => void navigate({ to: "/seller/profile", search })}
-                  />
-                  <ListItem title="Выйти" icon={<LogOut size={20} />} onClick={() => setSheet("logout")} />
-                </>
+                <CabinetMore shop={shop} onLogout={() => setSheet("logout")} />
               ) : shop ? (
                 <>
                   {shop.status === "draft" && shop.permissions?.includes("publish") ? (

@@ -1,24 +1,17 @@
-import { Plus } from "lucide-react";
-import { useState } from "react";
-import { useToast } from "../../../../app/shell/ToastProvider";
-import type { SellerProduct, SellerProductInput, SellerStockInput } from "../../../../shared/contracts/seller-catalog";
-import { HttpError } from "../../../../shared/http-error";
+import type { SellerProduct } from "../../../../shared/contracts/seller-catalog";
 import { Button } from "../../../../ui/Button";
 import { Card } from "../../../../ui/Card";
 import { Dialog } from "../../../../ui/Dialog";
-import { ListItem } from "../../../../ui/ListItem";
-import { type BulkResult, type ProductSave, useCatalogCommand, useCatalogGroups } from "../../catalog-api";
 import { CatalogEditorFrame, type CatalogFrame } from "./CatalogEditorFrame";
-import { CatalogPhotos, useCatalogPhotos } from "./CatalogPhotos";
+import { CatalogPhotos } from "./CatalogPhotos";
 import { GroupPicker } from "./GroupPicker";
-import { useCatalogNav } from "./navigation";
-import { initialProductText, ProductStatusFields, ProductTextFields } from "./ProductFields";
+import { ProductStatusFields, ProductTextFields } from "./ProductFields";
 import { ProductRecommendations } from "./ProductRecommendations";
 import { ProductSalePrompt } from "./ProductSalePrompt";
 import { ProductStockPrompt } from "./ProductStockPrompt";
-import { type VariantDraft, VariantFields, variantDraft, variantInput } from "./VariantFields";
+import { ProductVariantEditor, ProductVariants } from "./ProductVariants";
+import { useProductEditor } from "./useProductEditor";
 
-type Modal = "categories" | "brands" | "recommendations" | "delete" | "pause" | "quantity";
 export function ProductEditor({
   store,
   currency,
@@ -34,153 +27,34 @@ export function ProductEditor({
   initial?: SellerProduct;
   frame: CatalogFrame;
 }) {
-  const nav = useCatalogNav(store);
-  const [baseline, setBaseline] = useState(initial);
-  const [text, setText] = useState(() =>
-    initialProductText(initial, nav.params.get("category") ?? undefined, nav.params.get("brand") ?? undefined),
-  );
-  const [initialText] = useState(text);
-  const [variants, setVariants] = useState(
-    () => initial?.variants.map((row) => variantDraft(currency, row)) ?? [variantDraft(currency)],
-  );
-  const [initialVariants] = useState(variants);
-  const [editing, setEditing] = useState<{ index: number; value: VariantDraft; nameError?: string }>();
-  const [pause, setPause] = useState<SellerProductInput["pause"]>();
-  const [modal, setModal] = useState<Modal>();
-  const [error, setError] = useState("");
-  const [partial, setPartial] = useState<{ result: ProductSave; desired: Record<string, number | null> }>();
-  const photos = useCatalogPhotos(store, baseline?.photos ?? []);
-  const categories = useCatalogGroups(store, "categories");
-  const brands = useCatalogGroups(store, "brands");
-  const save = useCatalogCommand<ProductSave>(store);
-  const remove = useCatalogCommand<BulkResult>(store);
-  const toast = useToast();
-  const busy = save.isPending || remove.isPending;
-  const disabled = !canWrite || busy;
-  const dirty =
-    canWrite &&
-    !partial &&
-    (photos.dirty ||
-      !!pause ||
-      JSON.stringify(initialText) !== JSON.stringify(text) ||
-      JSON.stringify(initialVariants) !== JSON.stringify(variants));
-  const path = baseline ? `/products/${encodeURIComponent(baseline.id)}` : "/products";
-  function patchText(patch: Partial<typeof text>) {
-    setText((current) => ({ ...current, ...patch }));
-    setError("");
-  }
-  function patchVariant(index: number, update: Partial<VariantDraft>) {
-    setVariants((current) => current.map((row, i) => (i === index ? { ...row, ...update } : row)));
-    setError("");
-  }
-  function showVariantNameError(index: number, message: string) {
-    setError("");
-    save.reset();
-    setEditing({ index, value: variants[index], nameError: message });
-  }
-  function pickStatus(status: typeof text.status) {
-    if (status === text.status) return;
-    const visible = variants.filter((row) => row.visible);
-    const stocked = visible.some((row) => row.unlimited || Number(row.stock) > 0);
-    if (status !== "hidden" && !visible.length) {
-      setError("Включите хотя бы одну фасовку");
-      return;
-    }
-    if (status === "selling" && !stocked) {
-      setModal("quantity");
-    } else if (status === "unavailable" && stocked && text.status !== "unavailable") setModal("pause");
-    else {
-      if (status === "selling") {
-        setVariants((current) =>
-          current.map((row) =>
-            row.visible && (row.pause || row.salePause !== null) ? { ...row, pause: "resume" } : row,
-          ),
-        );
-        setPause(undefined);
-      }
-      patchText({ status });
-    }
-  }
-  function saveProduct() {
-    if (photos.pending) {
-      setError("Дождитесь завершения загрузки фото");
-      return;
-    }
-    try {
-      if (!text.name.trim()) throw new Error("Введите название");
-      const unnamed = variants.length > 1 ? variants.findIndex((row) => !row.name.trim()) : -1;
-      if (unnamed !== -1) {
-        showVariantNameError(unnamed, "Укажите название фасовки");
-        return;
-      }
-      const pack = variants.map((row) => variantInput(row, currency));
-      setError("");
-      save.mutate(
-        {
-          path,
-          input: {
-            ...text,
-            name: text.name.trim(),
-            expectedRevision: baseline?.revision,
-            variants: pack,
-            photos: photos.values,
-            pause,
-          },
-        },
-        {
-          onError: (error) => {
-            if (!(error instanceof HttpError)) return;
-            const { details } = error;
-            if (!details || typeof details !== "object" || !("index" in details)) return;
-            const { index } = details;
-            if (typeof index !== "number" || !variants[index]) return;
-            if (error.code === "DUPLICATE_VARIANT_NAME" || ("field" in details && details.field === "variantName"))
-              showVariantNameError(index, error.message);
-          },
-          onSuccess: (result) => {
-            if (result.conflicts.length) {
-              setBaseline(result.product);
-              setPartial({
-                result,
-                desired: Object.fromEntries(pack.flatMap((row) => (row.id ? [[row.id, row.stock]] : []))),
-              });
-              return;
-            }
-            toast("Сохранено");
-            nav.leave("/seller/products", true);
-          },
-        },
-      );
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Проверьте поля");
-    }
-  }
-  function confirmStock(input: SellerStockInput) {
-    save.mutate(
-      { path: `${path}/stock`, input },
-      {
-        onSuccess: (result) => {
-          if (result.conflicts.length && partial) setPartial({ ...partial, result });
-          else {
-            toast("Сохранено");
-            nav.leave("/seller/products", true);
-          }
-        },
-      },
-    );
-  }
-  function copyProduct() {
-    if (!baseline) return;
-    save.mutate(
-      { path: `${path}/copy`, input: { revision: baseline.revision } },
-      {
-        onSuccess: (result) => {
-          toast("Товар скопирован");
-          nav.open(`/seller/products/${encodeURIComponent(result.product.id)}`, undefined, true, true);
-        },
-      },
-    );
-  }
+  const editor = useProductEditor(store, currency, canWrite, initial);
+  const {
+    nav,
+    baseline,
+    text,
+    setVariants,
+    editing,
+    setPause,
+    modal,
+    setModal,
+    error,
+    setError,
+    partial,
+    photos,
+    categories,
+    brands,
+    save,
+    remove,
+    toast,
+    busy,
+    disabled,
+    dirty,
+    patchText,
+    pickStatus,
+    saveProduct,
+    confirmStock,
+    copyProduct,
+  } = editor;
   return (
     <CatalogEditorFrame
       frame={frame}
@@ -191,49 +65,7 @@ export function ProductEditor({
       onSave={saveProduct}
     >
       {editing ? (
-        <Card className="space-y-3">
-          <h2 className="text-title-3">{editing.value.id ? "Редактировать фасовку" : "Новая фасовка"}</h2>
-          <VariantFields
-            row={editing.value}
-            multiple
-            disabled={disabled}
-            sale
-            error={editing.nameError}
-            patch={(patch) =>
-              setEditing({
-                ...editing,
-                value: { ...editing.value, ...patch },
-                nameError: patch.name === undefined ? editing.nameError : undefined,
-              })
-            }
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="secondary" onClick={() => setEditing(undefined)}>
-              Назад
-            </Button>
-            <Button
-              disabled={disabled}
-              onClick={() => {
-                if (editing.index < variants.length) patchVariant(editing.index, editing.value);
-                else setVariants([...variants, editing.value]);
-                setEditing(undefined);
-              }}
-            >
-              Готово
-            </Button>
-          </div>
-          {canWrite && variants.length > 1 && editing.index < variants.length && (
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setVariants(variants.filter((_, index) => index !== editing.index));
-                setEditing(undefined);
-              }}
-            >
-              Удалить фасовку
-            </Button>
-          )}
-        </Card>
+        <ProductVariantEditor editor={editor} canWrite={canWrite} editing={editing} />
       ) : (
         <>
           <ProductTextFields
@@ -249,47 +81,7 @@ export function ProductEditor({
           <Card className="space-y-3">
             <CatalogPhotos photos={photos} disabled={disabled} />
           </Card>
-          <Card className="space-y-3">
-            {variants.length === 1 ? (
-              <VariantFields
-                row={variants[0]}
-                patch={(patch) => patchVariant(0, patch)}
-                multiple={false}
-                disabled={disabled}
-              />
-            ) : (
-              <>
-                <h2 className="text-title-3">Фасовки</h2>
-                {variants.map((row, index) => (
-                  <ListItem
-                    key={row.key}
-                    title={row.name || "Название фасовки"}
-                    value={row.price}
-                    subtitle={
-                      !row.visible
-                        ? "Фасовка скрыта"
-                        : row.unlimited
-                          ? "Без лимита"
-                          : row.stock
-                            ? `${row.stock} шт.`
-                            : undefined
-                    }
-                    onClick={() => setEditing({ index, value: row })}
-                  />
-                ))}
-              </>
-            )}
-            {canWrite && (
-              <Button
-                variant="secondary"
-                icon={<Plus size={16} />}
-                disabled={disabled || variants.length >= 20}
-                onClick={() => setEditing({ index: variants.length, value: variantDraft(currency) })}
-              >
-                Фасовка
-              </Button>
-            )}
-          </Card>
+          <ProductVariants editor={editor} canWrite={canWrite} currency={currency} />
           <ProductStatusFields
             draft={text}
             disabled={disabled}

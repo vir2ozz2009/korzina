@@ -1,9 +1,16 @@
 import { evictDurableObject, runInDurableObject } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
+import { Hono } from "hono";
 import { beforeAll, describe, expect, it } from "vitest";
+import { ApiError } from "../../src/shared/errors";
+import { handleError } from "../middleware/errors";
 import { ShopContextCache } from "../platform/shop-context";
+import { getAuth, postAuth, sellerFixture } from "../testing/auth";
 import { setupPlatform } from "../testing/platform";
+import { executeCommand } from "./commands";
+import type { ShopEnv } from "./env";
 import { migrations } from "./migrations";
+import { handleShopRequest } from "./request";
 
 beforeAll(setupPlatform);
 // A fresh Worker isolate must read durable settings, including after DO eviction.
@@ -57,5 +64,70 @@ describe("Shop SQLite", () => {
       }),
     );
     expect(response.status).toBe(403);
+  });
+
+  it("BL-12 новое действие заказа сигналит продавцу без правки Shop", async () => {
+    const shop = await info("test2");
+    const seller = await sellerFixture(shop.id);
+    const ticketResponse = await postAuth("/api/seller/orders/live-ticket?store=test2", {}, seller.headers);
+    expect(ticketResponse.status).toBe(200);
+    const { ticket } = await ticketResponse.json<{ ticket: string }>();
+    const upgrade = await getAuth(`/api/seller/orders/live?store=test2&ticket=${ticket}`, {
+      Upgrade: "websocket",
+      Origin: "https://demo.korzina.app",
+    });
+    expect(upgrade.status).toBe(101);
+    const socket = upgrade.webSocket;
+    if (!socket) throw new Error("Нет WebSocket продавца");
+    const number = 42;
+    const update = new Promise((resolve) => {
+      socket.addEventListener("message", ({ data }) => {
+        const message = JSON.parse(String(data));
+        if (message.id === number) resolve(message);
+      });
+    });
+    socket.accept();
+    try {
+      await runInDurableObject(stub(shop.id), async (_instance, ctx) => {
+        const route = "/api/seller/orders/42/reschedule";
+        const router = new Hono<ShopEnv>().onError(handleError).patch(route, (c) => {
+          const result = executeCommand(
+            c.env.storage,
+            c.env.db,
+            "BL-12",
+            { key: "reschedule", fingerprint: "42" },
+            () => {
+              c.env.changes.order(number);
+              if (c.req.query("fail")) throw new ApiError("VALIDATION", "Не удалось перенести");
+              return { status: 200, body: { number } };
+            },
+          );
+          return c.json(result.body);
+        });
+        const request = (query = "") =>
+          handleShopRequest(
+            new Request(`https://internal${route}${query}`, {
+              method: "PATCH",
+              headers: { "x-korzina-shop": encodeURIComponent(JSON.stringify(shop)) },
+            }),
+            ctx,
+            env,
+            router,
+            { identity: shop.id },
+            { expireSales() {}, orderPlaced() {}, async refreshSaleDeadline() {} },
+          );
+        await ctx.storage.deleteAlarm();
+        expect((await request("?fail=1")).status).toBe(400);
+        expect(await ctx.storage.getAlarm()).toBeNull();
+        expect((await request()).status).toBe(200);
+        expect(await ctx.storage.getAlarm()).toBeLessThanOrEqual(Date.now() + 1000);
+        await ctx.storage.deleteAlarm();
+        expect((await request()).status).toBe(200);
+        expect(await ctx.storage.getAlarm()).toBeNull();
+      });
+      expect(await update).toMatchObject({ topic: "orders", id: number });
+    } finally {
+      socket.close();
+    }
   });
 });

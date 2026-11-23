@@ -1,47 +1,38 @@
 import { DurableObject } from "cloudflare:workers";
-import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { Hono } from "hono";
 import { routePath } from "hono/route";
 import type { BotChange } from "../../src/shared/contracts/admin";
 import { launchReadiness } from "../../src/shared/contracts/launch";
-import { shopContract } from "../../src/shared/contracts/shop";
-import { shopContextContract } from "../../src/shared/contracts/shop-context";
-import { ApiError, errorBody, errorStatus } from "../../src/shared/errors";
-import { resolveFeatures } from "../../src/shared/flags";
+import { ApiError } from "../../src/shared/errors";
 import { decryptBotToken } from "../auth/bot-token";
 import type { AuthSecrets } from "../auth/config";
 import { verifyInitData } from "../auth/telegram";
-import { RequestMetrics } from "../metrics";
 import { handleError, notFound } from "../middleware/errors";
 import { extendCustomerVisit } from "../modules/auth/service";
 import { confirmBrowserBuyer, demoBuyerExchange, shopBuyerExchange } from "../modules/auth/telegram-exchange";
 import { expireSalePauses, nextSaleDeadline } from "../modules/catalog/sale-pause";
 import { type OpenDraftRequest, type OpenResponse, openDraft } from "../modules/launch/open";
 import { launchSnapshot } from "../modules/launch/readiness";
-import { publicMediaOrigin } from "../modules/media/public-origin";
-import { signalSellerOrders } from "../modules/seller-orders/live";
 import { sendOrderNotifications } from "../modules/seller-orders/notifications";
 import { botCoordinator, changeShopBot, managedBot } from "../platform/admin/shop-bot";
 import { notifyShopStatus, type ShopMutation } from "../platform/admin/shop-change";
 import { managedShop } from "../platform/admin/shop-detail";
 import { demoPlatformShop } from "../platform/auth/demo-telegram";
 import { cleanupSellers, platformCleanupId } from "../platform/cleanup";
-import { applyAdminSettings } from "./admin-settings";
 import { rescheduleCleanup, scheduleCleanup } from "./cleanup";
 import type { ShopEnv } from "./env";
 import { cleanupShop } from "./maintenance";
 import { migrations } from "./migrations";
 import { hasPendingPlatformOrders, schedulePlatformOrders } from "./order-projection";
+import { handleShopRequest, type ShopRequestState } from "./request";
 import { shopRoutes } from "./routes";
-import { settings } from "./schema";
 
 export class Shop extends DurableObject<Env> {
-  private identity: string | undefined;
+  private readonly requestState: ShopRequestState = {};
   private saleDeadline: number | null = null;
   private pendingOrders = false;
-  private settingsSignature: string | undefined;
   private readonly router = new Hono<ShopEnv>()
     .onError(handleError)
     .use("*", async (c, next) => {
@@ -119,107 +110,17 @@ export class Shop extends DurableObject<Env> {
     });
   }
 
-  async fetch(request: Request): Promise<Response> {
-    const metrics = new RequestMetrics();
-    const storage = metrics.storage(this.ctx.storage);
-    const db = drizzle(storage);
-    let response: Response;
-    let shopId: string | undefined;
-    let route = "unmatched";
-    try {
-      const metadata = request.headers.get("x-korzina-shop");
-      if (!metadata) throw new ApiError("FORBIDDEN", "Нет магазина");
-      const data = JSON.parse(decodeURIComponent(metadata));
-      const parsed = shopContract.safeParse(data);
-      if (!parsed.success) throw new ApiError("FORBIDDEN", "Нет магазина");
-      const shop = parsed.data;
-      const context = shopContextContract.shape.features.safeParse(data.features);
-      shopId = shop.id;
-      if (!this.ctx.exports.Shop.idFromName(shop.id).equals(this.ctx.id))
-        throw new ApiError("FORBIDDEN", "Другой магазин");
-      // The namespace/id check above runs on EVERY request. The persisted identity is immutable.
-      if (!this.identity) {
-        const identity = db.select({ value: settings.value }).from(settings).where(eq(settings.key, "shop_id")).get();
-        if (identity && identity.value !== shop.id) throw new ApiError("FORBIDDEN", "Другой магазин");
-        if (!identity)
-          storage.transactionSync(() => db.insert(settings).values({ key: "shop_id", value: shop.id }).run());
-        this.identity = shop.id;
-      }
-      let timeZone = typeof data.timeZone === "string" ? data.timeZone : undefined;
-      if (data.adminSettings) {
-        const configured = shopContextContract.shape.adminSettings.parse(data.adminSettings);
-        timeZone ??= configured?.timeZone;
-        const signature = JSON.stringify(configured);
-        if (configured && signature !== this.settingsSignature) {
-          applyAdminSettings(storage, configured);
-          this.settingsSignature = signature;
-          this.saleDeadline = nextSaleDeadline(storage);
-          this.ctx.waitUntil(this.scheduleSaleDeadline());
-        }
-      }
-      this.expireSales();
-      response = await this.router.fetch(request, {
-        shop,
-        teamPreview: data.teamPreview === true && shop.status === "draft",
-        timeZone,
-        features: context.success ? context.data : resolveFeatures([]),
-        db,
-        storage,
-        object: this.ctx,
-        secrets: this.env as Env & AuthSecrets,
-        platform: this.env.PLATFORM,
-        media: {
-          MEDIA: this.env.MEDIA,
-          MEDIA_PUBLIC: this.env.MEDIA_PUBLIC,
-          IMAGES: this.env.IMAGES,
-          MEDIA_PUBLIC_URL: publicMediaOrigin(request, this.env.MEDIA_PUBLIC_URL),
-        },
-        matchedRoute: (path) => {
-          route = path;
-        },
-      });
-    } catch (error) {
-      const known = error instanceof ApiError ? error : new ApiError("INTERNAL", "Внутренняя ошибка сервера");
-      response = Response.json(errorBody(known), { status: errorStatus[known.code] });
-    }
-    if (response.status === 101) return response;
-    const metric = metrics.record(
-      route,
-      shopId,
-      request.headers.get("x-request-id") ?? "internal",
-      response.status,
-      false,
-    );
-    if ((request.method === "POST" || request.method === "PUT") && response.ok && metric.rowsWritten > 0) {
-      const path = new URL(request.url).pathname;
-      const orderChange = /^\/api\/(?:seller\/)?orders\/(\d+)\/(?:transition|cancel|proof)$/u.exec(path);
-      if (path === "/api/checkout") {
+  fetch(request: Request): Promise<Response> {
+    return handleShopRequest(request, this.ctx, this.env, this.router, this.requestState, {
+      expireSales: () => this.expireSales(),
+      orderPlaced: () => {
         this.pendingOrders = true;
-        await schedulePlatformOrders(this.ctx.storage);
-        if (this.ctx.getWebSockets("seller-orders").length) {
-          const { number } = await response.clone().json<{ number: number }>();
-          this.ctx.waitUntil(signalSellerOrders(this.ctx, this.env.PLATFORM, number));
-        }
-      } else if (orderChange) {
-        this.ctx.waitUntil(signalSellerOrders(this.ctx, this.env.PLATFORM, Number(orderChange[1])));
-        await schedulePlatformOrders(this.ctx.storage);
-        await scheduleCleanup(this.ctx.storage);
-      } else {
-        await scheduleCleanup(this.ctx.storage);
-        if (path.startsWith("/api/seller/catalog/") || path === "/api/seller/profile/data") {
-          if (
-            path.startsWith("/api/seller/catalog/") &&
-            storage.sql.exec("SELECT 1 FROM workday_notice WHERE expanded=0 AND kind='stock' LIMIT 1").toArray().length
-          )
-            await schedulePlatformOrders(storage);
-          this.saleDeadline = nextSaleDeadline(this.ctx.storage);
-          await this.scheduleSaleDeadline();
-        }
-      }
-    }
-    // Only the public Worker can see these; it strips them before returning to the client.
-    response.headers.set("x-korzina-sql", JSON.stringify(metric));
-    return response;
+      },
+      refreshSaleDeadline: (storage) => {
+        this.saleDeadline = nextSaleDeadline(storage);
+        return this.scheduleSaleDeadline();
+      },
+    });
   }
 
   closeSellerOrderSubscription(accountId: string) {

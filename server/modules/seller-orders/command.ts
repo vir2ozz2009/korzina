@@ -125,6 +125,7 @@ export function changeSellerOrder(
           );
       }
     }
+    env.changes.order(number);
     return { status: 200, body: sellerOrder(storage, number, actor, env.timeZone) };
   }).body;
 }

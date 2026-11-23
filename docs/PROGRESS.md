@@ -15,7 +15,7 @@
 
 [Перепроверка #198](progress/block9-recheck.md): регрессии 06–08 закрепляют отправку ссылок, оформление без времени и скрытие сумм. BL-12 и BL-11 записаны в бэклоге в [#201](https://github.com/vir2ozz2009/korzina/pull/201).
 
-23.11.2026 · [Регрессия 09, §15.1](progress/block9-recheck.md#23-ноября--регрессия-09): браузер с загруженным Telegram SDK и пустым `initData` копирует ссылку при недоступной системной отправке. **СТОП до приёмки блока 9.**
+23.11.2026 · [Регрессия 09, §15.1](progress/block9-recheck.md#23-ноября--регрессия-09): браузер с загруженным Telegram SDK и пустым `initData` копирует ссылку при недоступной системной отправке.
 
 - [x] [Спецификация O3–O4](specs/workday-notifications.md) подготовлена 22.11.2026. Ответы Андрея в §11 и правки холста в §12–§14 покрыты строками §7. [PR #186](https://github.com/vir2ozz2009/korzina/pull/186) · [PR #189](https://github.com/vir2ozz2009/korzina/pull/189) · [PR #190](https://github.com/vir2ozz2009/korzina/pull/190) · [PR #191](https://github.com/vir2ozz2009/korzina/pull/191).
 - [x] Андрей одобрил 22.11.2026 холст блока 9 по §13 и §14 из `main 6f13a5b`, ревизия `475172126249336832`. [Холст](https://designs.magicpath.ai/v1/vibrant-creek-7051?revisionId=475172126249336832&history=design) · [Отчёт](progress/workday-notifications-canvas.md) · [PR #187](https://github.com/vir2ozz2009/korzina/pull/187).
