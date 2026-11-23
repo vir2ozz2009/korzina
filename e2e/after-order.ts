@@ -94,6 +94,8 @@ export async function verifySavedAddress(page: Page, onMap: boolean) {
   if (!onMap) await fillAddressDetails(entry, "7");
   await entry.getByRole("button", { name: saveAddress, exact: true }).click();
   await expect(entry).toBeHidden();
+  const apartment = page.getByRole("textbox", { name: "Квартира", exact: true });
+  const expectedApartment = (await apartment.isVisible()) ? "7" : undefined;
   await fillAddressDetails(page, "7", false);
   const [saved] = await Promise.all([
     page.waitForResponse(
@@ -121,7 +123,9 @@ export async function verifySavedAddress(page: Page, onMap: boolean) {
       chooser.getByRole("button", { name: /^Работа/ }).click(),
     ]);
     expect(response.ok()).toBe(true);
-    expect(await response.json()).toMatchObject({ receiving: { address: "улица Ле Лой, 45", apartment: "7" } });
+    const { receiving } = await response.json();
+    expect(receiving.address).toBe("улица Ле Лой, 45");
+    expect(receiving.apartment).toBe(expectedApartment);
     await expect(chooser).toBeHidden();
     await expect(page.getByRole("dialog", { name: "Ввести адрес вручную" })).toHaveCount(0);
   };

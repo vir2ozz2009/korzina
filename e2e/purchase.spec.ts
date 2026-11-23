@@ -104,10 +104,10 @@ test("B10: товар, доставка и заказ наличными", async
     await details.getByRole("button", { name: "Сохранить" }).click();
     await expect(details).toBeHidden();
   }
-  await page.reload();
-  if (onMap) await expect(page.getByText("кв. 12А")).toBeVisible();
-  else await expect(page.getByText("28 Lê Lợi, Хошимин", { exact: true })).toBeVisible();
-  await checkClosedReceivingDay(page);
+  await checkClosedReceivingDay(page, async () => {
+    if (onMap) await expect(page.getByText("кв. 12А")).toBeVisible();
+    else await expect(page.getByText("28 Lê Lợi, Хошимин", { exact: true })).toBeVisible();
+  });
   const chooseTime = async () => {
     await page.getByRole("button", { name: /Когда привезти/ }).click();
     const time = page.getByRole("dialog", { name: /Когда привезти/ });
