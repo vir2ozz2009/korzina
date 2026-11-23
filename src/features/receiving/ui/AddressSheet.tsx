@@ -101,11 +101,10 @@ export function AddressSheet({
     open("manual");
   }
 
-  function selectSaved(address: DeliveryAddress) {
-    if ((!current || addressKey(current) !== addressKey(address)) && canReuseAddress(address, data)) {
-      const { id: _id, title: _title, ...selection } = address as DeliveryAddress & { id?: string; title?: string };
-      void saveAddress(selection);
-    } else review(address);
+  function selectSaved(address: DeliveryAddress, saved: boolean) {
+    if ((saved || !current || addressKey(current) !== addressKey(address)) && canReuseAddress(address, data))
+      void saveAddress(address);
+    else review(address);
   }
 
   function change(address: DeliveryAddress, keepMapPoint = false) {

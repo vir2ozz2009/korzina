@@ -27,10 +27,17 @@ export function AddressChooser({
   addresses: (DeliveryAddress | SavedAddress)[];
   current?: DeliveryAddress;
   pending: boolean;
-  select: (address: DeliveryAddress) => void;
+  select: (address: DeliveryAddress, saved: boolean) => void;
   pickup?: () => void;
   create: () => void;
 }) {
+  function selectAddress(address: DeliveryAddress | SavedAddress) {
+    if ("id" in address) {
+      const { id: _id, title: _title, ...delivery } = address;
+      select(delivery, true);
+    } else select(address, false);
+  }
+
   return (
     <>
       {addresses.map((address) => (
@@ -45,7 +52,7 @@ export function AddressChooser({
                 : undefined
           }
           icon={<MapPin size={20} />}
-          onClick={pending ? undefined : () => select(address)}
+          onClick={pending ? undefined : () => selectAddress(address)}
         />
       ))}
       <Button full disabled={pending} icon={<Plus size={18} />} onClick={create}>

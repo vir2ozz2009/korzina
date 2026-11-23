@@ -113,15 +113,27 @@ export async function verifySavedAddress(page: Page, onMap: boolean) {
     .click();
   const chooser = page.getByRole("dialog", { name: "Адрес доставки" });
   await page.screenshot({ path: "test-results/bl-1-saved-addresses-390.png", animations: "disabled" });
-  const [response] = await Promise.all([
-    page.waitForResponse(
-      (result) => new URL(result.url()).pathname === "/api/receiving" && result.request().method() === "POST",
-    ),
-    chooser.getByRole("button", { name: /^Работа/ }).click(),
-  ]);
-  expect(response.ok()).toBe(true);
-  expect(await response.json()).toMatchObject({ receiving: { address: "улица Ле Лой, 45", apartment: "7" } });
-  await expect(chooser).toBeHidden();
-  await expect(page.getByRole("dialog", { name: "Ввести адрес вручную" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /улица Ле Лой, 45/ })).toBeVisible();
+  const selectSaved = async () => {
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        (result) => new URL(result.url()).pathname === "/api/receiving" && result.request().method() === "POST",
+      ),
+      chooser.getByRole("button", { name: /^Работа/ }).click(),
+    ]);
+    expect(response.ok()).toBe(true);
+    expect(await response.json()).toMatchObject({ receiving: { address: "улица Ле Лой, 45", apartment: "7" } });
+    await expect(chooser).toBeHidden();
+    await expect(page.getByRole("dialog", { name: "Ввести адрес вручную" })).toHaveCount(0);
+  };
+  const current = page.getByRole("button", { name: /улица Ле Лой, 45/ });
+  await selectSaved();
+  await expect(current).toBeVisible();
+  const pickup = page.getByRole("radio", { name: "Самовывоз" });
+  if ((await pickup.count()) && (await pickup.isEnabled())) {
+    await pickup.click();
+    await expect(pickup).toBeChecked();
+    await page.getByRole("radio", { name: "Доставка" }).click();
+    await current.click();
+    await selectSaved();
+  }
 }
