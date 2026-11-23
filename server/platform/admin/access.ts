@@ -9,18 +9,8 @@ export const adminCookie = "korzina_admin";
 const adminTtl = 12 * 60 * 60;
 const forbidden = () => new ApiError("FORBIDDEN", "Нет доступа");
 
-function listed(telegramId: string | undefined, ids: string | undefined) {
+export function isPlatformAdmin(telegramId: string | undefined, ids: string | undefined) {
   return !!telegramId && (ids ?? "").split(/[,\s]+/).includes(telegramId);
-}
-
-export async function adminAccount(database: D1Database, secrets: AuthSecrets, telegramId?: string) {
-  if (!listed(telegramId, secrets.PLATFORM_ADMIN_TELEGRAM_IDS) || !telegramId) return null;
-  return database
-    .withSession("first-primary")
-    .prepare(`SELECT a.id FROM accounts a
-    JOIN platform_admins p ON p.account_id=a.id WHERE a.telegram_id=?`)
-    .bind(telegramId)
-    .first<{ id: string }>();
 }
 
 export async function openAdminSession(
@@ -29,18 +19,26 @@ export async function openAdminSession(
   telegramId: string | undefined,
   b9ExpiresAt: number,
 ) {
-  const account = await adminAccount(database, secrets, telegramId);
-  if (!account) throw forbidden();
+  if (!telegramId || !isPlatformAdmin(telegramId, secrets.PLATFORM_ADMIN_TELEGRAM_IDS)) throw forbidden();
   const now = Date.now();
   const authAt = Math.min(now, b9ExpiresAt - customerTtl * 1000);
   const expiresAt = authAt + adminTtl * 1000;
   const ttl = Math.floor((expiresAt - now) / 1000);
   if (ttl <= 0) throw new ApiError("AUTH_FAILED", "Подтвердите вход через Telegram");
   const token = newToken();
-  await database
-    .prepare("INSERT INTO admin_sessions(token_hash,account_id,expires_at) VALUES(?,?,?)")
-    .bind(await tokenHash(token), account.id, expiresAt)
-    .run();
+  await database.batch([
+    database
+      .prepare("INSERT INTO accounts(id,telegram_id) VALUES (?,?) ON CONFLICT(telegram_id) DO NOTHING")
+      .bind(crypto.randomUUID(), telegramId),
+    database
+      .prepare("INSERT OR IGNORE INTO platform_admins(account_id) SELECT id FROM accounts WHERE telegram_id=?")
+      .bind(telegramId),
+    database
+      .prepare(
+        "INSERT INTO admin_sessions(token_hash,account_id,expires_at) SELECT ?,id,? FROM accounts WHERE telegram_id=?",
+      )
+      .bind(await tokenHash(token), expiresAt, telegramId),
+  ]);
   await scheduleSellerCleanup();
   return { token, ttl };
 }
@@ -57,7 +55,7 @@ export async function requireAdmin(database: D1Database, secrets: AuthSecrets, r
     JOIN platform_admins p ON p.account_id=s.account_id WHERE s.token_hash=?`)
     .bind(await tokenHash(token))
     .first<{ id: string; telegramId: string; expiresAt: number }>();
-  if (!row || !listed(row.telegramId, secrets.PLATFORM_ADMIN_TELEGRAM_IDS)) throw forbidden();
+  if (!row || !isPlatformAdmin(row.telegramId, secrets.PLATFORM_ADMIN_TELEGRAM_IDS)) throw forbidden();
   if (row.expiresAt <= Date.now()) throw new ApiError("AUTH_FAILED", "Подтвердите вход через Telegram");
   return row;
 }

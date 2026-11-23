@@ -4,6 +4,7 @@ import { type StaffInvite, staffPermissions } from "../../../src/shared/contract
 import { newToken, tokenHash } from "../../auth/tokens";
 import { getAuth, postAuth, sellerFixture } from "../../testing/auth";
 import { setupPlatform } from "../../testing/platform";
+import { botFixtureKey, setShopBot } from "../../testing/shop-bot";
 import { connectStaffChat, staffBotStatus } from "./bot";
 import { createStaffInvite } from "./invitations";
 import { changeNotification, staffNotificationSettings, staffRecipients } from "./notifications";
@@ -11,34 +12,35 @@ import { redeemStaffInvite } from "./redeem";
 import { sendStaffTest } from "./test-message";
 
 const shop = "korzina-demo-test2";
+const bot = "93100";
+const secrets = { ENCRYPTION_KEY: botFixtureKey };
 const endpoint = (path: string) => `/api/seller/team${path}?store=test2`;
 const create = async (actor: string, now = Date.now()) =>
   createStaffInvite(
     env.PLATFORM,
-    {
-      ENCRYPTION_KEY: "ab".repeat(32),
-      PLATFORM_BOT_TOKEN: "test",
-      PLATFORM_BOT_USERNAME: "KorzinaDemoBot",
-    },
+    secrets,
     { actor, shop, command: { key: crypto.randomUUID(), fingerprint: "staff" }, now },
     { role: "picker" },
   );
 const token = (invitation: StaffInvite) => new URL(invitation.url as string).searchParams.get("start")?.slice(6) ?? "";
 const redeem = (invitation: StaffInvite, telegram: string, now = Date.now()) =>
-  redeemStaffInvite(env.PLATFORM, { token: token(invitation), telegram, name: "Алина", now });
+  redeemStaffInvite(env.PLATFORM, { token: token(invitation), telegram, name: "Алина", now, channel: { shop, bot } });
 
 async function employeeSession(telegram: string) {
   const account = await env.PLATFORM.prepare("SELECT id FROM accounts WHERE telegram_id=?")
     .bind(telegram)
     .first<string>("id");
   const secret = newToken();
-  await env.PLATFORM.prepare("INSERT INTO seller_sessions(token_hash,account_id,expires_at) VALUES(?,?,?)")
-    .bind(await tokenHash(secret), account, Date.now() + 60_000)
+  await env.PLATFORM.prepare("INSERT INTO seller_sessions(token_hash,account_id,expires_at,shop_id) VALUES(?,?,?,?)")
+    .bind(await tokenHash(secret), account, Date.now() + 60_000, shop)
     .run();
   return { account, Authorization: `Bearer ${secret}` };
 }
 
-beforeAll(setupPlatform);
+beforeAll(async () => {
+  await setupPlatform();
+  await setShopBot(env.PLATFORM, shop, bot);
+});
 
 it("§9.3 одноразовое приглашение связывает магазин и Telegram, отзыв и срок проверяются атомарно", async () => {
   const owner = await sellerFixture(shop);
@@ -120,17 +122,17 @@ it("§11.3–§11.5 право, переключатель роли и теку�
   const owner = await sellerFixture(shop);
   const invitation = await create(owner.accountId);
   await redeem(invitation, "10030");
-  expect(await staffRecipients(env.PLATFORM, shop, "platform", "10030")).toEqual([]);
-  await connectStaffChat(env.PLATFORM, shop, "platform", "10030");
-  expect(await staffRecipients(env.PLATFORM, shop, "platform", "10030")).toEqual(["10030"]);
+  expect(await staffRecipients(env.PLATFORM, shop, bot, "10030")).toEqual([]);
+  await connectStaffChat(env.PLATFORM, shop, bot, "10030");
+  expect(await staffRecipients(env.PLATFORM, shop, bot, "10030")).toEqual(["10030"]);
   expect(await staffRecipients(env.PLATFORM, shop, "next-bot", "10030")).toEqual([]);
-  expect(await staffRecipients(env.PLATFORM, shop, "platform", "10030", "messages")).toEqual(["10030"]);
-  const settings = await staffNotificationSettings(env.PLATFORM, shop, "platform");
+  expect(await staffRecipients(env.PLATFORM, shop, bot, "10030", "messages")).toEqual(["10030"]);
+  const settings = await staffNotificationSettings(env.PLATFORM, shop, bot);
   expect(
     settings.rows.find(({ role }) => role === "accountant")?.topics.find(({ topic }) => topic === "messages"),
   ).toEqual({ topic: "messages", available: true, enabled: false });
   expect(
-    (await staffNotificationSettings(env.PLATFORM, shop, "platform")).rows.find((row) => row.role === "picker"),
+    (await staffNotificationSettings(env.PLATFORM, shop, bot)).rows.find((row) => row.role === "picker"),
   ).toMatchObject({
     topics: [
       { topic: "newOrders", available: true, enabled: true },
@@ -146,17 +148,16 @@ it("§11.3–§11.5 право, переключатель роли и теку�
     command: { key: crypto.randomUUID(), fingerprint: "switch" },
     now: Date.now(),
   };
-  await changeNotification(env.PLATFORM, context, "platform", { role: "picker", topic: "newOrders", enabled: false });
-  expect(await staffRecipients(env.PLATFORM, shop, "platform", "10030")).toEqual([]);
-  expect((await staffBotStatus(env.PLATFORM, {}, shop, owner.accountId)).shopBot).toBeNull();
+  await changeNotification(env.PLATFORM, context, bot, { role: "picker", topic: "newOrders", enabled: false });
+  expect(await staffRecipients(env.PLATFORM, shop, bot, "10030")).toEqual([]);
+  expect((await staffBotStatus(env.PLATFORM, "korzina-demo-lavka", owner.accountId)).shopBot).toBeNull();
 });
 
-it("§9.1 тест отправляет одно личное сообщение выбранным ботом", async () => {
+it("BOT1.2 · §9.1 личное уведомление сотруднику отправляется ботом его магазина", async () => {
   const owner = await sellerFixture(shop);
   const invitation = await create(owner.accountId);
   await redeem(invitation, "10040");
   const staff = await employeeSession("10040");
-  const secrets = { PLATFORM_BOT_TOKEN: "test", PLATFORM_BOT_USERNAME: "KorzinaDemoBot" };
   const context = {
     actor: owner.accountId,
     shop,
@@ -166,15 +167,25 @@ it("§9.1 тест отправляет одно личное сообщение
   await expect(sendStaffTest(env.PLATFORM, secrets, context, staff.account ?? "")).rejects.toMatchObject({
     code: "BOT_NOT_STARTED",
   });
-  await connectStaffChat(env.PLATFORM, shop, "platform", "10040");
+  await connectStaffChat(env.PLATFORM, shop, bot, "10040");
   const send = vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({ ok: true, result: {} }));
   try {
     await expect(sendStaffTest(env.PLATFORM, secrets, context, staff.account ?? "")).resolves.toEqual({ sent: true });
     await expect(sendStaffTest(env.PLATFORM, secrets, context, staff.account ?? "")).resolves.toEqual({ sent: true });
     expect(send).toHaveBeenCalledTimes(1);
-    expect(send.mock.calls[0][0]).toBe("https://api.telegram.org/bottest/sendMessage");
+    expect(send.mock.calls[0][0]).toBe("https://api.telegram.org/bot93100:synthetic-shop-bot-fixture/sendMessage");
     expect(JSON.parse(String(send.mock.calls[0][1]?.body))).toMatchObject({ chat_id: "10040" });
   } finally {
     send.mockRestore();
   }
+});
+
+it("BOT1.5 · магазин без бота не выдаёт приглашение сотрудника", async () => {
+  const withoutBot = "korzina-demo-lavka";
+  const owner = await sellerFixture(withoutBot);
+  const create = await postAuth("/api/seller/team/invites?store=lavka", { role: "picker" }, owner.headers);
+  expect(create.status).toBe(503);
+  expect(await create.json()).toMatchObject({
+    error: { code: "AUTH_UNAVAILABLE", message: "Сначала администратор подключит бота" },
+  });
 });

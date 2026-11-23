@@ -47,13 +47,11 @@ export const teamRoutes = new Hono<TeamEnv>()
     await next();
   })
   .use("*", authenticateSeller)
-  .get("/bot", async (c) =>
-    c.json(await staffBotStatus(c.env.PLATFORM, c.env, c.get("shopId"), c.get("seller").accountId)),
-  )
+  .get("/bot", async (c) => c.json(await staffBotStatus(c.env.PLATFORM, c.get("shopId"), c.get("seller").accountId)))
   .get("/notifications", requirePermission("shop_settings"), async (c) => {
     const shop = c.get("shopId");
-    const bot = await staffBot(c.env.PLATFORM, shop, c.env);
-    return c.json(await staffNotificationSettings(c.env.PLATFORM, shop, bot.id));
+    const bot = await staffBot(c.env.PLATFORM, shop);
+    return c.json(await staffNotificationSettings(c.env.PLATFORM, shop, bot?.id ?? ""));
   })
   .put(
     "/notifications",
@@ -62,8 +60,8 @@ export const teamRoutes = new Hono<TeamEnv>()
     idempotency,
     zValidator("json", notificationChange, validationFailure),
     async (c) => {
-      const bot = await staffBot(c.env.PLATFORM, c.get("shopId"), c.env);
-      return c.json(await changeNotification(c.env.PLATFORM, context(c), bot.id, c.req.valid("json")));
+      const bot = await staffBot(c.env.PLATFORM, c.get("shopId"));
+      return c.json(await changeNotification(c.env.PLATFORM, context(c), bot?.id ?? "", c.req.valid("json")));
     },
   )
   .get("/audit", requirePermission("shop_audit"), zValidator("query", auditFilters, validationFailure), async (c) =>

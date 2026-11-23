@@ -40,8 +40,9 @@ export async function readSellerSession(platform: D1Database, hash: string, shop
     .withSession("first-primary")
     .prepare(`
     SELECT s.account_id AS accountId, m.role, m.permissions, m.team_role AS teamRole
-    FROM seller_sessions s LEFT JOIN memberships m
+    FROM seller_sessions s JOIN accounts a ON a.id=s.account_id LEFT JOIN memberships m
     ON m.account_id = s.account_id AND m.shop_id = ? AND m.revoked_at IS NULL
+    AND (s.shop_id = m.shop_id OR (s.shop_id IS NULL AND a.telegram_id IS NULL))
     WHERE s.token_hash = ? AND s.expires_at > ?
   `)
     .bind(shopId, hash, Date.now())

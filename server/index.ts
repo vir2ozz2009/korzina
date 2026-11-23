@@ -14,7 +14,6 @@ import { publicShop } from "./platform/admin/public-shop";
 import { adminRoutes } from "./platform/admin/routes";
 import { sellerAccess } from "./platform/auth/access-routes";
 import { cabinetRoutes } from "./platform/auth/cabinet-routes";
-import { platformWebhook } from "./platform/auth/platform-webhook";
 import { platformAuth } from "./platform/auth/routes";
 import { shopWebhook } from "./platform/auth/shop-webhook";
 import { launchRoutes } from "./platform/launch-routes";
@@ -52,7 +51,6 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
   )
   .route("/platform/auth", platformAuth)
   .route("/platform/admin", adminRoutes)
-  .route("/platform/telegram", platformWebhook)
   .route("/platform/shop-telegram", shopWebhook)
   .route("/platform/storefront", publicShop)
   .route("/seller/access", sellerAccess)

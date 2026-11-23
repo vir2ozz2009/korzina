@@ -6,12 +6,10 @@ import { routePath } from "hono/route";
 import type { BotChange } from "../../src/shared/contracts/admin";
 import { launchReadiness } from "../../src/shared/contracts/launch";
 import { ApiError } from "../../src/shared/errors";
-import { decryptBotToken } from "../auth/bot-token";
 import type { AuthSecrets } from "../auth/config";
-import { verifyInitData } from "../auth/telegram";
 import { handleError, notFound } from "../middleware/errors";
 import { extendCustomerVisit } from "../modules/auth/service";
-import { confirmBrowserBuyer, demoBuyerExchange, shopBuyerExchange } from "../modules/auth/telegram-exchange";
+import { confirmBrowserBuyer, shopBuyerExchange } from "../modules/auth/telegram-exchange";
 import { expireSalePauses, nextSaleDeadline } from "../modules/catalog/sale-pause";
 import { type OpenDraftRequest, type OpenResponse, openDraft } from "../modules/launch/open";
 import { launchSnapshot } from "../modules/launch/readiness";
@@ -19,10 +17,9 @@ import { expireCompositionChanges, scheduleCompositionDeadline } from "../module
 import { signalBuyerOrders } from "../modules/order-chat/live";
 import { signalSellerOrders } from "../modules/seller-orders/live";
 import { sendOrderNotifications } from "../modules/seller-orders/notifications";
-import { botCoordinator, changeShopBot, managedBot } from "../platform/admin/shop-bot";
+import { botCoordinator, changeShopBot } from "../platform/admin/shop-bot";
 import { notifyShopStatus, type ShopMutation } from "../platform/admin/shop-change";
 import { managedShop } from "../platform/admin/shop-detail";
-import { demoPlatformShop } from "../platform/auth/demo-telegram";
 import { cleanupSellers, platformCleanupId } from "../platform/cleanup";
 import { rescheduleCleanup, scheduleCleanup } from "./cleanup";
 import type { ShopEnv } from "./env";
@@ -97,7 +94,7 @@ export class Shop extends DurableObject<Env> {
           const send = async () => {
             const current = await managedShop(this.env.PLATFORM, shop);
             if (current.version === version)
-              await notifyShopStatus(this.env.PLATFORM, current, "active", version, this.env.PLATFORM_BOT_TOKEN);
+              await notifyShopStatus(this.env.PLATFORM, current, "active", version, this.env as Env & AuthSecrets);
           };
           this.ctx.waitUntil(send().catch(() => {}));
         });
@@ -133,25 +130,6 @@ export class Shop extends DurableObject<Env> {
     }
   }
 
-  async verifyCabinetTelegram(initData: string, shopId: string) {
-    if (!this.ctx.exports.Shop.idFromName(shopId).equals(this.ctx.id))
-      throw new ApiError("FORBIDDEN", "Другой магазин");
-    const bot = await managedBot(this.env.PLATFORM, shopId);
-    const setting = bot
-      ? undefined
-      : this.ctx.storage.sql
-          .exec<{ value: string }>("SELECT value FROM settings WHERE key='telegram_bot_token'")
-          .toArray()[0];
-    const encrypted = bot?.token ?? setting?.value;
-    if (!encrypted) return undefined;
-    const token = await decryptBotToken(encrypted, shopId, (this.env as Env & AuthSecrets).ENCRYPTION_KEY);
-    try {
-      return (await verifyInitData(initData, token)).telegramId;
-    } catch (error) {
-      if (!(error instanceof ApiError) || error.code !== "UNAUTHORIZED") throw error;
-    }
-  }
-
   adminBotChange(mutation: ShopMutation, input: BotChange, origin: string) {
     if (!this.ctx.exports.Shop.idFromName(botCoordinator).equals(this.ctx.id))
       throw new ApiError("FORBIDDEN", "Нет доступа");
@@ -167,10 +145,9 @@ export class Shop extends DurableObject<Env> {
   }
 
   async confirmBuyerTelegram(shopId: string, exchange: string, telegramId: string, name: string) {
-    const isDemo = demoBuyerExchange.test(exchange);
     if (
       !this.ctx.exports.Shop.idFromName(shopId).equals(this.ctx.id) ||
-      (isDemo ? this.env.APP_ENV !== "demo" || shopId !== demoPlatformShop : !shopBuyerExchange.test(exchange)) ||
+      !shopBuyerExchange.test(exchange) ||
       !/^[1-9][0-9]{0,15}$/.test(telegramId)
     )
       return undefined;

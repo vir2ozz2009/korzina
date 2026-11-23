@@ -96,23 +96,33 @@ export async function checkWorkdayShare(page: Page, baseURL: string | undefined)
     await selectDraft();
     await expect(address).toHaveCount(0);
 
+    const bot = "KorzinaShopFixtureBot";
     const invite = {
       id: "workday-invite",
       role: "picker",
       expiresAt: Date.now() + 86_400_000,
       state: "pending",
-      url: "https://t.me/KorzinaDemoBot?start=invite_link",
+      url: `https://t.me/${bot}?start=invite_link`,
     };
     await page.route("**/seller/team?store=test2", async (route) => {
       const response = await route.fetch();
       await route.fulfill({ response, headers: { ...response.headers(), "permissions-policy": "clipboard-write=()" } });
     });
     await page.route(/\/api\/seller\/team\/members\?/, (route) => route.fulfill({ json: { members: [] } }));
+    let botConnected = false;
+    await page.route(/\/api\/seller\/team\/bot\?/, (route) =>
+      route.fulfill({ json: { shopBot: botConnected ? bot : null } }),
+    );
     await page.route(/\/api\/seller\/team\/invites\?/, (route) =>
       route.fulfill({ json: route.request().method() === "POST" ? invite : { invites: [] } }),
     );
     await page.goto("/seller/team?store=test2");
-    await page.getByRole("button", { name: "Добавить сотрудника" }).click();
+    const add = page.getByRole("button", { name: "Добавить сотрудника" });
+    await expect(page.getByText("Сначала администратор подключит бота", { exact: true })).toBeVisible();
+    await expect(add).toBeDisabled();
+    botConnected = true;
+    await page.reload();
+    await add.click();
     await page.getByRole("button", { name: "Создать приглашение" }).click();
     await expect(page.getByText(invite.url, { exact: true })).toBeVisible();
     await page.evaluate(() => {

@@ -20,9 +20,6 @@ const origin = "https://demo.korzina.app";
 const bindings = {
   ...env,
   ENCRYPTION_KEY: "bc".repeat(32),
-  PLATFORM_BOT_TOKEN: "91111:platformfixturetelegram",
-  PLATFORM_BOT_USERNAME: "KorzinaFixtureBot",
-  PLATFORM_BOT_WEBHOOK_SECRET: "trusted-test-webhook",
 };
 const command = () => ({ key: crypto.randomUUID(), fingerprint: crypto.randomUUID() });
 async function mutation(id: string): Promise<ShopMutation> {
@@ -75,10 +72,10 @@ it("§9.11 · §9.12 подключение сохраняет прежнюю с
   const update = {
     message: { chat: { id: 92224, type: "private" }, from: { id: 92224 }, text: `/start inv_${original}` },
   };
-  expect((await postAuth("/api/platform/telegram", update)).status).toBe(403);
+  expect((await postAuth(`/api/platform/shop-telegram/${id}`, update)).status).toBe(403);
   expect((await redeemOwnerInvite(db, original, "92225", "Анна", secondId)).state).toBe("invalid");
   const outcomes = await Promise.all([
-    redeemOwnerInvite(db, original, "92224", "Ирина"),
+    redeemOwnerInvite(db, original, "92224", "Ирина", id),
     redeemOwnerInvite(db, original, "92225", "Анна", id),
   ]);
   expect(outcomes.map((outcome) => outcome.state).sort()).toEqual(["accepted", "used"]);
@@ -95,7 +92,7 @@ it("§9.11 · §9.12 подключение сохраняет прежнюю с
 it("§9.2 · §9.5 · §9.12 владелец меняется при принятии с причиной и прежняя ссылка отзывается", async () => {
   const id = await draft("tg-replace");
   const original = await newestInvite(id);
-  expect((await redeemOwnerInvite(db, original, "92231", "Анна")).state).toBe("accepted");
+  expect((await redeemOwnerInvite(db, original, "92231", "Анна", id)).state).toBe("accepted");
   const request = await mutation(id);
   await changeShop(
     db,
@@ -105,9 +102,9 @@ it("§9.2 · §9.5 · §9.12 владелец меняется при приня
     false,
   );
   expect((await managedShop(db, id)).ownerName).toBe("Анна");
-  expect((await redeemOwnerInvite(db, original, "92231", "Анна")).state).toBe("invalid");
+  expect((await redeemOwnerInvite(db, original, "92231", "Анна", id)).state).toBe("invalid");
   const next = await newestInvite(id);
-  const result = await redeemOwnerInvite(db, next, "92232", "Ирина");
+  const result = await redeemOwnerInvite(db, next, "92232", "Ирина", id);
   expect(result).toMatchObject({ state: "accepted", previousOwner: "92231" });
   expect((await managedShop(db, id)).ownerName).toBe("Ирина");
   expect(
@@ -117,7 +114,7 @@ it("§9.2 · §9.5 · §9.12 владелец меняется при приня
       .first(),
   ).toMatchObject({ count: 1 });
   const webhook = await app.fetch(
-    new Request(`${origin}/api/platform/telegram`, {
+    new Request(`${origin}/api/platform/shop-telegram/${id}`, {
       method: "POST",
       headers: { "X-Telegram-Bot-Api-Secret-Token": "wrong secret", "Content-Type": "application/json" },
       body: JSON.stringify({

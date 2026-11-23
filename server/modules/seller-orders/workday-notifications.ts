@@ -79,9 +79,9 @@ export async function sendWorkdayNotifications(
 
   let canDispatch = false;
   if (pending.length || hasDue) {
-    const bot = await staffBot(env.PLATFORM, shop, env);
+    const bot = await staffBot(env.PLATFORM, shop);
     const token = await staffBotToken(bot, shop, env);
-    if (token) {
+    if (bot && token) {
       canDispatch = true;
       const audience = new Map<NotificationTopic, string[]>();
       for (const event of pending) {
@@ -140,23 +140,7 @@ export async function sendWorkdayNotifications(
         );
         if (!claim.rowsWritten || !allowed) continue;
         try {
-          const payload = message(event, sellerUrl, buyerUrl);
-          try {
-            await telegramApi(token, "sendMessage", payload);
-          } catch (error) {
-            if (
-              !(
-                event.kind === "chat" &&
-                event.recipient &&
-                bot.isShop &&
-                env.PLATFORM_BOT_TOKEN &&
-                error instanceof TelegramRequestError &&
-                error.permanent
-              )
-            )
-              throw error;
-            await telegramApi(env.PLATFORM_BOT_TOKEN, "sendMessage", payload);
-          }
+          await telegramApi(token, "sendMessage", message(event, sellerUrl, buyerUrl));
           sql.exec(
             "UPDATE workday_notice_delivery SET outcome='sent' WHERE event=? AND recipient=?",
             event.id,
@@ -184,6 +168,11 @@ export async function sendWorkdayNotifications(
           }
         }
       }
+    } else {
+      storage.transactionSync(() => {
+        sql.exec("UPDATE workday_notice SET expanded=1 WHERE expanded=0");
+        sql.exec("UPDATE workday_notice_delivery SET outcome='revoked' WHERE outcome IS NULL");
+      });
     }
   }
 
@@ -195,10 +184,7 @@ export async function sendWorkdayNotifications(
   const queued = sql
     .exec<{ due: number | null }>("SELECT MIN(due_at) AS due FROM workday_notice_delivery WHERE outcome IS NULL")
     .one().due;
-  const next = Math.min(
-    expiry ?? Infinity,
-    Math.max(hasDue && !canDispatch ? Infinity : (queued ?? Infinity), now + 1000),
-  );
+  const next = Math.min(expiry ?? Infinity, Math.max(queued ?? Infinity, now + 1000));
   const due = canDispatch && pending.length >= 20 ? now + 1000 : next;
   if (Number.isFinite(due)) {
     const current = await storage.getAlarm();

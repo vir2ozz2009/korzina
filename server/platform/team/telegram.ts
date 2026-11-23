@@ -1,7 +1,7 @@
 import type { AuthSecrets } from "../../auth/config";
 import { telegramApi } from "../../auth/telegram-api";
 import { miniAppAddress } from "../admin/shop-bot";
-import { beginStaffChat, connectStaffChat, platformStaffBot } from "./bot";
+import { beginStaffChat, connectStaffChat } from "./bot";
 import { redeemStaffInvite } from "./redeem";
 
 export const staffInvitePattern = /^\/start staff_([A-Za-z0-9_-]{43})$/;
@@ -21,7 +21,7 @@ export async function replyStaffChat(
   token: string,
   origin: string,
 ) {
-  await beginStaffChat(env.PLATFORM, env, shop, bot, String(chatId));
+  await beginStaffChat(env.PLATFORM, shop, bot, String(chatId));
   await telegramApi(token, "sendMessage", {
     chat_id: chatId,
     text: "Откройте кабинет продавца",
@@ -38,7 +38,7 @@ export async function answerStaffInvite(
     from: { id: number; first_name?: string; last_name?: string };
     origin: string;
     bot: string;
-    channel?: { shop: string; bot: string };
+    channel: { shop: string; bot: string };
   },
 ) {
   const { raw, from, origin, bot, channel } = options;
@@ -50,8 +50,7 @@ export async function answerStaffInvite(
     now: Date.now(),
     channel,
   });
-  if (outcome.state === "accepted")
-    await connectStaffChat(database, outcome.shop, channel?.bot ?? platformStaffBot, String(from.id));
+  if (outcome.state === "accepted") await connectStaffChat(database, outcome.shop, channel.bot, String(from.id));
   await telegramApi(bot, "sendMessage", {
     chat_id: from.id,
     text: outcome.state === "accepted" ? "Доступ к магазину открыт" : instructions[outcome.state],

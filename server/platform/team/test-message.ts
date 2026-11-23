@@ -14,7 +14,8 @@ function delivery(result: Delivery) {
 export async function sendStaffTest(database: D1Database, secrets: AuthSecrets, context: TeamCommand, id: string) {
   const replay = await teamReplay<Delivery>(database, context);
   if (replay !== undefined) return delivery(replay);
-  const bot = await staffBot(database, context.shop, secrets);
+  const bot = await staffBot(database, context.shop);
+  if (!bot) throw new ApiError("AUTH_UNAVAILABLE", "Сначала администратор подключит бота");
   const token = await staffBotToken(bot, context.shop, secrets);
   const target = await database
     .withSession("first-primary")

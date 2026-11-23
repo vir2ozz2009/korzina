@@ -15,7 +15,7 @@ export async function sellerAccount(database: D1Database, request: Request): Pro
   if (!row) throw new ApiError("UNAUTHORIZED", "Сессия недействительна");
   return row.accountId;
 }
-export async function telegramSellerSession(database: D1Database, telegramId: string): Promise<string> {
+export async function telegramSellerSession(database: D1Database, telegramId: string, shopId: string): Promise<string> {
   const token = newToken();
   await database.batch([
     database
@@ -23,9 +23,9 @@ export async function telegramSellerSession(database: D1Database, telegramId: st
       .bind(crypto.randomUUID(), telegramId),
     database
       .prepare(
-        "INSERT INTO seller_sessions (token_hash, account_id, expires_at) SELECT ?, id, ? FROM accounts WHERE telegram_id = ?",
+        "INSERT INTO seller_sessions (token_hash, account_id, expires_at, shop_id) SELECT ?, id, ?, ? FROM accounts WHERE telegram_id = ?",
       )
-      .bind(await tokenHash(token), Date.now() + sellerTtl * 1000, telegramId),
+      .bind(await tokenHash(token), Date.now() + sellerTtl * 1000, shopId, telegramId),
   ]);
   await scheduleSellerCleanup();
   return token;

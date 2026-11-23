@@ -1,4 +1,7 @@
 import { index, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { accounts } from "./auth-schema";
+
+export { accounts, sellerExchanges, sellerSessions } from "./auth-schema";
 
 export const platformSettings = sqliteTable("platform_settings", {
   key: text("key").primaryKey(),
@@ -61,11 +64,6 @@ export const featureOverrides = sqliteTable(
   (table) => [primaryKey({ columns: [table.shopId, table.key] })],
 );
 
-export const accounts = sqliteTable("accounts", {
-  id: text("id").primaryKey(),
-  telegramId: text("telegram_id").unique(),
-  email: text("email").unique(),
-});
 export const memberships = sqliteTable(
   "memberships",
   {
@@ -87,18 +85,6 @@ export const memberships = sqliteTable(
     index("memberships_account_idx").on(table.accountId),
   ],
 );
-export const sellerSessions = sqliteTable(
-  "seller_sessions",
-  {
-    tokenHash: text("token_hash").primaryKey(),
-    accountId: text("account_id")
-      .notNull()
-      .references(() => accounts.id),
-    expiresAt: integer("expires_at").notNull(),
-  },
-  (t) => [index("seller_sessions_expiry_idx").on(t.expiresAt)],
-);
-
 export const staffInvitations = sqliteTable(
   "staff_invitations",
   {
@@ -164,19 +150,6 @@ export const demoSeedQueue = sqliteTable("demo_seed_queue", {
     .references(() => shops.id),
   requestedAt: text("requested_at").notNull(),
 });
-
-export const sellerExchanges = sqliteTable(
-  "seller_exchanges",
-  {
-    id: text("id").primaryKey(),
-    proofHash: text("proof_hash").notNull(),
-    telegramId: text("telegram_id"),
-    completedWith: text("completed_with"),
-    returnUrl: text("return_url"),
-    expiresAt: integer("expires_at").notNull(),
-  },
-  (table) => [index("seller_exchanges_expiry_idx").on(table.expiresAt)],
-);
 
 export const platformAdmins = sqliteTable("platform_admins", {
   accountId: text("account_id")

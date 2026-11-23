@@ -7,6 +7,7 @@ import type { AuthSecrets } from "../../auth/config";
 import { telegramApi } from "../../auth/telegram-api";
 import type { CommandIdentity } from "../../middleware/idempotency";
 import { scheduleSellerCleanup } from "../cleanup";
+import { staffBot, staffBotToken } from "../team/bot";
 import { auditEvent, platformReplay } from "./commands";
 import { prepareOwnerInvite } from "./invitation-link";
 import { slugAvailability } from "./registry";
@@ -57,7 +58,7 @@ function statusChange(
   database: D1Database,
   shop: ManagedShop,
   next: "active" | "paused",
-  bot?: string,
+  secrets: AuthSecrets,
 ): PreparedChange {
   if (next === shop.status || (next === "paused" && shop.status !== "active"))
     throw new ApiError("INVALID_TRANSITION", "Переход недоступен");
@@ -66,7 +67,7 @@ function statusChange(
     action: "shop.status",
     changed: { from: shop.status, to: next },
     statements: [database.prepare("UPDATE shops SET status=?,status_notice=NULL WHERE id=?").bind(next, shop.id)],
-    afterCommit: () => notifyShopStatus(database, shop, next, shop.version + 1, bot),
+    afterCommit: () => notifyShopStatus(database, shop, next, shop.version + 1, secrets),
   };
 }
 
@@ -75,9 +76,11 @@ export async function notifyShopStatus(
   shop: Pick<ManagedShop, "id" | "name" | "ownerAccepted">,
   next: "active" | "paused",
   version: number,
-  bot?: string,
+  secrets: AuthSecrets,
 ) {
   if (!shop.ownerAccepted) return;
+  const bot = await staffBotToken(await staffBot(database, shop.id), shop.id, secrets);
+  if (!bot) return;
   const owner = await database
     .withSession("first-primary")
     .prepare(`SELECT a.telegram_id AS telegramId
@@ -85,7 +88,7 @@ export async function notifyShopStatus(
     WHERE m.shop_id=? AND m.role='owner' AND m.revoked_at IS NULL LIMIT 1`)
     .bind(shop.id)
     .first<{ telegramId: string | null }>();
-  if (owner?.telegramId && bot) {
+  if (owner?.telegramId) {
     try {
       await telegramApi(bot, "sendMessage", {
         chat_id: owner.telegramId,
@@ -110,7 +113,7 @@ async function inviteChange(
 ): Promise<PreparedChange> {
   if (reason && !shop.ownerAccepted) throw new ApiError("INVALID_TRANSITION", "Владелец ещё не назначен");
   const now = Date.now();
-  const invite = await prepareOwnerInvite(shop.id, secrets.ENCRYPTION_KEY, now, !shop.botUsername, reason);
+  const invite = await prepareOwnerInvite(shop.id, secrets.ENCRYPTION_KEY, now, reason);
   return {
     action: reason ? "owner.replacement_invited" : "owner.invite_issued",
     changed: reason ? { reason } : {},
@@ -211,11 +214,7 @@ export async function changeShop(
   const { shop } = state;
   switch (input.action) {
     case "status":
-      return commitShopChange(
-        database,
-        mutation,
-        statusChange(database, shop, input.status, secrets.PLATFORM_BOT_TOKEN),
-      );
+      return commitShopChange(database, mutation, statusChange(database, shop, input.status, secrets));
     case "invite":
       return commitShopChange(database, mutation, await inviteChange(database, shop, secrets, input.reason));
     case "feature":

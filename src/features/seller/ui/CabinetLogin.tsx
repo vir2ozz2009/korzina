@@ -1,3 +1,4 @@
+import { useRouterState } from "@tanstack/react-router";
 import { Send } from "lucide-react";
 import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "../../../app/shell/ToastProvider";
@@ -21,6 +22,8 @@ export function CabinetLogin({
   ready: () => void;
   automaticLoginAttempted: RefObject<boolean>;
 }) {
+  const shop = useRouterState({ select: (state) => state.location.search.shop });
+  const loginStore = store ?? (typeof shop === "string" ? shop : undefined);
   const { mutateAsync: enter } = useEnterCabinet();
   const notify = useToast();
   const [exchange, setExchange] = useState<Exchange | undefined>(() => readTelegramAttempt("seller"));
@@ -59,16 +62,16 @@ export function CabinetLogin({
       if (telegramLaunch) {
         const telegram = await loadTelegram();
         if (!telegram?.initData) throw new Error("Откройте кабинет из Telegram");
-        await enter({ initData: telegram.initData, store });
+        await enter({ initData: telegram.initData, store: loginStore });
       } else {
-        setExchange(await startCabinetLogin(request.signal));
+        setExchange(await startCabinetLogin(request.signal, loginStore));
       }
     } catch (error) {
       if (!request.signal.aborted) setError(message(error));
     } finally {
       if (!request.signal.aborted) setStarting(false);
     }
-  }, [enter, store]);
+  }, [enter, loginStore]);
   useEffect(() => {
     if (!telegramLaunch || automaticLoginAttempted.current) return;
     automaticLoginAttempted.current = true;
