@@ -2,9 +2,11 @@ import { MapPin, Store, Truck } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useToast } from "../../../app/shell/ToastProvider";
 import type { Receiving } from "../../../shared/contracts/receiving";
+import { HttpError } from "../../../shared/http-error";
 import { Card } from "../../../ui/Card";
 import { ListItem } from "../../../ui/ListItem";
 import { type ReceivingState, useReceiving, useSaveReceiving } from "../api";
+import { canReuseAddress } from "../reuse-address";
 import { AddressSheet } from "./AddressSheet";
 
 export function activeReceiving(data: ReceivingState) {
@@ -40,13 +42,14 @@ export function CartShipping({
       data.unavailable?.delivery ||
       data.receiving ||
       !previous ||
+      !canReuseAddress(previous, data) ||
       disabled ||
       open ||
       attempted.current === revision
     )
       return;
     attempted.current = revision;
-    mutate({ receiving: { ...previous, comment: undefined }, expectedRevision: revision });
+    mutate({ receiving: { ...previous, comment: undefined }, expectedRevision: Math.max(revision, data.revision) });
   }, [data, previous, disabled, open, revision, mutate]);
   if (!data) {
     return query.isError ? (
@@ -79,11 +82,14 @@ export function CartShipping({
       if (next === "pickup") {
         await update({ mode: "pickup" });
         setOpen(false);
+      } else if (data?.deliveryDraft && canReuseAddress(data.deliveryDraft, data)) {
+        await update(data.deliveryDraft);
       } else {
         setOpen(true);
       }
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Не удалось сохранить способ получения");
+      if (next === "delivery" && error instanceof HttpError && error.code === "OUT_OF_ZONE") setOpen(true);
+      else toast(error instanceof Error ? error.message : "Не удалось сохранить способ получения");
     }
   }
   return (
@@ -146,7 +152,7 @@ export function CartShipping({
       {method === "pickup" && data.pickup && <ListItem title={data.pickup.address} subtitle={data.pickup.hours} />}
       {open && data.delivery && (
         <AddressSheet
-          current={address}
+          current={address ?? data.deliveryDraft}
           data={data}
           currency={currency}
           pending={save.isPending}

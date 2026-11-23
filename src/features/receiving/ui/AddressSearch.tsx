@@ -1,4 +1,4 @@
-import { MapPin } from "lucide-react";
+import { LocateFixed, MapPin } from "lucide-react";
 import type { Point } from "../../../shared/contracts/receiving";
 import { Button } from "../../../ui/Button";
 import { ListItem } from "../../../ui/ListItem";
@@ -16,6 +16,8 @@ export function AddressSearch({
   pending,
   manual,
   map,
+  locate,
+  zone,
   save,
   pickup,
 }: {
@@ -26,13 +28,15 @@ export function AddressSearch({
   pending: boolean;
   manual: () => void;
   map: () => void;
+  locate: () => void;
+  zone: boolean;
   save: () => void;
   pickup?: () => void;
 }) {
   const { query, searching } = useAddressSuggestions(address);
   const suggestions = query.data ?? [];
-  const offerSave = !searching && (query.isError || query.data?.length === 0);
-  const offerManual = !offerSave && !blocked && !!address.trim();
+  const offerSave = zone && !searching && (query.isError || query.data?.length === 0);
+  const offerManual = !offerSave && !blocked && (!zone || !!address.trim());
   return (
     <>
       <SearchField value={address} label="Улица, дом, город" disabled={pending} onChange={change} />
@@ -55,6 +59,11 @@ export function AddressSearch({
           ))}
         </ul>
       )}
+      {!zone && !searching && (query.isError || query.data?.length === 0) && (
+        <p role="status" className="text-meta">
+          {query.isError ? "Подсказки пока недоступны." : "Совпадений нет."} Можно ввести адрес вручную.
+        </p>
+      )}
       {offerSave && !blocked && (
         <>
           <p role="status" className="text-meta">
@@ -75,6 +84,11 @@ export function AddressSearch({
         <Button full variant="secondary" disabled={pending} onClick={map}>
           Указать на карте
         </Button>
+        {!zone && (
+          <Button full variant="secondary" disabled={pending} icon={<LocateFixed size={18} />} onClick={locate}>
+            Определить мою позицию
+          </Button>
+        )}
         {blocked && pickup && (
           <Button full variant="secondary" disabled={pending} onClick={pickup}>
             Выбрать самовывоз

@@ -11,6 +11,7 @@ export function ManualAddressStep({
   change,
   save,
   map,
+  zone,
   pickup,
 }: {
   address: DeliveryAddress;
@@ -20,6 +21,7 @@ export function ManualAddressStep({
   change: (address: DeliveryAddress) => void;
   save: () => void;
   map?: () => void;
+  zone: boolean;
   pickup?: () => void;
 }) {
   return (
@@ -37,9 +39,9 @@ export function ManualAddressStep({
         disabled={pending}
         onChange={change}
       />
-      {map && <ManualDeliveryStatus />}
+      {zone && <ManualDeliveryStatus />}
       <Button full type="submit" loading={pending} disabled={!address.address.trim()}>
-        {map ? "Сохранить адрес вручную" : "Сохранить адрес"}
+        {zone ? "Сохранить адрес вручную" : "Сохранить адрес"}
       </Button>
       {map && (
         <Button full variant="secondary" disabled={pending} onClick={map}>

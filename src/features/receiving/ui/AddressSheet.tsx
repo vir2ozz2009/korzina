@@ -1,14 +1,13 @@
-import { MapPin } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { addressKey } from "../../../shared/address-key";
 import type { DeliveryAddress, Point } from "../../../shared/contracts/receiving";
 import { HttpError } from "../../../shared/http-error";
-import { Button } from "../../../ui/Button";
-import { ListItem } from "../../../ui/ListItem";
 import { Sheet } from "../../../ui/Sheet";
 import { usePointDelivery, useVerifySubmittedAddress } from "../address-api";
 import type { ReceivingState } from "../api";
+import { canReuseAddress, manualAddressError } from "../reuse-address";
 import { AddressChooser, savedChoices } from "./AddressChooser";
-import { AddressReviewStatus } from "./AddressDelivery";
+import { AddressReview, AddressSheetError } from "./AddressDelivery";
 import { AddressMapStep } from "./AddressMapStep";
 import { AddressSearch } from "./AddressSearch";
 import { ManualAddressStep } from "./ManualAddressStep";
@@ -45,22 +44,23 @@ export function AddressSheet({
 }) {
   const choices = edit ? [] : savedChoices(current, data);
   const onMap = data.delivery?.mode === "map";
-  const districts = data.delivery?.mode === "districts" ? (data.delivery.districts ?? []) : [];
-  const firstEntry = onMap ? "search" : "manual";
+  const districts = data.delivery?.districts ?? [];
+  const geocoded = onMap || data.delivery?.mode === "text";
+  const firstEntry = geocoded ? "search" : "manual";
   const [trail, setTrail] = useState<View[]>([
-    edit && current ? (onMap && current.point ? "review" : "manual") : choices.length ? "choose" : firstEntry,
+    edit && current ? (geocoded && current.point ? "review" : "manual") : choices.length ? "choose" : firstEntry,
   ]);
   const view = trail[trail.length - 1];
   const [draft, setDraft] = useState<DeliveryAddress>(edit ? (current ?? empty) : empty);
   const [candidate, setCandidate] = useState<DeliveryAddress | undefined>(edit ? current : undefined);
-  const [point, setPoint] = useState<Point>();
+  const [point, setPoint] = useState<Point | undefined>(edit ? current?.point : undefined);
+  const [locateOnOpen, setLocateOnOpen] = useState(false);
   const [outside, setOutside] = useState<string[]>([]);
   const [error, setError] = useState("");
   const verification = useVerifySubmittedAddress();
   const pending = saving || verification.isPending;
   const check = usePointDelivery(view === "review" ? candidate?.point : undefined);
   const result = check.data;
-  const available = !check.isError && result?.mode === "delivery" && result.available;
   const rejected = !check.isError && result?.mode === "delivery" && !result.available;
   const blocked = onMap && outside.includes(normalize(draft.address));
 
@@ -73,7 +73,8 @@ export function AddressSheet({
     if (candidate && rejected && result.reason === "outside") rememberOutside(candidate.address);
   }, [candidate, rejected, rememberOutside, result]);
 
-  function open(next: View) {
+  function open(next: View, locate = false) {
+    if (next === "map") setLocateOnOpen(locate);
     setError("");
     setTrail([...trail, next]);
   }
@@ -89,20 +90,33 @@ export function AddressSheet({
     setTrail(choices.length ? ["choose", firstEntry] : [firstEntry]);
   }
 
-  function select(address: DeliveryAddress) {
-    if (onMap && address.point) {
+  function review(address: DeliveryAddress) {
+    if (geocoded && address.point) {
       setCandidate(address);
       open("review");
       return;
     }
     setDraft(address);
+    setPoint(address.point);
     open("manual");
   }
 
-  function change(address: DeliveryAddress) {
+  function selectSaved(address: DeliveryAddress) {
+    if ((!current || addressKey(current) !== addressKey(address)) && canReuseAddress(address, data)) {
+      const { id: _id, title: _title, ...selection } = address as DeliveryAddress & { id?: string; title?: string };
+      void saveAddress(selection);
+    } else review(address);
+  }
+
+  function change(address: DeliveryAddress, keepMapPoint = false) {
     setError("");
     const unchanged = normalize(address.address) === normalize(draft.address);
-    setDraft({ ...address, acceptedWithoutPoint: unchanged ? address.acceptedWithoutPoint : undefined });
+    setDraft({
+      ...address,
+      point: unchanged ? address.point : undefined,
+      acceptedWithoutPoint: unchanged ? address.acceptedWithoutPoint : undefined,
+    });
+    if (!unchanged && !keepMapPoint) setPoint(undefined);
   }
 
   async function saveAddress(address: DeliveryAddress, verify = false) {
@@ -126,13 +140,10 @@ export function AddressSheet({
 
   function saveManual() {
     const address = draft.address.trim();
-    if (!address || (onMap && address.length < 3)) return setError("Укажите адрес доставки");
-    if (blocked) return setError("Этот адрес уже проверен и находится вне зоны. Укажите другой адрес.");
-    if (districts.length && !draft.districtId) return setError("Выберите район");
-    if (!onMap && data.requiredDetails.some((field) => !draft[field]?.trim()))
-      return setError("Заполните обязательные поля");
+    const error = manualAddressError(draft, data, blocked);
+    if (error) return setError(error);
     const acceptedWithoutPoint = onMap ? draft.acceptedWithoutPoint : undefined;
-    void saveAddress({ ...draft, address, point: undefined, acceptedWithoutPoint }, onMap && !acceptedWithoutPoint);
+    void saveAddress({ ...draft, address, acceptedWithoutPoint }, onMap && !draft.point && !acceptedWithoutPoint);
   }
 
   return (
@@ -151,7 +162,7 @@ export function AddressSheet({
             addresses={choices}
             current={current}
             pending={pending}
-            select={select}
+            select={selectSaved}
             pickup={pickup}
             create={() => {
               change(empty);
@@ -165,7 +176,7 @@ export function AddressSheet({
             address={draft.address}
             change={(address) => change({ ...draft, address })}
             select={(place) =>
-              select({
+              review({
                 mode: "delivery",
                 address: place.address.slice(0, 300),
                 point: { lat: place.lat, lon: place.lon },
@@ -175,6 +186,8 @@ export function AddressSheet({
             pending={pending}
             manual={() => open("manual")}
             map={() => open("map")}
+            locate={() => open("map", true)}
+            zone={onMap}
             save={saveManual}
             pickup={pickup}
           />
@@ -187,7 +200,8 @@ export function AddressSheet({
             pending={pending}
             change={change}
             save={saveManual}
-            map={onMap ? () => open("map") : undefined}
+            map={geocoded ? () => open("map") : undefined}
+            zone={onMap}
             pickup={!onMap || blocked ? pickup : undefined}
           />
         )}
@@ -195,8 +209,9 @@ export function AddressSheet({
           <AddressMapStep
             address={draft.address}
             useTypedAddress={trail.at(-2) === "manual"}
-            change={(address) => change({ ...draft, address })}
+            change={(address) => change({ ...draft, address }, true)}
             point={point}
+            locateOnOpen={locateOnOpen}
             setPoint={(next) => {
               setPoint(next);
               setError("");
@@ -217,33 +232,17 @@ export function AddressSheet({
           />
         )}
         {view === "review" && candidate && (
-          <>
-            <ListItem title={candidate.address} icon={<MapPin size={20} />} />
-            <AddressReviewStatus check={check} currency={currency} />
-            {available && (
-              <Button full disabled={check.isFetching} loading={pending} onClick={() => void saveAddress(candidate)}>
-                Подтвердить адрес
-              </Button>
-            )}
-            {rejected && (
-              <>
-                <Button full disabled={pending} onClick={another}>
-                  Указать другой адрес
-                </Button>
-                {pickup && (
-                  <Button full variant="secondary" disabled={pending} onClick={pickup}>
-                    Выбрать самовывоз
-                  </Button>
-                )}
-              </>
-            )}
-          </>
+          <AddressReview
+            address={candidate.address}
+            check={check}
+            currency={currency}
+            pending={pending}
+            save={() => void saveAddress(candidate)}
+            another={another}
+            pickup={pickup}
+          />
         )}
-        {error && (
-          <p role="alert" className="text-meta text-status-danger-foreground">
-            {error}
-          </p>
-        )}
+        {error && <AddressSheetError message={error} />}
       </div>
     </Sheet>
   );

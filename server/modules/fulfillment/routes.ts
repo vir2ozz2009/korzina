@@ -60,8 +60,8 @@ export const receivingRoutes = new Hono<ShopEnv>()
   .post("/geocode", authBodyLimit, zValidator("json", geocodeInput, validationFailure), async (c) => {
     const session = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);
     if (!session) throw new ApiError("UNAUTHORIZED", "Нужна сессия покупателя");
-    if (readFulfillment(c.env.storage, c.env.features.maps).delivery?.mode !== "map")
-      throw new ApiError("FEATURE_DISABLED", "Поиск по карте недоступен");
+    const mode = readFulfillment(c.env.storage, c.env.features.maps).delivery?.mode;
+    if (mode !== "map" && mode !== "text") throw new ApiError("FEATURE_DISABLED", "Поиск по карте недоступен");
     geocodeLimit(c, session.sessionId);
     const results = await lookupShopAddress(c.env.shop.id, c.req.valid("json"));
     if (!results.length) throw new ApiError("ADDRESS_NOT_FOUND", "Не нашли такой адрес");

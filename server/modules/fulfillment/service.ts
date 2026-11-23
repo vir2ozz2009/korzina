@@ -66,7 +66,11 @@ export function checkFulfillment(settings: FulfillmentSettings, selection: Recei
   });
   if (!delivery) return unavailable("disabled");
   const { payee } = delivery;
-  function available(tariff: DeliveryTariff, zoneId?: string, unverified?: true): ReceivingAvailability {
+  function available(
+    tariff: DeliveryTariff,
+    zoneId?: string,
+    unverified?: true,
+  ): Extract<ReceivingAvailability, { mode: "delivery"; available: true }> {
     return {
       mode: "delivery",
       available: true,
@@ -79,7 +83,7 @@ export function checkFulfillment(settings: FulfillmentSettings, selection: Recei
     };
   }
 
-  if (delivery.mode === "text") return available(delivery.tariff);
+  if (delivery.mode === "text") return { ...available(delivery.tariff), inZone: null };
   if (delivery.mode === "districts") {
     const district = delivery.districts.find(({ id }) => id === selection.districtId);
     return district ? available(district.tariff, district.id) : unavailable("district_required");
@@ -126,6 +130,7 @@ type Selection = {
   time: TimeChoice | null;
   receivingUpdatedAt: number;
   lastUsedAddress?: DeliveryAddress;
+  deliveryDraft?: DeliveryAddress;
 };
 export const emptySelection = (): Selection => ({
   receiving: null,
@@ -182,6 +187,7 @@ export function draftForMode(selection: Receiving, settings: FulfillmentSettings
   const { point, districtId, acceptedWithoutPoint, ...address } = selection;
   if (settings.delivery?.mode === "map")
     return { ...address, point, acceptedWithoutPoint: point ? undefined : acceptedWithoutPoint };
+  if (settings.delivery?.mode === "text") return { ...address, point };
   return { ...address, districtId: settings.delivery?.mode === "districts" ? districtId : undefined };
 }
 
@@ -209,6 +215,12 @@ export function saveReceiving(storage: DurableObjectStorage, customer: string, i
       time,
       receivingUpdatedAt: Date.now(),
       lastUsedAddress: current.lastUsedAddress,
+      deliveryDraft:
+        receiving.mode === "pickup"
+          ? current.receiving?.mode === "delivery"
+            ? current.receiving
+            : current.deliveryDraft
+          : undefined,
     };
     writeReceiving(storage, customer, revision, selection);
     return { revision, ...selection, availability };
