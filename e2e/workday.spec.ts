@@ -4,12 +4,14 @@ import type { StorefrontReceiving } from "../src/shared/contracts/receiving-time
 import type { SellerOrder } from "../src/shared/contracts/seller-order";
 import { calendarDate, formatShopDay } from "../src/shared/datetime";
 import { freshPage } from "./fresh-page";
+import { checkOrderChanges } from "./order-changes";
 import { placePickup, preparePickup } from "./seller-orders";
 import { checkCalendarBudget, checkOrderPagination, checkShopHeaders } from "./workday-regressions";
 import { checkWorkdayShare } from "./workday-share";
 
 test("Блок 9 · ближайшее получение, рабочий день и заказы в сборке", async ({ browser, baseURL }) => {
   test.skip(!baseURL || new URL(baseURL).hostname !== "127.0.0.1", "Нужна локальная учебная сессия кабинета");
+  test.setTimeout(65_000);
   const [buyer, seller] = await Promise.all([
     browser.newContext({ baseURL, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.91" } }),
     browser.newContext({ baseURL, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.92" } }),
@@ -174,6 +176,9 @@ test("Блок 9 · ближайшее получение, рабочий ден
       await Promise.all([buyer.close(), seller.close()]);
     }
   }
+  if (!baseURL) throw new Error("Нужен URL тестового магазина");
+  await test.step("Блок 10 · изменение состава, доплата и выдача в одном заказе", () =>
+    checkOrderChanges(browser, baseURL));
 });
 
 test("Блок 9 · регрессии рабочего дня и уведомлений", async ({ browser, baseURL }) => {

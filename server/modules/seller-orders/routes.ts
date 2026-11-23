@@ -11,6 +11,7 @@ import { authBodyLimit, authCommand, validationFailure } from "../../auth/reques
 import { readSeller, type Seller } from "../../auth/roles";
 import type { ShopEnv } from "../../shop/env";
 import { proposeChanges, quoteChanges } from "../order-changes/composition";
+import { pickReplacements } from "../order-changes/pick";
 import { changeTime, timeAvailability } from "../order-changes/time";
 import { changeSellerOrder, permitted } from "./command";
 import { orderListRevision, sellerOrders } from "./list";
@@ -108,6 +109,12 @@ export const sellerOrderRoutes = new Hono<SellerOrderEnv>()
       c.json(
         proposeChanges(c.env, c.get("seller"), c.req.valid("param").number, c.req.valid("json"), c.get("command")),
       ),
+  )
+  .get(
+    "/:number/composition/pick",
+    params,
+    zValidator("query", z.object({ q: z.string().trim().max(120).default("") }), validationFailure),
+    (c) => c.json(pickReplacements(c.env, c.req.valid("query").q)),
   )
   .get("/:number/time", params, (c) =>
     c.json(timeAvailability(c.env, { side: "seller", id: c.get("seller").accountId }, c.req.valid("param").number)),

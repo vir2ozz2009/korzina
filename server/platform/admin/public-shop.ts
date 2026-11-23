@@ -12,7 +12,9 @@ export const publicShop = new Hono<{ Bindings: Env }>().get("/:id", async (c) =>
   const url = new URL(storefrontUrl(c.req.url, c.env.APP_ENV, row.slug));
   if (c.req.query("destination") === "seller") {
     const order = c.req.query("order");
+    const chat = c.req.query("chat");
     url.pathname = order && /^[1-9]\d{0,14}$/u.test(order) ? `/seller/orders/${order}` : "/seller";
+    if (chat && /^[1-9]\d{0,14}$/u.test(chat)) url.pathname = `/seller/orders/${chat}/chat`;
     url.searchParams.set("store", row.slug);
   }
   return c.redirect(url.href, 302);

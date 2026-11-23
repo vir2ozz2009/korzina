@@ -2,10 +2,11 @@ import { beforeAll, expect, it } from "vitest";
 import type { OrderChatHistory, OrderChatList } from "../../../src/shared/contracts/order-chat";
 import { customerCookie } from "../../auth/cookies";
 import { newToken, tokenHash } from "../../auth/tokens";
+import { assertSqlBudget, type SqlMetrics } from "../../metrics";
 import { getAuth, postAuth, sellerFixture } from "../../testing/auth";
 import { snapshot } from "../../testing/orders";
 import { setupPlatform } from "../../testing/platform";
-import { catalogSql } from "../catalog/testing";
+import { catalogSql, shopRequest } from "../catalog/testing";
 
 const shop = "korzina-demo-lavka";
 beforeAll(setupPlatform);
@@ -72,7 +73,17 @@ it("US-R10 · отметка чтения не поглощает новое с�
   expect(await (await read(first.id)).json()).toMatchObject({ unread: 1 });
   const list = await (await getAuth("/api/seller/chat?store=lavka", seller.headers)).json<OrderChatList>();
   expect(list.chats[0]).toMatchObject({ number, preview: "Второе", unread: 1, waiting: true });
+  const badge = () => shopRequest("seller/chat/badge", seller.headers);
+  const unread = await badge();
+  expect(await unread.json()).toMatchObject({ count: expect.any(Number) });
+  assertSqlBudget(JSON.parse(unread.headers.get("x-korzina-sql") ?? "{}") as SqlMetrics, { sql: 1, rowsRead: 1 });
+  const beforeBadge = await (await badge()).json<{ count: number }>();
   expect(await (await read(second.id)).json()).toMatchObject({ unread: 0 });
+  expect(await (await badge()).json()).toEqual({ count: beforeBadge.count - 1 });
+  const history = await shopRequest(`orders/chat/${number}`, buyer.headers);
+  expect(history.status).toBe(200);
+  assertSqlBudget(JSON.parse(history.headers.get("x-korzina-sql") ?? "{}") as SqlMetrics, { sql: 3, rowsRead: 25 });
+  await history.arrayBuffer();
   expect(await (await read(first.id)).json()).toMatchObject({ unread: 0 });
 });
 

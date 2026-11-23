@@ -30,7 +30,7 @@ export function sellerPacking(
        li.value->>'name' AS name,li.value->>'unit' AS unit,li.value->>'quantity' AS quantity
      FROM seller_order_index i JOIN orders o ON i.number=o.number
      LEFT JOIN json_each(o.snapshot,'$.lines') li ON i.packed<i.lines AND NOT EXISTS (
-       SELECT 1 FROM json_each(o.fulfillment_state,'$.packed') p WHERE p.value=li.value->>'variantId'
+       SELECT 1 FROM json_each(o.fulfillment_state,'$.packed') p WHERE p.value=COALESCE(li.value->>'lineId',li.value->>'variantId')
      )
      WHERE i.stage<>'cancelled' AND ${filter.where}
      ORDER BY window IS NULL,window,i.number,li.key`,

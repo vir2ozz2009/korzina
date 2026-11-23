@@ -76,6 +76,24 @@ const buyerOrder = createRoute({
   staticData: { template: "order", transition: "push", title: "Заказ" },
   component: lazyRouteComponent(() => import("../features/orders/ui/OrderScreen"), "OrderScreen"),
 });
+const buyerChanges = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/orders/$number/changes",
+  staticData: { template: "order", transition: "push", title: "В заказе изменения" },
+  component: lazyRouteComponent(() => import("../features/orders/ui/BuyerChangesScreen"), "BuyerChangesScreen"),
+});
+const buyerChatList = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/chats",
+  staticData: { template: "list", transition: "push", title: "Переписки" },
+  component: lazyRouteComponent(() => import("../features/order-chat/ui/ChatScreens"), "BuyerInbox"),
+});
+const buyerChat = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/orders/$number/chat",
+  staticData: { template: "feedback", transition: "push", title: "Чат с магазином" },
+  component: lazyRouteComponent(() => import("../features/order-chat/ui/ChatScreens"), "BuyerChatScreen"),
+});
 const favorites = createRoute({
   getParentRoute: () => rootRoute,
   path: "/favorites",
@@ -110,6 +128,9 @@ export const shopRoutes = [
   done,
   orderHistory,
   buyerOrder,
+  buyerChanges,
+  buyerChatList,
+  buyerChat,
   favorites,
   profile,
   personalData,

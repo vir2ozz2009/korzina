@@ -15,6 +15,7 @@ import { IconButton } from "../../../ui/IconButton";
 import { ListItem } from "../../../ui/ListItem";
 import { Sheet } from "../../../ui/Sheet";
 import { StatusPill } from "../../../ui/StatusPill";
+import { SellerChatButton } from "../../order-chat";
 import { useCabinet, useSellerLogout } from "../api";
 import { CabinetLogin } from "./CabinetLogin";
 import { CabinetMore } from "./CabinetMore";
@@ -67,6 +68,11 @@ export function CabinetScreen() {
         <Header
           title={needsLogin ? "Вход" : pathname === "/seller" && current ? "Главная" : title}
           sellerShop={query.isError ? null : (current ?? null)}
+          extraActions={
+            !query.isError && current?.permissions.includes("chat") ? (
+              <SellerChatButton store={current.slug} />
+            ) : undefined
+          }
           actions={
             query.data &&
             !query.isError &&

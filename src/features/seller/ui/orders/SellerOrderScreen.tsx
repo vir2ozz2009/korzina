@@ -1,19 +1,22 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { QueryBoundary } from "../../../../app/shell/QueryBoundary";
+import { useToast } from "../../../../app/shell/ToastProvider";
 import type { SellerOrder, SellerOrderCommand } from "../../../../shared/contracts/seller-order";
 import { HttpError } from "../../../../shared/http-error";
 import { Button } from "../../../../ui/Button";
 import { EmptyState } from "../../../../ui/EmptyState";
 import { Sheet } from "../../../../ui/Sheet";
-import { StickyFooter } from "../../../../ui/StickyFooter";
+import { SellerChangeSummary, SellerComposition } from "../../../order-changes";
 import { useSellerOrder, useSellerOrderCommand } from "../../orders-api";
 import { OrderDetails } from "./OrderDetails";
 import { OrderHistory } from "./OrderHistory";
+import { OrderNextFooter } from "./OrderNextFooter";
 import { OrderPaymentSheet, type PaymentSheetAction } from "./OrderPaymentSheet";
 import { OrderStageSheet, type StageSheetAction } from "./OrderStageSheet";
 import { isHandoff, mainAction, type OrderAction, rollbackStage } from "./order-actions";
 import { SellerOrdersShell } from "./SellerOrdersShell";
+import { SellerReceivingActions } from "./SellerReceivingActions";
 
 export function SellerOrderScreen() {
   const location = useRouterState({ select: (state) => state.location });
@@ -60,8 +63,12 @@ function OrderQuery({ store, number, entry }: { store: string; number: number; e
 }
 
 function OrderView({ store, order, entry }: { store: string; order: SellerOrder; entry?: "next" | "packing" }) {
+  const [draft, setDraft] = useState(false);
+  const toast = useToast();
+  const replacementPending = !!order.composition?.expiresAt;
   const next = mainAction(order.stage, order.receiving.mode === "delivery");
   const [sheet, setSheet] = useState<OrderAction | "more" | undefined>(() =>
+    !replacementPending &&
     entry === "next" &&
     next &&
     isHandoff(next.action) &&
@@ -105,6 +112,10 @@ function OrderView({ store, order, entry }: { store: string; order: SellerOrder;
     mutation.reset();
   };
   function action(action: OrderAction) {
+    if (isHandoff(action) && replacementPending) {
+      toast("Сначала дождитесь ответа по замене");
+      return;
+    }
     mutation.reset();
     if (action === "accept" || (action === "markReady" && order.packed.length === order.lines.length)) {
       submit({ action, expectedRevision: order.revision });
@@ -125,21 +136,36 @@ function OrderView({ store, order, entry }: { store: string; order: SellerOrder;
   const allowedNext = !next || !isHandoff(next.action) || !order.balance.outstandingMinor || order.permissions.payments;
   return (
     <>
+      {order.composition && <SellerChangeSummary change={order.composition} timeZone={order.timeZone} />}
+      <SellerReceivingActions order={order} store={store} />
       <OrderDetails
         order={order}
         pending={pending}
         action={action}
-        pack={(line, packed) => submit({ action: "setLinePacked", line, packed, expectedRevision: order.revision })}
+        composition={
+          <SellerComposition
+            store={store}
+            order={order}
+            pending={pending}
+            pack={(line, packed) => submit({ action: "setLinePacked", line, packed, expectedRevision: order.revision })}
+            packAll={() => action("setAllPacked")}
+            cancel={() => action("cancel")}
+            onDraft={setDraft}
+          />
+        }
       />
       <OrderHistory order={order} />
       {!sheet && error && <p role="alert">{error}</p>}
       {!allowedNext && <p className="text-meta text-muted-foreground">Для завершения шага нужно право на оплату.</p>}
-      {next && (
-        <StickyFooter>
-          <Button full loading={pending} disabled={!allowedNext} onClick={() => action(next.action)}>
-            {next.label}
-          </Button>
-        </StickyFooter>
+      {!draft && (
+        <OrderNextFooter
+          order={order}
+          next={next}
+          pending={pending}
+          allowed={allowedNext}
+          replacementPending={replacementPending}
+          action={action}
+        />
       )}
       <div className="pb-16">
         {order.stage !== "cancelled" && (

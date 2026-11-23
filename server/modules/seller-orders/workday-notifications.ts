@@ -40,7 +40,7 @@ function message(event: Delivery, sellerUrl: URL, buyerUrl: URL | undefined) {
     return { chat_id, text: event.variant ? `${title}\n${event.variant}` : title };
   }
   const url = event.recipient ? buyerUrl && new URL(buyerUrl) : new URL(sellerUrl);
-  if (url && event.recipient) url.pathname = event.kind === "chat" ? `/orders/chat/${number}` : `/orders/${number}`;
+  if (url && event.recipient) url.pathname = event.kind === "chat" ? `/orders/${number}/chat` : `/orders/${number}`;
   if (url && !event.recipient) url.searchParams.set(event.kind === "chat" ? "chat" : "order", String(number));
   const text =
     event.kind === "chat"

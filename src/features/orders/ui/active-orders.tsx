@@ -36,8 +36,21 @@ export function ActiveOrders() {
   return (
     <section aria-label="Активные заказы" className="space-y-2">
       {orders.length > 1 && <h2 className="text-title-3">Активные заказы · {query.data?.data.count}</h2>}
-      {orders.map(({ number, stage, time, debtMinor, currency, method }) =>
-        debtMinor && currency ? (
+      {orders.map(({ number, stage, time, debtMinor, currency, method, changeId }) =>
+        changeId ? (
+          <ListItem
+            key={number}
+            title="Магазин предлагает замену"
+            subtitle={`Заказ №${number}`}
+            onClick={() =>
+              void navigate({
+                to: "/orders/$number/changes",
+                params: { number: String(number) },
+                search: buyerOrderSearch,
+              })
+            }
+          />
+        ) : debtMinor && currency ? (
           <Button
             key={number}
             full

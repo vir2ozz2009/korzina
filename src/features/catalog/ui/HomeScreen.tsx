@@ -54,6 +54,7 @@ export function HomeScreen() {
             logo={bootstrap?.profile?.logo?.src}
             logoShape={bootstrap?.profile?.logo?.shape}
             onAbout={() => void navigate({ to: "/about" })}
+            onChat={() => void navigate({ to: "/chats" })}
             onProfile={() => void navigate({ to: "/profile" })}
           />
         }

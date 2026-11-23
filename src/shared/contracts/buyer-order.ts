@@ -33,6 +33,7 @@ export type BuyerOrder = Omit<OrderResult, "paymentStatus"> &
     paymentStatus: PaymentState;
     composition?: CompositionSummary;
     timeChange?: TimeChange;
+    topUpPayment?: OrderResult["paymentOption"];
     canCancel: boolean;
     canReplaceProof: boolean;
     refundMinor?: number;

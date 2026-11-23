@@ -28,6 +28,7 @@ export function sellerOrder(
   const state = orderWorkflow(row);
   const finance = orderFinance(state, snapshot, row.payment_status);
   const permissions = {
+    chat: actor.role === "owner" || actor.permissions.includes("chat"),
     assembly: actor.role === "owner" || actor.permissions.includes("assembly"),
     payments: actor.role === "owner" || actor.permissions.includes("payments"),
   };
@@ -60,6 +61,7 @@ export function sellerOrder(
     paymentStatus: row.payment_status,
     composition: orderComposition({ row, snapshot, work: state }, permissions.payments),
     timeChange: orderTimeChange(row, state),
+    topUpPayment: balance.debtMinor > 0 && permissions.payments ? state.topUpPayment : undefined,
     packed: state.packed ?? [],
     handedOff: state.handedOff ?? false,
     readyForPickup: state.readyForPickup ?? false,

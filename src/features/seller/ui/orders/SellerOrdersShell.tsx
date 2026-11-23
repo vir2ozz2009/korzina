@@ -7,6 +7,7 @@ import { SellerTabs } from "../../../../app/shell/SellerTabs";
 import { useBack } from "../../../../app/shell/useBack";
 import { HttpError } from "../../../../shared/http-error";
 import { EmptyState } from "../../../../ui/EmptyState";
+import { SellerChatButton } from "../../../order-chat";
 import { useCabinet } from "../../api";
 import { CabinetLogin } from "../CabinetLogin";
 
@@ -34,6 +35,11 @@ export function SellerOrdersShell({
       header={
         <Header
           title={login ? "Вход" : title}
+          extraActions={
+            !cabinet.isError && cabinet.data?.current?.permissions.includes("chat") ? (
+              <SellerChatButton store={cabinet.data.current.slug} />
+            ) : undefined
+          }
           onBack={search.back && !login ? back : undefined}
           sellerShop={cabinet.isError ? null : (cabinet.data?.current ?? null)}
         />

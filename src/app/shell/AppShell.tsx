@@ -22,6 +22,11 @@ const SellerOrderUpdates = lazy(() =>
   })),
 );
 
+const BuyerOrderUpdates = lazy(() =>
+  import("../../features/order-chat/BuyerOrderUpdates").then(({ BuyerOrderUpdates }) => ({
+    default: BuyerOrderUpdates,
+  })),
+);
 export function AppShell() {
   const keyboardOpen = useViewport();
   const back = useBack();
@@ -33,13 +38,13 @@ export function AppShell() {
     !seller &&
     ((viewer && !bootstrap) ||
       (bootstrap?.status === "draft" && !buyerStorefrontOpen) ||
-      (bootstrap?.status === "paused" && !/^\/(admin|orders|order|profile)(\/|$)/.test(path))) &&
+      (bootstrap?.status === "paused" && !/^\/(admin|orders|order|profile|chats)(\/|$)/.test(path))) &&
     !path.startsWith("/admin");
   const compactCart =
     path.startsWith("/p/") || path === "/favorites" || path === "/profile" || path.startsWith("/profile/");
   const floating =
     !seller &&
-    !["/admin", "/dev", "/cart", "/checkout", "/order", "/orders"].some(
+    !["/admin", "/dev", "/cart", "/checkout", "/order", "/orders", "/chats"].some(
       (prefix) => path === prefix || path.startsWith(`${prefix}/`),
     );
   const start = useRef<{ x: number; y: number } | null>(null);
@@ -81,11 +86,9 @@ export function AppShell() {
           <FavoritesProvider>
             <ShopNavigation>
               <TelegramBridge />
-              {seller && (
-                <Suspense fallback={null}>
-                  <SellerOrderUpdates />
-                </Suspense>
-              )}
+              <Suspense fallback={null}>
+                {seller ? <SellerOrderUpdates /> : bootstrap && <BuyerOrderUpdates />}
+              </Suspense>
               <div
                 className={`mx-auto min-h-(--app-height) max-w-(--content-max) overflow-x-clip pt-(--safe-top) pl-(--safe-left) pr-(--safe-right) pb-[calc(var(--tab-height)+var(--safe-bottom))] ${seller ? "[--tab-height:var(--seller-tab-height)]" : ""}`}
                 data-seller={seller}

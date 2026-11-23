@@ -1,10 +1,11 @@
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { Bike, Store } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Header } from "../../../app/shell/Header";
 import { Screen } from "../../../app/shell/Screen";
 import { useToast } from "../../../app/shell/ToastProvider";
 import type { OrderStage } from "../../../shared/contracts/buyer-order";
+import { orderLineKey } from "../../../shared/contracts/order-changes";
 import { formatReceivingTime, shopDateTime } from "../../../shared/datetime";
 import { errorKind, HttpError } from "../../../shared/http-error";
 import { buyerOrderSearch, shopTimeZone } from "../../../shared/shop-api";
@@ -13,15 +14,18 @@ import { Card } from "../../../ui/Card";
 import { EmptyState } from "../../../ui/EmptyState";
 import { ListItem } from "../../../ui/ListItem";
 import { ProductRow } from "../../../ui/ProductRow";
-import { Sheet } from "../../../ui/Sheet";
 import { StatusPill } from "../../../ui/StatusPill";
-import { PurchaseTotals, useShopContacts } from "../../checkout";
+import { PurchaseTotals } from "../../checkout";
 import { ContactSheet } from "../../contact";
-import { useBuyerOrder, useOrderChange } from "../api";
+import { TimeControls } from "../../order-changes";
+import { useBuyerOrder } from "../api";
 import { buyerStageLabel } from "./active-orders";
+import { CancelOrderSheet } from "./CancelOrderSheet";
+import { OrderContactsSheet } from "./OrderContactsSheet";
 import { OrderPayment } from "./OrderPayment";
 import { OrderProofSheet } from "./OrderProofSheet";
 import { RepeatSheet } from "./RepeatSheet";
+import { TopUpSheet } from "./TopUpSheet";
 
 export function OrderScreen() {
   const { number: raw } = useParams({ from: "/orders/$number" });
@@ -30,11 +34,8 @@ export function OrderScreen() {
   const order = query.data;
   const navigate = useNavigate();
   const toast = useToast();
-  const [sheet, setSheet] = useState<"cancel" | "repeat" | "proof" | "contacts" | "login">();
-  const change = useOrderChange(number);
-  const contacts = useShopContacts(sheet === "contacts");
+  const [sheet, setSheet] = useState<"cancel" | "repeat" | "proof" | "contacts" | "login" | "top-up">();
   const close = () => setSheet(undefined);
-  const attempt = useRef<{ key: string; expectedVersion: number }>(undefined);
   const home = () => void navigate({ to: "/", search: buyerOrderSearch });
   const header = <Header title={`Заказ №${raw}`} />;
   if (
@@ -60,7 +61,7 @@ export function OrderScreen() {
         />
       </Screen>
     );
-  const disabled = query.isError || change.isPending;
+  const disabled = query.isError;
   const stages: OrderStage[] = [
     "placed",
     "accepted",
@@ -117,11 +118,33 @@ export function OrderScreen() {
               .filter(Boolean)
               .join(" · ")}
           />
+          <TimeControls
+            number={number}
+            revision={order.version}
+            time={order.time}
+            timeZone={shopTimeZone}
+            change={order.timeChange}
+            editable={order.canCancel}
+            compositionPending={!!order.composition?.expiresAt}
+          />
+          {order.composition && (
+            <ListItem
+              title={order.composition.expiresAt ? "Магазин предлагает замену" : "Изменения заказа"}
+              subtitle="Посмотреть изменения"
+              onClick={() =>
+                void navigate({
+                  to: "/orders/$number/changes",
+                  params: { number: String(number) },
+                  search: buyerOrderSearch,
+                })
+              }
+            />
+          )}
           <Card className="space-y-3">
             <h2 className="text-title-3">Состав заказа</h2>
             {order.lines.map((line) => (
               <ProductRow
-                key={line.variantId}
+                key={orderLineKey(line)}
                 name={line.name}
                 unit={line.unit}
                 image={line.image ?? undefined}
@@ -133,7 +156,20 @@ export function OrderScreen() {
             ))}
           </Card>
           <PurchaseTotals {...order} done />
-          <OrderPayment order={order} />
+          <OrderPayment order={order} onTopUp={() => setSheet("top-up")} />
+          <Button
+            full
+            variant="secondary"
+            onClick={() =>
+              void navigate({
+                to: "/orders/$number/chat",
+                params: { number: String(number) },
+                search: buyerOrderSearch,
+              })
+            }
+          >
+            Чат с магазином
+          </Button>
           <Button full variant="secondary" onClick={() => setSheet("contacts")}>
             Связь с магазином
           </Button>
@@ -143,16 +179,7 @@ export function OrderScreen() {
             </Button>
           )}
           {order.canCancel && (
-            <Button
-              full
-              variant="secondary"
-              disabled={disabled}
-              onClick={() => {
-                change.reset();
-                attempt.current = { key: crypto.randomUUID(), expectedVersion: order.version };
-                setSheet("cancel");
-              }}
-            >
+            <Button full variant="secondary" disabled={disabled} onClick={() => setSheet("cancel")}>
               Отменить заказ
             </Button>
           )}
@@ -165,49 +192,9 @@ export function OrderScreen() {
           <Button full variant="ghost" onClick={home}>
             К покупкам
           </Button>
-          {sheet === "cancel" && (
-            <Sheet
-              open
-              title={`Отменить заказ №${number}?`}
-              onOpenChange={(open) => {
-                if (!open && !change.isPending) close();
-              }}
-            >
-              <div className="space-y-2">
-                {change.error && <p role="alert">{change.error.message}</p>}
-                <Button
-                  full
-                  loading={change.isPending}
-                  disabled={!order.canCancel}
-                  onClick={() => {
-                    if (attempt.current)
-                      change.mutate(attempt.current, {
-                        onSuccess: () => {
-                          close();
-                          toast("Заказ отменён");
-                        },
-                        onError: (error) => {
-                          if (
-                            error instanceof HttpError &&
-                            ["CANCEL_NOT_ALLOWED", "VERSION_CONFLICT"].includes(error.code ?? "")
-                          ) {
-                            void query.refetch();
-                            attempt.current = undefined;
-                          }
-                        },
-                      });
-                  }}
-                >
-                  Отменить заказ
-                </Button>
-                {change.isPending && <p role="status">Отменяем…</p>}
-                <Button full variant="secondary" disabled={change.isPending} onClick={close}>
-                  Оставить заказ
-                </Button>
-              </div>
-            </Sheet>
-          )}
+          {sheet === "cancel" && <CancelOrderSheet order={order} close={close} refresh={() => void query.refetch()} />}
           {sheet === "repeat" && <RepeatSheet number={number} currency={order.currency} close={close} />}
+          {sheet === "top-up" && <TopUpSheet order={order} close={close} />}
           {sheet === "proof" && (
             <OrderProofSheet
               order={order}
@@ -218,22 +205,7 @@ export function OrderScreen() {
               }}
             />
           )}
-          {sheet === "contacts" && (
-            <Sheet
-              open
-              title="Связь с магазином"
-              onOpenChange={(open) => {
-                if (!open) close();
-              }}
-            >
-              {contacts.isPending && <p role="status">Загружаем контакты…</p>}
-              {contacts.isError && <Button onClick={() => void contacts.refetch()}>Повторить</Button>}
-              {contacts.data?.length === 0 && <p>Контакты магазина пока не указаны</p>}
-              {contacts.data?.map(({ title, href }) => (
-                <ListItem key={href} title={title} href={href} />
-              ))}
-            </Sheet>
-          )}
+          {sheet === "contacts" && <OrderContactsSheet close={close} />}
         </>
       )}
     </Screen>

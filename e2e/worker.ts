@@ -1,6 +1,6 @@
 import { exports } from "cloudflare:workers";
 import worker, { Shop as Store } from "../server";
-import { sellerCookie, sessionCookie } from "../server/auth/cookies";
+import { customerCookie, sellerCookie, sessionCookie } from "../server/auth/cookies";
 import { newToken, tokenHash } from "../server/auth/tokens";
 import catalog from "../server/demo-catalog.json";
 import { expandNewOrders, telegramMessage } from "../server/modules/seller-orders/notifications";
@@ -13,6 +13,7 @@ import { receiveE2eStaffInvite } from "./staff-invite-fixture";
 export { app } from "../server";
 
 const path = "/__e2e/test2/tomatoes";
+const buyerPath = "/__e2e/test2/buyer";
 const sellerPath = "/__e2e/test2/seller";
 const staffInvitePath = "/__e2e/test2/staff-invite";
 const orderMessagePath = "/__e2e/test2/order-message";
@@ -59,6 +60,17 @@ export class Shop extends Store {
     sql.exec(
       "UPDATE settings SET value=? WHERE key='receiving_schedule'",
       JSON.stringify({ ...JSON.parse(this.previousSchedule), timeZone, pickup }),
+    );
+  }
+
+  async linkE2eBuyer(token: string) {
+    if (!this.isTestShop) throw new Error("Wrong test shop");
+    const hash = await tokenHash(token);
+    this.ctx.storage.sql.exec(
+      "INSERT INTO sessions(token_hash,subject,kind,expires_at) VALUES(?,?,'telegram',?)",
+      hash,
+      `telegram:998${Date.now()}`,
+      Date.now() + 300_000,
     );
   }
 
@@ -124,6 +136,7 @@ export default {
     if (
       url.pathname !== path &&
       url.pathname !== sellerPath &&
+      url.pathname !== buyerPath &&
       url.pathname !== staffInvitePath &&
       url.pathname !== orderMessagePath &&
       url.pathname !== shopStatusPath &&
@@ -167,6 +180,14 @@ export default {
     }
     const namespace = exports.Shop as unknown as DurableObjectNamespace<Shop>;
     const shop = namespace.get(namespace.idFromName(shopId));
+    if (url.pathname === buyerPath) {
+      const token = newToken();
+      await shop.linkE2eBuyer(token);
+      return new Response(null, {
+        status: 204,
+        headers: { "Set-Cookie": sessionCookie(request, customerCookie(shopId), token, 300) },
+      });
+    }
     if (url.pathname === workdayPath) {
       const action = await request.text();
       if (action !== "setup" && action !== "empty" && action !== "restore") return new Response(null, { status: 400 });

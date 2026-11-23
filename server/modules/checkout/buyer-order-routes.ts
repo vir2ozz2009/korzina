@@ -9,12 +9,14 @@ import {
   replaceProofInput,
 } from "../../../src/shared/contracts/buyer-order";
 import { compositionAnswer, timeChangeInput } from "../../../src/shared/contracts/order-changes";
+import { paymentOptionId } from "../../../src/shared/contracts/seller-payments";
 import { ApiError } from "../../../src/shared/errors";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
 import type { ShopEnv } from "../../shop/env";
 import { readCustomer } from "../auth/service";
 import { answerChanges } from "../order-changes/composition";
 import { changeTime, timeAvailability } from "../order-changes/time";
+import { chooseTopUp, topUpChoices } from "../order-changes/top-up";
 import { buyerLiveTicket, upgradeBuyerOrders } from "../order-chat/live";
 import { cancelBuyerOrder, replaceBuyerProof } from "./buyer-order-commands";
 import { activeBuyerOrders, buyerOrder, buyerOrderRow, buyerOrdersPage } from "./buyer-orders";
@@ -79,6 +81,26 @@ export const buyerOrderRoutes = new Hono<ShopEnv>()
         changeTime(
           c.env,
           { side: "buyer", id: await subject(c.env, c.req.raw) },
+          c.req.valid("param").number,
+          c.req.valid("json"),
+          c.get("command"),
+        ),
+      ),
+  )
+  .get("/:number/top-up", params, async (c) =>
+    c.json(topUpChoices(c.env, await subject(c.env, c.req.raw), c.req.valid("param").number)),
+  )
+  .post(
+    "/:number/top-up",
+    authBodyLimit,
+    authCommand,
+    params,
+    zValidator("json", orderChangeInput.extend({ methodId: paymentOptionId }), validationFailure),
+    async (c) =>
+      c.json(
+        chooseTopUp(
+          c.env,
+          await subject(c.env, c.req.raw),
           c.req.valid("param").number,
           c.req.valid("json"),
           c.get("command"),

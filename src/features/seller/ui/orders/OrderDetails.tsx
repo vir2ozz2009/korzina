@@ -1,11 +1,9 @@
 import { Copy, Phone } from "lucide-react";
+import type { ReactNode } from "react";
 import type { SellerOrder } from "../../../../shared/contracts/seller-order";
-import { formatReceivingTime } from "../../../../shared/datetime";
 import { formatMinor } from "../../../../shared/money";
 import { Button } from "../../../../ui/Button";
 import { Card } from "../../../../ui/Card";
-import { Checkbox } from "../../../../ui/Checkbox";
-import { ProductRow } from "../../../../ui/ProductRow";
 import { methodLabel, PaymentPill, StagePill, StageProgress } from "./OrderIndicators";
 import { paymentLabel } from "./OrderPaymentSheet";
 import type { OrderAction } from "./order-actions";
@@ -14,15 +12,14 @@ export function OrderDetails({
   order,
   pending,
   action,
-  pack,
+  composition,
 }: {
   order: SellerOrder;
   pending: boolean;
   action: (action: OrderAction) => void;
-  pack: (line: string, checked: boolean) => void;
+  composition: ReactNode;
 }) {
   const { receiving, fulfillment, balance } = order;
-  const packing = order.stage === "accepted" && order.permissions.assembly;
   const amount = (value: number) => formatMinor(value, order.currency);
   const canPay = order.permissions.payments;
   const delivery = receiving.mode === "delivery";
@@ -63,43 +60,10 @@ export function OrderDetails({
           </a>
         )}
       </Card>
-      <Card>
-        <h2 id="order-packing" tabIndex={-1} className="scroll-mt-24 text-title-3">
-          Состав заказа
-        </h2>
-        <p className="text-meta text-muted-foreground">
-          Собрано {order.packed.length} из {order.lines.length}
-        </p>
-        {order.lines.map((line) => (
-          <div key={line.variantId} className="border-b border-border pb-1 last:border-0">
-            <ProductRow
-              name={line.name}
-              unit={line.unit}
-              image={line.image ?? undefined}
-              quantity={line.quantity}
-              amountMinor={line.totalMinor}
-              currency={order.currency}
-            />
-            {(packing || order.packed.includes(line.variantId)) && (
-              <Checkbox
-                label={`Собрано · ${line.name}`}
-                checked={order.packed.includes(line.variantId)}
-                disabled={!packing || pending}
-                onChange={(e) => pack(line.variantId, e.target.checked)}
-              />
-            )}
-          </div>
-        ))}
-        {packing && order.packed.length < order.lines.length && (
-          <Button variant="soft" full disabled={pending} onClick={() => action("setAllPacked")}>
-            Отметить все собранными
-          </Button>
-        )}
-      </Card>
+      {composition}
       <Card>
         <h2 className="text-title-3">Получение</h2>
         <p className="text-label">{methodLabel[receiving.mode]}</p>
-        <p>{order.time ? formatReceivingTime(order.time, order.timeZone) : "Время согласуем"}</p>
         {address && (
           <>
             <p>{address}</p>
@@ -125,7 +89,8 @@ export function OrderDetails({
           )}
       </Card>
       <Card>
-        <h2 className="text-title-3">Оплата</h2>
+        <h2 className="text-title-3">Оплата · {order.paymentOption?.name ?? paymentLabel[order.payment]}</h2>
+        {order.topUpPayment && <p>Способ доплаты · {order.topUpPayment.name}</p>}
         <dl className="space-y-1">
           <div className="flex justify-between gap-2">
             <dt>Товары</dt>

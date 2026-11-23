@@ -8,12 +8,14 @@ import { useBack } from "./useBack";
 export function Header({
   title,
   actions,
+  extraActions,
   onBack,
   sellerShop,
   catalog = false,
 }: {
   title: string;
   actions?: ReactNode;
+  extraActions?: ReactNode;
   onBack?: () => void;
   sellerShop?: { name: string; storefrontUrl: string } | null;
   catalog?: boolean;
@@ -27,16 +29,19 @@ export function Header({
         background={catalog ? "card" : "background"}
         headingLevel={catalog ? 1 : 2}
         actions={
-          actions ??
-          (!catalog && sellerShop !== null && (
-            <a
-              href={sellerShop?.storefrontUrl ?? "/"}
-              className="flex size-11 shrink-0 items-center justify-center"
-              aria-label="На главную"
-            >
-              <StoreLogo name={sellerShop?.name ?? bootstrap?.name ?? "Магазин"} />
-            </a>
-          ))
+          <>
+            {extraActions}
+            {actions ??
+              (!catalog && sellerShop !== null && (
+                <a
+                  href={sellerShop?.storefrontUrl ?? "/"}
+                  className="flex size-11 shrink-0 items-center justify-center"
+                  aria-label="На главную"
+                >
+                  <StoreLogo name={sellerShop?.name ?? bootstrap?.name ?? "Магазин"} />
+                </a>
+              ))}
+          </>
         }
         onBack={onBack ?? (root ? undefined : back)}
         telegram={!!window.Telegram?.WebApp}
