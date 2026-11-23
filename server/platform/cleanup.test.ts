@@ -9,7 +9,7 @@ it("координатор убирает только истёкшие seller_s
   const now = Date.now();
   await env.PLATFORM.prepare("INSERT INTO accounts(id) VALUES('cleanup-account')").run();
   await env.PLATFORM.prepare(
-    "INSERT INTO seller_sessions VALUES('old','cleanup-account',?),('fresh','cleanup-account',?)",
+    "INSERT INTO seller_sessions(token_hash,account_id,expires_at) VALUES('old','cleanup-account',?),('fresh','cleanup-account',?)",
   )
     .bind(now - 1, now + 100000)
     .run();
