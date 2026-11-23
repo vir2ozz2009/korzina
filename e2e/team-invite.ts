@@ -74,7 +74,7 @@ export async function checkStaffInvite(browser: Browser, baseURL: string) {
       await expect(ownerPage.getByText("Доступ отозван", { exact: true })).toBeVisible();
       expect((await picker.request.get(`/api/seller/orders/${order.number}?store=test2`)).status()).toBe(403);
       await card.click();
-      await expect(page.getByText("Нет доступа к магазину", { exact: true })).toBeVisible();
+      await expect(page.getByText("Нужно войти как продавец", { exact: true })).toBeVisible();
       const revoked = await openInvite(picker, "picker");
       expect(revoked.status()).toBe(409);
       expect(await revoked.json()).toEqual({ state: "revoked" });
