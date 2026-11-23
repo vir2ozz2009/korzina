@@ -15,6 +15,8 @@
 
 23.11.2026 · [Исправления по проверке #228](progress/block10-228-fixes.md) и регрессии 01, 05, 03а и 04. **СТОП** после smoke на demo.
 
+23.11.2026 18:31 МСК · [Гонка в сквозном прогоне #228](progress/block10-228-fixes.md#version_conflict-в-сквозном-прогоне). Запись оплаты в тесте дожидается принятия заказа. **СТОП** после smoke на demo.
+
 - [x] [Спецификация O6 → O7 → O8](specs/order-changes.md) с ответами Андрея в §11 влита в `main d1d2737`. [PR #208](https://github.com/vir2ozz2009/korzina/pull/208).
 - [x] 23.11.2026 14:39 МСК · Холст MagicPath по §17 из `main 345f15e`, ревизия `475578003183771648`. [Спецификация #220](https://github.com/vir2ozz2009/korzina/pull/220) · [Сверка сумм](progress/order-changes-canvas.md). **Андрей одобрил холст по §17 23.11.2026.**
 - [x] Сервер O6 → O7 → O8. [Состав #222](https://github.com/vir2ozz2009/korzina/pull/222) · [Время #223](https://github.com/vir2ozz2009/korzina/pull/223) · [Чат #224](https://github.com/vir2ozz2009/korzina/pull/224).

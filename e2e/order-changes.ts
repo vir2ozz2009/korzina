@@ -49,9 +49,22 @@ export async function checkOrderChanges(browser: Browser, baseURL: string) {
       expect(response.ok(), await response.text()).toBe(true);
       return response.json() as Promise<SellerOrder>;
     };
-    await cabinet.getByRole("button", { name: "Принять", exact: true }).click();
-    await expect(cabinet.getByText("Собрано 0 из 1")).toBeVisible();
-    await step({ action: "recordPayment", method: "cash", amountMinor: order.totalMinor });
+    await test.step("Принять заказ и записать исходную оплату", async () => {
+      const [accepted] = await Promise.all([
+        cabinet.waitForResponse(
+          (response) =>
+            new URL(response.url()).pathname === `${detail}/transition` &&
+            response.request().method() === "POST" &&
+            response.request().postDataJSON()?.action === "accept",
+        ),
+        cabinet.getByRole("button", { name: "Принять", exact: true }).click(),
+      ]);
+      expect(accepted.ok(), await accepted.text()).toBe(true);
+      expect(await accepted.json()).toMatchObject({ stage: "accepted" });
+      await expect(cabinet.getByRole("button", { name: "Отметить все собранными", exact: true })).toBeVisible();
+      const paid = await step({ action: "recordPayment", method: "cash", amountMinor: order.totalMinor });
+      expect(paid.balance.paidMinor).toBe(order.totalMinor);
+    });
 
     const first = order.lines[0];
     const picks = (await (await seller.request.get(`${detail}/composition/pick?store=test2`)).json()) as {
