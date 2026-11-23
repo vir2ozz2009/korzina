@@ -147,9 +147,9 @@ export function TimeControls({
                         key={`${option.date}:${option.slotId ?? ""}`}
                         name="order-time"
                         label={
-                          option.slotId
-                            ? formatReceivingTime(option, data.timeZone)
-                            : formatShopDay(option.date, data.timeZone)
+                          data.mode === "day"
+                            ? `${formatShopDay(option.date, data.timeZone)} · В течение дня`
+                            : formatReceivingTime(option, data.timeZone)
                         }
                         checked={option.date === choice?.date && option.slotId === choice?.slotId}
                         onChange={() => setChoice(option)}

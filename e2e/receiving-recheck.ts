@@ -13,7 +13,7 @@ async function overrideAvailability(
   await route.fulfill({ response, json: { ...data, mode, days: update(data.days) } });
 }
 
-export async function checkClosedReceivingDay(page: Page) {
+export async function checkClosedReceivingDay(page: Page, checkAddressAfterReload: () => Promise<void>) {
   await test.step("§14.5 · выходной у покупателя отмечен отдельно от заполненного дня", async () => {
     await page.route(availability, (route) =>
       overrideAvailability(route, (days) =>
@@ -26,6 +26,9 @@ export async function checkClosedReceivingDay(page: Page) {
         ),
       ),
     );
+    // The screen starts loading availability as soon as the saved address is restored.
+    await page.reload();
+    await checkAddressAfterReload();
     await page.getByRole("button", { name: /Когда привезти/ }).click();
     const sheet = page.getByRole("dialog", { name: /Когда привезти/ });
     await sheet.getByRole("button", { name: "Другой день" }).click();
