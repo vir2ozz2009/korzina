@@ -1,4 +1,5 @@
 import { runInDurableObject } from "cloudflare:test";
+import { env } from "cloudflare:workers";
 import { beforeAll, expect, it, vi } from "vitest";
 import { cookieFrom, getAuth, postAuth } from "../../testing/auth";
 import { setupPlatform } from "../../testing/platform";
@@ -32,7 +33,7 @@ it("BL-14: черновик адреса гостя переносится в п
     const to = "telegram:9914";
     saveReceiving(storage, from, { expectedRevision: 0, receiving: address });
     saveReceiving(storage, from, { expectedRevision: 1, receiving: { mode: "pickup" } });
-    storage.transactionSync(() => mergeBuyer(storage, from, to, { id: shop }));
+    storage.transactionSync(() => mergeBuyer(storage, from, to, { id: shop, mediaOrigin: env.MEDIA_PUBLIC_URL }));
     expect(readReceiving(storage, to)).toMatchObject({ receiving: { mode: "pickup" }, deliveryDraft: address });
     expect(readReceiving(storage, from).receiving).toBeNull();
   });
