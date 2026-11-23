@@ -106,6 +106,22 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url);
     if (
+      env.LOCAL_E2E === "1" &&
+      url.hostname === "127.0.0.1" &&
+      url.searchParams.get("store") === "test2" &&
+      /^\/api\/seller\/team\/invites(?:\/|$)/.test(url.pathname)
+    )
+      return worker.fetch(
+        request,
+        {
+          ...env,
+          PLATFORM_BOT_USERNAME: "KorzinaFixtureBot",
+          PLATFORM_BOT_TOKEN: "local-e2e-placeholder",
+          ENCRYPTION_KEY: "ab".repeat(32),
+        } as Env,
+        ctx,
+      );
+    if (
       url.pathname !== path &&
       url.pathname !== sellerPath &&
       url.pathname !== staffInvitePath &&

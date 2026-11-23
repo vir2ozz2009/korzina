@@ -16,10 +16,13 @@ export async function checkStaffInvite(browser: Browser, baseURL: string) {
     const form = ownerPage.getByRole("dialog", { name: "Добавить сотрудника" });
     await expect(form.getByRole("button", { name: /Роль Сборщик/u })).toBeVisible();
     const created = ownerPage.waitForResponse(
-      (response) => new URL(response.url()).pathname === "/api/seller/team/invites" && response.status() === 201,
+      (response) =>
+        new URL(response.url()).pathname === "/api/seller/team/invites" && response.request().method() === "POST",
     );
     await form.getByRole("button", { name: "Создать приглашение", exact: true }).click();
-    const { url } = (await (await created).json()) as StaffInvite;
+    const invitation = await created;
+    expect(invitation.status(), await invitation.text()).toBe(201);
+    const { url } = (await invitation.json()) as StaffInvite;
     expect(url).toBeTruthy();
     await expect(form.getByText(url ?? "")).toBeVisible();
 
@@ -28,6 +31,9 @@ export async function checkStaffInvite(browser: Browser, baseURL: string) {
     const accepted = await openInvite(picker, "picker");
     expect(accepted.status()).toBe(200);
     expect(await accepted.json()).toEqual({ state: "accepted", shop: "korzina-demo-test2" });
+    const resumed = await openInvite(picker, "picker");
+    expect(resumed.status()).toBe(200);
+    expect(await resumed.json()).toEqual({ state: "accepted", shop: "korzina-demo-test2" });
     const reused = await openInvite(owner, "owner");
     expect(reused.status()).toBe(409);
     expect(await reused.json()).toEqual({ state: "used" });
@@ -54,7 +60,9 @@ export async function checkStaffInvite(browser: Browser, baseURL: string) {
       await expect(card).toBeVisible();
 
       await ownerPage.goto("/seller/team?store=test2");
-      await ownerPage.getByRole("button", { name: /Учебный сборщик/ }).click();
+      const member = ownerPage.getByRole("button", { name: /Учебный сборщик/ });
+      await expect(member).toHaveCount(1);
+      await member.click();
       await ownerPage.getByRole("button", { name: "Отозвать доступ", exact: true }).click();
       await ownerPage
         .getByRole("dialog", { name: "Отозвать доступ?" })
@@ -64,6 +72,9 @@ export async function checkStaffInvite(browser: Browser, baseURL: string) {
       expect((await picker.request.get(`/api/seller/orders/${order.number}?store=test2`)).status()).toBe(403);
       await card.click();
       await expect(page.getByText("Нет доступа к магазину", { exact: true })).toBeVisible();
+      const revoked = await openInvite(picker, "picker");
+      expect(revoked.status()).toBe(409);
+      expect(await revoked.json()).toEqual({ state: "revoked" });
     } finally {
       const cancel = await owner.request.post(`/api/orders/${order.number}/cancel?shop=test2`, {
         headers: { "Idempotency-Key": crypto.randomUUID() },

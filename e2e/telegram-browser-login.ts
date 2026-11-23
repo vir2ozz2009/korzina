@@ -1,4 +1,4 @@
-import { type BrowserContext, expect, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 async function signalReturn(page: Page) {
   await page.evaluate(() => {
@@ -7,12 +7,8 @@ async function signalReturn(page: Page) {
   });
 }
 
-export async function checkBrowserLogin(
-  page: Page,
-  context: BrowserContext,
-  baseURL: string | undefined,
-  role: "buyer" | "seller",
-) {
+export async function checkBrowserLogin(page: Page, baseURL: string | undefined, role: "buyer" | "seller") {
+  const context = page.context();
   const seller = role === "seller";
   const routePath = seller ? "/seller?shop=test2" : "/profile?shop=test2";
   const authPath = seller ? "/api/seller/cabinet" : "/api/auth/telegram";
@@ -83,10 +79,10 @@ export async function checkBrowserLogin(
     await page.goBack();
     await expect(page).toHaveURL(originalUrl);
     // Let the reloaded document observe the pending exchange before Telegram confirms it.
-    const pending = pendingAfterReturn();
     await page.reload();
-    expect(await (await pending).json()).toEqual({ pending: true });
     await expect(page).toHaveURL(originalUrl);
+    await expect(open).toBeVisible();
+    await pendingAfterReturn();
     returned = page;
   } else {
     const opened = context.waitForEvent("page");

@@ -1,6 +1,6 @@
 # Прогресс
 
-**Блок 8 «Бот, сотрудники, первый запуск»** принят Андреем 22.11.2026, **блок 9 «Рабочий день и уведомления»** — 23.11.2026 (demo `76e6e34`, [проверка #198](https://github.com/vir2ozz2009/korzina/pull/198)). Живые проверки со вторым аккаунтом Telegram и на телефонах — в [BACKLOG](BACKLOG.md) «Проверки перед запуском». Дальше BL-11, затем **СТОП**.
+**Блок 8 «Бот, сотрудники, первый запуск»** принят Андреем 22.11.2026, **блок 9 «Рабочий день и уведомления»** — 23.11.2026 (demo `76e6e34`, [проверка #198](https://github.com/vir2ozz2009/korzina/pull/198)). Живые проверки со вторым аккаунтом Telegram и на телефонах — в [BACKLOG](BACKLOG.md) «Проверки перед запуском». **СТОП после BL-11.**
 
 **Блок 5 «Заказы у продавца»** принят Андреем 20.11.2026. [Перепроверка сценариев 01, 04 и B11](progress/seller-orders-local-check.md#перепроверка-20112026) на demo `7c2b926` подтвердила три исправления. Вход продавца через профиль `test2` заблокирован неподключённым Telegram магазина.
 **Правки после приёмки:** BL-6 [PR #116](https://github.com/vir2ozz2009/korzina/pull/116) сократил Check со 107 до 78 с. BL-7 [PR #117](https://github.com/vir2ozz2009/korzina/pull/117) свёл даты и время витрины, кабинета и Telegram к часовому поясу магазина.
@@ -34,7 +34,9 @@
 - [x] O4, O3 и экраны на demo `510af1d`. Check, preview smoke и Demo smoke прошли. [O4 #192](https://github.com/vir2ozz2009/korzina/pull/192) · [O3 и экраны #193](https://github.com/vir2ozz2009/korzina/pull/193) · [Demo smoke](https://github.com/vir2ozz2009/korzina/actions/runs/45008912544).
 - [x] Подготовлен [чек-лист локальной проверки](progress/workday-notifications-local-check.md) с таблицей покрытия и снимками. **СТОП:** «➡️ Локальный Codex».
 
-- [ ] [Перепроверка блока 9 на demo](progress/workday-notifications-demo-check.md#перепроверка-после-202--demo-816a917--22112026) 22.11.2026, `816a917`. №73 оформлен без времени и отменён, `test2` восстановлен. Пересылка работает в Telegram Web, результат «Поделиться» в Chrome не подтверждён. Отложенные проверки в [бэклоге](BACKLOG.md#проверки-перед-запуском). **СТОП.**
+- [x] [Перепроверка блока 9](progress/workday-notifications-demo-check.md) на demo `76e6e34` подтверждена в Chrome и принята Андреем 23.11.2026. [PR #198](https://github.com/vir2ozz2009/korzina/pull/198).
+- [x] BL-12 · Явные отметки изменений, лимит длины файлов и совпавшие снимки на 390 px. [PR #205](https://github.com/vir2ozz2009/korzina/pull/205) · [Demo smoke](https://github.com/vir2ozz2009/korzina/actions/runs/45118013614).
+- [x] BL-11 · 10 сценариев Playwright, проверка приглашения, разбор падений и workflow очистки превью. Для запуска очистки нужен секрет GitHub Actions. [PR #207](https://github.com/vir2ozz2009/korzina/pull/207) · [Отчёт](progress/BL-11.md). **СТОП.**
 
 ### Шаги блока 8 · Бот, сотрудники, первый запуск
 

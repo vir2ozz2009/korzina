@@ -117,7 +117,7 @@ async function checkEmbeddedCabinet(page: Page, baseURL: string | undefined) {
 test("Вход в Telegram: buyer", async ({ browser, baseURL }) => {
   test.setTimeout(70_000);
   await test.step("BL-3/BL-5: buyer resumes Telegram login and closes the prompt", () =>
-    freshPage(browser, baseURL, (page) => checkBrowserLogin(page, page.context(), baseURL, "buyer")));
+    freshPage(browser, baseURL, (page) => checkBrowserLogin(page, baseURL, "buyer")));
   await test.step("BL-5: Mini App signs in with initData without opening the login sheet", () =>
     freshPage(browser, baseURL, checkBuyerMiniApp));
 });
@@ -125,7 +125,7 @@ test("Вход в Telegram: buyer", async ({ browser, baseURL }) => {
 test("Вход в Telegram: seller", async ({ browser, baseURL }) => {
   test.setTimeout(70_000);
   await test.step("BL-3/BL-5: seller resumes Telegram login and closes the prompt", () =>
-    freshPage(browser, baseURL, (page) => checkBrowserLogin(page, page.context(), baseURL, "seller")));
+    freshPage(browser, baseURL, (page) => checkBrowserLogin(page, baseURL, "seller")));
   await test.step("§9.12: a seller can open the selected shop in Telegram Web without cookies", () =>
     freshPage(browser, baseURL, (page) => checkEmbeddedCabinet(page, baseURL)));
   if (baseURL && new URL(baseURL).hostname === "127.0.0.1")
