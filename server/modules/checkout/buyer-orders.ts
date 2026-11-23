@@ -13,6 +13,7 @@ import { revisionResponse } from "../../revisions";
 import type { ShopEnv } from "../../shop/env";
 import { sessions } from "../../shop/schema";
 import { readCustomerWith } from "../auth/service";
+import { orderComposition } from "../order-changes/state";
 import type { ReservedOrder } from "./order-reservation";
 import { orderBalance, orderFinance, orderWorkflow } from "./order-workflow";
 import { buyerOrderRevisions } from "./schema";
@@ -63,6 +64,7 @@ export function buyerOrder(row: OrderRow): BuyerOrder {
     stage: row.status,
     version: row.version,
     paymentStatus: row.payment_status,
+    composition: orderComposition({ row, snapshot, work }),
     canCancel: isActiveOrder(row.status) && row.status !== "handed" && !work.handedOff,
     canReplaceProof:
       row.status !== "cancelled" &&
@@ -83,6 +85,7 @@ type SummaryRow = {
   currency: string;
   debt: number | null;
   method: "delivery" | "pickup" | null;
+  changeId: string | null;
 };
 const toTime = (value: string | null) => (value ? (JSON.parse(value) as TimeChoice) : null);
 const scope = {
@@ -111,10 +114,12 @@ export async function activeBuyerOrders({ db, storage, shop }: ShopEnv["Bindings
   const revision = `1.${session.cacheKey}.${session.revision ?? 0}`;
   return revisionResponse(request, revision, () => {
     const rows = storage.sql
-      .exec<Pick<SummaryRow, "number" | "status" | "time" | "debt" | "currency" | "method">>(
+      .exec<Pick<SummaryRow, "number" | "status" | "time" | "debt" | "currency" | "method" | "changeId">>(
         `SELECT number,status,json_extract(snapshot,'$.time') AS time,
         json_extract(fulfillment_state,'$.debtMinor') AS debt,json_extract(snapshot,'$.currency') AS currency,
-        json_extract(snapshot,'$.receiving.mode') AS method
+        json_extract(snapshot,'$.receiving.mode') AS method,
+        CASE WHEN json_extract(fulfillment_state,'$.composition.expiresAt') IS NOT NULL
+          AND status IN ('placed','accepted','ready') THEN json_extract(fulfillment_state,'$.composition.id') END AS changeId
        FROM orders WHERE customer=? AND (${scope.active} OR (status='completed' AND json_extract(fulfillment_state,'$.debtMinor')>0)) ORDER BY number DESC`,
         session.subject,
       )
@@ -126,6 +131,7 @@ export async function activeBuyerOrders({ db, storage, shop }: ShopEnv["Bindings
         stage: row.status,
         time: toTime(row.time),
         ...(row.method && { method: row.method }),
+        ...(row.changeId && { changeId: row.changeId }),
         ...(row.debt && { debtMinor: row.debt, currency: row.currency }),
       })),
     };

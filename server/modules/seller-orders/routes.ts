@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
 import { orderNumberInput } from "../../../src/shared/contracts/buyer-order";
+import { compositionEdits, compositionProposal } from "../../../src/shared/contracts/order-changes";
 import { sellerOrderCommand, sellerOrdersQuery } from "../../../src/shared/contracts/seller-order";
 import { workdayDay, workdayMonth } from "../../../src/shared/contracts/workday";
 import { defaultShopTimeZone } from "../../../src/shared/datetime";
@@ -9,6 +10,7 @@ import { ApiError } from "../../../src/shared/errors";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
 import { readSeller, type Seller } from "../../auth/roles";
 import type { ShopEnv } from "../../shop/env";
+import { proposeChanges, quoteChanges } from "../order-changes/composition";
 import { changeSellerOrder, permitted } from "./command";
 import { orderListRevision, sellerOrders } from "./list";
 import { sellerLiveTicket, upgradeSellerOrders } from "./live";
@@ -87,6 +89,24 @@ export const sellerOrderRoutes = new Hono<SellerOrderEnv>()
   .post("/live-ticket", (c) => sellerLiveTicket(c.env, c.req.raw).then((ticket) => c.json(ticket)))
   .get("/:number", params, (c) =>
     c.json(sellerOrder(c.env.storage, c.req.valid("param").number, c.get("seller"), c.env.timeZone)),
+  )
+  .post(
+    "/:number/composition/quote",
+    authBodyLimit,
+    params,
+    zValidator("json", compositionEdits, validationFailure),
+    (c) => c.json(quoteChanges(c.env, c.get("seller"), c.req.valid("param").number, c.req.valid("json"))),
+  )
+  .post(
+    "/:number/composition",
+    authBodyLimit,
+    authCommand,
+    params,
+    zValidator("json", compositionProposal, validationFailure),
+    (c) =>
+      c.json(
+        proposeChanges(c.env, c.get("seller"), c.req.valid("param").number, c.req.valid("json"), c.get("command")),
+      ),
   )
   .post(
     "/:number/transition",

@@ -7,6 +7,7 @@ import { staffBot, staffBotToken } from "../../platform/team/bot";
 import { staffRecipients } from "../../platform/team/notifications";
 import { shopTimeZoneSql } from "../../shop/time-zone";
 import { unpackOrder } from "../checkout/buyer-orders";
+import { compositionNotification } from "../order-changes/notification";
 import { sendWorkdayNotifications } from "./workday-notifications";
 
 type Queued = {
@@ -130,7 +131,7 @@ export function telegramMessage(
   storage: DurableObjectStorage,
   origin: string,
   shop: string,
-  event: Omit<Queued, "event_key" | "attempts">,
+  event: Omit<Queued, "event_key" | "attempts"> & { event_key?: string },
   now: number,
   buyerStorefront?: string,
 ) {
@@ -141,6 +142,21 @@ export function telegramMessage(
   if (event.kind !== "new") {
     const url = buyerStorefront ? new URL(buyerStorefront) : undefined;
     if (url) url.pathname = `/orders/${number}`;
+    if (event.kind === "composition") {
+      const id = Number(event.event_key?.split(":")[1]);
+      const saved = storage.sql
+        .exec<{ details: string | null }>(
+          "SELECT details FROM buyer_order_events WHERE id=? AND order_number=?",
+          id,
+          number,
+        )
+        .toArray()[0];
+      return {
+        chat_id,
+        text: compositionNotification(saved?.details ?? null, event.currency, number),
+        ...(url && { reply_markup: orderKeyboard(url, "Посмотреть изменения") }),
+      };
+    }
     const text =
       event.kind === "debt"
         ? `Доплатите ${amount} ${ref}`

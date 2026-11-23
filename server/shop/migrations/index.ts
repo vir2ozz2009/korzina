@@ -28,6 +28,7 @@ import m0026 from "./0026_seller_order_payments.sql?raw";
 import m0027 from "./0027_seller_products.sql?raw";
 import m0028 from "./0028_seller_sections.sql?raw";
 import m0029 from "./0029_workday_notifications.sql?raw";
+import m0030 from "./0030_composition_deadline.sql?raw";
 import journal from "./meta/_journal.json";
 
 export const migrations = {
@@ -63,5 +64,6 @@ export const migrations = {
     m0027,
     m0028,
     m0029,
+    m0030,
   },
 };

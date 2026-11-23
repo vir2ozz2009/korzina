@@ -1,3 +1,4 @@
+import { orderLineKey } from "../../../src/shared/contracts/order-changes";
 import type { SellerOrderCommand, SellerTransition } from "../../../src/shared/contracts/seller-order";
 import { ApiError } from "../../../src/shared/errors";
 import type { Seller } from "../../auth/roles";
@@ -7,6 +8,7 @@ import type { ShopEnv } from "../../shop/env";
 import { unpackOrder } from "../checkout/buyer-orders";
 import { releaseOrderReservation } from "../checkout/order-reservation";
 import { orderBalance, orderFinance, orderWorkflow } from "../checkout/order-workflow";
+import { pendingComposition } from "../order-changes/state";
 import { sellerOrder, sellerOrderRow } from "./order";
 import { changePayment, paymentForTransition } from "./payment";
 import { nextOrderStage } from "./transition";
@@ -46,6 +48,8 @@ export function changeSellerOrder(
     let details: unknown;
     if (isTransition(input)) {
       stage = nextOrderStage(row.status, mode, input.action);
+      if ((input.action === "handOver" || input.action === "markPickedUp") && pendingComposition(work.composition))
+        throw new ApiError("ANOTHER_CHANGE_PENDING", "Сначала дождитесь ответа по замене");
       if (
         input.action === "markReady" &&
         (work.packed?.length ?? 0) < snapshot.lines.length &&
@@ -65,7 +69,7 @@ export function changeSellerOrder(
       details = { from: row.status, to: stage };
     } else if (input.action === "setAllPacked" || input.action === "setLinePacked") {
       if (stage !== "accepted") throw new ApiError("INVALID_TRANSITION", "Заказ уже вышел из сборки");
-      const lines = snapshot.lines.map(({ variantId }) => variantId);
+      const lines = snapshot.lines.map(orderLineKey);
       const packed = new Set(work.packed);
       if (input.action === "setAllPacked") work.packed = input.packed ? lines : [];
       else {

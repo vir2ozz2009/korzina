@@ -36,6 +36,7 @@ export const receiptQuoteInput = z.strictObject({ quoteRevision: z.uuid(), proof
 export type CheckoutCommand = z.infer<typeof checkoutInput>;
 export type PaymentSettings = z.infer<typeof paymentSettingsInput>;
 type PurchaseLine = Pick<CartLine, "variantId" | "productId" | "name" | "unit" | "quantity" | "priceMinor"> & {
+  lineId?: string;
   totalMinor: number;
   image?: CartLine["image"];
 };

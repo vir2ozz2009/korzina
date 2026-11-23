@@ -1,0 +1,51 @@
+import type { CompositionLine, OrderLine } from "../../../src/shared/contracts/order-changes";
+import { orderLineKey } from "../../../src/shared/contracts/order-changes";
+import { addMinor } from "../../../src/shared/money";
+import { releaseOrderReservation } from "../checkout/order-reservation";
+import { orderFinance } from "../checkout/order-workflow";
+import type { ChangeState } from "./state";
+
+export function applyLines(
+  storage: DurableObjectStorage,
+  state: ChangeState,
+  changes: readonly CompositionLine[],
+  reserved = new Set<string>(),
+) {
+  const { row, snapshot, work } = state;
+  work.finance ??= orderFinance(work, snapshot, row.payment_status);
+  const stock = new Set(snapshot.reservedStock ?? snapshot.lines.map(orderLineKey));
+  const removed = new Set<string>();
+  const updated = new Map<string, OrderLine>();
+  for (const line of changes) {
+    const isReduced = line.kind === "decrease";
+    if (line.after) updated.set(line.id, line.after);
+    else removed.add(line.id);
+    if (!isReduced) stock.delete(line.id);
+    if (reserved.has(line.id)) stock.add(line.id);
+  }
+  const lines = snapshot.lines.flatMap((line) => {
+    const key = orderLineKey(line);
+    if (removed.has(key)) return [];
+    const update = updated.get(key);
+    updated.delete(key);
+    return [update ?? line];
+  });
+  lines.push(...updated.values());
+  const retainsPacking = new Set(lines.map(orderLineKey));
+  for (const line of changes) {
+    if (line.kind === "replace") retainsPacking.delete(line.id);
+  }
+  work.packed = work.packed?.filter((id) => retainsPacking.has(id));
+
+  if (!lines.length) {
+    releaseOrderReservation(storage, snapshot, false);
+    snapshot.seatReserved = false;
+  }
+  snapshot.lines = lines;
+  snapshot.reservedStock = [...stock];
+  snapshot.itemsMinor = addMinor(...lines.map(({ totalMinor }) => totalMinor));
+  snapshot.totalMinor = lines.length ? addMinor(snapshot.itemsMinor, snapshot.deliveryMinor) : 0;
+  const netPaid = work.finance.paidMinor - work.finance.returnedMinor;
+  if (netPaid > 0 && snapshot.totalMinor > netPaid) work.finance.debtOpened = true;
+  return lines.length ? row.status : "cancelled";
+}

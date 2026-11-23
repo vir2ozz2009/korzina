@@ -8,10 +8,12 @@ import {
   repeatOrderInput,
   replaceProofInput,
 } from "../../../src/shared/contracts/buyer-order";
+import { compositionAnswer } from "../../../src/shared/contracts/order-changes";
 import { ApiError } from "../../../src/shared/errors";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
 import type { ShopEnv } from "../../shop/env";
 import { readCustomer } from "../auth/service";
+import { answerChanges } from "../order-changes/composition";
 import { cancelBuyerOrder, replaceBuyerProof } from "./buyer-order-commands";
 import { activeBuyerOrders, buyerOrder, buyerOrderRow, buyerOrdersPage } from "./buyer-orders";
 import { previewRepeatOrder, repeatBuyerOrder } from "./repeat-order";
@@ -39,6 +41,23 @@ export const buyerOrderRoutes = new Hono<ShopEnv>()
   })
   .get("/:number/repeat", params, async (c) =>
     c.json(previewRepeatOrder(c.env, await subject(c.env, c.req.raw), c.req.valid("param").number)),
+  )
+  .post(
+    "/:number/composition",
+    authBodyLimit,
+    authCommand,
+    params,
+    zValidator("json", compositionAnswer, validationFailure),
+    async (c) =>
+      c.json(
+        answerChanges(
+          c.env,
+          await subject(c.env, c.req.raw),
+          c.req.valid("param").number,
+          c.req.valid("json"),
+          c.get("command"),
+        ),
+      ),
   )
   .post(
     "/:number/cancel",

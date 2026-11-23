@@ -2,11 +2,16 @@
 export class ShopChanges {
   readonly orders = new Set<number>();
   placed = false;
+  compositionDueAt?: number;
   catalogChanged = false;
   settingsChanged = false;
 
   order(number: number) {
     this.orders.add(number);
+  }
+
+  orderChangeDeadline(dueAt: number) {
+    this.compositionDueAt = Math.min(this.compositionDueAt ?? dueAt, dueAt);
   }
 
   orderPlaced(number: number) {

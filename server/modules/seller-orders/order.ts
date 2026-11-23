@@ -4,6 +4,7 @@ import { ApiError } from "../../../src/shared/errors";
 import type { Seller } from "../../auth/roles";
 import { type OrderRow, unpackOrder } from "../checkout/buyer-orders";
 import { orderBalance, orderFinance, orderWorkflow } from "../checkout/order-workflow";
+import { orderComposition } from "../order-changes/state";
 
 export function sellerOrderRow(storage: DurableObjectStorage, number: number) {
   const row = storage.sql
@@ -57,6 +58,7 @@ export function sellerOrder(
     revision: row.version,
     createdAt: row.created_at,
     paymentStatus: row.payment_status,
+    composition: orderComposition({ row, snapshot, work: state }, permissions.payments),
     packed: state.packed ?? [],
     handedOff: state.handedOff ?? false,
     readyForPickup: state.readyForPickup ?? false,
