@@ -15,6 +15,8 @@ import { confirmBrowserBuyer, demoBuyerExchange, shopBuyerExchange } from "../mo
 import { expireSalePauses, nextSaleDeadline } from "../modules/catalog/sale-pause";
 import { type OpenDraftRequest, type OpenResponse, openDraft } from "../modules/launch/open";
 import { launchSnapshot } from "../modules/launch/readiness";
+import { expireCompositionChanges, scheduleCompositionDeadline } from "../modules/order-changes/deadline";
+import { signalSellerOrders } from "../modules/seller-orders/live";
 import { sendOrderNotifications } from "../modules/seller-orders/notifications";
 import { botCoordinator, changeShopBot, managedBot } from "../platform/admin/shop-bot";
 import { notifyShopStatus, type ShopMutation } from "../platform/admin/shop-change";
@@ -60,6 +62,7 @@ export class Shop extends DurableObject<Env> {
         );
       }
       await this.scheduleSaleDeadline();
+      await scheduleCompositionDeadline(ctx.storage);
     });
   }
 
@@ -231,7 +234,11 @@ export class Shop extends DurableObject<Env> {
       const more = await cleanupShop(this.ctx.storage, this.env, Date.now(), projectOrders);
       this.pendingOrders ||= more;
       if (this.pendingOrders) await schedulePlatformOrders(this.ctx.storage);
+      expireCompositionChanges(this.ctx.storage, Date.now(), (number) => {
+        this.ctx.waitUntil(signalSellerOrders(this.ctx, this.env.PLATFORM, number));
+      });
       await this.dispatchOrderNotifications();
+      await scheduleCompositionDeadline(this.ctx.storage);
       await this.scheduleSaleDeadline();
     } catch (error) {
       this.pendingOrders ||= projectOrders;

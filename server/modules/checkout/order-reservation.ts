@@ -1,4 +1,5 @@
 import type { OrderSnapshot } from "../../../src/shared/contracts/checkout";
+import { orderLineKey } from "../../../src/shared/contracts/order-changes";
 
 export type ReservedOrder = OrderSnapshot & {
   seatReserved?: boolean;
@@ -10,11 +11,11 @@ export function releaseOrderReservation(storage: DurableObjectStorage, order: Re
   if (returnStock) {
     const reserved = order.reservedStock && new Set(order.reservedStock);
     const lines = order.lines
-      .filter(({ variantId }) => !reserved || reserved.has(variantId))
+      .filter((line) => !reserved || reserved.has(orderLineKey(line)))
       .map(({ variantId, quantity }) => ({ variantId, quantity }));
     storage.sql.exec(
       `WITH returned AS (
-        SELECT json_extract(value,'$.variantId') AS id, json_extract(value,'$.quantity') AS quantity FROM json_each(?)
+        SELECT json_extract(value,'$.variantId') AS id, SUM(json_extract(value,'$.quantity')) AS quantity FROM json_each(?) GROUP BY id
        ) UPDATE variants SET stock=stock+returned.quantity FROM returned WHERE variants.id=returned.id AND stock IS NOT NULL`,
       JSON.stringify(lines),
     );
