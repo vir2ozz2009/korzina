@@ -59,6 +59,7 @@ export function cancelBuyerOrder(
         snapshot.currency,
         Date.now(),
       );
+    env.changes.order(number);
     return {
       status: 200,
       body: buyerOrder({ ...row, fulfillment_state, status: "cancelled", version: row.version + 1 }),
@@ -100,6 +101,7 @@ export function replaceBuyerProof(
       mediaId,
       number,
     );
+    env.changes.order(number);
     return {
       status: 200,
       body: buyerOrder({ ...row, payment_status: "pending_review", proof_media_id: mediaId, version: row.version + 1 }),

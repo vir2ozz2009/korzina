@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { fileLengthBaseline } from "./file-length-baseline.ts";
 
 export interface SourceFile {
   path: string;
@@ -29,11 +30,9 @@ export function inspectSource({ path, content }: SourceFile) {
     errors.push(`${path}: стили должны быть Tailwind-классами на токенах`);
   const report = (message: string) => errors.push(`${path}: ${message}`);
   const lines = content.trimEnd().split("\n").length;
-  if (lines > 250) {
-    const message = `длина ${lines} строк, максимум 250`;
-    if (/^(?:src|server)\//.test(path)) warnings.push(`${path}: ${message}`);
-    else report(message);
-  }
+  const ceiling = fileLengthBaseline[path] ?? 250;
+  if (lines > ceiling) report(`длина ${lines} строк, максимум ${ceiling}`);
+  else if (lines > 250) warnings.push(`${path}: длина ${lines} строк, разрешено до ${ceiling} при цели 250`);
 
   if (restrictedUi.test(path)) {
     if (literalColor.test(content)) report("цвета задаются токенами");

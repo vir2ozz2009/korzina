@@ -1,0 +1,191 @@
+import { useState } from "react";
+import { useToast } from "../../../../app/shell/ToastProvider";
+import type { SellerProduct, SellerProductInput, SellerStockInput } from "../../../../shared/contracts/seller-catalog";
+import { HttpError } from "../../../../shared/http-error";
+import { type BulkResult, type ProductSave, useCatalogCommand, useCatalogGroups } from "../../catalog-api";
+import { useCatalogPhotos } from "./CatalogPhotos";
+import { useCatalogNav } from "./navigation";
+import { initialProductText } from "./ProductFields";
+import { type VariantDraft, variantDraft, variantInput } from "./VariantFields";
+
+type Modal = "categories" | "brands" | "recommendations" | "delete" | "pause" | "quantity";
+
+export function useProductEditor(store: string, currency: string, canWrite: boolean, initial?: SellerProduct) {
+  const nav = useCatalogNav(store);
+  const [baseline, setBaseline] = useState(initial);
+  const [text, setText] = useState(() =>
+    initialProductText(initial, nav.params.get("category") ?? undefined, nav.params.get("brand") ?? undefined),
+  );
+  const [initialText] = useState(text);
+  const [variants, setVariants] = useState(
+    () => initial?.variants.map((row) => variantDraft(currency, row)) ?? [variantDraft(currency)],
+  );
+  const [initialVariants] = useState(variants);
+  const [editing, setEditing] = useState<{ index: number; value: VariantDraft; nameError?: string }>();
+  const [pause, setPause] = useState<SellerProductInput["pause"]>();
+  const [modal, setModal] = useState<Modal>();
+  const [error, setError] = useState("");
+  const [partial, setPartial] = useState<{ result: ProductSave; desired: Record<string, number | null> }>();
+  const photos = useCatalogPhotos(store, baseline?.photos ?? []);
+  const categories = useCatalogGroups(store, "categories");
+  const brands = useCatalogGroups(store, "brands");
+  const save = useCatalogCommand<ProductSave>(store);
+  const remove = useCatalogCommand<BulkResult>(store);
+  const toast = useToast();
+  const busy = save.isPending || remove.isPending;
+  const disabled = !canWrite || busy;
+  const dirty =
+    canWrite &&
+    !partial &&
+    (photos.dirty ||
+      !!pause ||
+      JSON.stringify(initialText) !== JSON.stringify(text) ||
+      JSON.stringify(initialVariants) !== JSON.stringify(variants));
+  const path = baseline ? `/products/${encodeURIComponent(baseline.id)}` : "/products";
+  function patchText(patch: Partial<typeof text>) {
+    setText((current) => ({ ...current, ...patch }));
+    setError("");
+  }
+  function patchVariant(index: number, update: Partial<VariantDraft>) {
+    setVariants((current) => current.map((row, i) => (i === index ? { ...row, ...update } : row)));
+    setError("");
+  }
+  function showVariantNameError(index: number, message: string) {
+    setError("");
+    save.reset();
+    setEditing({ index, value: variants[index], nameError: message });
+  }
+  function pickStatus(status: typeof text.status) {
+    if (status === text.status) return;
+    const visible = variants.filter((row) => row.visible);
+    const stocked = visible.some((row) => row.unlimited || Number(row.stock) > 0);
+    if (status !== "hidden" && !visible.length) {
+      setError("Включите хотя бы одну фасовку");
+      return;
+    }
+    if (status === "selling" && !stocked) {
+      setModal("quantity");
+    } else if (status === "unavailable" && stocked && text.status !== "unavailable") setModal("pause");
+    else {
+      if (status === "selling") {
+        setVariants((current) =>
+          current.map((row) =>
+            row.visible && (row.pause || row.salePause !== null) ? { ...row, pause: "resume" } : row,
+          ),
+        );
+        setPause(undefined);
+      }
+      patchText({ status });
+    }
+  }
+  function saveProduct() {
+    if (photos.pending) {
+      setError("Дождитесь завершения загрузки фото");
+      return;
+    }
+    try {
+      if (!text.name.trim()) throw new Error("Введите название");
+      const unnamed = variants.length > 1 ? variants.findIndex((row) => !row.name.trim()) : -1;
+      if (unnamed !== -1) {
+        showVariantNameError(unnamed, "Укажите название фасовки");
+        return;
+      }
+      const pack = variants.map((row) => variantInput(row, currency));
+      setError("");
+      save.mutate(
+        {
+          path,
+          input: {
+            ...text,
+            name: text.name.trim(),
+            expectedRevision: baseline?.revision,
+            variants: pack,
+            photos: photos.values,
+            pause,
+          },
+        },
+        {
+          onError: (error) => {
+            if (!(error instanceof HttpError)) return;
+            const { details } = error;
+            if (!details || typeof details !== "object" || !("index" in details)) return;
+            const { index } = details;
+            if (typeof index !== "number" || !variants[index]) return;
+            if (error.code === "DUPLICATE_VARIANT_NAME" || ("field" in details && details.field === "variantName"))
+              showVariantNameError(index, error.message);
+          },
+          onSuccess: (result) => {
+            if (result.conflicts.length) {
+              setBaseline(result.product);
+              setPartial({
+                result,
+                desired: Object.fromEntries(pack.flatMap((row) => (row.id ? [[row.id, row.stock]] : []))),
+              });
+              return;
+            }
+            toast("Сохранено");
+            nav.leave("/seller/products", true);
+          },
+        },
+      );
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Проверьте поля");
+    }
+  }
+  function confirmStock(input: SellerStockInput) {
+    save.mutate(
+      { path: `${path}/stock`, input },
+      {
+        onSuccess: (result) => {
+          if (result.conflicts.length && partial) setPartial({ ...partial, result });
+          else {
+            toast("Сохранено");
+            nav.leave("/seller/products", true);
+          }
+        },
+      },
+    );
+  }
+  function copyProduct() {
+    if (!baseline) return;
+    save.mutate(
+      { path: `${path}/copy`, input: { revision: baseline.revision } },
+      {
+        onSuccess: (result) => {
+          toast("Товар скопирован");
+          nav.open(`/seller/products/${encodeURIComponent(result.product.id)}`, undefined, true, true);
+        },
+      },
+    );
+  }
+  return {
+    nav,
+    baseline,
+    text,
+    variants,
+    setVariants,
+    editing,
+    setEditing,
+    setPause,
+    modal,
+    setModal,
+    error,
+    setError,
+    partial,
+    photos,
+    categories,
+    brands,
+    save,
+    remove,
+    toast,
+    busy,
+    disabled,
+    dirty,
+    patchText,
+    patchVariant,
+    pickStatus,
+    saveProduct,
+    confirmStock,
+    copyProduct,
+  };
+}

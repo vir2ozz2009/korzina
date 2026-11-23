@@ -30,10 +30,11 @@ const idParam = zValidator("param", sellerCatalogId, validationFailure);
 const canManage = (seller: Seller) => seller.role === "owner" || seller.permissions.includes("products");
 function command<T>(c: Context<CatalogEnv>, execute: () => T) {
   const { storage, db } = c.env;
-  const { body } = executeCommand(storage, db, `seller:catalog:${c.get("seller").accountId}`, c.get("command"), () => ({
-    status: 200,
-    body: execute(),
-  }));
+  const { body } = executeCommand(storage, db, `seller:catalog:${c.get("seller").accountId}`, c.get("command"), () => {
+    const body = execute();
+    c.env.changes.catalog();
+    return { status: 200, body };
+  });
   return c.json(body);
 }
 

@@ -128,5 +128,6 @@ export function writeStoreProfile(
     ]),
   );
   updateStoreTimeZone(storage, timeZone);
+  env.changes.settings();
   return ownerProfile(env, seller);
 }
