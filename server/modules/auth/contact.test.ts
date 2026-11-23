@@ -2,14 +2,15 @@ import { runInDurableObject } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { drizzle } from "drizzle-orm/durable-sqlite";
 import { beforeAll, expect, it } from "vitest";
-import { encryptBotToken } from "../../auth/bot-token";
-import { cookieFrom, getAuth, postAuth, signedInitData } from "../../testing/auth";
+import { cookieFrom, getAuth, postAuth } from "../../testing/auth";
 import { setupPlatform } from "../../testing/platform";
+import { botFixtureKey, setShopBot } from "../../testing/shop-bot";
 import { catalogSql, catalogStub } from "../catalog/testing";
 import { buyerOrdersPage } from "../checkout/buyer-orders";
 import { favoriteIds, mergeFavoriteIds } from "../favorites/service";
 import { readReceiving, saveReceiving, writeReceiving } from "../fulfillment/service";
 import { customerAuth } from "./routes";
+import { confirmBrowserBuyer } from "./telegram-exchange";
 
 beforeAll(setupPlatform);
 const shopId = "korzina-demo-lavka";
@@ -42,19 +43,14 @@ it("нормализует телефоны России и Таиланда и 
 });
 
 it("§9.3 Telegram переносит заказы, адреса, корзину и избранное ровно один раз после согласия", async () => {
-  const token = "12345:korzina-fixture-b9";
-  const encryptionKey = "ae".repeat(32);
+  await setShopBot(env.PLATFORM, shopId, "12345");
   await runInDurableObject(catalogStub(), async (_shop, { storage }) => {
-    const encrypted = await encryptBotToken(token, shopId, encryptionKey);
-    storage.sql.exec(
-      "INSERT OR REPLACE INTO settings(key,value) VALUES('telegram_bot_token',?),('telegram_bot_username','korzina_fixture_bot')",
-      encrypted,
-    );
     const bindings = {
       shop: { id: shopId, slug: "test", name: "Test", status: "active", plan: "base", createdAt: 0 },
       db: drizzle(storage),
       storage,
-      secrets: { ENCRYPTION_KEY: encryptionKey },
+      secrets: { ENCRYPTION_KEY: botFixtureKey },
+      platform: env.PLATFORM,
       media: env,
     };
     const submit = (route: string, data: object, cookie?: string) =>
@@ -122,12 +118,11 @@ it("§9.3 Telegram переносит заказы, адреса, корзину
     expect((await submit("/contact", { phone: "+84912345678", confirmed: true }, origin)).status).toBe(200);
     const started = await submit("/telegram/start", {}, origin);
     const { exchange, url } = await started.json<{ exchange: string; url: string }>();
-    expect(new URL(url).searchParams.get("startapp")).toBe(exchange);
+    expect(new URL(url).searchParams.get("start")).toBe(exchange);
     expect((await submit("/telegram/finish", { exchange }, origin)).status).toBe(202);
     const other = cookieFrom(await submit("/guest", {}));
     expect((await submit("/telegram/finish", { exchange }, other)).status).toBe(401);
-    const initData = await signedInitData(token, { start_param: exchange });
-    expect((await submit("/telegram", { initData })).status).toBe(201);
+    expect(await confirmBrowserBuyer(storage, exchange, "12345", "Покупатель")).toBeDefined();
     const consent = await submit("/telegram/finish", { exchange }, origin);
     expect(consent.headers.get("set-cookie")).toBeNull();
     expect(await consent.json()).toEqual({ pending: false, mergeRequired: true });
@@ -193,13 +188,7 @@ it("§9.3 Telegram переносит заказы, адреса, корзину
     expect(storage.sql.exec("SELECT customer FROM carts WHERE customer=?", archivedSubject).toArray()).toEqual([]);
     const attempt = await submit("/telegram/start", {}, archivedCookie);
     const { exchange: archivedExchange } = await attempt.json<{ exchange: string }>();
-    expect(
-      (
-        await submit("/telegram", {
-          initData: await signedInitData(token, { start_param: archivedExchange }),
-        })
-      ).status,
-    ).toBe(201);
+    expect(await confirmBrowserBuyer(storage, archivedExchange, "12345", "Покупатель")).toBeDefined();
     const archiveConsent = await submit("/telegram/finish", { exchange: archivedExchange }, archivedCookie);
     expect(await archiveConsent.json()).toEqual({ pending: false, mergeRequired: true });
     expect(accountOrders()).toEqual([existingOrder, sourceOrder]);

@@ -1,6 +1,7 @@
 import { exports } from "cloudflare:workers";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import { z } from "zod";
 import { ApiError } from "../../../src/shared/errors";
 import { decryptBotToken } from "../../auth/bot-token";
 import type { AuthSecrets } from "../../auth/config";
@@ -8,10 +9,24 @@ import { matchesTelegramSecret, telegramApi } from "../../auth/telegram-api";
 import { answerBrowserLogin } from "../../auth/telegram-return";
 import { shopBuyerExchange } from "../../modules/auth/telegram-exchange";
 import { botWebhookSecret, managedBot, miniAppAddress } from "../admin/shop-bot";
-import { staffConnectPattern } from "../team/bot";
+import { connectStaffChat, staffConnectPattern } from "../team/bot";
 import { answerStaffInvite, replyStaffChat, staffInvitePattern } from "../team/telegram";
+import { browserCodePattern, confirmSellerExchange } from "./browser-exchange";
+import { canEnterCabinet } from "./cabinet";
 import { answerOwnerInvite, invitationPattern } from "./invitation-reply";
-import { telegramMessage } from "./platform-webhook";
+
+const telegramMessage = z.object({
+  message: z.object({
+    text: z.string().max(400).optional(),
+    chat: z.object({ id: z.number().int(), type: z.literal("private") }),
+    from: z.object({
+      id: z.number().int().positive(),
+      is_bot: z.literal(false).optional(),
+      first_name: z.string().max(128).optional(),
+      last_name: z.string().max(128).optional(),
+    }),
+  }),
+});
 
 export const shopWebhook = new Hono<{ Bindings: Env & AuthSecrets }>().post(
   "/:id",
@@ -33,6 +48,7 @@ export const shopWebhook = new Hono<{ Bindings: Env & AuthSecrets }>().post(
     if (chat.id !== from.id || !text) return c.json({ ok: true });
     const token = await decryptBotToken(bot.token, shopId, c.env.ENCRYPTION_KEY);
     const origin = new URL(c.req.url).origin;
+    const start = text.startsWith("/start ") ? text.slice(7) : "";
     const raw = invitationPattern.exec(text)?.[1];
     const staff = staffInvitePattern.exec(text)?.[1];
     const staffShop = staffConnectPattern.exec(text)?.[1];
@@ -42,7 +58,6 @@ export const shopWebhook = new Hono<{ Bindings: Env & AuthSecrets }>().post(
         from,
         origin,
         bot: token,
-        platformBot: c.env.PLATFORM_BOT_TOKEN,
         shopId,
         botKey: bot.telegramId,
       });
@@ -55,17 +70,26 @@ export const shopWebhook = new Hono<{ Bindings: Env & AuthSecrets }>().post(
         channel: { shop: shopId, bot: bot.telegramId },
       });
     else if (staffShop === shopId) await replyStaffChat(c.env, shopId, bot.telegramId, from.id, token, origin);
-    else if (text.startsWith("/start ") && shopBuyerExchange.test(text.slice(7))) {
+    else if (browserCodePattern.test(start)) {
+      const accepted = await confirmSellerExchange(c.env.PLATFORM, start, String(from.id), shopId, bot.telegramId);
+      if (accepted) await connectStaffChat(c.env.PLATFORM, shopId, bot.telegramId, String(from.id));
+      await answerBrowserLogin(token, chat.id, accepted?.return_url);
+    } else if (shopBuyerExchange.test(start)) {
       const shop = exports.Shop.get(exports.Shop.idFromName(shopId));
       const name = [from.first_name, from.last_name].filter(Boolean).join(" ").slice(0, 100);
-      const accepted = await shop.confirmBuyerTelegram(shopId, text.slice(7), String(from.id), name);
+      const accepted = await shop.confirmBuyerTelegram(shopId, start, String(from.id), name);
       await answerBrowserLogin(token, chat.id, accepted && (accepted.return_url ?? miniAppAddress(origin, shopId)));
     } else if (text === "/start") {
+      const seller = await canEnterCabinet(c.env.PLATFORM, String(from.id), shopId);
+      if (seller) await connectStaffChat(c.env.PLATFORM, shopId, bot.telegramId, String(from.id));
       await telegramApi(token, "sendMessage", {
         chat_id: from.id,
         text: "Откройте витрину магазина",
         reply_markup: {
-          inline_keyboard: [[{ text: "Открыть витрину", web_app: { url: miniAppAddress(origin, shopId) } }]],
+          inline_keyboard: [
+            [{ text: "Открыть витрину", web_app: { url: miniAppAddress(origin, shopId) } }],
+            ...(seller ? [[{ text: "Открыть кабинет", web_app: { url: miniAppAddress(origin, shopId, true) } }]] : []),
+          ],
         },
       });
     }

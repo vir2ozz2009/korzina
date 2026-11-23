@@ -72,7 +72,7 @@ export async function createDraft(
   const shop = shopRecord(input.slug, input.name);
   const [currency, timeZone] = countryDefaults[input.country];
   const host = `${shop.slug}.${env.APP_ENV === "production" ? "" : "demo."}korzina.app`;
-  const invite = await prepareOwnerInvite(shop.id, env.ENCRYPTION_KEY, shop.createdAt, true);
+  const invite = await prepareOwnerInvite(shop.id, env.ENCRYPTION_KEY, shop.createdAt);
   const result = { id: shop.id };
   try {
     await database.batch([

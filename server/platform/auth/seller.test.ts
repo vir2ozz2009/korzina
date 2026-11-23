@@ -87,7 +87,7 @@ describe("вход продавца и права", () => {
   });
   it("проверка прав идёт по индексам сессии и магазина", async () => {
     const plan = await env.PLATFORM.prepare(
-      "EXPLAIN QUERY PLAN SELECT s.account_id, m.role FROM seller_sessions s LEFT JOIN memberships m ON m.account_id = s.account_id AND m.shop_id = ? AND m.revoked_at IS NULL WHERE s.token_hash = ? AND s.expires_at > ?",
+      "EXPLAIN QUERY PLAN SELECT s.account_id, m.role FROM seller_sessions s JOIN accounts a ON a.id=s.account_id LEFT JOIN memberships m ON m.account_id=s.account_id AND m.shop_id=? AND m.revoked_at IS NULL AND (s.shop_id=m.shop_id OR (s.shop_id IS NULL AND a.telegram_id IS NULL)) WHERE s.token_hash = ? AND s.expires_at > ?",
     )
       .bind("korzina-demo-test2", "hash", Date.now())
       .all();
@@ -99,6 +99,6 @@ describe("вход продавца и права", () => {
     expect(response.status).toBe(503);
     expect(await response.text()).not.toContain("devCode");
     expect((await getAuth("/api/seller/access?shop=test2")).status).toBe(401);
-    expect((await postAuth("/api/platform/auth/telegram", { initData: "forged" })).status).toBe(503);
+    expect((await postAuth("/api/platform/auth/telegram", { initData: "forged" })).status).toBe(404);
   });
 });

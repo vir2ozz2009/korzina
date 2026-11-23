@@ -7,10 +7,11 @@ import { staffBot } from "./bot";
 import { activeOwner, type TeamCommand, teamMutation, teamReplay } from "./mutation";
 
 const lifetime = 7 * 86_400_000;
-const fields = `id,role,bot_username AS botUsername,expires_at AS expiresAt,used_by AS usedBy,revoked_at AS revokedAt`;
+const fields = `id,role,bot,bot_username AS botUsername,expires_at AS expiresAt,used_by AS usedBy,revoked_at AS revokedAt`;
 type Invitation = {
   id: string;
   role: string;
+  bot: string;
   botUsername: string;
   expiresAt: number;
   usedBy: string | null;
@@ -59,7 +60,9 @@ export async function readStaffInvite(
   const row = await invite(database, shop, id);
   const result = describeInvite(row, now);
   if (result.state !== "pending") return result;
-  return { ...result, url: (await staffLink(id, row.botUsername, secret)).url };
+  const currentBot = await staffBot(database, shop);
+  if (!currentBot || currentBot.id !== row.bot) return { ...result, state: "revoked" as const };
+  return { ...result, url: (await staffLink(id, currentBot.username, secret)).url };
 }
 
 export async function createStaffInvite(
@@ -70,9 +73,9 @@ export async function createStaffInvite(
 ) {
   const replay = await teamReplay<{ id: string }>(database, context);
   if (replay) return readStaffInvite(database, context.shop, replay.id, secrets.ENCRYPTION_KEY, context.now);
-  const bot = await staffBot(database, context.shop, secrets);
-  const username = (bot.isShop || secrets.PLATFORM_BOT_TOKEN) && bot.username;
-  if (!username) throw new ApiError("AUTH_UNAVAILABLE", "Бот пока недоступен");
+  const bot = await staffBot(database, context.shop);
+  if (!bot) throw new ApiError("AUTH_UNAVAILABLE", "Сначала администратор подключит бота");
+  const { username } = bot;
   const id = crypto.randomUUID();
   const { token } = await staffLink(id, username, secrets.ENCRYPTION_KEY);
   const mutation = database

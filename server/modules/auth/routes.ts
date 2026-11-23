@@ -21,7 +21,6 @@ import { handleError } from "../../middleware/errors";
 import { RateLimiter, rateLimit } from "../../middleware/rate-limit";
 import { adminCookie, revokeAdminSession } from "../../platform/admin/access";
 import { managedBot } from "../../platform/admin/shop-bot";
-import { demoPlatformShop, ensureDemoTelegramWebhook, isDemoTelegramOrigin } from "../../platform/auth/demo-telegram";
 import type { ShopEnv } from "../../shop/env";
 import { settings } from "../../shop/schema";
 import { mergeBuyer } from "../buyer/merge";
@@ -29,7 +28,7 @@ import { hasBuyerOrders } from "../checkout/buyer-orders";
 import { hasTelegramProfile, initTelegramProfile } from "../profile/service";
 import { contactRegion, readContact, savePhone } from "./contact";
 import { createCustomer, customerTtl, logoutCustomer, prepareCustomer, readCustomer, writeCustomer } from "./service";
-import { confirmExchange, findExchange, startExchange, verifiedExchange } from "./telegram-exchange";
+import { findExchange, startExchange } from "./telegram-exchange";
 
 const limitCustomer = sessionLimiter();
 const publicSession = ({ subject, kind, expiresAt }: { subject: string; kind: string; expiresAt: number }) => ({
@@ -101,11 +100,8 @@ export const customerAuth = new Hono<ShopEnv>()
     if (!owner) throw new ApiError("UNAUTHORIZED", "Нужна сессия покупателя");
     if (existing) limitCustomer(c, existing.sessionId);
     const bot = await managedBot(c.env.platform, c.env.shop.id);
-    const demoBot =
-      c.env.shop.id === demoPlatformShop && isDemoTelegramOrigin(c.req.raw)
-        ? () => ensureDemoTelegramWebhook(c.env.platform, c.env.secrets)
-        : undefined;
-    const result = await startExchange(c.env.storage, owner, bot?.username, demoBot, returnUrl);
+    if (!bot?.token || !bot.telegramId) throw new ApiError("AUTH_UNAVAILABLE", "Telegram магазина пока не подключён");
+    const result = await startExchange(c.env.storage, owner, bot.username, returnUrl);
     if (prepared) {
       writeCustomer(c.env.db, prepared);
       c.header("Set-Cookie", sessionCookie(c.req.raw, customerCookie(c.env.shop.id), prepared.token, customerTtl));
@@ -144,26 +140,17 @@ export const customerAuth = new Hono<ShopEnv>()
       c.env.shop.id,
       c.env.secrets.ENCRYPTION_KEY,
     );
-    const { telegramId, startParam, name } = await verifyInitData(input.initData, botToken, Date.now(), true);
-    const exchange = await verifiedExchange(startParam);
+    const { telegramId, name } = await verifyInitData(input.initData, botToken, Date.now(), true);
     const existing = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);
     const subject = `telegram:${telegramId}`;
     const collision = hasTelegramProfile(c.env.storage, subject);
     const deviceProfile = hasDeviceProfile(c.env.storage, existing);
-    if (exchange && existing && deviceProfile) {
-      c.env.storage.transactionSync(() => {
-        confirmExchange(c.env.storage, exchange, subject, collision);
-        initTelegramProfile(c.env.storage, subject, name);
-      });
-      return c.json({ ...publicSession(existing), pending: true }, 202);
-    }
     if (collision && deviceProfile)
       throw new ApiError("AUTH_FAILED", "Подключите Telegram из профиля и подтвердите объединение");
     const created = await prepareCustomer(subject, "telegram");
     c.env.storage.transactionSync(() => {
       attachGuest(c.env, existing, created.session.subject);
       writeCustomer(c.env.db, created);
-      if (exchange) confirmExchange(c.env.storage, exchange, subject, collision);
       initTelegramProfile(c.env.storage, subject, name);
     });
     c.header("Set-Cookie", sessionCookie(c.req.raw, customerCookie(c.env.shop.id), created.token, customerTtl));

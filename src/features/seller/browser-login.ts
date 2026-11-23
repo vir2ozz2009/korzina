@@ -8,9 +8,9 @@ import {
   telegramReturnPath,
 } from "../../shared/telegram-browser-attempt";
 
-export async function startCabinetLogin(signal: AbortSignal) {
+export async function startCabinetLogin(signal: AbortSignal, store?: string) {
   const response = await api.api.seller.cabinet.start.$post(
-    { json: { returnPath: telegramReturnPath() } },
+    { json: { returnPath: telegramReturnPath(), store } },
     { headers: commandHeaders(), init: { signal } },
   );
   await checkResponse(response);

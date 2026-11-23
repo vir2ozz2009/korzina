@@ -6,6 +6,7 @@ import catalog from "../server/demo-catalog.json";
 import { expandNewOrders, telegramMessage } from "../server/modules/seller-orders/notifications";
 import { invalidateShopAddress } from "../server/platform/resolve-shop";
 import { schedulePlatformOrders } from "../server/shop/order-projection";
+import { botFixtureKey, setShopBot } from "../server/testing/shop-bot";
 import { weekdays } from "../src/shared/contracts/receiving-time";
 
 import { receiveE2eStaffInvite } from "./staff-invite-fixture";
@@ -118,22 +119,6 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url);
     if (
-      env.LOCAL_E2E === "1" &&
-      url.hostname === "127.0.0.1" &&
-      url.searchParams.get("store") === "test2" &&
-      /^\/api\/seller\/team\/invites(?:\/|$)/.test(url.pathname)
-    )
-      return worker.fetch(
-        request,
-        {
-          ...env,
-          PLATFORM_BOT_USERNAME: "korzinaapp_demo_bot",
-          PLATFORM_BOT_TOKEN: "local-e2e-placeholder",
-          ENCRYPTION_KEY: "ab".repeat(32),
-        } as Env,
-        ctx,
-      );
-    if (
       url.pathname !== path &&
       url.pathname !== sellerPath &&
       url.pathname !== buyerPath &&
@@ -142,7 +127,11 @@ export default {
       url.pathname !== shopStatusPath &&
       url.pathname !== workdayPath
     )
-      return worker.fetch(request, env, ctx);
+      return worker.fetch(
+        request,
+        env.LOCAL_E2E === "1" && url.hostname === "127.0.0.1" ? { ...env, ENCRYPTION_KEY: botFixtureKey } : env,
+        ctx,
+      );
     if (
       url.hostname !== "127.0.0.1" ||
       request.method !== "POST" ||
@@ -152,6 +141,7 @@ export default {
       return new Response(null, { status: 404 });
     if (url.pathname === staffInvitePath) return receiveE2eStaffInvite(request, env, shopId);
     if (url.pathname === sellerPath) {
+      const bot = await setShopBot(env.PLATFORM, shopId, "93900", "KorzinaE2EFixtureBot");
       const account = "e2e-seller";
       const token = newToken();
       await env.PLATFORM.batch([
@@ -160,10 +150,13 @@ export default {
           shopId,
           account,
         ),
-        env.PLATFORM.prepare("INSERT INTO seller_sessions(token_hash,account_id,expires_at) VALUES(?,?,?)").bind(
-          await tokenHash(token),
+        env.PLATFORM.prepare(
+          "INSERT INTO seller_sessions(token_hash,account_id,expires_at,shop_id) VALUES(?,?,?,?)",
+        ).bind(await tokenHash(token), account, Date.now() + 300_000, shopId),
+        env.PLATFORM.prepare("INSERT OR IGNORE INTO staff_bot_chats(shop_id,account_id,bot) VALUES(?,?,?)").bind(
+          shopId,
           account,
-          Date.now() + 300_000,
+          bot.id,
         ),
       ]);
       return new Response(null, {

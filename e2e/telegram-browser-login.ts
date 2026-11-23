@@ -31,7 +31,7 @@ export async function checkBrowserLogin(page: Page, baseURL: string | undefined,
   // Represent Telegram's HTTPS fallback without contacting the bot or writing to demo data.
   await context.route(telegram, (route) => route.fulfill({ contentType: "text/html", body: "Telegram" }));
   await context.route(new RegExp(`${authPath}/start(?:\\?|$)`), (route) => {
-    expect(route.request().postDataJSON()).toEqual({ returnPath: routePath });
+    expect(route.request().postDataJSON()).toEqual({ returnPath: routePath, ...(seller && { store: "test2" }) });
     return route.fulfill({ json: { exchange, expiresAt: Date.now() + 60_000, url: telegram } });
   });
   await context.route(new RegExp(`${authPath}/finish(?:\\?|$)`), (route) => {

@@ -63,7 +63,7 @@ function ShopBot({ store, canManage }: { store: string; canManage: boolean }) {
         <>
           <ListItem
             title={shopBot ? `Бот подключён · @${shopBot}` : "Бота подключает администратор Korzina"}
-            subtitle={shopBot ? undefined : "Личные уведомления отправляет бот Korzina"}
+            subtitle={shopBot ? undefined : "Личные уведомления появятся после подключения бота"}
             icon={<MessageCircle size={20} />}
           />
           {canManage && (
@@ -85,6 +85,7 @@ function ShopBot({ store, canManage }: { store: string; canManage: boolean }) {
 }
 
 function TeamList({ store }: { store: string }) {
+  const bot = useStaffBot(store);
   const members = useInfiniteQuery({
     queryKey: [...teamKey(store), "members"],
     initialPageParam: "",
@@ -120,9 +121,10 @@ function TeamList({ store }: { store: string }) {
     <QueryBoundary query={members} template="list">
       {({ pages }) => (
         <>
-          <Button full onClick={() => select({ kind: "new" })}>
+          <Button full disabled={!bot.data?.shopBot} onClick={() => select({ kind: "new" })}>
             Добавить сотрудника
           </Button>
+          {bot.data?.shopBot === null && <p className="text-meta">Сначала администратор подключит бота</p>}
           <Card>
             {pages.length === 1 && pages[0].members.length === 1 && !members.hasNextPage && (
               <p>Пока других сотрудников нет</p>

@@ -5,6 +5,7 @@ import { app } from "../../index";
 import { catalogSql } from "../../modules/catalog/testing";
 import { cookieFrom, getAuth, postAuth, signedInitData } from "../../testing/auth";
 import { setupPlatform } from "../../testing/platform";
+import { botFixtureKey, setShopBot } from "../../testing/shop-bot";
 import { storefrontUrl } from "../storefront-url";
 import { confirmSellerExchange, startSellerExchange } from "./browser-exchange";
 import { telegramSellerSession } from "./sessions";
@@ -84,15 +85,18 @@ it("§13.3: адрес витрины использует origin стенда �
 });
 
 it("§9.1 · §9.12 запасной Telegram-вход привязан к исходному браузеру и используется один раз", async () => {
-  const { exchange, cookie } = await startSellerExchange(env.PLATFORM, "KorzinaFixtureBot");
+  await membership("90003", shop);
+  const bot = { id: "93003", username: "KorzinaFixtureBot" };
+  const returnUrl = "https://demo.korzina.app/seller?store=lavka#telegram-return";
+  const { exchange, cookie } = await startSellerExchange(env.PLATFORM, shop, bot, returnUrl);
   const finish = (Cookie: string) => postAuth("/api/seller/cabinet/finish", { exchange }, { Cookie });
   const browser = `${cookie.name}=${cookie.value}`;
   expect((await finish(browser)).status).toBe(202);
   const update = { message: { from: { id: 90003 }, chat: { id: 90003, type: "private" }, text: `/start ${exchange}` } };
-  expect((await postAuth("/api/platform/telegram", update)).status).toBe(403);
+  expect((await postAuth(`/api/platform/shop-telegram/${shop}`, update)).status).toBe(403);
   expect((await finish(browser)).status).toBe(202);
-  expect(await confirmSellerExchange(env.PLATFORM, exchange, "90003")).toEqual({ return_url: null });
-  expect(await confirmSellerExchange(env.PLATFORM, exchange, "90004")).toBeUndefined();
+  expect(await confirmSellerExchange(env.PLATFORM, exchange, "90003", shop, bot.id)).toEqual({ return_url: returnUrl });
+  expect(await confirmSellerExchange(env.PLATFORM, exchange, "90004", shop, bot.id)).toBeUndefined();
   expect((await finish("")).status).toBe(401);
   const results = await Promise.all([finish(browser), finish(browser)]);
   expect(results.map((response) => response.status).sort()).toEqual([200, 401]);
@@ -100,14 +104,14 @@ it("§9.1 · §9.12 запасной Telegram-вход привязан к ис�
   const session = success?.headers.getSetCookie().find((cookie) => cookie.startsWith("korzina_seller="));
   expect(session).toBeDefined();
   expect(await (await getAuth("/api/seller/cabinet", { Cookie: session?.split(";")[0] ?? "" })).json()).toMatchObject({
-    current: null,
-    shops: [],
+    current: { id: shop },
+    shops: [{ id: shop }],
     telegramId: "90003",
   });
 });
 
 it("§9.4 · профиль продавца читает Telegram из сессии и выход отзывает эту сессию", async () => {
-  const token = await telegramSellerSession(env.PLATFORM, "90005");
+  const token = await telegramSellerSession(env.PLATFORM, "90005", shop);
   const header = { Cookie: `korzina_seller=${token}` };
   const read = () => getAuth("/api/seller/cabinet", header);
   expect(await (await read()).json()).toMatchObject({ telegramId: "90005" });
@@ -115,8 +119,10 @@ it("§9.4 · профиль продавца читает Telegram из сесс
   expect((await read()).status).toBe(401);
 });
 
-it("§9.12 Mini App проверяет подпись Telegram и доступ к указанному магазину", async () => {
-  const platformBot = "90006:fixture";
+it("BOT1.3 · Mini App проверяет подпись Telegram и доступ к указанному магазину", async () => {
+  const first = await setShopBot(env.PLATFORM, shop, "93005");
+  const second = await setShopBot(env.PLATFORM, "korzina-demo-test2", "93006");
+  await membership("90006", shop);
   await membership("90006", "korzina-demo-test2", "employee");
   const login = async (signedBy: string, store: string, bearer = false) => {
     const initData = await signedInitData(signedBy, { user: JSON.stringify({ id: 90006 }) });
@@ -126,18 +132,19 @@ it("§9.12 Mini App проверяет подпись Telegram и доступ �
         headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
         body: JSON.stringify({ initData, store, bearer }),
       }),
-      { ...env, PLATFORM_BOT_TOKEN: platformBot },
+      { ...env, ENCRYPTION_KEY: botFixtureKey },
     );
   };
   expect((await login("90006:other-fixture", "test2")).status).toBe(401);
-  expect((await login(platformBot, "lavka")).status).toBe(403);
-  const found = await login(platformBot, "test2");
+  expect((await login(second.token, "lavka")).status).toBe(401);
+  expect((await login(first.token, "lavka")).status).toBe(200);
+  const found = await login(second.token, "test2");
   expect(found.status).toBe(200);
   expect(await (await getAuth("/api/seller/cabinet?store=test2", { Cookie: cookieFrom(found) })).json()).toMatchObject({
     current: { slug: "test2", role: "employee" },
   });
 
-  const embedded = await login(platformBot, "test2", true);
+  const embedded = await login(second.token, "test2", true);
   expect(embedded.status).toBe(200);
   expect(embedded.headers.has("Set-Cookie")).toBe(false);
   const { token } = await embedded.json<{ token: string }>();
@@ -146,6 +153,7 @@ it("§9.12 Mini App проверяет подпись Telegram и доступ �
   const read = () => getAuth("/api/seller/cabinet?store=test2", authorization);
   expect(await (await read()).json()).toMatchObject({ current: { slug: "test2", role: "employee" } });
   expect((await getAuth("/api/seller/cabinet?store=lavka", authorization)).status).toBe(403);
+  expect((await getAuth("/api/seller/access/orders?shop=lavka", authorization)).status).toBe(403);
   expect((await postAuth("/api/platform/auth/logout", {}, authorization)).status).toBe(200);
   expect((await read()).status).toBe(401);
 });

@@ -36,11 +36,11 @@ export async function expandNewOrders(
     )
     .toArray();
   if (!orders.length) return false;
-  const bot = await staffBot(env.PLATFORM, shop, env);
-  const recipients = await staffRecipients(env.PLATFORM, shop, bot.id);
+  const bot = await staffBot(env.PLATFORM, shop);
+  const recipients = bot ? await staffRecipients(env.PLATFORM, shop, bot.id) : [];
   storage.transactionSync(() => {
     for (const order of orders) {
-      if (order.receipt && order.created + 86_400_000 > now)
+      if (bot && order.receipt && order.created + 86_400_000 > now)
         storage.sql.exec(
           "INSERT OR IGNORE INTO workday_notice(id,kind,order_number,expires_at) VALUES(?,'receipt',?,?)",
           `receipt:${order.number}:initial`,
@@ -78,7 +78,7 @@ export async function sendOrderNotifications(storage: DurableObjectStorage, env:
     .exec<Queued>("SELECT * FROM order_notification_outbox WHERE due_at<=? ORDER BY due_at LIMIT 10", now)
     .toArray();
   if (queue.length) {
-    const bot = await staffBot(env.PLATFORM, shop, env);
+    const bot = await staffBot(env.PLATFORM, shop);
     const token = await staffBotToken(bot, shop, env);
     const origin = env.APP_ENV === "production" ? "https://korzina.app" : "https://demo.korzina.app";
     const buyerSlug =
@@ -91,7 +91,8 @@ export async function sendOrderNotifications(storage: DurableObjectStorage, env:
     const buyerStorefront = buyerSlug ? storefrontUrl(origin, env.APP_ENV, buyerSlug) : undefined;
     for (const event of queue) {
       const permitted =
-        event.kind !== "new" || (await staffRecipients(env.PLATFORM, shop, bot.id, event.recipient)).length > 0;
+        bot &&
+        (event.kind !== "new" || (await staffRecipients(env.PLATFORM, shop, bot.id, event.recipient)).length > 0);
       // Claim before contacting Telegram: sendMessage has no idempotency key.
       const claim = storage.sql.exec("DELETE FROM order_notification_outbox WHERE event_key=?", event.event_key);
       if (!claim.rowsWritten || !token || !permitted) continue;

@@ -9,14 +9,14 @@ export async function redeemOwnerInvite(
   token: string,
   telegramId: string,
   name: string,
-  channelShop?: string,
+  channelShop: string,
 ): Promise<Result> {
   const hash = await digest(token);
   const now = Date.now();
   const invitation = await database
     .withSession("first-primary")
     .prepare(`SELECT i.shop_id AS shopId,
-      i.platform_allowed AS platformAllowed,i.used_by AS usedBy,s.name,i.revoked_at AS revokedAt,
+      i.used_by AS usedBy,s.name,i.revoked_at AS revokedAt,
       i.expires_at AS expiresAt,i.replacement_reason AS reason,
       (SELECT a.telegram_id FROM memberships m JOIN accounts a ON a.id=m.account_id
         WHERE m.shop_id=s.id AND m.role='owner' AND m.revoked_at IS NULL LIMIT 1) AS owner
@@ -31,14 +31,8 @@ export async function redeemOwnerInvite(
       expiresAt: number;
       reason: string | null;
       owner: string | null;
-      platformAllowed: number;
     }>();
-  if (
-    !invitation ||
-    invitation.revokedAt ||
-    invitation.expiresAt <= now ||
-    (channelShop ? channelShop !== invitation.shopId : !invitation.platformAllowed)
-  )
+  if (!invitation || invitation.revokedAt || invitation.expiresAt <= now || channelShop !== invitation.shopId)
     return { state: "invalid" };
   const { shopId } = invitation;
   const accepted = { state: "accepted" as const, shopId, name: invitation.name };

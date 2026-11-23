@@ -54,7 +54,7 @@ export async function shopDetail(
       FROM platform_order_events WHERE shop_id=? AND created_at>=?`)
       .bind(now - 7 * day, id, now - 30 * day),
   ]);
-  const username = shop.botUsername ?? env.PLATFORM_BOT_USERNAME;
+  const username = shop.botUsername;
   const bot = username && /^[a-z][a-z0-9_]{4,31}$/i.test(username) ? username : undefined;
   const invite =
     (invitation.results[0] as OwnerInvite | undefined) ??

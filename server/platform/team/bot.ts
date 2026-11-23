@@ -3,20 +3,16 @@ import { decryptBotToken } from "../../auth/bot-token";
 import type { AuthSecrets } from "../../auth/config";
 import { managedBot } from "../admin/shop-bot";
 
-export const platformStaffBot = "platform";
 export const staffConnectPattern = /^\/start staff_chat_([a-zA-Z0-9_-]{1,52})$/;
 
-export async function staffBot(database: D1Database, shop: string, secrets: AuthSecrets) {
+export async function staffBot(database: D1Database, shop: string) {
   const managed = await managedBot(database, shop);
   if (managed?.telegramId && managed.username && managed.token)
-    return { id: managed.telegramId, username: managed.username, encrypted: managed.token, isShop: true as const };
-  return { id: platformStaffBot, username: secrets.PLATFORM_BOT_USERNAME, isShop: false as const };
+    return { id: managed.telegramId, username: managed.username, encrypted: managed.token };
 }
 
 export function staffBotToken(bot: Awaited<ReturnType<typeof staffBot>>, shop: string, secrets: AuthSecrets) {
-  return bot.isShop
-    ? decryptBotToken(bot.encrypted, shop, secrets.ENCRYPTION_KEY)
-    : Promise.resolve(secrets.PLATFORM_BOT_TOKEN);
+  return bot ? decryptBotToken(bot.encrypted, shop, secrets.ENCRYPTION_KEY) : Promise.resolve(undefined);
 }
 
 export async function connectStaffChat(database: D1Database, shop: string, bot: string, telegram: string) {
@@ -28,8 +24,13 @@ export async function connectStaffChat(database: D1Database, shop: string, bot: 
     .run();
 }
 
-export async function staffBotStatus(database: D1Database, secrets: AuthSecrets, shop: string, account: string) {
-  const bot = await staffBot(database, shop, secrets);
+export async function staffBotStatus(
+  database: D1Database,
+  shop: string,
+  account: string,
+): Promise<{ shopBot: string | null; reconnect?: string }> {
+  const bot = await staffBot(database, shop);
+  if (!bot) return { shopBot: null, reconnect: undefined };
   const connected = await database
     .withSession("first-primary")
     .prepare("SELECT 1 FROM staff_bot_chats WHERE shop_id=? AND account_id=? AND bot=?")
@@ -43,7 +44,7 @@ export async function staffBotStatus(database: D1Database, secrets: AuthSecrets,
       .bind(shop, account)
       .first());
   return {
-    shopBot: bot.isShop ? bot.username : null,
+    shopBot: bot.username,
     reconnect:
       startedAnother && bot.username && /^[a-z][a-z0-9_]{4,31}$/i.test(bot.username)
         ? `https://t.me/${bot.username}?start=staff_chat_${shop}`
@@ -51,13 +52,7 @@ export async function staffBotStatus(database: D1Database, secrets: AuthSecrets,
   };
 }
 
-export async function beginStaffChat(
-  database: D1Database,
-  secrets: AuthSecrets,
-  shop: string,
-  bot: string,
-  telegram: string,
-) {
-  if ((await staffBot(database, shop, secrets)).id !== bot) throw new ApiError("FORBIDDEN", "Бот магазина сменился");
+export async function beginStaffChat(database: D1Database, shop: string, bot: string, telegram: string) {
+  if ((await staffBot(database, shop))?.id !== bot) throw new ApiError("FORBIDDEN", "Бот магазина сменился");
   await connectStaffChat(database, shop, bot, telegram);
 }

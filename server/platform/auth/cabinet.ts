@@ -25,7 +25,7 @@ export async function canEnterCabinet(database: D1Database, telegramId: string |
 export async function enterCabinet(database: D1Database, telegramId: string | undefined, shopId: string) {
   if (!telegramId) throw new ApiError("UNAUTHORIZED", "Войдите через Telegram");
   if (!(await canEnterCabinet(database, telegramId, shopId))) throw new ApiError("FORBIDDEN", "Нет доступа к магазину");
-  return telegramSellerSession(database, telegramId);
+  return telegramSellerSession(database, telegramId, shopId);
 }
 
 export async function readCabinet(database: D1Database, request: Request, appEnv: string, slug?: string) {
@@ -37,8 +37,9 @@ export async function readCabinet(database: D1Database, request: Request, appEnv
       m.team_role AS teamRole, m.permissions, sh.time_zone AS timeZone
       FROM seller_sessions s JOIN accounts a ON a.id=s.account_id
       LEFT JOIN memberships m ON m.account_id=a.id AND m.revoked_at IS NULL AND m.role IN ('owner','employee')
+        AND s.shop_id=m.shop_id
       LEFT JOIN shops sh ON sh.id=m.shop_id AND sh.status IN ('draft','active','paused')
-      WHERE s.token_hash=? AND s.expires_at>? AND a.telegram_id IS NOT NULL ORDER BY sh.name, sh.id`)
+      WHERE s.token_hash=? AND s.expires_at>? AND a.telegram_id IS NOT NULL AND s.shop_id IS NOT NULL ORDER BY sh.name, sh.id`)
     .bind(await tokenHash(token), Date.now())
     .all<{
       telegramId: string;

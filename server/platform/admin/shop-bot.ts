@@ -84,9 +84,6 @@ export async function changeShopBot(
           DO UPDATE SET telegram_id=NULL,username=NULL,token=NULL`)
           .bind(shop.id),
         database.prepare("UPDATE shops SET bot_username=NULL WHERE id=?").bind(shop.id),
-        database
-          .prepare("UPDATE invitations SET platform_allowed=1 WHERE shop_id=? AND revoked_at IS NULL")
-          .bind(shop.id),
       ],
     });
     await detachBot(secrets.ENCRYPTION_KEY, shop.id, previous).catch(() => {});
@@ -100,8 +97,7 @@ export async function changeShopBot(
     .prepare("SELECT shop_id FROM shop_bots WHERE telegram_id=? AND shop_id<>?")
     .bind(id, shop.id)
     .first();
-  if (used || secrets.PLATFORM_BOT_TOKEN?.startsWith(`${id}:`))
-    throw new ApiError("BOT_IN_USE", "Бот уже подключён к другому магазину");
+  if (used) throw new ApiError("BOT_IN_USE", "Бот уже подключён к другому магазину");
   const encryptionKey = secrets.ENCRYPTION_KEY;
   if (!encryptionKey) throw new ApiError("AUTH_UNAVAILABLE", "Telegram временно недоступен");
   const encrypted = await encryptBotToken(input.token, shop.id, encryptionKey);

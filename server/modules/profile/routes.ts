@@ -5,7 +5,7 @@ import { addressCommand, profileInput } from "../../../src/shared/contracts/prof
 import { ApiError } from "../../../src/shared/errors";
 import { sellerCookie, sessionCookie } from "../../auth/cookies";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
-import { adminAccount, adminCookie, openAdminSession } from "../../platform/admin/access";
+import { adminCookie, isPlatformAdmin, openAdminSession } from "../../platform/admin/access";
 import { canEnterCabinet, customerTelegramId, enterCabinet } from "../../platform/auth/cabinet";
 import { sellerTtl } from "../../platform/auth/sessions";
 import { executeCommand } from "../../shop/commands";
@@ -29,11 +29,9 @@ export const profileRoutes = new Hono<ShopEnv>()
     const session = await actor(c.env, c.req.raw);
     const profile = editableProfile(c.env.storage, session);
     const telegramId = customerTelegramId(session);
-    const [sellerCabinet, admin] = await Promise.all([
-      canEnterCabinet(c.env.platform, telegramId, c.env.shop.id),
-      adminAccount(c.env.platform, c.env.secrets, telegramId),
-    ]);
-    return c.json({ ...profile, region: contactRegion(c.env.storage), sellerCabinet, platformAdmin: !!admin });
+    const sellerCabinet = await canEnterCabinet(c.env.platform, telegramId, c.env.shop.id);
+    const platformAdmin = isPlatformAdmin(telegramId, c.env.secrets.PLATFORM_ADMIN_TELEGRAM_IDS);
+    return c.json({ ...profile, region: contactRegion(c.env.storage), sellerCabinet, platformAdmin });
   })
   .post("/admin", authBodyLimit, authCommand, zValidator("json", emptyInput, validationFailure), async (c) => {
     const session = await actor(c.env, c.req.raw);

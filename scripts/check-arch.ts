@@ -3,6 +3,7 @@ import { inspectSource } from "./arch-rules.ts";
 
 const ignored = new Set([".git", "node_modules", "dist", ".cloudflare", ".wrangler", "docs", ".codex"]);
 
+const removedBotBinding = /PLATFORM_BOT_/u;
 const errors: string[] = [];
 const warnings: string[] = [];
 
@@ -12,7 +13,10 @@ async function scan(directory: string) {
     const path = directory === "." ? entry.name : `${directory}/${entry.name}`;
     if (entry.isDirectory()) await scan(path);
     else if (/\.(?:[cm]?[jt]sx?|css)$/.test(path)) {
-      const result = inspectSource({ path, content: await readFile(path, "utf8") });
+      const content = await readFile(path, "utf8");
+      const result = inspectSource({ path, content });
+      if ((path === "cloudflare.config.ts" || path.startsWith("server/")) && removedBotBinding.test(content))
+        errors.push(`${path}: BOT1.1 · допускаются только боты магазинов`);
       errors.push(...result.errors);
       warnings.push(...result.warnings);
     }

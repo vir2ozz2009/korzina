@@ -4,8 +4,7 @@ import type { SqlStatement } from "../create-shop";
 
 const days = 7 * 24 * 60 * 60 * 1000;
 const encoder = new TextEncoder();
-const insertInvite =
-  "INSERT INTO invitations(token_hash,shop_id,expires_at,link_id,platform_allowed,replacement_reason)";
+const insertInvite = "INSERT INTO invitations(token_hash,shop_id,expires_at,link_id,replacement_reason)";
 
 export type OwnerInvite = {
   linkId: string;
@@ -42,13 +41,12 @@ export async function prepareOwnerInvite(
   shopId: string,
   secret: string | undefined,
   now: number,
-  platformAllowed: boolean,
   reason = "",
 ): Promise<SqlStatement> {
   const { linkId, tokenHash, expiresAt } = await newOwnerInvite(secret, now);
   return {
-    sql: `${insertInvite} VALUES(?,?,?,?,?,?)`,
-    params: [tokenHash, shopId, expiresAt, linkId, +platformAllowed, reason],
+    sql: `${insertInvite} VALUES(?,?,?,?,?)`,
+    params: [tokenHash, shopId, expiresAt, linkId, reason],
   };
 }
 
@@ -69,7 +67,7 @@ export async function ensureInitialOwnerInvite(
   const [, , current] = await database.withSession("first-primary").batch<OwnerInvite>([
     database
       .prepare(`${insertInvite}
-      SELECT ?, s.id, ?, ?, s.bot_username IS NULL, '' FROM shops s
+      SELECT ?, s.id, ?, ?, '' FROM shops s
       WHERE s.id=? AND s.status IN ('draft','active','paused')
       AND NOT EXISTS(SELECT 1 FROM invitations i WHERE i.shop_id=s.id AND i.link_id IS NOT NULL)
       AND NOT EXISTS(SELECT 1 FROM memberships m WHERE m.shop_id=s.id AND m.role='owner' AND m.revoked_at IS NULL)`)

@@ -12,6 +12,7 @@ import retentionMigration from "../platform/migrations/0009_platform_retention.s
 import telegramReturnMigration from "../platform/migrations/0010_telegram_return.sql?raw";
 import staffMigration from "../platform/migrations/0011_staff.sql?raw";
 import staffNotificationMigration from "../platform/migrations/0012_staff-notifications.sql?raw";
+import shopBotLoginMigration from "../platform/migrations/0013_shop-bot-login.sql?raw";
 import { demoSeedShopIds, seedStatements } from "../platform/seed";
 
 const migrations = [
@@ -28,6 +29,7 @@ const migrations = [
   telegramReturnMigration,
   staffMigration,
   staffNotificationMigration,
+  shopBotLoginMigration,
 ].flatMap((file) => file.split("--> statement-breakpoint"));
 
 export async function setupPlatformDatabase() {

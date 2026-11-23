@@ -1,5 +1,4 @@
 import { digest } from "../../auth/tokens";
-import { platformStaffBot } from "./bot";
 
 type InvitationRow = {
   shop: string;
@@ -23,22 +22,21 @@ function outcome(row: InvitationRow, telegram: string, now: number): Result {
 
 export async function redeemStaffInvite(
   database: D1Database,
-  options: { token: string; telegram: string; name: string; now: number; channel?: { shop: string; bot: string } },
+  options: { token: string; telegram: string; name: string; now: number; channel: { shop: string; bot: string } },
 ): Promise<Result> {
   const { token, telegram, name, now, channel } = options;
   const hash = await digest(token);
-  const bot = channel?.bot ?? platformStaffBot;
-  const shop = channel?.shop ?? null;
+  const { bot, shop } = channel;
   const session = database.withSession("first-primary");
   const member = `EXISTS(SELECT 1 FROM memberships m JOIN accounts a ON a.id=m.account_id
     WHERE m.shop_id=staff_invitations.shop_id AND a.telegram_id=? AND m.revoked_at IS NULL)`;
-  const eligible = `token_hash=? AND bot=? AND (? IS NULL OR shop_id=?) AND
+  const eligible = `token_hash=? AND bot=? AND shop_id=? AND
     EXISTS(SELECT 1 FROM shops WHERE id=staff_invitations.shop_id AND status IN ('draft','active','paused'))`;
   const read = () =>
     session
       .prepare(`SELECT shop_id AS shop,used_by AS usedBy,expires_at AS expiresAt,
     revoked_at AS revokedAt,${member} AS member FROM staff_invitations WHERE ${eligible}`)
-      .bind(telegram, hash, bot, shop, shop)
+      .bind(telegram, hash, bot, shop)
       .first<InvitationRow>();
   const before = await read();
   if (!before) return { state: "invalid" };
@@ -50,7 +48,7 @@ export async function redeemStaffInvite(
     database
       .prepare(`UPDATE staff_invitations SET used_by=?,redemption_id=?
       WHERE ${eligible} AND revoked_at IS NULL AND used_by IS NULL AND expires_at>? AND NOT ${member}`)
-      .bind(telegram, operation, hash, bot, shop, shop, now, telegram),
+      .bind(telegram, operation, hash, bot, shop, now, telegram),
     database
       .prepare(`INSERT INTO accounts(id,telegram_id) SELECT ?,used_by FROM staff_invitations
       WHERE token_hash=? AND redemption_id=? ON CONFLICT(telegram_id) DO NOTHING`)

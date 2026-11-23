@@ -1,8 +1,7 @@
 import { runInDurableObject } from "cloudflare:test";
-import { env, exports } from "cloudflare:workers";
+import { exports } from "cloudflare:workers";
 import { drizzle } from "drizzle-orm/durable-sqlite";
 import { beforeAll, describe, expect, it } from "vitest";
-import { app } from "../index";
 import { customerAuth } from "../modules/auth/routes";
 import { settings } from "../shop/schema";
 import { signedInitData } from "../testing/auth";
@@ -18,26 +17,6 @@ const post = (path: string, initData: string) =>
     body: JSON.stringify({ initData, bearer: true }),
   });
 describe("Telegram → сессия", () => {
-  it("продавец входит с токеном платформы; поддельные данные не создают аккаунт", async () => {
-    const bindings = { ...env, PLATFORM_BOT_TOKEN: token };
-    const bad = await app.fetch(
-      post("/api/platform/auth/telegram", await signedInitData("another-test-token")),
-      bindings,
-    );
-    expect(bad.status).toBe(401);
-    const response = await app.fetch(post("/api/platform/auth/telegram", await signedInitData(token)), bindings);
-    expect(response.status).toBe(200);
-    const body = await response.json<{ token: string }>();
-    expect(body.token).toMatch(/^[a-f0-9]{64}$/);
-    const session = await app.fetch(
-      new Request("https://demo.korzina.app/api/platform/auth/session", {
-        headers: { Authorization: `Bearer ${body.token}` },
-      }),
-      bindings,
-    );
-    expect(session.status).toBe(200);
-    expect((await session.json<{ accountId: string }>()).accountId).toBeTruthy();
-  });
   it("покупатель проверяется ботом именно своего магазина и получает bearer-сессию", async () => {
     const initData = await signedInitData(token);
     const forged = await signedInitData("other-store-test-token");
