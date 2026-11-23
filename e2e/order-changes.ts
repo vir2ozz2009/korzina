@@ -1,5 +1,6 @@
 import { type Browser, expect, test } from "@playwright/test";
 import type { BuyerOrder } from "../src/shared/contracts/buyer-order";
+import { orderLineKey } from "../src/shared/contracts/order-changes";
 import type { AvailabilityDay } from "../src/shared/contracts/receiving-time";
 import type { SellerOrder } from "../src/shared/contracts/seller-order";
 import { formatReceivingTime } from "../src/shared/datetime";
@@ -7,9 +8,10 @@ import { formatMinor } from "../src/shared/money";
 import { placePickup } from "./seller-orders";
 
 export async function checkOrderChanges(browser: Browser, baseURL: string) {
+  const options = { baseURL, viewport: { width: 390, height: 844 } };
   const [buyer, seller] = await Promise.all([
-    browser.newContext({ baseURL, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.112" } }),
-    browser.newContext({ baseURL, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.113" } }),
+    browser.newContext({ ...options, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.112" } }),
+    browser.newContext({ ...options, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.113" } }),
   ]);
   const origin = new URL(baseURL).origin;
   for (const context of [buyer, seller]) {
@@ -161,16 +163,17 @@ export async function checkOrderChanges(browser: Browser, baseURL: string) {
 
     await test.step("#228 · 03а, §13.2: «Не нужно» обновляет строку продавца без перезагрузки", async () => {
       const declined = await placePickup(buyer.request, false);
-      const path = `/api/seller/orders/${declined.number}/composition`;
+      const path = `/api/seller/orders/${declined.number}`;
+      const details = await seller.request.get(`${path}?store=test2`);
+      expect(details.ok(), await details.text()).toBe(true);
+      const { revision, lines }: SellerOrder = await details.json();
       const edit = {
-        expectedVersion: declined.revision,
-        edits: [
-          { kind: "replace", lineId: declined.lines[0].variantId, variantId: replacement.variantId, quantity: 1 },
-        ],
+        expectedVersion: revision,
+        edits: [{ kind: "replace", lineId: orderLineKey(lines[0]), variantId: replacement.variantId, quantity: 1 }],
       };
-      const quote = await seller.request.post(`${path}/quote?store=test2`, { data: edit });
+      const quote = await seller.request.post(`${path}/composition/quote?store=test2`, { data: edit });
       expect(quote.ok(), await quote.text()).toBe(true);
-      const proposal = await seller.request.post(`${path}?store=test2`, {
+      const proposal = await seller.request.post(`${path}/composition?store=test2`, {
         data: { ...edit, quote: (await quote.json()).quote },
         headers: { "Idempotency-Key": crypto.randomUUID() },
       });
