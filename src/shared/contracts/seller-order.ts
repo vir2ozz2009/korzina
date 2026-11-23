@@ -32,6 +32,7 @@ export type SellerOrderEvent = {
 export type SellerOrder = Omit<OrderResult, "paymentStatus"> & {
   composition?: CompositionSummary;
   timeChange?: TimeChange;
+  topUpPayment?: OrderResult["paymentOption"];
   createdAt: number;
   stage: OrderStage;
   revision: number;
@@ -44,7 +45,7 @@ export type SellerOrder = Omit<OrderResult, "paymentStatus"> & {
   events: SellerOrderEvent[];
   receipts: ReceiptRef[];
   balance: SellerBalance;
-  permissions: { assembly: boolean; payments: boolean };
+  permissions: { assembly: boolean; payments: boolean; chat?: boolean };
 };
 
 const receiptId = z.uuid();

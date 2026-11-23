@@ -66,12 +66,13 @@ export function buyerOrder(row: OrderRow): BuyerOrder {
     paymentStatus: row.payment_status,
     composition: orderComposition({ row, snapshot, work }),
     timeChange: orderTimeChange(row, work),
+    topUpPayment: debtMinor > 0 ? work.topUpPayment : undefined,
     canCancel: isActiveOrder(row.status) && row.status !== "handed" && !work.handedOff,
     canReplaceProof:
       row.status !== "cancelled" &&
       (row.payment_status === "pending_review" ||
         row.payment_status === "rejected" ||
-        (debtMinor > 0 && payment === "transfer")),
+        (debtMinor > 0 && (work.topUpPayment ? work.topUpPayment.id !== "cash" : payment === "transfer"))),
     ...(debtMinor > 0 && { debtMinor }),
     ...(refundMinor > 0 && { refundMinor }),
   };

@@ -1,4 +1,5 @@
 import { embeddedStorefront, storeBuyerToken } from "../app/cabinet-storefront";
+import { clearChatDrafts } from "./chat-drafts";
 import { checkResponse } from "./http-error";
 import { commandHeaders, shopApi, shopKey } from "./shop-api";
 
@@ -60,4 +61,5 @@ export function clearClientSession() {
   guest = undefined;
   telegram = undefined;
   rememberBuyer(false);
+  clearChatDrafts();
 }

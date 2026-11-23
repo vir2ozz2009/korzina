@@ -225,6 +225,13 @@
       "when": 1795435200001,
       "tag": "0031_order_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1795435200002,
+      "tag": "0032_chat_badge",
+      "breakpoints": true
     }
   ]
 }

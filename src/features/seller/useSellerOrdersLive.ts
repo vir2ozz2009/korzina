@@ -24,7 +24,13 @@ function useSellerOrdersLive(store: string, account: string | undefined) {
     let socket: WebSocket | undefined;
     let poll: ReturnType<typeof setInterval> | undefined;
 
-    const refresh = (data?: Update) => void invalidateSellerOrders(client, store, data?.id, data?.cursor);
+    const refresh = (data?: Update) => {
+      void invalidateSellerOrders(client, store, data?.id, data?.cursor);
+      void client.invalidateQueries({
+        queryKey: ["seller-chat", store],
+        predicate: ({ queryKey }) => queryKey[2] !== "history" || data?.id === undefined || queryKey[3] === data.id,
+      });
+    };
     const receive = (data: Update, broadcast: boolean) => {
       if (data?.topic !== "orders" || !Number.isSafeInteger(data.cursor)) return;
       refresh(data);

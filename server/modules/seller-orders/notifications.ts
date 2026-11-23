@@ -143,6 +143,7 @@ export function telegramMessage(
     const url = buyerStorefront ? new URL(buyerStorefront) : undefined;
     if (url) url.pathname = `/orders/${number}`;
     if (event.kind === "composition" || event.kind === "time") {
+      if (url && event.kind === "composition") url.pathname = `/orders/${number}/changes`;
       const id = Number(event.event_key?.split(":")[1]);
       const saved = storage.sql
         .exec<{ details: string | null }>(

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../shared/api";
+import { clearChatDrafts } from "../../shared/chat-drafts";
 import { checkResponse } from "../../shared/http-error";
 import { commandHeaders, shopApi } from "../../shared/shop-api";
 
@@ -64,6 +65,10 @@ export function useSellerLogout() {
     onSuccess: async () => {
       embeddedSession = undefined;
       sellerOrderSearch.clear();
+      clearChatDrafts();
+      await client.cancelQueries({ queryKey: ["seller-chat"] });
+      client.removeQueries({ queryKey: ["seller-chat"] });
+      client.removeQueries({ queryKey: ["chat-photo"] });
       await client.cancelQueries({ queryKey: cabinetKey });
       client.removeQueries({ queryKey: cabinetKey });
       await client.cancelQueries({ queryKey: ["seller-orders"] });

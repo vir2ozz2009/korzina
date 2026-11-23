@@ -53,10 +53,27 @@ export function orderChatHistory(
       const payload = JSON.parse(row.details ?? "{}") as { text?: string; mediaId?: string };
       return { id, createdAt, kind: "message", side: event === "chat.buyer" ? "buyer" : "seller", ...payload };
     }
-    return { id, createdAt, event, kind: "event", side: "system" };
+    const change =
+      event === "composition.proposed" || event === "time.pending"
+        ? (JSON.parse(row.details ?? "{}") as { changeId?: string; change?: { id?: string; by?: ChatActor["side"] } })
+        : undefined;
+    const pending =
+      event === "composition.proposed"
+        ? !!order.compositionId && order.compositionId === change?.changeId
+        : !!order.timeChangeId && order.timeChangeId === change?.change?.id;
+    return { id, createdAt, event, kind: "event", side: "system", ...(pending && { pending: true }) };
   });
   const cursor = rows.length > pageSize ? page.at(-1)?.id : undefined;
-  return { entries: older ? entries.reverse() : entries, cursor, writable: !!order.writable };
+  const canSeeBalance = actor.side === "buyer" || actor.payments;
+  return {
+    entries: older ? entries.reverse() : entries,
+    cursor,
+    writable: !!order.writable,
+    ...(canSeeBalance &&
+      order.debt && { balance: { amountMinor: order.debt, currency: order.currency, kind: "topUp" as const } }),
+    ...(canSeeBalance &&
+      order.refund && { balance: { amountMinor: order.refund, currency: order.currency, kind: "refund" as const } }),
+  };
 }
 
 export function orderChatList(storage: DurableObjectStorage, actor: ChatActor, cursor?: string): OrderChatList {

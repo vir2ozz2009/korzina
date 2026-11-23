@@ -1,1 +1,1 @@
-export { useEnterCabinet } from "./api";
+export { sellerSessionHeaders, useEnterCabinet } from "./api";

@@ -30,6 +30,14 @@ function routes(authenticate: (env: ShopEnv["Bindings"], request: Request) => Pr
     .get("/", zValidator("query", chatListInput, validationFailure), (c) =>
       c.json(orderChatList(c.env.storage, c.get("actor"), c.req.valid("query").cursor)),
     )
+    .get("/badge", (c) => {
+      const actor = c.get("actor");
+      if (actor.side !== "seller") throw new ApiError("FORBIDDEN", "Действие недоступно");
+      const row = c.env.storage.sql
+        .exec<{ count: number }>("SELECT CAST(value AS INTEGER) AS count FROM settings WHERE key='seller_chat_unread'")
+        .one();
+      return c.json(row);
+    })
     .get("/:number", params, zValidator("query", chatHistoryInput, validationFailure), (c) =>
       c.json(orderChatHistory(c.env.storage, c.get("actor"), c.req.valid("param").number, c.req.valid("query"))),
     )

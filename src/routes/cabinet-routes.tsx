@@ -97,7 +97,22 @@ const catalogRoutes = [
   ["/seller/brands/$id", "Редактировать бренд", false],
   ["/seller/showcase", "Витрина", false],
 ] as const;
+const chat = lazyRouteComponent(() => import("../features/seller/ui/orders/SellerChatScreen"), "SellerChatScreen");
 export const sellerRoutes = [
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/seller/inbox",
+    validateSearch: search,
+    staticData: { template: "list", transition: "push", title: "Переписка по заказам" },
+    component: chat,
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/seller/orders/$number/chat",
+    validateSearch: search,
+    staticData: { template: "feedback", transition: "push", title: "Чат по заказу" },
+    component: chat,
+  }),
   ...teamRoutes.map(([path, title]) =>
     createRoute({
       getParentRoute: () => rootRoute,

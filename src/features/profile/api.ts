@@ -115,6 +115,7 @@ export function useLogout() {
       await Promise.all([client.cancelQueries(filters), client.cancelQueries({ queryKey: ["admin"] })]);
       client.removeQueries(filters);
       client.removeQueries({ queryKey: ["admin"] });
+      client.removeQueries({ queryKey: ["chat-photo"] });
       await client.invalidateQueries({ queryKey: ["shop", shopKey] });
     },
   });
