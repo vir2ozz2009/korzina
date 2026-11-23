@@ -1,9 +1,12 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import type { OrderResult } from "../src/shared/contracts/checkout";
 import type { StorefrontReceiving } from "../src/shared/contracts/receiving-time";
 import type { SellerOrder } from "../src/shared/contracts/seller-order";
 import { calendarDate, formatShopDay } from "../src/shared/datetime";
+import { freshPage } from "./fresh-page";
 import { placePickup, preparePickup } from "./seller-orders";
+import { checkCalendarBudget, checkOrderPagination, checkShopHeaders } from "./workday-regressions";
+import { checkWorkdayShare } from "./workday-share";
 
 test("Блок 9 · ближайшее получение, рабочий день и заказы в сборке", async ({ browser, baseURL }) => {
   test.skip(!baseURL || new URL(baseURL).hostname !== "127.0.0.1", "Нужна локальная учебная сессия кабинета");
@@ -173,8 +176,21 @@ test("Блок 9 · ближайшее получение, рабочий ден
   }
 });
 
-test("Блок 9 · ближайшее время и пауза на demo", async ({ page, baseURL }) => {
-  test.skip(!baseURL || new URL(baseURL).hostname !== "demo.korzina.app", "Публичная проверка опубликованного demo");
+test("Блок 9 · регрессии рабочего дня и уведомлений", async ({ browser, baseURL }) => {
+  test.setTimeout(85_000);
+  await test.step("Блок 9 · 01: возврат из заказа сохраняет три загруженные страницы", () =>
+    freshPage(browser, baseURL, checkOrderPagination));
+  await test.step("Блок 9 · 02: Mini App показывает в шапках выбранный магазин", () =>
+    freshPage(browser, baseURL, checkShopHeaders));
+  await test.step("Блок 9 · 03: быстрый возврат и смена месяца укладываются в бюджет без 429", () =>
+    freshPage(browser, baseURL, checkCalendarBudget));
+  await test.step("Блок 9 · 05–06, 09 · §15.1: публичный адрес, отправка и ручное копирование", () =>
+    freshPage(browser, baseURL, (page) => checkWorkdayShare(page, baseURL)));
+  if (baseURL && new URL(baseURL).hostname === "demo.korzina.app")
+    await test.step("Блок 9 · ближайшее время и пауза на demo", () => freshPage(browser, baseURL, checkDemoReceiving));
+});
+
+async function checkDemoReceiving(page: Page) {
   for (const shop of ["test2", "lavka"]) {
     const response = await page.request.get(`/api/receiving/next?shop=${shop}`);
     expect(response.ok()).toBe(true);
@@ -190,4 +206,4 @@ test("Блок 9 · ближайшее время и пауза на demo", asyn
           .first(),
       ).toBeVisible();
   }
-});
+}

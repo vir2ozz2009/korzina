@@ -1,8 +1,7 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import type { SellerOrder, SellerOrderSummary } from "../src/shared/contracts/seller-order";
 
 import { cabinetFixture, day } from "./workday-fixture";
-import { checkWorkdayShare } from "./workday-share";
 
 const orderUrl = /\/api\/seller\/orders(?:\?|$)/;
 const emptyPage = { rev: 7, timeZone: "UTC", active: 0, newlyPlaced: 0, counts: {}, orders: [] };
@@ -23,7 +22,7 @@ const summary: Omit<SellerOrderSummary, "number"> = {
   refundMinor: 0,
 };
 
-test("Блок 9 · 01: возврат из заказа сохраняет три загруженные страницы", async ({ page }) => {
+export async function checkOrderPagination(page: Page) {
   await cabinetFixture(page);
   const requested: { cursor: number; day: string | null }[] = [];
   await page.route(orderUrl, (route) => {
@@ -91,9 +90,9 @@ test("Блок 9 · 01: возврат из заказа сохраняет тр
   expect(requested).toHaveLength(beforeOpen);
   expect(requested.filter(({ cursor }) => cursor > 0).map(({ cursor }) => cursor)).toEqual([1, 2]);
   expect(requested.every((request) => request.day === day)).toBe(true);
-});
+}
 
-test("Блок 9 · 02: Mini App показывает в шапках выбранный магазин", async ({ page }) => {
+export async function checkShopHeaders(page: Page) {
   await page.addInitScript(() => {
     Object.defineProperty(window, "Telegram", { value: { WebApp: {} } });
   });
@@ -123,9 +122,9 @@ test("Блок 9 · 02: Mini App показывает в шапках выбра
   await page.getByRole("button", { name: "Уведомления", exact: true }).click();
   await expect(page.getByRole("table", { name: "Уведомления по ролям" })).toBeVisible();
   await expect(logo("Первый магазин")).toBeVisible();
-});
+}
 
-test("Блок 9 · 03: быстрый возврат и смена месяца укладываются в бюджет без 429", async ({ page }) => {
+export async function checkCalendarBudget(page: Page) {
   const live = await cabinetFixture(page);
   const statuses: number[] = [];
   page.on("response", (response) => {
@@ -179,8 +178,4 @@ test("Блок 9 · 03: быстрый возврат и смена месяца
   } finally {
     finishDecember();
   }
-});
-
-test("Блок 9 · 05–06, 09 · §15.1: публичный адрес, отправка и ручное копирование", async ({ page, baseURL }) => {
-  await checkWorkdayShare(page, baseURL);
-});
+}
