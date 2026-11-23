@@ -9,6 +9,7 @@ const topics: Record<string, NotificationTopic> = {
   receipt: "paymentsAndReceipts",
   cancellation: "cancellations",
   stock: "lowStock",
+  chat: "messages",
 };
 const stages: Record<string, string> = {
   accepted: "Заказ принят",
@@ -39,17 +40,26 @@ function message(event: Delivery, sellerUrl: URL, buyerUrl: URL | undefined) {
     return { chat_id, text: event.variant ? `${title}\n${event.variant}` : title };
   }
   const url = event.recipient ? buyerUrl && new URL(buyerUrl) : new URL(sellerUrl);
-  if (url && event.recipient) url.pathname = `/orders/${number}`;
-  if (url && !event.recipient) url.searchParams.set("order", String(number));
-  const text = event.recipient
-    ? `${stages[event.kind]}\nЗаказ №${number}`
-    : event.kind === "receipt"
-      ? `Чек на проверке · заказ №${number}`
-      : `Заказ №${number} отменён`;
+  if (url && event.recipient) url.pathname = event.kind === "chat" ? `/orders/chat/${number}` : `/orders/${number}`;
+  if (url && !event.recipient) url.searchParams.set(event.kind === "chat" ? "chat" : "order", String(number));
+  const text =
+    event.kind === "chat"
+      ? `Новое сообщение по заказу №${number}`
+      : event.recipient
+        ? `${stages[event.kind]}\nЗаказ №${number}`
+        : event.kind === "receipt"
+          ? `Чек на проверке · заказ №${number}`
+          : `Заказ №${number} отменён`;
   return {
     chat_id,
     text,
-    ...(url && { reply_markup: { inline_keyboard: [[{ text: "Открыть заказ", web_app: { url: url.href } }]] } }),
+    ...(url && {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: event.kind === "chat" ? "Открыть чат" : "Открыть заказ", web_app: { url: url.href } }],
+        ],
+      },
+    }),
   };
 }
 
@@ -130,7 +140,23 @@ export async function sendWorkdayNotifications(
         );
         if (!claim.rowsWritten || !allowed) continue;
         try {
-          await telegramApi(token, "sendMessage", message(event, sellerUrl, buyerUrl));
+          const payload = message(event, sellerUrl, buyerUrl);
+          try {
+            await telegramApi(token, "sendMessage", payload);
+          } catch (error) {
+            if (
+              !(
+                event.kind === "chat" &&
+                event.recipient &&
+                bot.isShop &&
+                env.PLATFORM_BOT_TOKEN &&
+                error instanceof TelegramRequestError &&
+                error.permanent
+              )
+            )
+              throw error;
+            await telegramApi(env.PLATFORM_BOT_TOKEN, "sendMessage", payload);
+          }
           sql.exec(
             "UPDATE workday_notice_delivery SET outcome='sent' WHERE event=? AND recipient=?",
             event.id,

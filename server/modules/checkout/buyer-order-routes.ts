@@ -15,6 +15,7 @@ import type { ShopEnv } from "../../shop/env";
 import { readCustomer } from "../auth/service";
 import { answerChanges } from "../order-changes/composition";
 import { changeTime, timeAvailability } from "../order-changes/time";
+import { buyerLiveTicket, upgradeBuyerOrders } from "../order-chat/live";
 import { cancelBuyerOrder, replaceBuyerProof } from "./buyer-order-commands";
 import { activeBuyerOrders, buyerOrder, buyerOrderRow, buyerOrdersPage } from "./buyer-orders";
 import { previewRepeatOrder, repeatBuyerOrder } from "./repeat-order";
@@ -29,8 +30,10 @@ async function subject(env: ShopEnv["Bindings"], request: Request) {
 export const buyerOrderRoutes = new Hono<ShopEnv>()
   .use("*", async (c, next) => {
     await next();
-    if (!c.res.headers.has("Cache-Control")) c.header("Cache-Control", "private, no-store");
+    if (c.res.status !== 101 && !c.res.headers.has("Cache-Control")) c.header("Cache-Control", "private, no-store");
   })
+  .post("/live-ticket", (c) => buyerLiveTicket(c.env, c.req.raw).then((ticket) => c.json(ticket)))
+  .get("/live", (c) => upgradeBuyerOrders(c.env, c.req.raw))
   .get("/active", (c) => activeBuyerOrders(c.env, c.req.raw))
   .get("/", zValidator("query", historyInput, validationFailure), async (c) => {
     const { tab, cursor } = c.req.valid("query");

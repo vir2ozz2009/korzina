@@ -16,6 +16,7 @@ import { expireSalePauses, nextSaleDeadline } from "../modules/catalog/sale-paus
 import { type OpenDraftRequest, type OpenResponse, openDraft } from "../modules/launch/open";
 import { launchSnapshot } from "../modules/launch/readiness";
 import { expireCompositionChanges, scheduleCompositionDeadline } from "../modules/order-changes/deadline";
+import { signalBuyerOrders } from "../modules/order-chat/live";
 import { signalSellerOrders } from "../modules/seller-orders/live";
 import { sendOrderNotifications } from "../modules/seller-orders/notifications";
 import { botCoordinator, changeShopBot, managedBot } from "../platform/admin/shop-bot";
@@ -235,6 +236,7 @@ export class Shop extends DurableObject<Env> {
       this.pendingOrders ||= more;
       if (this.pendingOrders) await schedulePlatformOrders(this.ctx.storage);
       expireCompositionChanges(this.ctx.storage, Date.now(), (number) => {
+        signalBuyerOrders(this.ctx, number);
         this.ctx.waitUntil(signalSellerOrders(this.ctx, this.env.PLATFORM, number));
       });
       await this.dispatchOrderNotifications();
