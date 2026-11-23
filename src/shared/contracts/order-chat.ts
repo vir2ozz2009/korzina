@@ -24,7 +24,7 @@ export type OrderChatEntry = {
   side: ChangeSide | "system";
 } & ({ kind: "message"; text?: string; mediaId?: string } | { kind: "event"; event: string; pending?: boolean });
 export type OrderChatHistory = { entries: OrderChatEntry[]; cursor?: number; writable: boolean };
-export type OrderChatSummary = {
+type OrderChatSummary = {
   number: number;
   stage: OrderStage;
   lastAt: number;

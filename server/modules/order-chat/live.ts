@@ -1,5 +1,5 @@
 import { ApiError } from "../../../src/shared/errors";
-import { newToken, tokenHash } from "../../auth/tokens";
+import { digest, newToken } from "../../auth/tokens";
 import type { ShopEnv } from "../../shop/env";
 import { readCustomer } from "../auth/service";
 
@@ -15,7 +15,7 @@ export async function buyerLiveTicket(env: Shop, request: Request) {
   env.storage.sql.exec("DELETE FROM seller_live_tickets WHERE expires_at<=?", Date.now());
   env.storage.sql.exec(
     "INSERT INTO seller_live_tickets(ticket,session_hash,expires_at) VALUES(?,?,?)",
-    await tokenHash(`buyer:${ticket}`),
+    await digest(`buyer:${ticket}`),
     session.sessionId,
     Date.now() + 30_000,
   );
@@ -36,7 +36,7 @@ export async function upgradeBuyerOrders(env: Shop, request: Request) {
       `DELETE FROM seller_live_tickets WHERE ticket=? AND expires_at>?
       AND EXISTS(SELECT 1 FROM sessions WHERE token_hash=session_hash AND expires_at>?)
       RETURNING session_hash AS session, (SELECT subject FROM sessions WHERE token_hash=session_hash) AS subject`,
-      await tokenHash(`buyer:${ticket}`),
+      await digest(`buyer:${ticket}`),
       Date.now(),
       Date.now(),
     )

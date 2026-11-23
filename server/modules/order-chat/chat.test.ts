@@ -40,6 +40,9 @@ async function fixture(stage = "accepted", createdAt = Date.now()) {
 
 it("D21 и US-Z06 · доступ только своему заказу, повтор записывает сообщение и уведомление один раз", async () => {
   const { buyer, seller, number, path, sellerPath } = await fixture();
+  const live = await postAuth("/api/orders/live-ticket?shop=lavka", {}, buyer.headers);
+  expect(live.status).toBe(200);
+  expect(await live.json()).toMatchObject({ ticket: expect.stringMatching(/^[a-f0-9]{64}$/u) });
   const stranger = await buyerSession();
   expect((await getAuth(path, stranger.headers)).status).toBe(403);
   expect((await getAuth(path)).status).toBe(401);
