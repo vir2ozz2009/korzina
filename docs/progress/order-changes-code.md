@@ -9,4 +9,11 @@
 | [O8 · Переписка](O8.md) | Принадлежность заказу, приватное фото, повтор, сохранённые непрочитанные и срок записи. |
 | Сквозной Chromium, 390 px | Реальное оформление, замена, обе роли, перенос времени, повтор сообщения, доплата, выдача. |
 
+Релиз на [demo](https://demo.korzina.app) собран из `542a75a`. [PR #225](https://github.com/vir2ozz2009/korzina/pull/225) · [Check и превью](https://github.com/vir2ozz2009/korzina/actions/runs/45177699693) · [Demo smoke](https://github.com/vir2ozz2009/korzina/actions/runs/45178476477).
+
+## Снимки на 390 px
+
+- [Замена у покупателя](order-changes/block10-buyer-replacement-390.png) и [ожидание ответа у продавца](order-changes/block10-seller-pending-390.png).
+- [Предложение времени у покупателя](order-changes/block10-buyer-time-390.png) и [переписка у продавца](order-changes/block10-seller-chat-390.png).
+
 Для ручной проверки открыт [чек-лист](order-changes-local-check.md). Приёмка блока следует после этой проверки.
