@@ -23,6 +23,7 @@ export async function chooseDeliveryAddress(page: Page) {
   }
 
   await page.getByRole("button", { name: "Укажите адрес доставки", exact: true }).click();
+  await page.getByRole("button", { name: "Ввести адрес вручную", exact: true }).click();
   const manual = page.getByRole("dialog", { name: "Ввести адрес вручную" });
   const address = "28 Lê Lợi, Хошимин";
   await manual.getByRole("textbox", { name: "Адрес доставки" }).fill(address);
@@ -35,7 +36,7 @@ export async function chooseDeliveryAddress(page: Page) {
   expect(response.ok()).toBe(true);
   expect(await response.json()).toMatchObject({
     receiving: { mode: "delivery", address },
-    availability: { available: true, mode: "delivery", inZone: true },
+    availability: { available: true, mode: "delivery", inZone: null },
   });
   await expect(manual).toBeHidden();
   await expect(page.getByRole("button", { name: /28 Lê Lợi, Хошимин/ })).toBeVisible();

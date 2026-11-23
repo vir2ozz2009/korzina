@@ -1,4 +1,3 @@
-import { setTimeout as delay } from "node:timers/promises";
 import { expect, type Page } from "@playwright/test";
 import { cartContract } from "../src/shared/contracts/cart";
 import { fillAddressDetails } from "./purchase-address";
@@ -85,6 +84,7 @@ export async function verifySavedAddress(page: Page, onMap: boolean) {
   await page.getByRole("button", { name: "Добавить адрес", exact: true }).click();
   await page.getByRole("textbox", { name: "Название", exact: true }).fill("Работа");
   await page.getByRole("button", { name: /Адрес доставки/ }).click();
+  if (!onMap) await page.getByRole("button", { name: "Ввести адрес вручную", exact: true }).click();
   const entry = page.getByRole("dialog", { name: onMap ? "Новый адрес" : "Ввести адрес вручную" });
   const address = onMap
     ? entry.getByRole("searchbox", { name: "Улица, дом, город", exact: true })
@@ -111,23 +111,29 @@ export async function verifySavedAddress(page: Page, onMap: boolean) {
     .getByRole("button", { name: /Адрес доставки|Условия доставки|Нужно проверить адрес/ })
     .first()
     .click();
-  await page.getByRole("button", { name: /^Работа/ }).click();
-  const confirm = page.getByRole("button", { name: saveAddress, exact: true });
-  const write = async () => {
-    const response = page.waitForResponse(
-      (response) => new URL(response.url()).pathname === "/api/receiving" && response.request().method() === "POST",
-    );
-    await confirm.click();
-    return response;
+  const chooser = page.getByRole("dialog", { name: "Адрес доставки" });
+  await page.screenshot({ path: "test-results/bl-1-saved-addresses-390.png", animations: "disabled" });
+  const selectSaved = async () => {
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        (result) => new URL(result.url()).pathname === "/api/receiving" && result.request().method() === "POST",
+      ),
+      chooser.getByRole("button", { name: /^Работа/ }).click(),
+    ]);
+    expect(response.ok()).toBe(true);
+    expect(await response.json()).toMatchObject({ receiving: { address: "улица Ле Лой, 45", apartment: "7" } });
+    await expect(chooser).toBeHidden();
+    await expect(page.getByRole("dialog", { name: "Ввести адрес вручную" })).toHaveCount(0);
   };
-  let response = await write();
-  if (response.status() === 429) {
-    const seconds = Number(response.headers()["retry-after"]);
-    expect(seconds).toBeGreaterThan(0);
-    expect(seconds).toBeLessThanOrEqual(30);
-    await delay(seconds * 1_000);
-    response = await write();
+  const current = page.getByRole("button", { name: /улица Ле Лой, 45/ });
+  await selectSaved();
+  await expect(current).toBeVisible();
+  const pickup = page.getByRole("radio", { name: "Самовывоз" });
+  if ((await pickup.count()) && (await pickup.isEnabled())) {
+    await pickup.click();
+    await expect(pickup).toBeChecked();
+    await page.getByRole("radio", { name: "Доставка" }).click();
+    await current.click();
+    await selectSaved();
   }
-  expect(response.ok()).toBe(true);
-  await expect(page.getByRole("button", { name: /улица Ле Лой, 45/ })).toBeVisible();
 }

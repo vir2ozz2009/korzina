@@ -33,8 +33,8 @@ function mergeCartLines(storage: DurableObjectStorage, guest: string, account: s
 function mergeReceiving(storage: DurableObjectStorage, guest: string, account: string, revision: number) {
   const from = readReceiving(storage, guest);
   const to = readReceiving(storage, account);
-  const { revision: _revision, ...selection } =
-    from.receiving && (!to.receiving || from.receivingUpdatedAt > to.receivingUpdatedAt) ? from : to;
+  const useGuest = from.receiving && (!to.receiving || from.receivingUpdatedAt > to.receivingUpdatedAt);
+  const { revision: _revision, ...selection } = useGuest ? from : to;
   const seenAddresses = new Set<string>();
   const savedAddresses = [...to.savedAddresses, ...from.savedAddresses].filter((address) => {
     const key = addressKey(address);
@@ -50,11 +50,16 @@ function mergeReceiving(storage: DurableObjectStorage, guest: string, account: s
   const addressesChanged =
     savedAddresses.length !== to.savedAddresses.length ||
     savedAddresses.some((address, index) => address !== to.savedAddresses[index]);
+  const other = useGuest ? to : from;
   writeReceiving(storage, account, revision, {
     ...selection,
     savedAddresses,
     addressesRevision: addressesChanged ? revision : to.addressesRevision,
     lastUsedAddress: selection.lastUsedAddress ?? to.lastUsedAddress ?? from.lastUsedAddress,
+    deliveryDraft:
+      selection.receiving?.mode === "pickup"
+        ? (selection.deliveryDraft ?? (other.receiving?.mode === "delivery" ? other.receiving : other.deliveryDraft))
+        : undefined,
   });
 }
 

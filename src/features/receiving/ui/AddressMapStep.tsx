@@ -15,6 +15,7 @@ export function AddressMapStep({
   useTypedAddress,
   change,
   point,
+  locateOnOpen,
   setPoint,
   rememberOutside,
   currency,
@@ -27,6 +28,7 @@ export function AddressMapStep({
   useTypedAddress: boolean;
   change: (address: string) => void;
   point?: Point;
+  locateOnOpen: boolean;
   setPoint: (point: Point) => void;
   rememberOutside: (address: string) => void;
   currency: string;
@@ -36,7 +38,7 @@ export function AddressMapStep({
   pickup?: () => void;
 }) {
   const [tileError, setTileError] = useState(false);
-  const { center, locating, locationError, locate, pick } = useMapLocation(point, setPoint);
+  const { center, locating, locationError, locate, pick } = useMapLocation(point, setPoint, locateOnOpen);
 
   const name = usePointName(point);
   const check = usePointDelivery(point);

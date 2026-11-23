@@ -11,7 +11,7 @@ function locationMessage(error: GeolocationPositionError) {
   return "Сейчас геопозиция недоступна. Попробуйте ещё раз или отметьте точку на карте.";
 }
 
-export function useMapLocation(initialPoint: Point | undefined, select: (point: Point) => void) {
+export function useMapLocation(initialPoint: Point | undefined, select: (point: Point) => void, locateOnOpen: boolean) {
   const [center, setCenter] = useState(initialPoint);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState("");
@@ -63,6 +63,7 @@ export function useMapLocation(initialPoint: Point | undefined, select: (point: 
 
   useEffect(() => {
     let active = true;
+    if (locateOnOpen) start(true);
     // Only a button press should ask for a new permission.
     void navigator.permissions?.query({ name: "geolocation" }).then(
       ({ state }) => {
@@ -74,7 +75,7 @@ export function useMapLocation(initialPoint: Point | undefined, select: (point: 
       active = false;
       request.current = undefined;
     };
-  }, [start]);
+  }, [locateOnOpen, start]);
 
   function pick(point: Point) {
     interacted.current = true;

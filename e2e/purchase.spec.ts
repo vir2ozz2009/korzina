@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import type { StorefrontReceiving } from "../src/shared/contracts/receiving-time";
+import { checkDeliveryDraft, checkTextDelivery } from "./address-regressions";
 import { verifyBuyerOrderReload, verifyFavoriteCart, verifyOrderCancellation, verifySavedAddress } from "./after-order";
 import { checkCheckoutRecovery } from "./checkout-recovery";
 import { freshPage } from "./fresh-page";
@@ -29,6 +30,8 @@ test("B10: товар, доставка и заказ наличными", async
   await test.step("Блок 9 · 04: сохранённый заказ подтверждается при потере первого ответа", () =>
     freshPage(browser, baseURL, checkCheckoutRecovery));
   page.setDefaultTimeout(12_000);
+  if (local && baseURL)
+    await test.step("BL-15: Куда угодно принимает точку и ручной адрес", () => checkTextDelivery(browser, baseURL));
   if (!local) {
     const response = await page.request.get("/api/receiving/next?shop=test2");
     if (response.ok()) {
@@ -90,6 +93,7 @@ test("B10: товар, доставка и заказ наличными", async
   await expect(login).toBeHidden();
   await expect(page.getByRole("button", { name: "Войти через Telegram" })).toHaveCount(0);
   const onMap = await chooseDeliveryAddress(page);
+  await test.step("BL-14: после самовывоза возвращается введённый адрес", () => checkDeliveryDraft(page));
   await page.getByRole("button", { name: /^Продолжить/ }).click();
   await expect(page).toHaveURL(/checkout\/receiving\?shop=test2/);
   if (onMap) {
@@ -173,6 +177,6 @@ test("B10: товар, доставка и заказ наличными", async
   await expect(page).toHaveURL(/\/\?shop=test2$/);
   await verifyOrderCancellation(page, order.number);
   await verifyFavoriteCart(page);
-  await verifySavedAddress(page, onMap);
+  await test.step("BL-1: сохранённый адрес сразу подставляется в корзину", () => verifySavedAddress(page, onMap));
   if (local && baseURL) await verifySellerOrders(browser, baseURL);
 });

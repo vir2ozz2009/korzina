@@ -172,7 +172,7 @@ it("PR 228 · 01: перед первым выбором окна обновля
   expect(screen.queryByText(display(65000))).toBeNull();
 });
 
-it("PR 228 · 04: сохранённый ручной адрес переиспользуется после самовывоза, новый адрес проверяется", async () => {
+it("BL-1 · PR 228 · 04: сохранённый адрес подставляется сразу, новый адрес проверяется", async () => {
   const saved = { mode: "delivery", address: "28 Lê Lợi", apartment: "12", acceptedWithoutPoint: true } as const;
   const pickup = { address: "Магазин", hours: "09:00–20:00" };
   const calls: string[] = [];
@@ -203,15 +203,16 @@ it("PR 228 · 04: сохранённый ручной адрес переисп�
   const delivery = await screen.findByRole<HTMLInputElement>("radio", { name: "Доставка" });
   await waitFor(() => expect(delivery.closest("fieldset")?.disabled).toBe(false));
   fireEvent.click(delivery);
-  fireEvent.click(await screen.findByRole("button", { name: /^Дом/ }));
-  const save = await screen.findByRole("button", { name: "Сохранить адрес вручную" });
-  const address = screen.getByRole("textbox", { name: "Адрес доставки" });
-  fireEvent.change(address, { target: { value: "Другой адрес" } });
-  fireEvent.click(save);
+  fireEvent.click(await screen.findByRole("button", { name: "Указать другой адрес" }));
+  const search = await screen.findByRole("searchbox", { name: "Улица, дом, город" });
+  fireEvent.change(search, { target: { value: "Другой адрес" } });
+  fireEvent.click(await screen.findByRole("button", { name: "Ввести адрес вручную" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Сохранить адрес вручную" }));
   await screen.findByText("Сюда не доставляем");
   fireEvent.click(button("Назад"));
+  fireEvent.click(button("Назад"));
   fireEvent.click(await screen.findByRole("button", { name: /^Дом/ }));
-  fireEvent.click(await screen.findByRole("button", { name: "Сохранить адрес вручную" }));
   await screen.findByRole("button", { name: /28 Lê Lợi.*Условия доставки уточняются/ });
+  expect(screen.queryByRole("button", { name: "Сохранить адрес вручную" })).toBeNull();
   expect(calls).toEqual(["Другой адрес", "save"]);
 });
