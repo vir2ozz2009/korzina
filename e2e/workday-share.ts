@@ -42,12 +42,17 @@ export async function checkWorkdayShare(page: Page, baseURL: string | undefined)
     await expect(body).toHaveAttribute("data-shared-url", firstUrl);
     await expect(copied).toHaveCount(0);
     await page.screenshot({ path: "test-results/workday-public-address-390.png", animations: "disabled" });
-
-    await page.evaluate(() => Object.defineProperty(navigator, "share", { value: undefined }));
     await selectDraft();
+  });
+
+  await test.step("Блок 9 · 09, §15.1: SDK с пустым initData не мешает копированию", async () => {
+    await setTelegramInitData(page, "");
+    await page.evaluate(() => Object.defineProperty(navigator, "share", { value: undefined }));
     await share.click();
-    await expect(copied).toBeVisible();
+    await expect(copied).toBeInViewport();
+    await page.screenshot({ path: "test-results/workday-share-empty-init-data-390.png", animations: "disabled" });
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(draftUrl);
+    await expect(body).not.toHaveAttribute("data-telegram-share", /.+/);
   });
 
   await test.step("Блок 9 · 06, §15.1: отказ, отмена и окно Telegram для витрины и приглашения", async () => {
@@ -117,16 +122,7 @@ export async function checkWorkdayShare(page: Page, baseURL: string | undefined)
     await expect(body).toHaveAttribute("data-clipboard-error", "NotAllowedError");
     await expect(address).toHaveValue(invite.url);
 
-    await page.evaluate(() => {
-      window.Telegram = {
-        // Only the Telegram SDK boundary is simulated. A native Telegram client is outside Playwright.
-        WebApp: {
-          openTelegramLink: (url: string) => {
-            document.body.dataset.telegramShare = url;
-          },
-        } as NonNullable<NonNullable<Window["Telegram"]>["WebApp"]>,
-      };
-    });
+    await setTelegramInitData(page, "hash=fixture");
     await share.click();
     await expect(body).toHaveAttribute("data-telegram-share", telegramShareUrl(invite.url));
     await page.getByRole("dialog", { name: "Приглашение" }).getByRole("button", { name: "Закрыть" }).click();
@@ -134,6 +130,20 @@ export async function checkWorkdayShare(page: Page, baseURL: string | undefined)
     await share.click();
     await expect(body).toHaveAttribute("data-telegram-share", telegramShareUrl(firstUrl));
   });
+}
+
+async function setTelegramInitData(page: Page, initData: string) {
+  await page.evaluate((initData) => {
+    window.Telegram = {
+      // Only the Telegram SDK boundary is simulated. A native Telegram client is outside Playwright.
+      WebApp: {
+        initData,
+        openTelegramLink: (url: string) => {
+          document.body.dataset.telegramShare = url;
+        },
+      } as NonNullable<NonNullable<Window["Telegram"]>["WebApp"]>,
+    };
+  }, initData);
 }
 
 function telegramShareUrl(url: string) {

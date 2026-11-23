@@ -9,7 +9,7 @@ export function useShareLink() {
     setManualUrl(undefined);
     if (!copyOnly) {
       const telegram = window.Telegram?.WebApp;
-      if (telegram?.openTelegramLink) {
+      if (telegram?.initData && telegram.openTelegramLink) {
         const target = new URL("https://t.me/share/url");
         target.searchParams.set("url", url);
         telegram.openTelegramLink(target.href);
