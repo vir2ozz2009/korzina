@@ -49,10 +49,10 @@ export async function checkWorkdayShare(page: Page, baseURL: string | undefined)
     await setTelegramInitData(page, "");
     await page.evaluate(() => Object.defineProperty(navigator, "share", { value: undefined }));
     await share.click();
-    await expect(copied).toBeVisible();
+    await expect(copied).toBeInViewport();
+    await page.screenshot({ path: "test-results/workday-share-empty-init-data-390.png", animations: "disabled" });
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(draftUrl);
     await expect(body).not.toHaveAttribute("data-telegram-share", /.+/);
-    await page.screenshot({ path: "test-results/workday-share-empty-init-data-390.png", animations: "disabled" });
   });
 
   await test.step("Блок 9 · 06, §15.1: отказ, отмена и окно Telegram для витрины и приглашения", async () => {
