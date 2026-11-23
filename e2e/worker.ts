@@ -8,10 +8,13 @@ import { invalidateShopAddress } from "../server/platform/resolve-shop";
 import { schedulePlatformOrders } from "../server/shop/order-projection";
 import { weekdays } from "../src/shared/contracts/receiving-time";
 
+import { receiveE2eStaffInvite } from "./staff-invite-fixture";
+
 export { app } from "../server";
 
 const path = "/__e2e/test2/tomatoes";
 const sellerPath = "/__e2e/test2/seller";
+const staffInvitePath = "/__e2e/test2/staff-invite";
 const orderMessagePath = "/__e2e/test2/order-message";
 const workdayPath = "/__e2e/test2/workday";
 const shopStatusPath = "/__e2e/test2/status";
@@ -105,6 +108,7 @@ export default {
     if (
       url.pathname !== path &&
       url.pathname !== sellerPath &&
+      url.pathname !== staffInvitePath &&
       url.pathname !== orderMessagePath &&
       url.pathname !== shopStatusPath &&
       url.pathname !== workdayPath
@@ -117,6 +121,7 @@ export default {
       env.APP_ENV !== "demo"
     )
       return new Response(null, { status: 404 });
+    if (url.pathname === staffInvitePath) return receiveE2eStaffInvite(request, env, shopId);
     if (url.pathname === sellerPath) {
       const account = "e2e-seller";
       const token = newToken();

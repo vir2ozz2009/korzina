@@ -1,7 +1,7 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import type { OrderResult } from "../src/shared/contracts/checkout";
 
-test("Блок 9 · 04: сохранённый заказ подтверждается при потере первого ответа", async ({ page }) => {
+export async function checkCheckoutRecovery(page: Page) {
   const shop = await page.request.get("/api/shop?shop=test2");
   expect(shop.ok()).toBe(true);
   const { id } = await shop.json();
@@ -62,4 +62,4 @@ test("Блок 9 · 04: сохранённый заказ подтверждае
   await expect(page.locator("body")).not.toHaveAttribute("data-checkout-false-error", "true");
   expect(keys).toEqual([attempt.key, attempt.key]);
   expect(orders.size).toBe(1);
-});
+}

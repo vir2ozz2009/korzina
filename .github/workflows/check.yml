@@ -14,7 +14,7 @@ jobs:
   check:
     if: github.event.pull_request.draft == false && startsWith(github.head_ref, 'task/')
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with:

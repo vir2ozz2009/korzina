@@ -1,6 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
 import type { StorefrontReceiving } from "../src/shared/contracts/receiving-time";
 import { verifyBuyerOrderReload, verifyFavoriteCart, verifyOrderCancellation, verifySavedAddress } from "./after-order";
+import { checkCheckoutRecovery } from "./checkout-recovery";
+import { freshPage } from "./fresh-page";
 import { verifyPaymentHelp } from "./payment-help";
 import { chooseDeliveryAddress } from "./purchase-address";
 import { checkChangedReceivingTime, checkClosedReceivingDay } from "./receiving-recheck";
@@ -24,6 +26,8 @@ async function keyboardViewport(page: Page, open: boolean) {
 test("B10: товар, доставка и заказ наличными", async ({ page, browser, baseURL }) => {
   const local = !!baseURL && new URL(baseURL).hostname === "127.0.0.1";
   test.setTimeout(local ? 145_000 : 105_000);
+  await test.step("Блок 9 · 04: сохранённый заказ подтверждается при потере первого ответа", () =>
+    freshPage(browser, baseURL, checkCheckoutRecovery));
   page.setDefaultTimeout(12_000);
   if (!local) {
     const response = await page.request.get("/api/receiving/next?shop=test2");
