@@ -1,4 +1,5 @@
-import type { CompositionLine } from "../../../src/shared/contracts/order-changes";
+import type { CompositionLine, TimeChange } from "../../../src/shared/contracts/order-changes";
+import { defaultShopTimeZone, formatShopDay } from "../../../src/shared/datetime";
 import { formatMinor } from "../../../src/shared/money";
 
 export function compositionNotification(details: string | null, currency: string, number: number) {
@@ -12,4 +13,30 @@ export function compositionNotification(details: string | null, currency: string
     return [previous, next].filter(Boolean).join("\n");
   });
   return [title, ...lines].join("\n\n");
+}
+
+export function timeNotification(details: string | null, number: number, now: number) {
+  const { change, timeZone = defaultShopTimeZone } = JSON.parse(details ?? "{}") as {
+    change?: TimeChange;
+    timeZone?: string;
+  };
+  if (!change) return `Изменение времени · заказ №${number}`;
+  const format = (time: TimeChange["before"]) =>
+    time
+      ? [formatShopDay(time.date, timeZone, now), time.slotId?.replace("-", "–")].filter(Boolean).join(" · ")
+      : "Время согласуем";
+  const text =
+    change.status === "pending"
+      ? "Магазин предлагает другое время"
+      : change.status === "accepted"
+        ? "Время изменено"
+        : "Время остаётся прежним";
+  const changes =
+    change.status === "pending" || change.status === "accepted"
+      ? `
+Было: ${format(change.before)}
+${change.status === "pending" ? "Предлагаем" : "Стало"}: ${format(change.proposed)}`
+      : `
+${format(change.before)}`;
+  return `${text} · заказ №${number}${changes}`;
 }

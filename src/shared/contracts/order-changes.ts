@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { OrderSnapshot } from "./checkout";
+import { selectionInput, type TimeChoice } from "./receiving-time";
 
 const lineId = z.string().min(1).max(120);
 const quantity = z.number().int().min(1).max(999);
@@ -57,4 +58,33 @@ export type CompositionQuote = {
   lines: CompositionLine[];
   totals: CompositionTotals;
   quote: string;
+};
+
+export const timeChangeInput = z.discriminatedUnion("action", [
+  z.strictObject({
+    action: z.literal("propose"),
+    expectedVersion: z.number().int().nonnegative(),
+    time: selectionInput,
+  }),
+  z.strictObject({
+    action: z.literal("counter"),
+    expectedVersion: z.number().int().nonnegative(),
+    changeId: z.uuid(),
+    time: selectionInput,
+  }),
+  z.strictObject({
+    action: z.enum(["accept", "withdraw", "keep"]),
+    expectedVersion: z.number().int().nonnegative(),
+    changeId: z.uuid(),
+  }),
+]);
+export type TimeChangeInput = z.infer<typeof timeChangeInput>;
+export type ChangeSide = "buyer" | "seller";
+export type TimeChange = {
+  id: string;
+  createdAt: number;
+  by: ChangeSide;
+  before: TimeChoice | null;
+  proposed: TimeChoice;
+  status: "pending" | "accepted" | "withdrawn" | "kept" | "superseded" | "closed";
 };

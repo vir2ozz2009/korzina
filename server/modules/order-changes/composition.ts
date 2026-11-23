@@ -4,21 +4,16 @@ import type { Seller } from "../../auth/roles";
 import type { CommandIdentity } from "../../middleware/idempotency";
 import { executeCommand } from "../../shop/commands";
 import type { ShopEnv } from "../../shop/env";
-import { buyerOrder, buyerOrderRow, type OrderRow, unpackOrder } from "../checkout/buyer-orders";
-import { orderWorkflow } from "../checkout/order-workflow";
+import { buyerOrder, buyerOrderRow } from "../checkout/buyer-orders";
 import { sellerOrderRow } from "../seller-orders/order";
 import { applyLines } from "./apply-lines";
 import { compositionQuote, planComposition } from "./composition-plan";
-import { orderComposition, pendingComposition, requireChangeable } from "./state";
+import { orderComposition, pendingComposition, readChangeState, requireChangeable } from "./state";
 import { pauseMissingProducts, replacementLine, replacementOffers, reserveReplacement } from "./stock";
 import { queueBuyerChange, writeOrderChange } from "./write";
 
 type Shop = ShopEnv["Bindings"];
 const lifetime = 30 * 60_000;
-
-export function readChangeState(row: OrderRow) {
-  return { row, snapshot: unpackOrder(row), work: orderWorkflow(row) };
-}
 
 function sellerMoney(actor: Seller) {
   return actor.role === "owner" || actor.permissions.includes("payments");

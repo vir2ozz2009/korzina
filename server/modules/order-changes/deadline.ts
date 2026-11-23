@@ -1,8 +1,7 @@
 import type { CompositionLine } from "../../../src/shared/contracts/order-changes";
 import { sellerOrderRow } from "../seller-orders/order";
 import { applyLines } from "./apply-lines";
-import { readChangeState } from "./composition";
-import { canChangeOrder } from "./state";
+import { canChangeOrder, readChangeState } from "./state";
 import { queueBuyerChange, writeOrderChange } from "./write";
 
 const deadline = "json_extract(fulfillment_state,'$.composition.expiresAt')";

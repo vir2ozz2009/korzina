@@ -1,11 +1,12 @@
 import type { OrderStage, PaymentState } from "../../../src/shared/contracts/buyer-order";
 import type { OrderSnapshot } from "../../../src/shared/contracts/checkout";
-import type { CompositionChange } from "../../../src/shared/contracts/order-changes";
+import type { CompositionChange, TimeChange } from "../../../src/shared/contracts/order-changes";
 import type { RecordedPayment } from "../../../src/shared/contracts/seller-order";
 import { addMinor, subtractMinor } from "../../../src/shared/money";
 
 export type OrderWorkflow = {
   composition?: CompositionChange;
+  timeChange?: TimeChange;
   packed?: string[];
   handedOff?: boolean;
   readyForPickup?: boolean;

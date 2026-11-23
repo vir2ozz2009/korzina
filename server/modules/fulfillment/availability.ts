@@ -23,6 +23,7 @@ function availabilityFor(
   method: ReceivingMethod,
   now: number,
   schedule = readSchedule(storage),
+  exclude?: TimeChoice,
 ) {
   const methodSchedule = schedule?.[method];
   if (!schedule || !methodSchedule) throw new ApiError("NOT_FOUND", "Расписание недоступно");
@@ -38,6 +39,10 @@ function availabilityFor(
       calendarDate(clock.today, 6),
     )
     .toArray();
+  if (exclude) {
+    const reserved = rows.find(({ date, slot }) => date === exclude.date && slot === (exclude.slotId ?? ""));
+    if (reserved) reserved.booked = Math.max(0, reserved.booked - 1);
+  }
   const counts = new Map(rows.map((row) => [`${row.date}/${row.slot}`, row.booked]));
   const daily = new Map<string, number>();
   for (const { date, booked } of rows) daily.set(date, (daily.get(date) ?? 0) + booked);
@@ -52,8 +57,9 @@ export function readAvailability(
   method: ReceivingMethod,
   now = Date.now(),
   schedule?: Schedule,
+  exclude?: TimeChoice,
 ) {
-  return availabilityFor(storage, method, now, schedule).response;
+  return availabilityFor(storage, method, now, schedule, exclude).response;
 }
 
 function unavailableTime() {
@@ -86,8 +92,9 @@ export function reserveTime(
   method: ReceivingMethod,
   time: TimeChoice | null,
   now = Date.now(),
+  schedule?: Schedule,
 ) {
-  const { methodSchedule, response: availability } = availabilityFor(storage, method, now);
+  const { methodSchedule, response: availability } = availabilityFor(storage, method, now, schedule);
   if (!isTimeAvailable(availability.mode, availability.days, time))
     throw new ApiError("SLOT_TAKEN", time ? timeChangedMessage : "Выберите доступное время получения");
   if (!time) return false;

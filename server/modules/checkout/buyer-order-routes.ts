@@ -8,12 +8,13 @@ import {
   repeatOrderInput,
   replaceProofInput,
 } from "../../../src/shared/contracts/buyer-order";
-import { compositionAnswer } from "../../../src/shared/contracts/order-changes";
+import { compositionAnswer, timeChangeInput } from "../../../src/shared/contracts/order-changes";
 import { ApiError } from "../../../src/shared/errors";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
 import type { ShopEnv } from "../../shop/env";
 import { readCustomer } from "../auth/service";
 import { answerChanges } from "../order-changes/composition";
+import { changeTime, timeAvailability } from "../order-changes/time";
 import { cancelBuyerOrder, replaceBuyerProof } from "./buyer-order-commands";
 import { activeBuyerOrders, buyerOrder, buyerOrderRow, buyerOrdersPage } from "./buyer-orders";
 import { previewRepeatOrder, repeatBuyerOrder } from "./repeat-order";
@@ -53,6 +54,28 @@ export const buyerOrderRoutes = new Hono<ShopEnv>()
         answerChanges(
           c.env,
           await subject(c.env, c.req.raw),
+          c.req.valid("param").number,
+          c.req.valid("json"),
+          c.get("command"),
+        ),
+      ),
+  )
+  .get("/:number/time", params, async (c) =>
+    c.json(
+      timeAvailability(c.env, { side: "buyer", id: await subject(c.env, c.req.raw) }, c.req.valid("param").number),
+    ),
+  )
+  .post(
+    "/:number/time",
+    authBodyLimit,
+    authCommand,
+    params,
+    zValidator("json", timeChangeInput, validationFailure),
+    async (c) =>
+      c.json(
+        changeTime(
+          c.env,
+          { side: "buyer", id: await subject(c.env, c.req.raw) },
           c.req.valid("param").number,
           c.req.valid("json"),
           c.get("command"),

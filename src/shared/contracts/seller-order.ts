@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { OrderStage, PaymentState } from "./buyer-order";
 import type { OrderResult } from "./checkout";
-import type { CompositionSummary } from "./order-changes";
+import type { CompositionSummary, TimeChange } from "./order-changes";
 import { workdayFocus } from "./workday";
 
 const revision = z.number().int().nonnegative();
@@ -31,6 +31,7 @@ export type SellerOrderEvent = {
 };
 export type SellerOrder = Omit<OrderResult, "paymentStatus"> & {
   composition?: CompositionSummary;
+  timeChange?: TimeChange;
   createdAt: number;
   stage: OrderStage;
   revision: number;

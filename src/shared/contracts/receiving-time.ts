@@ -37,7 +37,7 @@ export const scheduleInput = z.object({
   pickup: methodSchedule.optional(),
 });
 
-const selectionInput = z.object({ date: z.iso.date(), slotId: z.string().max(16).optional() });
+export const selectionInput = z.object({ date: z.iso.date(), slotId: z.string().max(16).optional() });
 export const timeCommandInput = z.object({
   expectedRevision: z.number().int().nonnegative(),
   time: selectionInput.nullable(),

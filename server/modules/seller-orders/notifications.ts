@@ -7,7 +7,7 @@ import { staffBot, staffBotToken } from "../../platform/team/bot";
 import { staffRecipients } from "../../platform/team/notifications";
 import { shopTimeZoneSql } from "../../shop/time-zone";
 import { unpackOrder } from "../checkout/buyer-orders";
-import { compositionNotification } from "../order-changes/notification";
+import { compositionNotification, timeNotification } from "../order-changes/notification";
 import { sendWorkdayNotifications } from "./workday-notifications";
 
 type Queued = {
@@ -142,7 +142,7 @@ export function telegramMessage(
   if (event.kind !== "new") {
     const url = buyerStorefront ? new URL(buyerStorefront) : undefined;
     if (url) url.pathname = `/orders/${number}`;
-    if (event.kind === "composition") {
+    if (event.kind === "composition" || event.kind === "time") {
       const id = Number(event.event_key?.split(":")[1]);
       const saved = storage.sql
         .exec<{ details: string | null }>(
@@ -153,8 +153,13 @@ export function telegramMessage(
         .toArray()[0];
       return {
         chat_id,
-        text: compositionNotification(saved?.details ?? null, event.currency, number),
-        ...(url && { reply_markup: orderKeyboard(url, "Посмотреть изменения") }),
+        text:
+          event.kind === "time"
+            ? timeNotification(saved?.details ?? null, number, now)
+            : compositionNotification(saved?.details ?? null, event.currency, number),
+        ...(url && {
+          reply_markup: orderKeyboard(url, event.kind === "time" ? "Посмотреть время" : "Посмотреть изменения"),
+        }),
       };
     }
     const text =
