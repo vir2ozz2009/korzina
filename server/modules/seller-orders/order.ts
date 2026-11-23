@@ -33,7 +33,7 @@ export function sellerOrder(
   };
   const events = storage.sql
     .exec<SellerOrderEvent>(
-      "SELECT id,actor,event,created_at AS createdAt,reason,details FROM buyer_order_events WHERE order_number=? ORDER BY id DESC LIMIT 100",
+      "SELECT id,actor,event,created_at AS createdAt,reason,details FROM buyer_order_events WHERE order_number=? AND event NOT IN ('chat.buyer','chat.seller') ORDER BY id DESC LIMIT 100",
       number,
     )
     .toArray();

@@ -15,6 +15,7 @@ const requiredPermission = {
   paymentsAndReceipts: "payments",
   cancellations: "orders",
   lowStock: "stock",
+  messages: "chat",
 } as const;
 type Person = { telegram: string | null; name: string; role: TeamRole; permitted: string[]; connected: boolean };
 type Row = {
@@ -30,6 +31,7 @@ type Row = {
 type Override = { role: string; topic: string; enabled: number };
 
 function defaultNotification(role: TeamRole, topic: NotificationTopic) {
+  if (topic === "messages") return role === "owner" || role === "manager" || role === "picker";
   if (topic === "lowStock") return role === "owner" || role === "manager";
   return role !== "accountant" || topic === "paymentsAndReceipts";
 }

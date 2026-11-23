@@ -124,6 +124,11 @@ it("§11.3–§11.5 право, переключатель роли и теку�
   await connectStaffChat(env.PLATFORM, shop, "platform", "10030");
   expect(await staffRecipients(env.PLATFORM, shop, "platform", "10030")).toEqual(["10030"]);
   expect(await staffRecipients(env.PLATFORM, shop, "next-bot", "10030")).toEqual([]);
+  expect(await staffRecipients(env.PLATFORM, shop, "platform", "10030", "messages")).toEqual(["10030"]);
+  const settings = await staffNotificationSettings(env.PLATFORM, shop, "platform");
+  expect(
+    settings.rows.find(({ role }) => role === "accountant")?.topics.find(({ topic }) => topic === "messages"),
+  ).toEqual({ topic: "messages", available: true, enabled: false });
   expect(
     (await staffNotificationSettings(env.PLATFORM, shop, "platform")).rows.find((row) => row.role === "picker"),
   ).toMatchObject({
@@ -132,6 +137,7 @@ it("§11.3–§11.5 право, переключатель роли и теку�
       { topic: "paymentsAndReceipts", available: false, enabled: false },
       { topic: "cancellations", available: true, enabled: true },
       { topic: "lowStock", available: false, enabled: false },
+      { topic: "messages", available: true, enabled: true },
     ],
   });
   const context = {

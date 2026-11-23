@@ -9,6 +9,7 @@ const topicName: Record<NotificationTopic, string> = {
   lowStock: "Товар заканчивается",
   paymentsAndReceipts: "Оплаты и чеки",
   cancellations: "Отмены",
+  messages: "Сообщения",
 };
 export function TeamNotifications({ store }: { store: string }) {
   const bot = useStaffBot(store);

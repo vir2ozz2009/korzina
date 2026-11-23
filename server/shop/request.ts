@@ -9,6 +9,7 @@ import type { AuthSecrets } from "../auth/config";
 import { RequestMetrics } from "../metrics";
 import { publicMediaOrigin } from "../modules/media/public-origin";
 import { scheduleCompositionDeadline } from "../modules/order-changes/deadline";
+import { signalBuyerOrders } from "../modules/order-chat/live";
 import { signalSellerOrders } from "../modules/seller-orders/live";
 import { applyAdminSettings } from "./admin-settings";
 import { ShopChanges } from "./changes";
@@ -106,7 +107,10 @@ export async function handleShopRequest(
     if (changes.placed) orderPlaced();
     if (changes.compositionDueAt !== undefined)
       await scheduleCompositionDeadline(ctx.storage, changes.compositionDueAt);
-    for (const number of changes.orders) ctx.waitUntil(signalSellerOrders(ctx, env.PLATFORM, number));
+    for (const number of changes.orders) {
+      signalBuyerOrders(ctx, number);
+      ctx.waitUntil(signalSellerOrders(ctx, env.PLATFORM, number));
+    }
     if (changes.orders.size) await schedulePlatformOrders(ctx.storage);
     const wrote = (request.method === "POST" || request.method === "PUT") && metric.rowsWritten > 0;
     if (!changes.placed && (changes.orders.size || changes.catalogChanged || changes.settingsChanged || wrote))

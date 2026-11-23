@@ -116,6 +116,8 @@ export const mediaRoutes = new Hono<MediaRouterEnv>()
       const result = executeCommand(c.env.storage, c.env.db, `media:${actor.id}`, c.get("command"), () => {
         const record = findMedia(c.env, c.req.param("id"));
         assertRead(actor, record);
+        if (record.purpose === "chat" && (input.action === "attach" || record.status === "attached"))
+          throw new ApiError("FORBIDDEN", "Фото привязывается к сообщению");
         if (actor.id !== record.owner) throw new ApiError("FORBIDDEN", "Изменять файл может только его владелец");
         if (
           record.purpose === "receipt" &&

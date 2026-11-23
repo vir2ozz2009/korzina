@@ -15,6 +15,7 @@ import { sellerReceivingRoutes } from "../modules/fulfillment/seller-routes";
 import { resolveFulfillment } from "../modules/fulfillment/service";
 import { storefrontReceiving } from "../modules/fulfillment/storefront-receiving";
 import { mediaRoutes } from "../modules/media/routes";
+import { buyerChatRoutes, sellerChatRoutes } from "../modules/order-chat/routes";
 import { profileRoutes } from "../modules/profile/routes";
 import { sellerCatalogRoutes } from "../modules/seller-catalog/routes";
 import { sellerOrderRoutes } from "../modules/seller-orders/routes";
@@ -52,9 +53,11 @@ export function shopRoutes() {
       .route("/cart", cartRoutes)
       .route("/receiving", receivingRoutes)
       .route("/", purchaseRoutes)
+      .route("/orders/chat", buyerChatRoutes)
       .route("/orders", buyerOrderRoutes)
       .route("/seller/catalog", sellerCatalogRoutes)
       .route("/seller/orders", sellerOrderRoutes)
+      .route("/seller/chat", sellerChatRoutes)
       .route("/seller/receiving", sellerReceivingRoutes)
       .route("/seller/payments", sellerPaymentRoutes)
       .route("/seller/profile", sellerProfileRoutes)
