@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type QueryFilters, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   SellerOrder,
   SellerOrderCommand,
@@ -46,6 +46,7 @@ export function useSellerOrderList(store: string, selection: ListSelection, mone
           { signal },
         )
       ).json();
+      signal.throwIfAborted();
       const previous = client.getQueryData<CachedOrderPage>(key);
       if ("unchanged" in result) {
         if (!previous) throw new Error("Список недоступен");
@@ -141,12 +142,15 @@ export function useSellerOrderCommand(store: string) {
           },
         )
       ).json(),
-    onSuccess: (order) => {
+    onSuccess: async (order) => {
+      const affected = sellerOrderQueries(store, order.number);
+      // Invalidating a first read with no cached data can reuse its in-flight response.
+      await client.cancelQueries(affected);
       const key = orderKey(store, order.number);
       client.setQueryData<SellerOrder>(key, (previous) =>
         previous && previous.revision > order.revision ? previous : order,
       );
-      void invalidateSellerOrders(client, store, order.number);
+      void client.invalidateQueries(affected);
     },
     onError: (error, { number }) => {
       if (error instanceof HttpError && (error.status === 409 || error.status === 403))
@@ -176,7 +180,11 @@ export function invalidateSellerOrders(
   number?: number,
   cursor?: number,
 ) {
-  return client.invalidateQueries({
+  return client.invalidateQueries(sellerOrderQueries(store, number, cursor));
+}
+
+function sellerOrderQueries(store: string, number?: number, cursor?: number): QueryFilters {
+  return {
     queryKey: root(store),
     predicate: ({ queryKey, state }) => {
       if (queryKey[2] === "order") return number === undefined || queryKey[3] === number;
@@ -184,7 +192,7 @@ export function invalidateSellerOrders(
       const data = state.data as { rev?: number } | undefined;
       return (data?.rev ?? -1) < cursor;
     },
-  });
+  };
 }
 
 export function useSellerWorkday(store: string, money: boolean) {
