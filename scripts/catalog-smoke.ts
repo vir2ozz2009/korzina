@@ -11,7 +11,8 @@ async function smoke() {
     });
   const shop = await get("/api/shop");
   assert(shop.ok, `shop: HTTP ${shop.status}`);
-  assert.equal(((await shop.json()) as { slug: string }).slug, "test2");
+  const defaultSlug = new URL(base).hostname === "demo.korzina.app" ? "lavka" : "test2";
+  assert.equal(((await shop.json()) as { slug: string }).slug, defaultSlug);
   const document = await get("/api/catalog/document?shop=test2");
   assert(document.ok, `document: HTTP ${document.status}`);
   const data = (await document.json()) as {
