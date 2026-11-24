@@ -146,7 +146,7 @@ export function CabinetScreen() {
                       <p className="text-small text-muted-foreground">Витрина пока закрыта</p>
                     )}
                   </Card>
-                  {(shop.role === "owner" || shop.permissions.includes("payments")) && (
+                  {(shop.role === "owner" || shop.permissions?.includes("payments")) && (
                     <StatsCard
                       key={`stats:${shop.id}:${telegramId}`}
                       session={{ store: shop.slug, account: telegramId }}

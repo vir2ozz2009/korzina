@@ -24,7 +24,6 @@ export function useCabinet(store?: string) {
       return response.json();
     },
     retry: false,
-    refetchOnWindowFocus: true,
   });
 }
 

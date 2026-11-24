@@ -167,7 +167,7 @@ export function SellerCatalogScreen() {
       store={current.slug}
       storefront={current.storefrontUrl}
       account={cabinet.data.telegramId}
-      canReadSales={current.role === "owner" || current.permissions.includes("payments")}
+      canReadSales={current.role === "owner" || (current.permissions?.includes("payments") ?? false)}
       type={type}
       id={id}
       frame={frame}

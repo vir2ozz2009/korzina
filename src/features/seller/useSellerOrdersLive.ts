@@ -39,6 +39,7 @@ function useSellerOrdersLive(store: string, account: string | undefined, orders:
       });
     };
     const refreshAccess = () => {
+      if (!payments) return;
       void client.resetQueries(sales);
       void client.invalidateQueries({ queryKey: ["seller", "cabinet"] });
     };
