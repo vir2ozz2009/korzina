@@ -130,18 +130,23 @@ export class Shop extends DurableObject<Env> {
     }
   }
 
-  adminBotChange(mutation: ShopMutation, input: BotChange, origin: string) {
+  async adminBotChange(mutation: ShopMutation, input: BotChange, origin: string) {
     if (!this.ctx.exports.Shop.idFromName(botCoordinator).equals(this.ctx.id))
       throw new ApiError("FORBIDDEN", "Нет доступа");
-    return this.ctx.blockConcurrencyWhile(async () => {
-      try {
-        const result = await changeShopBot(this.env.PLATFORM, this.env as Env & AuthSecrets, mutation, input, origin);
-        return { ok: true as const, result };
-      } catch (error) {
-        const known = error instanceof ApiError ? error : new ApiError("INTERNAL", "Не удалось настроить бота");
-        return { ok: false as const, code: known.code, message: known.message };
-      }
-    });
+    try {
+      const result = await changeShopBot(
+        this.env.PLATFORM,
+        this.env as Env & AuthSecrets,
+        mutation,
+        input,
+        origin,
+        (operation) => this.ctx.blockConcurrencyWhile(operation),
+      );
+      return { ok: true as const, result };
+    } catch (error) {
+      const known = error instanceof ApiError ? error : new ApiError("INTERNAL", "Не удалось настроить бота");
+      return { ok: false as const, code: known.code, message: known.message };
+    }
   }
 
   async confirmBuyerTelegram(shopId: string, exchange: string, telegramId: string, name: string) {

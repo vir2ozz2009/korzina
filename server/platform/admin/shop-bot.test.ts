@@ -19,7 +19,7 @@ const privateResponse = "raw Telegram response";
 const success = (result: unknown = true) => Response.json({ ok: true, result });
 const botDetails = { id: 92222, username: "KorzinaStoreFixtureBot", is_bot: true };
 
-async function connect(key = botFixtureKey) {
+async function connect(key = botFixtureKey, serialize?: Parameters<typeof changeShopBot>[5]) {
   const { version } = await managedShop(db, shopId);
   const mutation = {
     id: shopId,
@@ -27,7 +27,7 @@ async function connect(key = botFixtureKey) {
     version,
     command: { key: crypto.randomUUID(), fingerprint: crypto.randomUUID() },
   };
-  return changeShopBot(db, { ENCRYPTION_KEY: key }, mutation, { action: "connect", version, token }, origin);
+  return changeShopBot(db, { ENCRYPTION_KEY: key }, mutation, { action: "connect", version, token }, origin, serialize);
 }
 
 function mockTelegram(reply: (method: string, signal: AbortSignal | null | undefined) => Response | Promise<Response>) {
@@ -138,4 +138,16 @@ it("указывает сохранение привязки, когда вер�
   });
   await expectFailure(connect(), log, "VERSION_CONFLICT", { stage: "save_binding" });
   expect(methods).toEqual(["getMe", "setWebhook", "setChatMenuButton", "deleteWebhook"]);
+});
+
+it("повторно проверяет версию после getMe перед настройкой webhook и меню", async () => {
+  const log = captureLog();
+  const methods = mockTelegram(() => success(botDetails));
+  const attempt = connect(botFixtureKey, async (operation) => {
+    expect(methods).toEqual(["getMe"]);
+    await db.prepare("UPDATE shops SET version=version+1 WHERE id=?").bind(shopId).run();
+    return operation();
+  });
+  await expectFailure(attempt, log, "VERSION_CONFLICT", { stage: "save_binding" });
+  expect(methods).toEqual(["getMe"]);
 });
