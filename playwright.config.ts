@@ -1,8 +1,10 @@
 import { defineConfig } from "@playwright/test";
 
 const baseURL = process.env.E2E_BASE_URL || "http://127.0.0.1:5173";
+const regressions = process.env.E2E_REGRESSIONS === "1";
 export default defineConfig({
   testDir: "./e2e",
+  ...(regressions ? { testMatch: "regressions/*.spec.ts", timeout: 30_000 } : { testIgnore: "**/regressions/**" }),
   workers: 1,
   retries: 0,
   use: {

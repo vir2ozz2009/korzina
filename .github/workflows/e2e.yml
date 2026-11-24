@@ -1,4 +1,5 @@
 name: E2E
+run-name: ${{ inputs.target == 'regressions' && 'Регрессии · ручной прогон на demo' || '' }}
 on:
   pull_request:
     branches: [main]
@@ -24,16 +25,20 @@ on:
       target:
         description: Проверяемая среда
         type: choice
-        options: [local, demo]
+        options: [local, demo, regressions]
         default: local
 permissions:
   contents: read
+  id-token: write
+  issues: write
 concurrency:
   group: e2e-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
   smoke:
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    permissions:
+      contents: read
+    if: (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && inputs.target != 'regressions'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -56,3 +61,6 @@ jobs:
           name: playwright-result
           path: test-results/
           retention-days: 7
+  regressions:
+    if: github.event_name == 'workflow_dispatch' && inputs.target == 'regressions'
+    uses: ./.github/workflows/regressions.yml
