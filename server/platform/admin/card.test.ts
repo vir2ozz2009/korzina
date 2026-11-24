@@ -13,7 +13,10 @@ import { changeShop, type ShopMutation } from "./shop-change";
 import { managedShop } from "./shop-detail";
 
 beforeAll(setupPlatform);
-afterEach(vi.unstubAllGlobals);
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 const db = env.PLATFORM;
 const actor = "admin-test";
 const origin = "https://demo.korzina.app";
@@ -30,9 +33,10 @@ async function draft(slug: string) {
 }
 const token = "92222:kotlinstorefixturetelegram";
 function mockTelegram() {
-  const request = vi.fn(async (input: RequestInfo | URL) => {
+  const request = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input));
     if (url.hostname !== "api.telegram.org") throw new Error("Unexpected HTTP request");
+    if (init?.signal?.aborted) throw init.signal.reason;
     return Response.json({
       ok: true,
       result: url.pathname.endsWith("/getMe") ? { id: 92222, username: "KorzinaStoreFixtureBot", is_bot: true } : true,
@@ -51,14 +55,15 @@ async function newestInvite(id: string) {
   return invitationToken(row.id, bindings.ENCRYPTION_KEY);
 }
 
-it("§9.11 · §9.12 подключение сохраняет прежнюю ссылку, а конкурентное погашение назначает одного владельца", async () => {
+it("§9.11 · §9.12 после таймаута getMe подключение сохраняет прежнюю ссылку, а погашение назначает одного владельца", async () => {
   const id = await draft("tg-first");
   const original = await newestInvite(id);
   const telegram = mockTelegram();
   const step = await mutation(id);
+  vi.spyOn(AbortSignal, "timeout").mockReturnValueOnce(AbortSignal.abort());
   await changeShopBot(db, bindings, step, { action: "connect", version: step.version, token }, origin);
   const methods = telegram.mock.calls.map(([url]) => new URL(String(url)).pathname.split("/").at(-1));
-  expect(methods).toEqual(["getMe", "setWebhook", "setChatMenuButton"]);
+  expect(methods).toEqual(["getMe", "getMe", "setWebhook", "setChatMenuButton"]);
   const encrypted = await db.prepare("SELECT token FROM shop_bots WHERE shop_id=?").bind(id).first();
   expect(JSON.stringify(encrypted)).not.toContain(token);
   const secondId = await draft("tg-conflict");

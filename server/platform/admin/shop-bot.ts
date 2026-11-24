@@ -46,7 +46,12 @@ export function miniAppAddress(origin: string, shopId: string, cabinet = false) 
 
 async function validateBot(token: string) {
   if (!botToken.test(token)) throw new ApiError("TOKEN_INVALID", "Токен не подошёл");
-  const { result, httpStatus } = await telegramRequest(token, "getMe", {});
+  const { result, httpStatus } = await telegramRequest(token, "getMe", {}).catch((error: unknown) => {
+    if (!(error instanceof TelegramApiError) || (error.failure.kind !== "timeout" && error.failure.kind !== "network"))
+      throw error;
+    // getMe is read-only. Leave time for the rest of the coordinated update.
+    return telegramRequest(token, "getMe", {}, 4000);
+  });
   const details = botDetails.safeParse(result);
   if (!details.success) throw new TelegramApiError({ kind: "invalid_response", httpStatus }, "TOKEN_INVALID");
   return details.data;
