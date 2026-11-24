@@ -28,8 +28,8 @@ export async function telegramApi(token: string, method: string, body: object): 
   return (await telegramRequest(token, method, body)).result;
 }
 
-export async function telegramRequest(token: string, method: string, body: object) {
-  const signal = AbortSignal.timeout(5000);
+export async function telegramRequest(token: string, method: string, body: object, timeoutMs = 5000) {
+  const signal = AbortSignal.timeout(timeoutMs);
   let response: Response;
   try {
     response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {

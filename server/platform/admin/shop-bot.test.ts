@@ -60,7 +60,7 @@ function captureLog() {
 
 it("пишет статус Telegram при отклонении токена и сохраняет код ошибки формы", async () => {
   const log = captureLog();
-  mockTelegram(() => Response.json({ ok: false, description: privateResponse }, { status: 401 }));
+  const methods = mockTelegram(() => Response.json({ ok: false, description: privateResponse }, { status: 401 }));
   await expectFailure(
     connect(),
     log,
@@ -68,7 +68,22 @@ it("пишет статус Telegram при отклонении токена и
     { stage: "getMe", kind: "http", httpStatus: 401 },
     "TOKEN_INVALID",
   );
+  expect(methods).toEqual(["getMe"]);
 });
+
+it.each(["timeout", "network"] as const)(
+  "ограничивает повтор getMe при %s и сохраняет этап в журнале",
+  async (kind) => {
+    const log = captureLog();
+    if (kind === "timeout") vi.spyOn(AbortSignal, "timeout").mockReturnValue(AbortSignal.abort());
+    const methods = mockTelegram((_method, signal) => {
+      if (signal?.aborted) throw signal.reason;
+      throw new TypeError(privateResponse);
+    });
+    await expectFailure(connect(), log, "AUTH_UNAVAILABLE", { stage: "getMe", kind });
+    expect(methods).toEqual(["getMe", "getMe"]);
+  },
+);
 
 it("указывает подготовку ключа, когда Telegram уже подтвердил токен", async () => {
   const log = captureLog();
