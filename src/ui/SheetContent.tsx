@@ -21,16 +21,16 @@ export function SheetContent({
   children: ReactNode;
 }) {
   const descriptionId = useId();
-  const { sheet, scroller } = useSheetViewport(form && open);
+  const { sheet, scroller } = useSheetViewport(open);
   return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange} repositionInputs={!form} handleOnly={form} noBodyStyles={form}>
+    <Drawer.Root open={open} onOpenChange={onOpenChange} repositionInputs={false} handleOnly={form} noBodyStyles={form}>
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-40 bg-foreground/40" />
         <Drawer.Content
           ref={sheet}
           data-form-sheet={form || undefined}
           aria-describedby={description ? descriptionId : undefined}
-          className="fixed inset-x-0 bottom-[var(--sheet-viewport-bottom,0)] z-50 mx-auto flex max-h-[min(90dvh,calc(var(--sheet-viewport-height,100dvh)-0.5rem))] max-w-(--content-max) flex-col rounded-t-xl bg-card px-5 pt-3 pb-[max(1.25rem,var(--safe-bottom))] shadow-sheet outline-none"
+          className="fixed inset-x-0 z-50 mx-auto flex max-w-(--content-max) flex-col rounded-t-xl bg-card px-5 pt-3 pb-[max(1.25rem,var(--safe-bottom))] shadow-sheet outline-none"
         >
           {!form && <div aria-hidden className="mx-auto mb-3 h-1 w-10 shrink-0 rounded-pill bg-border" />}
           <div className="flex shrink-0 items-center justify-between gap-3">

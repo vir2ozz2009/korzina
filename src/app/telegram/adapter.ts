@@ -4,6 +4,7 @@ import { telegramLaunch } from "./launch";
 interface TelegramApp {
   initData: string;
   viewportHeight: number;
+  viewportStableHeight?: number;
   isExpanded: boolean;
   isActive?: boolean;
   colorScheme: "light" | "dark";
@@ -52,11 +53,13 @@ export async function loadTelegram() {
 export function connectTelegram(app: TelegramApp) {
   const root = document.documentElement;
   const viewport = () => {
-    root.style.setProperty("--app-height", `${app.viewportHeight || window.innerHeight}px`);
+    const height = app.viewportHeight || window.innerHeight;
+    root.style.setProperty("--app-height", `${height}px`);
+    root.style.setProperty("--sheet-telegram-height", `${Math.min(height, app.viewportStableHeight || height)}px`);
     for (const edge of ["top", "bottom", "left", "right"] as const) {
       const safe = (app.safeAreaInset?.[edge] ?? 0) + (app.contentSafeAreaInset?.[edge] ?? 0);
-      root.style.setProperty(`--safe-${edge}`, `${safe}px`);
-      if (edge === "bottom") root.style.setProperty("--floating-bottom", `max(12px, ${safe}px)`);
+      root.style.setProperty(`--safe-${edge}`, `max(${safe}px, env(safe-area-inset-${edge}, 0px))`);
+      if (edge === "bottom") root.style.setProperty("--floating-bottom", "max(12px, var(--safe-bottom))");
     }
     focusManager.setFocused(document.visibilityState === "visible" && app.isActive !== false);
   };
@@ -82,5 +85,6 @@ export function connectTelegram(app: TelegramApp) {
   return () => {
     document.removeEventListener("visibilitychange", viewport);
     for (const [name, fn] of Object.entries(events)) app.offEvent(name, fn);
+    root.style.removeProperty("--sheet-telegram-height");
   };
 }

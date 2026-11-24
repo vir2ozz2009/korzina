@@ -19,6 +19,7 @@ import {
 } from "./fixture";
 
 const tag = { tag: "@regression" };
+const telegramViewport = { height: 680, bottom: 34 };
 
 test.beforeEach(async ({ seller }) => {
   await configure(seller.request, { delivery: anywhere, requiredDetails: [], minimumMinor: 120000 });
@@ -31,9 +32,29 @@ test.afterEach(async ({ seller }) => {
 });
 
 async function openOrder(buyer: Page, seller: Page, number: number) {
+  await seller.addInitScript(({ height, bottom }) => {
+    const noop = () => {};
+    window.Telegram = {
+      WebApp: {
+        initData: "",
+        viewportHeight: height,
+        viewportStableHeight: 844,
+        isExpanded: false,
+        colorScheme: "light",
+        safeAreaInset: { top: 0, bottom, left: 0, right: 0 },
+        BackButton: { show: noop, hide: noop, onClick: noop, offClick: noop },
+        ready: noop,
+        expand: noop,
+        setHeaderColor: noop,
+        setBackgroundColor: noop,
+        onEvent: noop,
+        offEvent: noop,
+      },
+    };
+  }, telegramViewport);
   await Promise.all([
     buyer.goto(`/orders/${number}?${storefront}`),
-    seller.goto(`/seller/orders/${number}?${cabinet}`),
+    seller.goto(`/seller/orders/${number}?${cabinet}&telegram=1`),
   ]);
 }
 
@@ -65,7 +86,11 @@ for (const answer of ["Согласен", "Не нужно"] as const) {
       );
       if (!replacement) throw new Error("Нужна доступная замена");
       await seller.getByRole("button", { name: `Изменить ${kept.name}`, exact: true }).click();
-      await seller.getByRole("button", { name: "Заменить", exact: true }).click();
+      const replace = seller.getByRole("button", { name: "Заменить", exact: true });
+      await expect
+        .poll(() => replace.evaluate((button) => button.getBoundingClientRect().bottom))
+        .toBeLessThanOrEqual(telegramViewport.height - telegramViewport.bottom);
+      await replace.click();
       const picker = seller.getByRole("dialog", { name: "Выберите замену" });
       await picker.getByRole("searchbox").fill(replacement.name);
       await picker

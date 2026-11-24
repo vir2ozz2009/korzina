@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { beforeAll, expect, it } from "vitest";
 import type { OrderChatHistory, OrderChatList } from "../../../src/shared/contracts/order-chat";
 import { customerCookie } from "../../auth/cookies";
@@ -7,6 +8,7 @@ import { getAuth, postAuth, sellerFixture } from "../../testing/auth";
 import { snapshot } from "../../testing/orders";
 import { setupPlatform } from "../../testing/platform";
 import { catalogSql, shopRequest } from "../catalog/testing";
+import { mediaPrefix } from "../media/objects";
 
 const shop = "korzina-demo-lavka";
 beforeAll(setupPlatform);
@@ -105,14 +107,38 @@ it("§9.12, §11.7 · чужое фото запрещено, лимит счи�
   expect((await postAuth(path, { text: "😀".repeat(1000) }, buyer.headers)).status).toBe(200);
 });
 
-it("O8.3 · через 7 дней переписка открывается только на чтение", async () => {
+it("O8.3 · через 7 дней обе стороны читают историю и открывают старое фото", async () => {
   const { buyer, seller, number, path, sellerPath } = await fixture("completed", Date.now() - 7 * 86_400_000);
+  const mediaId = crypto.randomUUID();
+  const createdAt = Date.now() - 8 * 86_400_000;
+  const photo = Uint8Array.from(atob("UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEAAUAmJaQAA3AA/v89WAAAAA=="), (byte) =>
+    byte.charCodeAt(0),
+  );
+  await catalogSql(
+    `INSERT INTO media(id,owner,purpose,status,ready,bytes,mime,request_key,fingerprint,created_at,expires_at)
+     VALUES(?,?,'chat','attached',1,?,'image/webp',?,'image',?,?)`,
+    mediaId,
+    buyer.subject,
+    photo.byteLength,
+    mediaId,
+    createdAt,
+    createdAt + 60_000,
+  );
+  await env.MEDIA.put(`${mediaPrefix(shop, mediaId)}original.webp`, photo);
   await catalogSql(
     "INSERT INTO buyer_order_events(order_number,actor,event,created_at,details) VALUES(?,?,'chat.seller',?,?)",
     number,
     seller.accountId,
-    Date.now() - 8 * 86_400_000,
-    JSON.stringify({ text: "Передано" }),
+    createdAt,
+    JSON.stringify({ text: "Передано", mediaId }),
+  );
+  await catalogSql(
+    `WITH RECURSIVE messages(n) AS (VALUES(1) UNION ALL SELECT n+1 FROM messages WHERE n<20)
+     INSERT INTO buyer_order_events(order_number,actor,event,created_at,details)
+     SELECT ?,?,'chat.seller',?+n,json_object('text','Сообщение '||n) FROM messages`,
+    number,
+    seller.accountId,
+    createdAt,
   );
   expect(await (await postAuth(path, { text: "Вопрос" }, buyer.headers)).json()).toMatchObject({
     error: { code: "CHAT_CLOSED" },
@@ -121,9 +147,19 @@ it("O8.3 · через 7 дней переписка открывается то
     [path, buyer.headers],
     [sellerPath, seller.headers],
   ] as const) {
-    expect(await (await getAuth(url, headers)).json()).toMatchObject({
+    const firstPage = await (await getAuth(url, headers)).json<OrderChatHistory>();
+    expect(firstPage).toMatchObject({ writable: false, cursor: expect.any(Number) });
+    expect(firstPage.entries.map((entry) => (entry.kind === "message" ? entry.text : undefined))).toEqual(
+      Array.from({ length: 20 }, (_, index) => `Сообщение ${index + 1}`),
+    );
+    expect(await (await getAuth(`${url}&before=${firstPage.cursor}`, headers)).json()).toMatchObject({
       writable: false,
-      entries: [{ text: "Передано" }],
+      entries: [{ text: "Передано", mediaId }],
     });
+    const [route, search] = url.split("?");
+    const response = await getAuth(`${route}/photos/${mediaId}?${search}`, headers);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("image/webp");
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(photo);
   }
 });
