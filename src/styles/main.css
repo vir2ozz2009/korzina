@@ -67,6 +67,11 @@
   );
 }
 
+/* The native iOS Mini App can report zero for the bottom gesture area. */
+[data-telegram-ios] [data-vaul-drawer] {
+  padding-bottom: max(34px, var(--safe-bottom));
+}
+
 /* Form sheets scroll with the keyboard. Their explicit close button stays in view. */
 [data-vaul-drawer][data-form-sheet] {
   touch-action: pan-y;

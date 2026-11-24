@@ -5,6 +5,7 @@ interface TelegramApp {
   initData: string;
   viewportHeight: number;
   viewportStableHeight?: number;
+  platform?: string;
   isExpanded: boolean;
   isActive?: boolean;
   colorScheme: "light" | "dark";
@@ -52,6 +53,7 @@ export async function loadTelegram() {
 
 export function connectTelegram(app: TelegramApp) {
   const root = document.documentElement;
+  root.toggleAttribute("data-telegram-ios", app.platform === "ios");
   const viewport = () => {
     const height = app.viewportHeight || window.innerHeight;
     root.style.setProperty("--app-height", `${height}px`);
@@ -86,5 +88,6 @@ export function connectTelegram(app: TelegramApp) {
     document.removeEventListener("visibilitychange", viewport);
     for (const [name, fn] of Object.entries(events)) app.offEvent(name, fn);
     root.style.removeProperty("--sheet-telegram-height");
+    root.removeAttribute("data-telegram-ios");
   };
 }

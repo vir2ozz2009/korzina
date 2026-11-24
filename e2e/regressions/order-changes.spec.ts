@@ -19,7 +19,7 @@ import {
 } from "./fixture";
 
 const tag = { tag: "@regression" };
-const telegramViewport = { height: 680, bottom: 34 };
+const telegramViewport = { height: 680, bottom: 0 };
 
 test.beforeEach(async ({ seller }) => {
   await configure(seller.request, { delivery: anywhere, requiredDetails: [], minimumMinor: 120000 });
@@ -39,6 +39,7 @@ async function openOrder(buyer: Page, seller: Page, number: number) {
         initData: "",
         viewportHeight: height,
         viewportStableHeight: 844,
+        platform: "ios",
         isExpanded: false,
         colorScheme: "light",
         safeAreaInset: { top: 0, bottom, left: 0, right: 0 },
@@ -89,7 +90,7 @@ for (const answer of ["Согласен", "Не нужно"] as const) {
       const replace = seller.getByRole("button", { name: "Заменить", exact: true });
       await expect
         .poll(() => replace.evaluate((button) => button.getBoundingClientRect().bottom))
-        .toBeLessThanOrEqual(telegramViewport.height - telegramViewport.bottom);
+        .toBeLessThanOrEqual(telegramViewport.height - 34);
       await replace.click();
       const picker = seller.getByRole("dialog", { name: "Выберите замену" });
       await picker.getByRole("searchbox").fill(replacement.name);
