@@ -58,10 +58,26 @@ export const sellerOrderCommand = z.discriminatedUnion("action", [
   stageCommand.extend({ action: z.literal("confirmTransfer"), proof: receiptId, amountMinor: positiveAmount }),
   stageCommand.extend({ action: z.literal("rejectProof"), proof: receiptId, reason: note }),
   stageCommand.extend({ action: z.literal("waiveDue"), reason: note }),
-  stageCommand.extend({ action: z.literal("markRefundReturned") }),
+  stageCommand.extend({
+    action: z.literal("markRefundReturned"),
+    allocation: z
+      .discriminatedUnion("kind", [
+        z.strictObject({ kind: z.enum(["items", "delivery"]), amountMinor: positiveAmount }),
+        z.strictObject({
+          kind: z.literal("variant"),
+          variantId: z.string().min(1).max(128),
+          amountMinor: positiveAmount,
+        }),
+      ])
+      .optional(),
+  }),
   stageCommand.extend({ action: z.literal("setDeliveryFee"), amountMinor: amount }),
 ]);
 export type SellerOrderCommand = z.infer<typeof sellerOrderCommand>;
+export type SalesRefundAllocation = NonNullable<
+  Extract<SellerOrderCommand, { action: "markRefundReturned" }>["allocation"]
+>;
+export type SalesRefund = { itemsMinor: number; deliveryMinor: number; variants?: Record<string, number> };
 export type PaymentMethod = z.infer<typeof method>;
 export type RecordedPayment = { method: PaymentMethod; amountMinor: number };
 type SellerBalance = {
@@ -74,17 +90,25 @@ type SellerBalance = {
 };
 export type ReceiptRef = { id: string; createdAt: number; mime: string };
 
-export const sellerOrdersQuery = z.object({
-  tab: z.enum(["active", "completed"]).default("active"),
-  method: z.enum(["delivery", "pickup"]).optional(),
-  day: z.iso.date().optional(),
-  focus: workdayFocus.optional(),
-  debt: z.literal("1").optional(),
-  search: z.string().trim().max(80).optional(),
-  cursor: z.string().max(500).optional(),
-  rev: z.coerce.number().int().nonnegative().optional(),
-  cachedMoney: z.enum(["0", "1"]).optional(),
-});
+export const sellerOrdersQuery = z
+  .object({
+    tab: z.enum(["active", "completed"]).default("active"),
+    method: z.enum(["delivery", "pickup"]).optional(),
+    day: z.iso.date().optional(),
+    focus: workdayFocus.optional(),
+    completedFrom: z.iso.date().optional(),
+    completedTo: z.iso.date().optional(),
+    debt: z.literal("1").optional(),
+    search: z.string().trim().max(80).optional(),
+    cursor: z.string().max(500).optional(),
+    rev: z.coerce.number().int().nonnegative().optional(),
+    cachedMoney: z.enum(["0", "1"]).optional(),
+  })
+  .refine(
+    ({ completedFrom, completedTo }) =>
+      (!completedFrom && !completedTo) || (!!completedFrom && !!completedTo && completedFrom <= completedTo),
+    "Укажите период выполнения",
+  );
 export type SellerOrdersQuery = z.infer<typeof sellerOrdersQuery>;
 export type SellerOrderSummary = {
   number: number;
@@ -92,6 +116,7 @@ export type SellerOrderSummary = {
   revision: number;
   method: "delivery" | "pickup";
   receivingAt: string;
+  completedAt?: number;
   createdAt: number;
   name: string | null;
   currency?: string;

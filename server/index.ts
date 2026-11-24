@@ -76,6 +76,7 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
   .use("/seller/receiving/*", sellerOrderGateway)
   .use("/seller/payments/*", sellerOrderGateway)
   .use("/seller/profile/*", sellerOrderGateway)
+  .use("/seller/statistics/*", sellerOrderGateway)
   .use("/favorites/*", forwarding)
   .use("/profile/*", forwarding)
   .use("/media/*", (c, next) =>

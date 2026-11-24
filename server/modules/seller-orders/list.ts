@@ -44,11 +44,12 @@ export function sellerOrders(
 ) {
   const rev = orderListRevision(storage);
   const cachedMoney = input.cachedMoney !== "0";
-  if (input.rev === rev && cachedMoney === money && !input.cursor && input.focus !== "overdue")
+  const completionPeriod = input.completedFrom && input.completedTo;
+  if (!completionPeriod && input.rev === rev && cachedMoney === money && !input.cursor && input.focus !== "overdue")
     return { rev, timeZone, unchanged: true as const };
   const search = input.search?.toLocaleLowerCase("ru") ?? "";
   const method = input.method ?? "";
-  const completed = input.tab === "completed";
+  const completed = !!completionPeriod || input.tab === "completed";
   const debt = completed && input.debt === "1";
   const cutoff = localTimestamp(Date.now(), timeZone);
   const focus = input.focus && focusSelection(input.focus, cutoff);
@@ -60,12 +61,18 @@ export function sellerOrders(
     search,
     input.day,
     input.focus,
+    input.completedFrom,
+    input.completedTo,
     input.focus === "overdue" ? cutoff : null,
     money,
   ]);
   const match = searchFilter(search);
   const query = [
-    ...(focus || scopedDay ? [] : [`stage IN (${completed ? closed : active})`]),
+    ...(completionPeriod
+      ? ["stage='completed' AND number IN (SELECT number FROM sales_orders WHERE day BETWEEN ? AND ?)"]
+      : focus || scopedDay
+        ? []
+        : [`stage IN (${completed ? closed : active})`]),
     ...(scopedDay ? [scopedDay.where] : []),
     ...(focus ? [focus.where] : []),
     ...(method ? ["method=?"] : []),
@@ -73,6 +80,7 @@ export function sellerOrders(
     ...(match.where ? [match.where] : []),
   ].join(" AND ");
   const filters = [
+    ...(input.completedFrom && input.completedTo ? [input.completedFrom, input.completedTo] : []),
     ...(scopedDay ? scopedDay.values : []),
     ...(focus ? focus.values : []),
     ...(method ? [method] : []),
@@ -92,7 +100,12 @@ export function sellerOrders(
       ...filters,
     )
     .toArray();
-  const day = completed ? "receiving_at" : "CASE WHEN receiving_at='' THEN '9999' ELSE receiving_at END";
+  const completion = "(SELECT completed_at FROM sales_orders WHERE number=seller_order_index.number)";
+  const day = completionPeriod
+    ? `CAST(${completion} AS TEXT)`
+    : completed
+      ? "receiving_at"
+      : "CASE WHEN receiving_at='' THEN '9999' ELSE receiving_at END";
   const order = completed ? "section,sort_at DESC,sort_number DESC" : "section,sort_at,sort_number";
   const amounts = money
     ? "currency,total_minor AS totalMinor,debt_minor AS debtMinor,refund_minor AS refundMinor,"
@@ -102,7 +115,7 @@ export function sellerOrders(
     .exec<Row>(
       `WITH selection AS (
       SELECT number,stage,revision,method,receiving_at AS receivingAt,created_at AS createdAt,name,
-        ${amounts}payment_status AS paymentStatus,packed,lines,
+        ${completionPeriod ? `${completion} AS completedAt,` : ""}${amounts}payment_status AS paymentStatus,packed,lines,
         ${stageOrder} AS section,${day} AS sort_at,number AS sort_number
       FROM seller_order_index WHERE ${query}
     ) SELECT * FROM selection

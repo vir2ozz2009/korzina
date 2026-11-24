@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { type ReactNode, useDeferredValue, useState } from "react";
+import { type ReactNode, useDeferredValue, useEffect, useState } from "react";
 import { QueryBoundary } from "../../../../app/shell/QueryBoundary";
 import { useToast } from "../../../../app/shell/ToastProvider";
 import type { SellerBulkInput, SellerProductRow } from "../../../../shared/contracts/seller-catalog";
@@ -12,10 +12,10 @@ import { Price } from "../../../../ui/Price";
 import { ProductImage } from "../../../../ui/ProductImage";
 import { SearchField } from "../../../../ui/SearchField";
 import { StatusPill } from "../../../../ui/StatusPill";
-import { Switch } from "../../../../ui/Switch";
 import { type BulkResult, useCatalogCommand, useCatalogProducts } from "../../catalog-api";
 import { CatalogActions } from "./CatalogActions";
 import { displayImage } from "./CatalogPhotos";
+import { CatalogProductActions } from "./CatalogProductActions";
 import { useCatalogNav } from "./navigation";
 
 export const catalogStatus = { selling: "В продаже", unavailable: "Нет в наличии", hidden: "Скрыт" };
@@ -27,19 +27,32 @@ const filters = [
   { value: "uncategorized", label: "Без категории" },
 ] as const;
 
+let selectionBeforeStatistics: { href: string; rows: SellerProductRow[]; account: string } | undefined;
+
 export function CatalogProducts({
   store,
   currency,
   canWrite,
+  canReadSales,
+  account,
   frame,
 }: {
   store: string;
   currency: string;
   canWrite: boolean;
+  canReadSales: boolean;
+  account: string;
   frame: (children: ReactNode, footer?: ReactNode) => ReactNode;
 }) {
   const nav = useCatalogNav(store);
-  const [picked, setPicked] = useState<SellerProductRow[]>([]);
+  const [picked, setPicked] = useState<SellerProductRow[]>(() =>
+    canWrite && selectionBeforeStatistics?.account === account && selectionBeforeStatistics.href === nav.location.href
+      ? selectionBeforeStatistics.rows
+      : [],
+  );
+  useEffect(() => {
+    if (selectionBeforeStatistics?.href === nav.location.href) selectionBeforeStatistics = undefined;
+  }, [nav.location.href]);
   const [action, setAction] = useState<{ rows: SellerProductRow[]; intent?: "pause" | "resume" }>();
   const command = useCatalogCommand<BulkResult>(store);
   const toast = useToast();
@@ -53,9 +66,7 @@ export function CatalogProducts({
     setPicked([]);
     nav.open("/seller/products", { q, filter, category, brand }, true);
   }
-  function openProduct(id: string) {
-    nav.open(`/seller/products/${encodeURIComponent(id)}`, { category, brand });
-  }
+  const openProduct = (id: string) => nav.open(`/seller/products/${encodeURIComponent(id)}`, { category, brand });
   function changeVisibility(row: SellerProductRow) {
     const input: SellerBulkInput = { products: [{ id: row.id, revision: row.revision }], action: { kind: "show" } };
     command.mutate(
@@ -96,7 +107,6 @@ export function CatalogProducts({
       Добавить товар
     </Button>
   );
-
   return frame(
     <>
       <div className="[&_[data-field-surface]]:bg-card">
@@ -179,29 +189,23 @@ export function CatalogProducts({
                         </label>
                       )}
                     </div>
-                    {canWrite && (
-                      <div className="border-t border-border px-3">
-                        {row.status === "hidden" ? (
-                          <div className="flex justify-end py-1">
-                            <Button
-                              variant="secondary"
-                              disabled={command.isPending}
-                              onClick={() => changeVisibility(row)}
-                            >
-                              Показать
-                            </Button>
-                          </div>
-                        ) : (
-                          <Switch
-                            label="Наличие"
-                            aria-label={`В продаже: ${row.name}`}
-                            checked={row.status === "selling"}
-                            disabled={command.isPending}
-                            onChange={() => switchSale(row)}
-                          />
-                        )}
-                      </div>
-                    )}
+                    <CatalogProductActions
+                      row={row}
+                      disabled={command.isPending}
+                      canWrite={canWrite}
+                      sale={() => switchSale(row)}
+                      show={() => changeVisibility(row)}
+                      statistics={
+                        canReadSales
+                          ? () => {
+                              selectionBeforeStatistics = { href: nav.location.href, rows: picked, account };
+                              nav.open(`/seller/statistics/products/${encodeURIComponent(row.id)}`, {
+                                back: nav.location.href,
+                              });
+                            }
+                          : undefined
+                      }
+                    />
                   </li>
                 ))}
               </ul>

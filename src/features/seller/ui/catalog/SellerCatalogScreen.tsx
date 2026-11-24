@@ -13,14 +13,13 @@ import { IconButton } from "../../../../ui/IconButton";
 import { ListItem } from "../../../../ui/ListItem";
 import { Sheet } from "../../../../ui/Sheet";
 import { useCabinet } from "../../api";
-import { useCatalogAccess, useCatalogGroups, useCatalogProduct } from "../../catalog-api";
+import { useCatalogAccess } from "../../catalog-api";
 import { CabinetLogin } from "../CabinetLogin";
 import type { CatalogFrame } from "./CatalogEditorFrame";
+import { GroupRoute, ProductRoute } from "./CatalogEditorRoutes";
 import { CatalogGroups } from "./CatalogGroups";
 import { CatalogProducts } from "./CatalogProducts";
-import { GroupEditor } from "./GroupEditor";
 import { useCatalogNav } from "./navigation";
-import { ProductEditor } from "./ProductEditor";
 import { Showcase } from "./Showcase";
 
 const sections = [
@@ -167,6 +166,8 @@ export function SellerCatalogScreen() {
       key={`${current.slug}:${type}:${id ?? ""}`}
       store={current.slug}
       storefront={current.storefrontUrl}
+      account={cabinet.data.telegramId}
+      canReadSales={current.role === "owner" || (current.permissions?.includes("payments") ?? false)}
       type={type}
       id={id}
       frame={frame}
@@ -180,12 +181,16 @@ function CatalogContent({
   type,
   frame,
   storefront,
+  canReadSales,
+  account,
 }: {
   store: string;
   type: "products" | SellerGroupKind | "showcase";
   id?: string;
   frame: CatalogFrame;
   storefront: string;
+  canReadSales: boolean;
+  account: string;
 }) {
   const access = useCatalogAccess(store);
   const visible = access.data;
@@ -217,39 +222,18 @@ function CatalogContent({
         frame={withAccess}
       />
     ) : (
-      <CatalogProducts store={store} currency={currency} canWrite={canWrite} frame={withAccess} />
+      <CatalogProducts
+        store={store}
+        currency={currency}
+        canWrite={canWrite}
+        canReadSales={canReadSales}
+        account={account}
+        frame={withAccess}
+      />
     );
   return id ? (
     <GroupRoute store={store} id={id} kind={type} canWrite={canWrite} storefront={storefront} frame={withAccess} />
   ) : (
     <CatalogGroups store={store} kind={type} canWrite={canWrite} frame={withAccess} />
   );
-}
-
-type EditorRoute = { store: string; id: string; canWrite: boolean; storefront: string; frame: CatalogFrame };
-function ProductRoute({ id, frame, ...props }: EditorRoute & { currency: string }) {
-  const query = useCatalogProduct(props.store, id === "new" ? undefined : id);
-  // An editor takes its draft and revision from its first snapshot.
-  const [needsRefresh] = useState(query.isStale);
-  if (id === "new") return <ProductEditor {...props} frame={frame} />;
-  if (query.data && !query.isError && (!needsRefresh || query.isFetchedAfterMount))
-    return <ProductEditor {...props} frame={frame} initial={query.data} />;
-  return frame(
-    <QueryBoundary query={{ ...query, data: undefined, isPending: !query.isError }} template="form">
-      {() => null}
-    </QueryBoundary>,
-  );
-}
-function GroupRoute({ id, frame, kind, ...props }: EditorRoute & { kind: SellerGroupKind }) {
-  const query = useCatalogGroups(props.store, kind);
-  if (!query.data || query.isError)
-    return frame(
-      <QueryBoundary query={query} template="form">
-        {() => null}
-      </QueryBoundary>,
-    );
-  const group = query.data.groups.find((row) => row.id === id);
-  if (id !== "new" && !group)
-    return frame(<EmptyState title={kind === "categories" ? "Категория не найдена" : "Бренд не найден"} />);
-  return <GroupEditor {...props} kind={kind} frame={frame} initial={group} groups={query.data.groups} />;
 }

@@ -19,6 +19,7 @@ import { buyerChatRoutes, sellerChatRoutes } from "../modules/order-chat/routes"
 import { profileRoutes } from "../modules/profile/routes";
 import { sellerCatalogRoutes } from "../modules/seller-catalog/routes";
 import { sellerOrderRoutes } from "../modules/seller-orders/routes";
+import { sellerSalesRoutes } from "../modules/seller-sales/routes";
 import { revisionResponse } from "../revisions";
 import type { ShopEnv } from "./env";
 import { readPublicSettings } from "./public-settings";
@@ -61,6 +62,7 @@ export function shopRoutes() {
       .route("/seller/receiving", sellerReceivingRoutes)
       .route("/seller/payments", sellerPaymentRoutes)
       .route("/seller/profile", sellerProfileRoutes)
+      .route("/seller/statistics", sellerSalesRoutes)
       .route("/favorites", favoritesRoutes)
       .route("/profile", profileRoutes)
       .route("/catalog", catalogRoutes)

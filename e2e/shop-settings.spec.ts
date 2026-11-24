@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { checkSales } from "./seller-statistics";
 import { checkShopHours } from "./shop-hours";
 
 const query = "shop=test2&store=test2";
@@ -50,7 +51,7 @@ test("Блок 7: продавец сохраняет настройки и пр
     await expect(page.getByText("Свой цвет", { exact: true })).toBeVisible();
     await page.screenshot({ path: "test-results/shop-settings-color-390.png", animations: "disabled" });
 
-    await page.goto(`/seller?${query}`);
+    await test.step("§14.1 · главная, статистика и возврат со сбоем сводки", () => checkSales(page, local, query));
     const show = page.getByRole("button", { name: "Приостановить приём", exact: true });
     const resume = page.getByRole("button", { name: "Возобновить", exact: true });
     const pause = page.getByRole("dialog", { name: "Приостановить приём" });
@@ -124,7 +125,7 @@ test("Блок 7: продавец сохраняет настройки и пр
         await expect(page.getByRole("dialog", { name: "Добавить сотрудника" })).toBeVisible();
         await page.screenshot({ path: "test-results/team-invite-390.png", animations: "disabled" });
         await page.goto(`/seller/bot?${query}`);
-        await expect(page.getByText("Бота подключает администратор Korzina")).toBeVisible();
+        await expect(page.getByText("Бот подключён · @KorzinaE2EFixtureBot", { exact: true })).toBeVisible();
         await page.getByRole("button", { name: "Настроить уведомления сотрудников", exact: true }).click();
         await expect(page.getByRole("table", { name: "Уведомления по ролям" })).toBeVisible();
         await expect(page.getByRole("checkbox", { name: "Сборщик · Оплаты и чеки" })).toBeDisabled();

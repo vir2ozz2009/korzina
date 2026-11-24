@@ -15,10 +15,18 @@ export function SellerOrdersShell({
   title,
   children,
   footer,
+  onBack,
 }: {
   title: string;
-  children: (store: string, money: boolean) => ReactNode;
+  children: (
+    store: string,
+    money: boolean,
+    account: string,
+    timeZone: string | undefined,
+    orders: boolean,
+  ) => ReactNode;
   footer?: ReactNode;
+  onBack?: () => void;
 }) {
   const search = useRouterState({ select: (state) => state.location.search });
   const store = typeof search.store === "string" ? search.store : undefined;
@@ -40,7 +48,7 @@ export function SellerOrdersShell({
               <SellerChatButton store={cabinet.data.current.slug} />
             ) : undefined
           }
-          onBack={search.back && !login ? back : undefined}
+          onBack={!login ? (onBack ?? (search.back ? back : undefined)) : undefined}
           sellerShop={cabinet.isError ? null : (cabinet.data?.current ?? null)}
         />
       }
@@ -62,9 +70,15 @@ export function SellerOrdersShell({
         />
       ) : (
         <QueryBoundary query={cabinet} template="list">
-          {({ current }) =>
+          {({ current, telegramId }) =>
             current ? (
-              children(current.slug, current.role === "owner" || current.permissions.includes("payments"))
+              children(
+                current.slug,
+                current.role === "owner" || current.permissions.includes("payments"),
+                telegramId,
+                current.timeZone ?? undefined,
+                current.role === "owner" || current.permissions.includes("orders"),
+              )
             ) : (
               <EmptyState title="Заказы недоступны" />
             )

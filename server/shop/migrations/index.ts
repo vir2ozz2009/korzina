@@ -31,6 +31,7 @@ import m0029 from "./0029_workday_notifications.sql?raw";
 import m0030 from "./0030_composition_deadline.sql?raw";
 import m0031 from "./0031_order_chat.sql?raw";
 import m0032 from "./0032_chat_badge.sql?raw";
+import m0033 from "./0033_seller_sales.sql?raw";
 import journal from "./meta/_journal.json";
 
 export const migrations = {
@@ -69,5 +70,6 @@ export const migrations = {
     m0030,
     m0031,
     m0032,
+    m0033,
   },
 };
