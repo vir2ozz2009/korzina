@@ -58,6 +58,15 @@
   }
 }
 
+[data-vaul-drawer] {
+  /* Telegram can clip the webview while the browser still reports its full layout height. */
+  bottom: max(var(--sheet-viewport-bottom, 0px), calc(100dvh - var(--sheet-telegram-height, 100dvh)));
+  max-height: min(
+    90dvh,
+    calc(min(var(--sheet-viewport-height, 100dvh), var(--sheet-telegram-height, 100dvh)) - 0.5rem)
+  );
+}
+
 /* Form sheets scroll with the keyboard. Their explicit close button stays in view. */
 [data-vaul-drawer][data-form-sheet] {
   touch-action: pan-y;

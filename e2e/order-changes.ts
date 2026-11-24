@@ -166,6 +166,49 @@ export async function checkOrderChanges(browser: Browser, baseURL: string) {
     await expect(received).toBeInViewport();
     await cabinet.screenshot({ path: "test-results/block10-seller-chat-390.png", animations: "disabled" });
 
+    await test.step("O8 · после обрыва связи чат получает пропущенный ответ без перезагрузки", async () => {
+      const buyerSocket = new URL("/api/orders/live", baseURL).pathname;
+      await storefront.routeWebSocket(
+        (url) => url.pathname === buyerSocket,
+        (socket) => socket.close(),
+      );
+      await storefront.reload();
+      await expect(storefront.getByText(data.text, { exact: true })).toBeVisible();
+
+      const reply = "Учебный ответ во время обрыва связи";
+      const sellerChat = `/api/seller/chat/${order.number}`;
+      const attempts: string[] = [];
+      await cabinet.route(
+        (url) => url.pathname === sellerChat,
+        async (route) => {
+          if (route.request().method() !== "POST") return route.continue();
+          attempts.push((await route.request().headerValue("idempotency-key")) ?? "");
+          if (attempts.length > 2) return route.continue();
+          const response = await route.fetch();
+          expect(response.ok()).toBe(true);
+          await route.abort("connectionreset");
+        },
+      );
+      await cabinet.getByRole("textbox", { name: "Сообщение" }).fill(reply);
+      await cabinet.getByRole("button", { name: "Отправить", exact: true }).click();
+      await expect(cabinet.getByRole("alert")).toHaveText("Не удалось проверить отправку");
+      await expect(cabinet.getByRole("textbox", { name: "Сообщение" })).toHaveValue(reply);
+      await expect(storefront.getByText(reply, { exact: true })).toHaveCount(0);
+
+      await storefront.routeWebSocket(
+        (url) => url.pathname === buyerSocket,
+        (socket) => {
+          socket.connectToServer();
+        },
+      );
+      await expect(storefront.getByText(reply, { exact: true })).toBeVisible({ timeout: 12_000 });
+      await cabinet.getByRole("button", { name: "Проверить отправку", exact: true }).click();
+      await expect(cabinet.getByText(reply, { exact: true })).toHaveCount(1);
+      expect(attempts).toEqual([expect.any(String), attempts[0], attempts[0]]);
+      expect(attempts[0]).toMatch(/^[\da-f-]{36}$/u);
+      await expect(cabinet.getByRole("textbox", { name: "Сообщение" })).toHaveValue("");
+    });
+
     await step({ action: "recordPayment", method: "cash", amountMinor: topUp });
     await step({ action: "setAllPacked", packed: true });
     await step({ action: "markReady" });
