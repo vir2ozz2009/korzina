@@ -5,7 +5,9 @@ import type { ReceivingState } from "../api";
 import { AddressSheet } from "./AddressSheet";
 
 const coordinates = { lat: 10.7769, lon: 106.7009 };
+const movedPoint = { ...coordinates, lon: 106.7019 };
 const street = "45 Lê Lợi, Хошимин";
+const movedStreet = "60 Lê Lợi, Хошимин";
 const outside = "12 rue de Rivoli, Paris";
 const saved: DeliveryAddress = {
   mode: "delivery",
@@ -39,7 +41,10 @@ vi.mock("../address-api", () => ({
         ? { mode: "delivery", available: true, feeMinor: 25000, tariff: "fixed", payee: "shop", inZone: true }
         : { mode: "delivery", available: false, reason: "outside", inZone: false }),
   }),
-  usePointName: (point?: Point) => ({ isPending: false, data: point ? [{ address: street }] : [] }),
+  usePointName: (point?: Point) => ({
+    isPending: false,
+    data: point ? [{ address: point.lon === movedPoint.lon ? movedStreet : street }] : [],
+  }),
   useVerifySubmittedAddress: () => ({ isPending: false, mutateAsync: verify }),
 }));
 
@@ -50,6 +55,11 @@ vi.mock("../../../ui/AddressMap", () => ({
       {select && (
         <button type="button" onClick={() => select(coordinates)}>
           Установить точку
+        </button>
+      )}
+      {select && (
+        <button type="button" onClick={() => select(movedPoint)}>
+          Переместить точку
         </button>
       )}
     </section>
@@ -171,6 +181,17 @@ it("address-edit 4 · квартира и подъезд сохраняют то
   edit(form, "Адрес доставки", "Новая улица 6");
   fireEvent.click(saveButton(form));
   expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ address: "Новая улица 6", point: undefined }));
+});
+
+it.each(["text", "map"] as const)("address-edit 6 · новая точка заменяет адрес корзины (%s)", async (mode) => {
+  const save = setup(mode, saved);
+  fireEvent.click(within(await editor()).getByRole("button", { name: "Изменить точку на карте" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Переместить точку" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Продолжить" }));
+  const form = await editor();
+  expect(field(form, "Адрес доставки").value).toBe(movedStreet);
+  fireEvent.click(saveButton(form));
+  expect(save).toHaveBeenCalledWith(expect.objectContaining({ ...saved, address: movedStreet, point: movedPoint }));
 });
 
 it("address-edit 5 · зона отклоняет внешнюю точку и разрешает редактирование внутри", async () => {
