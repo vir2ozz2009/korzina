@@ -26,7 +26,7 @@ async function checkWidths(page: Page, screen?: "home" | "product") {
   await page.setViewportSize({ width: 390, height: 844 });
 }
 
-test("витрина своего магазина → фасовка/корзина → товар → шторка → назад", async ({ page, request }) => {
+test("витрина своего магазина → фасовка/корзина → товар → шторка → назад", async ({ page, request, baseURL }) => {
   test.setTimeout(90_000);
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -34,9 +34,11 @@ test("витрина своего магазина → фасовка/корзи
     if (new URL(response.url()).pathname.startsWith("/api/") && response.status() >= 400)
       errors.push(`API ${response.status()}: ${response.url()}`);
   });
+  const defaultSlug = new URL(baseURL ?? "http://localhost").hostname === "demo.korzina.app" ? "lavka" : "test2";
   for (const [query, slug] of [
     ["?shop=lavka", "lavka"],
-    ["", "test2"],
+    ["?shop=test2", "test2"],
+    ["", defaultSlug],
   ] as const) {
     const response = await request.get(`/api/shop${query}`);
     expect(response.ok()).toBe(true);
