@@ -59,7 +59,11 @@ export function AddressSheet({
   );
   const view = trail[trail.length - 1];
   const [draft, setDraft] = useState<DeliveryAddress>(editing ? (current ?? empty) : empty);
-  const [point, setPoint] = useState<Point | undefined>(editing ? current?.point : undefined);
+  const [point, setPoint] = useState<Point>();
+  const mapParent = trail.at(-2);
+  const useDraftAddress =
+    (mapParent === "edit" || mapParent === "manual") &&
+    (!draft.point || (point?.lat === draft.point.lat && point.lon === draft.point.lon));
   const [locateOnOpen, setLocateOnOpen] = useState(false);
   const [outside, setOutside] = useState<string[]>([]);
   const [error, setError] = useState("");
@@ -81,7 +85,10 @@ export function AddressSheet({
   }, [checkingZone, draft.address, rejected, rememberOutside, result]);
 
   function open(next: View, locate = false) {
-    if (next === "map") setLocateOnOpen(locate);
+    if (next === "map") {
+      setLocateOnOpen(locate);
+      if (view === "edit" || view === "manual") setPoint(draft.point);
+    }
     setError("");
     setTrail([...trail, next]);
   }
@@ -90,7 +97,6 @@ export function AddressSheet({
     setError("");
     setTrail(trail.slice(0, -1));
   }
-
   function another() {
     setError("");
     setPoint(undefined);
@@ -114,7 +120,7 @@ export function AddressSheet({
     else editAddress(address);
   }
 
-  function change(address: DeliveryAddress, keepMapPoint = false) {
+  function change(address: DeliveryAddress) {
     setError("");
     const unchanged = normalize(address.address) === normalize(draft.address);
     setDraft({
@@ -122,7 +128,7 @@ export function AddressSheet({
       point: unchanged ? address.point : undefined,
       acceptedWithoutPoint: unchanged ? address.acceptedWithoutPoint : undefined,
     });
-    if (!unchanged && !keepMapPoint) setPoint(undefined);
+    if (!unchanged) setPoint(undefined);
   }
 
   async function saveAddress(address: DeliveryAddress, verify = false) {
@@ -173,8 +179,7 @@ export function AddressSheet({
             pickup={pickup}
             create={() => {
               change(empty);
-              setPoint(undefined);
-              open(firstEntry);
+              another();
             }}
           />
         )}
@@ -219,14 +224,10 @@ export function AddressSheet({
         {view === "map" && (
           <AddressMapStep
             address={draft.address}
-            useTypedAddress={trail.at(-2) === "manual" || trail.at(-2) === "edit"}
-            change={(address) => change({ ...draft, address }, true)}
+            useTypedAddress={useDraftAddress}
             point={point}
             locateOnOpen={locateOnOpen}
-            setPoint={(next) => {
-              setPoint(next);
-              setError("");
-            }}
+            setPoint={setPoint}
             rememberOutside={rememberOutside}
             currency={currency}
             pending={pending}
