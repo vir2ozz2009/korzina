@@ -1,6 +1,6 @@
 import { request } from "@playwright/test";
 import type { SellerOrderPage } from "../../src/shared/contracts/seller-order";
-import { anywhere, cabinet, cleanOrder, configure, hours, json, restoreCucumber, resume } from "./fixture";
+import { anywhere, cabinet, cleanOrder, configure, hours, json, restoreCucumber, resume } from "./fixture.ts";
 
 const baseURL = "https://demo.korzina.app";
 const token = process.env.QA1_SELLER_SESSION;

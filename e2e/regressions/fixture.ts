@@ -1,6 +1,6 @@
 import { type APIRequestContext, type APIResponse, test as base, expect, type Page } from "@playwright/test";
 import type { OrderResult, QuoteResponse } from "../../src/shared/contracts/checkout";
-import { weekdays } from "../../src/shared/contracts/receiving-time";
+import { weekdays } from "../../src/shared/contracts/receiving-time.ts";
 import type { SellerProduct } from "../../src/shared/contracts/seller-catalog";
 import type { SellerOrder } from "../../src/shared/contracts/seller-order";
 import type { SaveReceivingHours, SaveReceivingSettings } from "../../src/shared/contracts/seller-receiving";

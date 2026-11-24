@@ -82,11 +82,7 @@ for (const answer of ["Согласен", "Не нужно"] as const) {
       const withoutRemoved = order.totalMinor - removed.priceMinor * removed.quantity;
       await expect
         .poll(async () => (await orderDetail(seller.request, order.number)).totalMinor)
-        .toBe(
-          answer === "Согласен"
-            ? withoutRemoved + (replacement.priceMinor - kept.priceMinor) * kept.quantity
-            : withoutRemoved,
-        );
+        .toBe(answer === "Согласен" ? withoutRemoved + (replacement.priceMinor - kept.priceMinor) * kept.quantity : 0);
       const current = await orderDetail(seller.request, order.number);
       const buyer = await json<BuyerOrder>(await page.request.get(`/api/orders/${order.number}?${storefront}`));
       expect(buyer.composition?.totals).toEqual(current.composition?.totals);
