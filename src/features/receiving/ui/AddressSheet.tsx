@@ -7,18 +7,18 @@ import { usePointDelivery, useVerifySubmittedAddress } from "../address-api";
 import type { ReceivingState } from "../api";
 import { canReuseAddress, manualAddressError } from "../reuse-address";
 import { AddressChooser, savedChoices } from "./AddressChooser";
-import { AddressReview, AddressSheetError } from "./AddressDelivery";
+import { AddressSheetError } from "./AddressDelivery";
 import { AddressMapStep } from "./AddressMapStep";
 import { AddressSearch } from "./AddressSearch";
 import { ManualAddressStep } from "./ManualAddressStep";
 
-type View = "choose" | "search" | "manual" | "map" | "review";
+type View = "choose" | "search" | "manual" | "map" | "edit";
 const titles: Record<View, string> = {
   choose: "Адрес доставки",
   search: "Новый адрес",
   manual: "Ввести адрес вручную",
   map: "Адрес на карте",
-  review: "Проверьте адрес",
+  edit: "Редактировать адрес",
 };
 const empty: DeliveryAddress = { mode: "delivery", address: "" };
 const normalize = (address: string) => address.trim().replace(/\s+/g, " ").toLowerCase();
@@ -32,6 +32,7 @@ export function AddressSheet({
   close,
   pickup,
   edit,
+  editCurrent,
 }: {
   current?: DeliveryAddress;
   data: ReceivingState;
@@ -41,25 +42,31 @@ export function AddressSheet({
   close: () => void;
   pickup?: () => void;
   edit?: boolean;
+  editCurrent?: boolean;
 }) {
   const choices = edit ? [] : savedChoices(current, data);
   const onMap = data.delivery?.mode === "map";
   const districts = data.delivery?.districts ?? [];
   const geocoded = onMap || data.delivery?.mode === "text";
   const firstEntry = geocoded ? "search" : "manual";
-  const [trail, setTrail] = useState<View[]>([
-    edit && current ? (geocoded && current.point ? "review" : "manual") : choices.length ? "choose" : firstEntry,
-  ]);
+  const editing = !!current && (edit || editCurrent);
+  const [trail, setTrail] = useState<View[]>(
+    editing
+      ? editCurrent && choices.length
+        ? ["choose", "edit"]
+        : ["edit"]
+      : [choices.length ? "choose" : firstEntry],
+  );
   const view = trail[trail.length - 1];
-  const [draft, setDraft] = useState<DeliveryAddress>(edit ? (current ?? empty) : empty);
-  const [candidate, setCandidate] = useState<DeliveryAddress | undefined>(edit ? current : undefined);
-  const [point, setPoint] = useState<Point | undefined>(edit ? current?.point : undefined);
+  const [draft, setDraft] = useState<DeliveryAddress>(editing ? (current ?? empty) : empty);
+  const [point, setPoint] = useState<Point | undefined>(editing ? current?.point : undefined);
   const [locateOnOpen, setLocateOnOpen] = useState(false);
   const [outside, setOutside] = useState<string[]>([]);
   const [error, setError] = useState("");
   const verification = useVerifySubmittedAddress();
   const pending = saving || verification.isPending;
-  const check = usePointDelivery(view === "review" ? candidate?.point : undefined);
+  const checkingZone = onMap && (view === "edit" || view === "manual") && !!draft.point;
+  const check = usePointDelivery(checkingZone ? draft.point : undefined);
   const result = check.data;
   const rejected = !check.isError && result?.mode === "delivery" && !result.available;
   const blocked = onMap && outside.includes(normalize(draft.address));
@@ -70,8 +77,8 @@ export function AddressSheet({
   }, []);
 
   useEffect(() => {
-    if (candidate && rejected && result.reason === "outside") rememberOutside(candidate.address);
-  }, [candidate, rejected, rememberOutside, result]);
+    if (checkingZone && rejected && result.reason === "outside") rememberOutside(draft.address);
+  }, [checkingZone, draft.address, rejected, rememberOutside, result]);
 
   function open(next: View, locate = false) {
     if (next === "map") setLocateOnOpen(locate);
@@ -90,21 +97,21 @@ export function AddressSheet({
     setTrail(choices.length ? ["choose", firstEntry] : [firstEntry]);
   }
 
-  function review(address: DeliveryAddress) {
-    if (geocoded && address.point) {
-      setCandidate(address);
-      open("review");
-      return;
-    }
+  function editAddress(address: DeliveryAddress) {
     setDraft(address);
     setPoint(address.point);
-    open("manual");
+    setError("");
+    setTrail((previous) => {
+      if (previous.at(-1) !== "map") return [...previous, "edit"];
+      const parent = previous.at(-2);
+      return parent === "edit" || parent === "manual" ? previous.slice(0, -1) : [...previous, "edit"];
+    });
   }
 
-  function selectSaved(address: DeliveryAddress, saved: boolean) {
-    if ((saved || !current || addressKey(current) !== addressKey(address)) && canReuseAddress(address, data))
+  function selectSaved(address: DeliveryAddress) {
+    if ((!current || addressKey(current) !== addressKey(address)) && canReuseAddress(address, data))
       void saveAddress(address);
-    else review(address);
+    else editAddress(address);
   }
 
   function change(address: DeliveryAddress, keepMapPoint = false) {
@@ -133,11 +140,12 @@ export function AddressSheet({
         if (view === "search") return;
       }
       setError(reason instanceof Error ? reason.message : "Не удалось сохранить адрес");
-      if (view === "review") void check.refetch();
+      if (checkingZone) void check.refetch();
     }
   }
 
   function saveManual() {
+    if (checkingZone && (check.isFetching || check.isError || result?.mode !== "delivery" || !result.available)) return;
     const address = draft.address.trim();
     const error = manualAddressError(draft, data, blocked);
     if (error) return setError(error);
@@ -175,7 +183,7 @@ export function AddressSheet({
             address={draft.address}
             change={(address) => change({ ...draft, address })}
             select={(place) =>
-              review({
+              editAddress({
                 mode: "delivery",
                 address: place.address.slice(0, 300),
                 point: { lat: place.lat, lon: place.lon },
@@ -191,7 +199,7 @@ export function AddressSheet({
             pickup={pickup}
           />
         )}
-        {view === "manual" && (
+        {(view === "manual" || view === "edit") && (
           <ManualAddressStep
             address={draft}
             districts={districts}
@@ -201,13 +209,17 @@ export function AddressSheet({
             save={saveManual}
             map={geocoded ? () => open("map") : undefined}
             zone={onMap}
+            zoneCheck={checkingZone ? check : undefined}
+            currency={currency}
+            choose={view === "edit" && choices.length ? () => setTrail(["choose"]) : undefined}
+            another={checkingZone && rejected ? another : undefined}
             pickup={!onMap || blocked ? pickup : undefined}
           />
         )}
         {view === "map" && (
           <AddressMapStep
             address={draft.address}
-            useTypedAddress={trail.at(-2) === "manual"}
+            useTypedAddress={trail.at(-2) === "manual" || trail.at(-2) === "edit"}
             change={(address) => change({ ...draft, address }, true)}
             point={point}
             locateOnOpen={locateOnOpen}
@@ -221,24 +233,13 @@ export function AddressSheet({
             enterAddress={another}
             pickup={pickup}
             save={(address, selected) =>
-              void saveAddress({
-                ...(normalize(draft.address) === normalize(address) ? draft : empty),
+              editAddress({
+                ...draft,
                 address,
                 point: selected,
                 acceptedWithoutPoint: undefined,
               })
             }
-          />
-        )}
-        {view === "review" && candidate && (
-          <AddressReview
-            address={candidate.address}
-            check={check}
-            currency={currency}
-            pending={pending}
-            save={() => void saveAddress(candidate)}
-            another={another}
-            pickup={pickup}
           />
         )}
         {error && <AddressSheetError message={error} />}

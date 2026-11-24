@@ -81,13 +81,12 @@ async function checkTextAddress(page: Page) {
   await expect(search.getByRole("button", { name: "Указать на карте" })).toBeVisible();
   await page.screenshot({ path: "test-results/bl-15-search-390.png", animations: "disabled" });
   await search.getByRole("button", { name: "Определить мою позицию" }).click();
-  const map = page.getByRole("dialog", { name: "Адрес на карте" });
-  await expect(map.getByText("Доставка доступна")).toBeVisible();
-  await expect(map.getByText(street)).toBeVisible();
-  await expect(map.locator(".leaflet-marker-icon")).toBeVisible();
+  const editor = page.getByRole("dialog", { name: "Редактировать адрес" });
+  await expect(editor.getByRole("textbox", { name: "Адрес доставки" })).toHaveValue(street);
+  await expect(editor.locator(".leaflet-marker-icon")).toBeVisible();
   await page.screenshot({ path: "test-results/bl-15-map-390.png", animations: "disabled" });
-  await map.getByRole("button", { name: "Подтвердить адрес" }).click();
-  await expect(map).toBeHidden();
+  await editor.getByRole("button", { name: "Сохранить адрес", exact: true }).click();
+  await expect(editor).toBeHidden();
   expect(await (await page.request.get(cart)).json()).toMatchObject({
     receiving: { address: street, point: outside },
     availability: { available: true, inZone: null },
@@ -95,6 +94,7 @@ async function checkTextAddress(page: Page) {
 
   const address = "Дом с синими воротами";
   await page.getByRole("button", { name: new RegExp(street) }).click();
+  await editor.getByRole("button", { name: "Сохранённые адреса" }).click();
   await page.getByRole("button", { name: "Указать другой адрес" }).click();
   await search.getByRole("button", { name: "Ввести адрес вручную" }).click();
   const manual = page.getByRole("dialog", { name: "Ввести адрес вручную" });

@@ -48,18 +48,28 @@ export function ManualAddressFields({
           onChange={(event) => onChange({ ...value, address: event.target.value })}
         />
       )}
-      {required.map((field) => (
+      {(manual ? (Object.keys(addressFields) as DetailField[]) : required).map((field) => (
         <Input
           key={field}
           id={idPrefix ? `${idPrefix}-${field}` : undefined}
-          label={manual ? `${addressFields[field]} *` : addressFields[field]}
+          label={manual && required.includes(field) ? `${addressFields[field]} *` : addressFields[field]}
           error={invalid === field ? "Заполните это поле" : undefined}
           value={value[field] ?? ""}
           disabled={disabled}
+          aria-required={required.includes(field)}
           maxLength={80}
           onChange={(event) => onChange({ ...value, [field]: event.target.value })}
         />
       ))}
+      {manual && (
+        <TextArea
+          label="Комментарий"
+          value={value.comment ?? ""}
+          disabled={disabled}
+          maxLength={500}
+          onChange={(event) => onChange({ ...value, comment: event.target.value })}
+        />
+      )}
     </>
   );
 }

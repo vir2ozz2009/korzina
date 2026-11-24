@@ -78,7 +78,7 @@ async function chooseMappedAddress(page: Page) {
   await map.getByRole("button", { name: "Определить мою позицию" }).click();
   await expect(map.getByText("За пределами зоны доставки")).toBeVisible();
   await expect(map.getByText("136 Hồ Xuân Hương, Дананг")).toBeVisible();
-  await expect(map.getByRole("button", { name: "Подтвердить адрес" })).toHaveCount(0);
+  await expect(map.getByRole("button", { name: "Продолжить", exact: true })).toHaveCount(0);
   await page.screenshot({ path: "test-results/checkout-address-outside-390.png", animations: "disabled" });
   await map.getByRole("button", { name: "Назад", exact: true }).click();
   await expect(street).toHaveValue("136 Hồ Xuân Hương, Дананг");
@@ -96,13 +96,20 @@ async function chooseMappedAddress(page: Page) {
   await map.getByRole("button", { name: "Назад", exact: true }).click();
   await expect(street).toHaveValue("28 Lê Lợi, Хошимин");
   await search.getByRole("button", { name: "Указать на карте" }).click();
-  await map.getByRole("button", { name: "Подтвердить адрес" }).click();
+  await map.getByRole("button", { name: "Продолжить", exact: true }).click();
+  const editor = page.getByRole("dialog", { name: "Редактировать адрес" });
+  await expect(editor.getByRole("textbox", { name: "Адрес доставки" })).toHaveValue("28 Lê Lợi, Хошимин");
+  await expect(editor.locator(".leaflet-marker-icon")).toBeVisible();
+  await page.screenshot({ path: "test-results/address-edit-form-390.png", animations: "disabled" });
+  await editor.getByRole("button", { name: "Сохранить адрес", exact: true }).click();
+  await expect(editor).toBeHidden();
   await expect(map).toBeHidden();
   const orderTotals = page.getByRole("heading", { name: "Ваш заказ" }).locator("..");
   await expect(orderTotals.getByText(/25\s000/)).toBeVisible();
 
   const chooser = page.getByRole("dialog", { name: "Адрес доставки" });
   await page.getByRole("button", { name: /28 Lê Lợi, Хошимин.*Адрес доставки/ }).click();
+  await editor.getByRole("button", { name: "Сохранённые адреса" }).click();
   await expect(chooser.getByRole("searchbox")).toHaveCount(0);
   await page.screenshot({ path: "test-results/checkout-address-chooser-390.png", animations: "disabled" });
   await chooser.getByRole("button", { name: "Указать другой адрес" }).click();
@@ -133,8 +140,7 @@ async function chooseMappedAddress(page: Page) {
   await page.context().setGeolocation({ latitude: 10.777, longitude: 106.701 });
   await page.context().grantPermissions(["geolocation"]);
   await savedAddress.click();
-  await chooser.getByRole("button", { name: /28 Lê Lợi, Хошимин.*Текущий адрес/ }).click();
-  const manual = page.getByRole("dialog", { name: "Ввести адрес вручную" });
+  const manual = editor;
   await expect(manual.getByRole("textbox", { name: "Адрес доставки" })).toHaveValue("28 Lê Lợi, Хошимин");
   await page.screenshot({ path: "test-results/checkout-address-manual-to-map-390.png", animations: "disabled" });
   await manual.getByRole("button", { name: "Указать на карте" }).click();
@@ -142,7 +148,9 @@ async function chooseMappedAddress(page: Page) {
   await expect(map.getByText("45 Lê Lợi, Хошимин", { exact: true })).toBeVisible();
   await expect(map.getByRole("textbox", { name: "Адрес для курьера" })).toHaveValue("28 Lê Lợi, Хошимин");
   await page.screenshot({ path: "test-results/checkout-address-manual-pin-390.png", animations: "disabled" });
-  await map.getByRole("button", { name: "Подтвердить адрес" }).click();
+  await map.getByRole("button", { name: "Продолжить", exact: true }).click();
+  await editor.getByRole("button", { name: "Сохранить адрес", exact: true }).click();
+  await expect(editor).toBeHidden();
   await expect(map).toBeHidden();
   await expect(page.getByRole("button", { name: /28 Lê Lợi, Хошимин.*Адрес доставки/ })).toBeVisible();
   await expect(orderTotals.getByText(/25\s000/)).toBeVisible();

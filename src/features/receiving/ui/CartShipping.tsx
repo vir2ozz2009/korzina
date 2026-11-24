@@ -58,6 +58,11 @@ export function CartShipping({
   }
   const method = activeReceiving(data);
   const address = data.receiving?.mode === "delivery" ? data.receiving : undefined;
+  const addressStatus = data.availability?.available
+    ? address?.acceptedWithoutPoint
+      ? "Условия доставки уточняются"
+      : "Адрес доставки"
+    : "Нужно проверить адрес";
   const blocked = disabled || save.isPending;
   const update = (receiving: Receiving) =>
     save.mutateAsync({ receiving, expectedRevision: Math.max(revision, data.revision) });
@@ -138,11 +143,7 @@ export function CartShipping({
           title={address?.address || "Укажите адрес доставки"}
           subtitle={
             address
-              ? data.availability?.available
-                ? address.acceptedWithoutPoint
-                  ? "Условия доставки уточняются"
-                  : "Адрес доставки"
-                : "Нужно проверить адрес"
+              ? [address.apartment && `кв. ${address.apartment}`, addressStatus].filter(Boolean).join(" · ")
               : undefined
           }
           icon={<MapPin size={22} />}
@@ -153,6 +154,7 @@ export function CartShipping({
       {open && data.delivery && (
         <AddressSheet
           current={address ?? data.deliveryDraft}
+          editCurrent={!!address}
           data={data}
           currency={currency}
           pending={save.isPending}

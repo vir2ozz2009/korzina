@@ -92,10 +92,10 @@ test(
     await expect(search.getByRole("button", { name: street })).toBeVisible();
     await expect(search.getByRole("button", { name: "Указать на карте" })).toBeVisible();
     await search.getByRole("button", { name: "Определить мою позицию" }).click();
-    const map = page.getByRole("dialog", { name: "Адрес на карте" });
-    await expect(map.getByText("Доставка доступна")).toBeVisible();
-    await expect(map.locator(".leaflet-marker-icon")).toBeVisible();
-    await map.getByRole("button", { name: "Подтвердить адрес" }).click();
+    const form = page.getByRole("dialog", { name: "Редактировать адрес" });
+    await expect(form.getByRole("textbox", { name: "Адрес доставки" })).toHaveValue(street);
+    await expect(form.locator(".leaflet-marker-icon")).toBeVisible();
+    await form.getByRole("button", { name: "Сохранить адрес", exact: true }).click();
     await expect(page.getByRole("button", { name: new RegExp(street) })).toBeVisible();
     expect(await json(await page.request.get(receiving))).toMatchObject({
       receiving: { address: street, point: outside },
