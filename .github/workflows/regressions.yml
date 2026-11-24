@@ -1,0 +1,73 @@
+name: Регрессии
+
+on:
+  schedule:
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: demo-regressions
+  cancel-in-progress: false
+
+jobs:
+  demo:
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      E2E_BASE_URL: https://demo.korzina.app
+      E2E_REGRESSIONS: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium
+      - run: node e2e/regressions/demo-auth.ts
+        id: auth
+      - run: node e2e/regressions/demo-reset.ts
+      - run: npm run test:e2e -- --grep @regression --reporter=line,html
+      - if: always() && steps.auth.outcome == 'success'
+        run: node e2e/regressions/demo-reset.ts
+      - id: revoke
+        if: always()
+        run: node e2e/regressions/demo-auth.ts --revoke
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.revoke.outcome == 'success'
+        with:
+          name: regression-playwright
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+  report:
+    if: failure()
+    needs: demo
+    permissions:
+      issues: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Открыть issue о падении
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh api "repos/${GH_REPO}/labels/regression" >/dev/null ||
+            gh label create regression --color B60205 --description 'Сбой ночного набора на demo'
+          title="Регрессии demo · #${GITHUB_RUN_ID}"
+          existing="$(gh issue list --state all --label regression --search "$title in:title" --json title --jq '.[].title')"
+          if ! printf '%s\n' "$existing" | grep -Fxq "$title"; then
+            gh issue create --label regression --title "$title" --body "Не прошёл прогон на demo. Отчёт Playwright и трассы доступны в [прогоне](${RUN_URL})."
+          fi
