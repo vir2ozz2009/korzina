@@ -19,7 +19,9 @@ export function buyerStorefrontHeaders() {
   };
 }
 
-export const embeddedStorefront = Boolean(cabinetStorefront && embedded);
+const embeddedStorefront = Boolean(cabinetStorefront && embedded);
+// Telegram Web cannot use the storefront's first-party session cookie in its cross-site iframe.
+export const embeddedBuyerSession = embedded && (telegramLaunch || embeddedStorefront);
 export function storeBuyerToken(token?: string) {
   buyerToken = token;
 }
