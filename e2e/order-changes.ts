@@ -167,11 +167,8 @@ export async function checkOrderChanges(browser: Browser, baseURL: string) {
     await cabinet.screenshot({ path: "test-results/block10-seller-chat-390.png", animations: "disabled" });
 
     await test.step("O8 · после обрыва связи чат получает пропущенный ответ без перезагрузки", async () => {
-      const buyerSocket = new URL("/api/orders/live", baseURL).pathname;
-      await storefront.routeWebSocket(
-        (url) => url.pathname === buyerSocket,
-        (socket) => socket.close(),
-      );
+      const buyerSocket = "**/api/orders/live?*";
+      await storefront.routeWebSocket(buyerSocket, (socket) => socket.close());
       await storefront.reload();
       await expect(storefront.getByText(data.text, { exact: true })).toBeVisible();
 
@@ -195,12 +192,9 @@ export async function checkOrderChanges(browser: Browser, baseURL: string) {
       await expect(cabinet.getByRole("textbox", { name: "Сообщение" })).toHaveValue(reply);
       await expect(storefront.getByText(reply, { exact: true })).toHaveCount(0);
 
-      await storefront.routeWebSocket(
-        (url) => url.pathname === buyerSocket,
-        (socket) => {
-          socket.connectToServer();
-        },
-      );
+      await storefront.routeWebSocket(buyerSocket, (socket) => {
+        socket.connectToServer();
+      });
       await expect(storefront.getByText(reply, { exact: true })).toBeVisible({ timeout: 12_000 });
       await cabinet.getByRole("button", { name: "Проверить отправку", exact: true }).click();
       await expect(cabinet.getByText(reply, { exact: true })).toHaveCount(1);
