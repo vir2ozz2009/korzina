@@ -16,9 +16,13 @@ describe("разрешение магазина", () => {
   });
 
   it("разрешает переключение через query только на demo и localhost", async () => {
-    for (const origin of ["http://localhost:5173", "https://demo.korzina.app"]) {
-      expect(await (await get(`${origin}/api/shop?shop=test2`)).json()).toMatchObject({ slug: "test2" });
-      expect(await (await get(`${origin}/api/shop`)).json()).toMatchObject({ slug: "lavka" });
+    for (const origin of [
+      "http://localhost:5173",
+      "https://demo.korzina.app",
+      "https://task-preview-korzina-demo.vir2ozz2009.workers.dev",
+    ]) {
+      expect(await (await get(`${origin}/api/shop`)).json()).toMatchObject({ slug: "test2" });
+      expect(await (await get(`${origin}/api/shop?shop=lavka`)).json()).toMatchObject({ slug: "lavka" });
     }
     expect((await get("https://unknown.test/api/shop?shop=lavka")).status).toBe(404);
   });

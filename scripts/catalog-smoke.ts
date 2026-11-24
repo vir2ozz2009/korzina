@@ -9,9 +9,9 @@ async function smoke() {
       headers,
       signal: AbortSignal.timeout(10_000),
     });
-  const shop = await get("/api/shop?shop=test2");
+  const shop = await get("/api/shop");
   assert(shop.ok, `shop: HTTP ${shop.status}`);
-  await shop.body?.cancel();
+  assert.equal(((await shop.json()) as { slug: string }).slug, "test2");
   const document = await get("/api/catalog/document?shop=test2");
   assert(document.ok, `document: HTTP ${document.status}`);
   const data = (await document.json()) as {

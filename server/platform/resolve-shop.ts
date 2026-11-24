@@ -42,7 +42,7 @@ export async function resolveShop(
   const preview = request.headers.get(previewShopHeader);
   if (preview !== null && !/^[a-z0-9-]{1,63}$/u.test(preview))
     throw new ApiError("SHOP_NOT_FOUND", "Магазин не найден");
-  const slug = preview ?? (isDevelopmentHost(url.hostname) ? (url.searchParams.get("shop") ?? "lavka") : undefined);
+  const slug = preview ?? (isDevelopmentHost(url.hostname) ? (url.searchParams.get("shop") ?? "test2") : undefined);
   const key = slug ? cacheKey(namespace, "slug", slug) : cacheKey(namespace, "host", url.hostname);
   const hit = fresh ? undefined : memory.get(key);
   const verify = async (shop: ResolvedShop) => {
