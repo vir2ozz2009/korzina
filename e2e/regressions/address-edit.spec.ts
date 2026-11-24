@@ -16,6 +16,7 @@ import {
 
 const tag = { tag: "@regression" };
 const street = "45 Lê Lợi, Хошимин";
+const movedStreet = "60 Lê Lợi, Хошимин";
 const outside = "12 rue de Rivoli, Paris";
 const distant = { lat: 48.8566, lon: 2.3522 };
 const cart = `/cart?${storefront}`;
@@ -31,7 +32,12 @@ test.beforeEach(async ({ seller, page }) => {
     const input = route.request().postDataJSON();
     const results =
       input.type === "reverse"
-        ? [{ address: street, ...input.point }]
+        ? [
+            {
+              address: Math.abs(input.point.lon - point.lon) > 0.0001 ? movedStreet : street,
+              ...input.point,
+            },
+          ]
         : input.address === "45 Lê Lợi"
           ? [{ address: street, ...point }]
           : input.address === "rue de Rivoli"
@@ -160,6 +166,30 @@ test("address-edit (г) сохранённый адрес из корзины о
   expect(await json(await page.request.get(receiving))).toMatchObject({
     receiving: { address, point, apartment: "21", entrance: "3" },
   });
+
+  await row(page, address).click();
+  await form.getByRole("button", { name: "Изменить точку на карте" }).click();
+  const map = page.getByRole("dialog", { name: "Адрес на карте" });
+  const mapArea = map.getByRole("region", { name: "Карта доставки" });
+  await expect(mapArea.locator(".leaflet-marker-icon")).toBeVisible();
+  const newPin = page.waitForRequest(
+    (request) =>
+      request.url().includes("/api/receiving/geocode?") &&
+      request.postDataJSON()?.type === "reverse" &&
+      Math.abs(request.postDataJSON().point.lon - point.lon) > 0.0001,
+  );
+  await mapArea.click({ position: { x: 70, y: 60 } });
+  const { point: movedPoint } = (await newPin).postDataJSON();
+  await expect(map.getByText(movedStreet, { exact: true })).toBeVisible();
+  await map.getByRole("button", { name: "Продолжить", exact: true }).click();
+  await expect(field(form, "Адрес доставки")).toHaveValue(movedStreet);
+  await save(form);
+  await expect(row(page, movedStreet)).toContainText("кв. 21");
+  expect(await json(await page.request.get(receiving))).toMatchObject({
+    receiving: { address: movedStreet, point: movedPoint, apartment: "21", entrance: "3" },
+  });
+  await page.reload();
+  await expect(row(page, movedStreet)).toBeVisible();
 });
 
 test("address-edit (д) после Самовывоз → Доставка адрес на месте и редактируется", tag, async ({ page }) => {
