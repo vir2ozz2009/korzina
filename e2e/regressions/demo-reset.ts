@@ -1,6 +1,6 @@
 import { request } from "@playwright/test";
 import type { SellerOrderPage } from "../../src/shared/contracts/seller-order";
-import { anywhere, cabinet, cleanOrder, configure, hours, json, resume } from "./fixture";
+import { anywhere, cabinet, cleanOrder, configure, hours, json, restoreCucumber, resume } from "./fixture";
 
 const baseURL = "https://demo.korzina.app";
 const token = process.env.QA1_SELLER_SESSION;
@@ -17,6 +17,7 @@ try {
   const { orders: active, cursor } = await json<SellerOrderPage>(await api.get(orders));
   if (cursor) throw new Error("В учебном магазине неожиданно больше одной страницы активных заказов");
   for (const { number } of active) await cleanOrder(api, number);
+  await restoreCucumber(api);
   await configure(api, { delivery: anywhere, requiredDetails: [], minimumMinor: 120000 });
   await resume(api);
   await hours(api, "2");

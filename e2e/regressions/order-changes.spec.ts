@@ -11,6 +11,7 @@ import {
   json,
   orderDetail,
   placeOrder,
+  restoreCucumber,
   resume,
   storefront,
   test,
@@ -41,6 +42,7 @@ for (const answer of ["Согласен", "Не нужно"] as const) {
     `§17.1 блок 10 отсутствие товара и ответ «${answer}» одинаково видны покупателю и продавцу`,
     tag,
     async ({ page, seller, rememberOrder }) => {
+      await restoreCucumber(seller.request);
       const order = await placeOrder(page, "pickup", "sku-25");
       rememberOrder(order.number);
       await transition(seller.request, order.number, { action: "accept" });

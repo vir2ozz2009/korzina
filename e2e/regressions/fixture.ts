@@ -1,6 +1,7 @@
 import { type APIRequestContext, type APIResponse, test as base, expect, type Page } from "@playwright/test";
 import type { OrderResult, QuoteResponse } from "../../src/shared/contracts/checkout";
 import { weekdays } from "../../src/shared/contracts/receiving-time";
+import type { SellerProduct } from "../../src/shared/contracts/seller-catalog";
 import type { SellerOrder } from "../../src/shared/contracts/seller-order";
 import type { SaveReceivingHours, SaveReceivingSettings } from "../../src/shared/contracts/seller-receiving";
 
@@ -107,6 +108,24 @@ export async function cleanOrder(request: APIRequestContext, number: number) {
   if (order.balance.refundMinor) await transition(request, number, { action: "markRefundReturned" });
 }
 
+export async function restoreCucumber(request: APIRequestContext) {
+  const base = "/api/seller/catalog";
+  const product = await json<SellerProduct>(await request.get(`${base}/products/product-25?${cabinet}`));
+  const item = product.variants.find(({ id }) => id === "sku-25");
+  if (!item) throw new Error("Нет учебной фасовки огурцов");
+  if (product.salePause === null && item.salePause === null && item.stock === 15) return;
+  const result = await json<{ applied: string[] }>(
+    await request.post(`${base}/bulk?${cabinet}`, {
+      headers: command(),
+      data: {
+        products: [{ id: product.id, revision: product.revision }],
+        action: { kind: "resume", stock: [{ id: item.id, stock: 15, revision: item.stockRevision }] },
+      },
+    }),
+  );
+  expect(result.applied).toEqual([product.id]);
+}
+
 export async function prepareCart(page: Page, mode: "delivery" | "pickup" = "delivery", quantity = 3) {
   const request = page.request;
   await page.addInitScript((id) => localStorage.setItem(`korzina:${id}:buyer`, "1"), `korzina-demo-${shop}`);
@@ -211,6 +230,7 @@ export const test = base.extend<{ seller: Page; rememberOrder: (number: number) 
       await use((number) => orders.add(number));
     } finally {
       for (const number of orders) await cleanOrder(seller.request, number);
+      await restoreCucumber(seller.request);
     }
   },
 });
