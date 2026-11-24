@@ -6,6 +6,8 @@ import type { OrderRow } from "../checkout/buyer-orders";
 import type { ReservedOrder } from "../checkout/order-reservation";
 import { addOrderPayment, type OrderWorkflow, orderBalance } from "../checkout/order-workflow";
 
+import { allocateSalesRefund } from "../seller-sales/revenue";
+
 type Finance = NonNullable<OrderWorkflow["finance"]>;
 type PaymentCommand = Exclude<SellerOrderCommand, SellerTransition | { action: "setLinePacked" | "setAllPacked" }>;
 
@@ -56,10 +58,21 @@ export function changePayment(row: OrderRow, snapshot: ReservedOrder, finance: F
       if (!balance.debtMinor) throw new ApiError("VALIDATION", "Открытого долга нет");
       changed = { ...finance, waivedMinor: addMinor(finance.waivedMinor, balance.debtMinor) };
       break;
-    case "markRefundReturned":
-      if (!balance.refundMinor) throw new ApiError("VALIDATION", "Суммы к возврату нет");
-      changed = { ...finance, returnedMinor: addMinor(finance.returnedMinor, balance.refundMinor) };
+    case "markRefundReturned": {
+      const amountMinor = input.allocation?.amountMinor ?? balance.refundMinor;
+      if (!amountMinor) throw new ApiError("VALIDATION", "Суммы к возврату нет");
+      if (input.allocation) {
+        const available = finance.paidMinor - finance.returnedMinor - balance.refundMinor;
+        if (row.status !== "completed" || amountMinor > available)
+          throw new ApiError("VALIDATION", "Возврат превышает доступную сумму выполненного заказа");
+        const salesRefund = allocateSalesRefund(snapshot, finance.salesRefund, input.allocation);
+        changed = { ...finance, salesRefund, returnedMinor: addMinor(finance.returnedMinor, amountMinor) };
+      } else {
+        changed = { ...finance, returnedMinor: addMinor(finance.returnedMinor, amountMinor) };
+      }
+      details = { amountMinor, allocation: input.allocation };
       break;
+    }
     case "setDeliveryFee": {
       const { fulfillment } = snapshot;
       if (

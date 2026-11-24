@@ -9,6 +9,7 @@ import { unpackOrder } from "../checkout/buyer-orders";
 import { releaseOrderReservation } from "../checkout/order-reservation";
 import { orderBalance, orderFinance, orderWorkflow } from "../checkout/order-workflow";
 import { pendingComposition } from "../order-changes/state";
+import { refreshOrderSales } from "../seller-sales/projection";
 import { sellerOrder, sellerOrderRow } from "./order";
 import { changePayment, paymentForTransition } from "./payment";
 import { nextOrderStage } from "./transition";
@@ -102,6 +103,11 @@ export function changeSellerOrder(
         details === undefined ? null : JSON.stringify(details),
       )
       .one();
+    if (
+      (row.status === "completed" || stage === "completed") &&
+      (row.status !== stage || input.action === "markRefundReturned" || input.action === "setDeliveryFee")
+    )
+      refreshOrderSales(storage, number, snapshot.currency);
     if (snapshot.telegramLinked) {
       const telegramId = /^telegram:(\d+)$/u.exec(row.customer)?.[1];
       if (telegramId) {

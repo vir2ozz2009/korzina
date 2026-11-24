@@ -12,14 +12,14 @@ import { Checkbox } from "../../../../ui/Checkbox";
 import { Chip } from "../../../../ui/Chip";
 import { EmptyState } from "../../../../ui/EmptyState";
 import { IconButton } from "../../../../ui/IconButton";
-import { Radio } from "../../../../ui/Radio";
 import { SearchField } from "../../../../ui/SearchField";
-import { Sheet } from "../../../../ui/Sheet";
 import { sellerOrderSearch } from "../../order-search";
 import { useSellerOrderCommand, useSellerOrderList } from "../../orders-api";
+import { periodLabel } from "../sales/dates";
 import { WorkdayDays, workdayLabels } from "../workday/workday-ui";
-import { methodLabel, stages } from "./OrderIndicators";
+import { stages } from "./OrderIndicators";
 import { OrderListCard } from "./OrderListCard";
+import { groupOrders, OrderFilterSheet } from "./order-list-filters";
 import { SellerOrdersShell } from "./SellerOrdersShell";
 
 export function SellerOrdersList() {
@@ -39,8 +39,10 @@ function OrderList({ store, money }: { store: string; money: boolean }) {
   const navigate = useNavigate();
   const day = typeof location.search.day === "string" ? location.search.day : undefined;
   const focus = workdayFocus.safeParse(location.search.focus).data;
-  const scoped = !!day || !!focus;
-  const searchKey = scoped ? JSON.stringify([store, day, focus]) : store;
+  const { completedFrom, completedTo } = location.search;
+  const salesPeriod = completedFrom && completedTo ? { from: completedFrom, to: completedTo } : undefined;
+  const scoped = !!day || !!focus || !!salesPeriod;
+  const searchKey = scoped ? JSON.stringify([store, day, focus, salesPeriod]) : store;
   const [search, setSearch] = useState(() => sellerOrderSearch.get(searchKey) ?? "");
   const [settled, setSettled] = useState(search);
   useEffect(() => {
@@ -63,6 +65,8 @@ function OrderList({ store, money }: { store: string; money: boolean }) {
     debt,
     day,
     focus,
+    completedFrom,
+    completedTo,
     search: settled.trim(),
   };
   function changeFilters(next: Partial<Omit<ListFilters, "search">>) {
@@ -75,7 +79,19 @@ function OrderList({ store, money }: { store: string; money: boolean }) {
     }
     void navigate({
       to: "/seller/orders",
-      search: { shop: location.search.shop, tab, method, debt, day, focus, back: location.search.back, store, ...next },
+      search: {
+        shop: location.search.shop,
+        tab,
+        method,
+        debt,
+        day,
+        focus,
+        back: location.search.back,
+        completedFrom,
+        completedTo,
+        store,
+        ...next,
+      },
       replace: true,
     });
   }
@@ -104,7 +120,15 @@ function OrderList({ store, money }: { store: string; money: boolean }) {
       command: { action: "accept", expectedRevision: order.revision },
     });
   }
-  const reset = () => changeFilters({ method: undefined, debt: undefined, day: undefined, focus: undefined });
+  const reset = () =>
+    changeFilters({
+      method: undefined,
+      debt: undefined,
+      day: undefined,
+      focus: undefined,
+      completedFrom: undefined,
+      completedTo: undefined,
+    });
   return (
     <>
       {scoped ? (
@@ -114,6 +138,7 @@ function OrderList({ store, money }: { store: string; money: boolean }) {
               {formatShopDay(day, list.data?.timeZone ?? "UTC")}
             </Chip>
           )}
+          {salesPeriod && <span className="text-small">Выполненные заказы · {periodLabel(salesPeriod)}</span>}
           {focus && (
             <Chip selected onClick={() => changeFilters({ focus: undefined })}>
               {workdayLabels[focus]}
@@ -236,55 +261,13 @@ function OrderList({ store, money }: { store: string; money: boolean }) {
         }}
       </QueryBoundary>
       {filter && (
-        <Sheet
-          open
-          title="Фильтры"
-          onOpenChange={(open) => {
-            if (!open) setFilter(undefined);
-          }}
-        >
-          {(["all", "delivery", "pickup"] as const).map((mode) => (
-            <Radio
-              key={mode}
-              name="receiving-filter"
-              label={mode === "all" ? "Все способы" : methodLabel[mode]}
-              checked={filter === mode}
-              onChange={() => setFilter(mode)}
-            />
-          ))}
-          <Button
-            full
-            onClick={() => {
-              changeFilters({ method: filter === "all" ? undefined : filter });
-              setFilter(undefined);
-            }}
-          >
-            Применить
-          </Button>
-          <Button
-            full
-            variant="ghost"
-            onClick={() => {
-              reset();
-              setFilter(undefined);
-            }}
-          >
-            Сбросить фильтры
-          </Button>
-        </Sheet>
+        <OrderFilterSheet
+          value={filter}
+          setValue={setFilter}
+          apply={(method) => changeFilters({ method })}
+          reset={reset}
+        />
       )}
     </>
   );
-}
-
-function groupOrders(orders: SellerOrderSummary[], tab: "active" | "completed", timeZone: string) {
-  const groups = new Map<string, SellerOrderSummary[]>();
-  for (const order of orders) {
-    const key =
-      tab === "active" ? order.stage : order.receivingAt.slice(0, 10) || shopDateTime(order.createdAt, timeZone).date;
-    const rows = groups.get(key);
-    if (rows) rows.push(order);
-    else groups.set(key, [order]);
-  }
-  return groups;
 }

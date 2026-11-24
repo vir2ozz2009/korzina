@@ -84,7 +84,7 @@ export const teamRoutes = new Hono<TeamEnv>()
       const { id } = c.req.valid("param");
       const { version, access } = c.req.valid("json");
       const after = await updateTeamMember(c.env.PLATFORM, context(c), id, version, access);
-      if (!after.permissions.includes("orders")) expireSubscription(c, id);
+      expireSubscription(c, id);
       return c.json(after);
     },
   )

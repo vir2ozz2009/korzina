@@ -39,8 +39,14 @@ const catalogSearch = (input: Record<string, unknown>) => ({
 });
 const list = lazyRouteComponent(() => import("../features/seller/ui/orders/SellerOrdersList"), "SellerOrdersList");
 const order = lazyRouteComponent(() => import("../features/seller/ui/orders/SellerOrderScreen"), "SellerOrderScreen");
+const sales = lazyRouteComponent(() => import("../features/seller/ui/sales/SalesScreen"), "SalesScreen");
+const salesBack = (input: unknown) =>
+  typeof input === "string" && /^\/seller(?:\/statistics(?:\/products)?|\/products)?(?:\?|$)/u.test(input)
+    ? input
+    : undefined;
 const workdayBack = (input: unknown) =>
-  typeof input === "string" && /^\/seller(?:\/(?:orders|workday\/(?:packing|calendar)))?(?:\?|$)/u.test(input)
+  typeof input === "string" &&
+  /^\/seller(?:\/(?:orders|statistics|workday\/(?:packing|calendar)))?(?:\?|$)/u.test(input)
     ? input
     : undefined;
 const day = (input: unknown) => {
@@ -66,13 +72,33 @@ const workdaySearch = (input: Record<string, unknown>): WorkdaySearch => ({
   purpose: input.purpose === "packing" || input.purpose === "orders" ? input.purpose : undefined,
   back: workdayBack(input.back),
 });
+const reportSearch = (
+  input: Record<string, unknown>,
+): ReturnType<typeof search> & {
+  from?: string;
+  to?: string;
+  variant?: string;
+  compare?: "0";
+  back?: string;
+} => ({
+  ...search(input),
+  from: day(input.from),
+  to: day(input.to),
+  variant: typeof input.variant === "string" ? input.variant : undefined,
+  compare: input.compare === 0 || input.compare === "0" ? ("0" as const) : undefined,
+  back: salesBack(input.back),
+});
 const listSearch = (
   input: Record<string, unknown>,
 ): ReturnType<typeof search> &
-  Partial<Pick<SellerOrdersQuery, "tab" | "method" | "debt" | "day" | "focus">> & { back?: string } => ({
+  Partial<Pick<SellerOrdersQuery, "tab" | "method" | "debt" | "day" | "focus" | "completedFrom" | "completedTo">> & {
+    back?: string;
+  } => ({
   ...search(input),
   tab: input.tab === "active" || input.tab === "completed" ? input.tab : undefined,
   day: day(input.day),
+  completedFrom: day(input.completedFrom),
+  completedTo: day(input.completedTo),
   focus: workdayFocuses.find((value) => value === input.focus),
   back: workdayBack(input.back),
   method: input.method === "pickup" || input.method === "delivery" ? input.method : undefined,
@@ -99,6 +125,27 @@ const catalogRoutes = [
 ] as const;
 const chat = lazyRouteComponent(() => import("../features/seller/ui/orders/SellerChatScreen"), "SellerChatScreen");
 export const sellerRoutes = [
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/seller/statistics",
+    validateSearch: reportSearch,
+    staticData: { template: "list", transition: "push", title: "Статистика" },
+    component: sales,
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/seller/statistics/products",
+    validateSearch: reportSearch,
+    staticData: { template: "list", transition: "push", title: "Статистика продаж" },
+    component: sales,
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/seller/statistics/products/$id",
+    validateSearch: reportSearch,
+    staticData: { template: "list", transition: "push", title: "Статистика товара" },
+    component: sales,
+  }),
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/seller/inbox",
