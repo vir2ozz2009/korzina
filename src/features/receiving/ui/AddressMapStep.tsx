@@ -15,7 +15,6 @@ export const AddressMapPreview = lazy(() =>
 export function AddressMapStep({
   address,
   useTypedAddress,
-  change,
   point,
   locateOnOpen,
   setPoint,
@@ -28,7 +27,6 @@ export function AddressMapStep({
 }: {
   address: string;
   useTypedAddress: boolean;
-  change: (address: string) => void;
   point?: Point;
   locateOnOpen: boolean;
   setPoint: (point: Point) => void;
@@ -39,6 +37,7 @@ export function AddressMapStep({
   enterAddress: () => void;
   pickup?: () => void;
 }) {
+  const [typedAddress, setTypedAddress] = useState(address);
   const [tileError, setTileError] = useState(false);
   const { center, locating, locationError, locate, pick } = useMapLocation(point, setPoint, locateOnOpen);
 
@@ -54,7 +53,7 @@ export function AddressMapStep({
 
   const waitingForName = !useTypedAddress && name.isPending;
   const needsText = useTypedAddress || !mapAddress;
-  const finalAddress = needsText ? address.trim() : mapAddress;
+  const finalAddress = needsText ? typedAddress.trim() : mapAddress;
   useEffect(() => {
     if (locateOnOpen && accepted && point && mapAddress && !locating && !check.isFetching && !pending)
       save(mapAddress, point);
@@ -102,10 +101,10 @@ export function AddressMapStep({
               {!useTypedAddress && <p className="text-meta">Добавьте улицу, дом или ориентир для курьера.</p>}
               <TextArea
                 label="Адрес для курьера"
-                value={address}
+                value={typedAddress}
                 maxLength={300}
                 disabled={pending}
-                onChange={(event) => change(event.target.value)}
+                onChange={(event) => setTypedAddress(event.target.value)}
               />
             </>
           )}
