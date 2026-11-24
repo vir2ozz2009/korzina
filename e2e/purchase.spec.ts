@@ -1,3 +1,4 @@
+import { setTimeout as delay } from "node:timers/promises";
 import { expect, type Page, test } from "@playwright/test";
 import type { StorefrontReceiving } from "../src/shared/contracts/receiving-time";
 import { checkDeliveryDraft, checkTextDelivery } from "./address-regressions";
@@ -25,7 +26,9 @@ async function keyboardViewport(page: Page, open: boolean) {
 }
 
 test("B10: товар, доставка и заказ наличными", async ({ page, browser, baseURL }) => {
-  const local = !!baseURL && new URL(baseURL).hostname === "127.0.0.1";
+  const host = baseURL && new URL(baseURL).hostname;
+  const local = host === "127.0.0.1";
+  let demoRateWindowEnds: number | undefined;
   test.setTimeout(local ? 145_000 : 105_000);
   await test.step("Блок 9 · 04: сохранённый заказ подтверждается при потере первого ответа", () =>
     freshPage(browser, baseURL, checkCheckoutRecovery));
@@ -34,6 +37,7 @@ test("B10: товар, доставка и заказ наличными", async
     await test.step("BL-15: Куда угодно принимает точку и ручной адрес", () => checkTextDelivery(browser, baseURL));
   if (!local) {
     const response = await page.request.get("/api/receiving/next?shop=test2");
+    if (host === "demo.korzina.app") demoRateWindowEnds = Date.now() + 60_000;
     if (response.ok()) {
       const { methods, banners }: StorefrontReceiving = await response.json();
       if (!methods.length && banners.length) {
@@ -175,6 +179,8 @@ test("B10: товар, доставка и заказ наличными", async
     verifyBuyerOrderReload(page, order.number));
   await page.getByRole("button", { name: "К покупкам" }).click();
   await expect(page).toHaveURL(/\/\?shop=test2$/);
+  // Demo allows 120 API requests per minute. Start the second part in a fresh window.
+  if (demoRateWindowEnds !== undefined) await delay(Math.max(0, demoRateWindowEnds - Date.now()));
   await verifyOrderCancellation(page, order.number);
   await verifyFavoriteCart(page);
   await test.step("BL-1: сохранённый адрес сразу подставляется в корзину", () => verifySavedAddress(page, onMap));
