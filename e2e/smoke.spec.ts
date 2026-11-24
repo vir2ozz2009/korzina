@@ -34,12 +34,21 @@ test("витрина своего магазина → фасовка/корзи
     if (new URL(response.url()).pathname.startsWith("/api/") && response.status() >= 400)
       errors.push(`API ${response.status()}: ${response.url()}`);
   });
-  const response = await request.get("/api/shop?shop=test2");
-  expect(response.ok()).toBe(true);
-  const shop = await response.json();
-  expect(shop.slug).toBe("test2");
+  for (const [query, slug] of [
+    ["?shop=lavka", "lavka"],
+    ["", "test2"],
+  ] as const) {
+    const response = await request.get(`/api/shop${query}`);
+    expect(response.ok()).toBe(true);
+    const shop = await response.json();
+    expect(shop.slug).toBe(slug);
+    await page.goto(`/${query}`);
+    expect(JSON.parse((await page.locator("#shop-context").textContent()) ?? "null")).toMatchObject({
+      id: shop.id,
+      slug,
+    });
+  }
   await page.goto("/?shop=test2");
-  expect(JSON.parse((await page.locator("#shop-context").textContent()) ?? "null").id).toBe(shop.id);
   await page.locator("article").first().waitFor();
   if (process.env.E2E_BASE_URL) await page.screenshot({ path: "test-results/demo-home.png" });
   await checkWidths(page, "home");
