@@ -1,45 +1,66 @@
 import { ApiError } from "../../src/shared/errors";
 
-export class TelegramRequestError extends ApiError {
+type TelegramFailure =
+  | { kind: "http" | "invalid_response"; httpStatus: number }
+  | { kind: "timeout" | "network"; httpStatus?: number };
+
+export class TelegramApiError extends ApiError {
   constructor(
+    public readonly failure: TelegramFailure,
+    code: "AUTH_FAILED" | "AUTH_UNAVAILABLE" | "TOKEN_INVALID" = "AUTH_UNAVAILABLE",
+  ) {
+    super(code, code === "AUTH_UNAVAILABLE" ? "Telegram временно недоступен" : "Токен не подошёл");
+  }
+}
+
+export class TelegramRequestError extends TelegramApiError {
+  constructor(
+    failure: TelegramFailure,
     public readonly retryable = false,
     public readonly retryAfterMs = 0,
     public readonly permanent = false,
   ) {
-    super("AUTH_UNAVAILABLE", "Telegram временно недоступен");
+    super(failure);
   }
 }
 
 export async function telegramApi(token: string, method: string, body: object): Promise<unknown> {
-  const unavailable = () => new TelegramRequestError();
+  return (await telegramRequest(token, method, body)).result;
+}
+
+export async function telegramRequest(token: string, method: string, body: object) {
+  const signal = AbortSignal.timeout(5000);
+  let response: Response;
   try {
-    const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+    response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(5000),
+      signal,
     });
-    if (response.status === 401 || response.status === 404) throw new ApiError("AUTH_FAILED", "Токен не подошёл");
-    if (!response.ok) {
-      const error = await response
-        .json<{ ok?: boolean; parameters?: { retry_after?: number } }>()
-        .catch(() => undefined);
-      const retryable = response.status === 429 || (response.status >= 500 && error?.ok === false);
-      const seconds = Number(response.headers.get("Retry-After") ?? error?.parameters?.retry_after ?? 0);
-      throw new TelegramRequestError(
-        retryable,
-        Number.isFinite(seconds) ? Math.max(seconds, 0) * 1000 : 0,
-        response.status < 500 && !retryable,
-      );
-    }
-    const payload: unknown = await response.json();
-    if (!payload || typeof payload !== "object" || !("ok" in payload) || payload.ok !== true || !("result" in payload))
-      throw unavailable();
-    return payload.result;
-  } catch (error) {
-    if (error instanceof ApiError) throw error;
-    throw unavailable();
+  } catch {
+    throw new TelegramRequestError({ kind: signal.aborted ? "timeout" : "network" });
   }
+  const httpStatus = response.status;
+  if (httpStatus === 401 || httpStatus === 404) throw new TelegramApiError({ kind: "http", httpStatus }, "AUTH_FAILED");
+  if (!response.ok) {
+    const error = await response.json<{ ok?: boolean; parameters?: { retry_after?: number } }>().catch(() => undefined);
+    const retryable = httpStatus === 429 || (httpStatus >= 500 && error?.ok === false);
+    const seconds = Number(response.headers.get("Retry-After") ?? error?.parameters?.retry_after ?? 0);
+    throw new TelegramRequestError(
+      { kind: "http", httpStatus },
+      retryable,
+      Number.isFinite(seconds) ? Math.max(seconds, 0) * 1000 : 0,
+      httpStatus < 500 && !retryable,
+    );
+  }
+  const payload: unknown = await response.json().catch((error: unknown) => {
+    const kind = signal.aborted ? "timeout" : error instanceof SyntaxError ? "invalid_response" : "network";
+    throw new TelegramRequestError({ kind, httpStatus });
+  });
+  if (!payload || typeof payload !== "object" || !("ok" in payload) || payload.ok !== true || !("result" in payload))
+    throw new TelegramRequestError({ kind: "invalid_response", httpStatus });
+  return { result: payload.result, httpStatus };
 }
 
 export async function matchesTelegramSecret(actual: string | undefined, expected: string | undefined) {
