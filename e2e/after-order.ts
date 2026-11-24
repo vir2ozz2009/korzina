@@ -114,11 +114,17 @@ export async function verifySavedAddress(page: Page, onMap: boolean) {
     .first()
     .click();
   const chooser = page.getByRole("dialog", { name: "Адрес доставки" });
+  const editor = page.getByRole("dialog", { name: "Редактировать адрес" });
+  await expect(chooser.or(editor)).toBeVisible();
+  if (await editor.isVisible()) await editor.getByRole("button", { name: "Сохранённые адреса" }).click();
   await page.screenshot({ path: "test-results/bl-1-saved-addresses-390.png", animations: "disabled" });
   const selectSaved = async () => {
     const [response] = await Promise.all([
       page.waitForResponse(
-        (result) => new URL(result.url()).pathname === "/api/receiving" && result.request().method() === "POST",
+        (result) =>
+          new URL(result.url()).pathname === "/api/receiving" &&
+          result.request().method() === "POST" &&
+          result.request().postDataJSON()?.receiving?.address === "улица Ле Лой, 45",
       ),
       chooser.getByRole("button", { name: /^Работа/ }).click(),
     ]);
@@ -138,6 +144,6 @@ export async function verifySavedAddress(page: Page, onMap: boolean) {
     await expect(pickup).toBeChecked();
     await page.getByRole("radio", { name: "Доставка" }).click();
     await current.click();
-    await selectSaved();
+    await expect(editor.getByRole("textbox", { name: "Адрес доставки" })).toHaveValue("улица Ле Лой, 45");
   }
 }

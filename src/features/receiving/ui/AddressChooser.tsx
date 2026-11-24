@@ -27,15 +27,15 @@ export function AddressChooser({
   addresses: (DeliveryAddress | SavedAddress)[];
   current?: DeliveryAddress;
   pending: boolean;
-  select: (address: DeliveryAddress, saved: boolean) => void;
+  select: (address: DeliveryAddress) => void;
   pickup?: () => void;
   create: () => void;
 }) {
   function selectAddress(address: DeliveryAddress | SavedAddress) {
     if ("id" in address) {
       const { id: _id, title: _title, ...delivery } = address;
-      select(delivery, true);
-    } else select(address, false);
+      select(delivery);
+    } else select(address);
   }
 
   return (

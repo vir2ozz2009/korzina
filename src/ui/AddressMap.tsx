@@ -15,8 +15,8 @@ export function AddressMap({
   point?: Point;
   geometry?: DeliveryZone["geometry"];
   moveVertex?: (index: number, point: Point) => void;
-  select: (point: Point) => void;
-  onUnavailable: () => void;
+  select?: (point: Point) => void;
+  onUnavailable?: () => void;
 }) {
   const container = useRef<HTMLElement>(null);
   const initialCenter = useRef(center);
@@ -35,11 +35,11 @@ export function AddressMap({
     const tiles = tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
     });
-    tiles.once("tileerror", () => callbacks.current.onUnavailable());
+    tiles.once("tileerror", () => callbacks.current.onUnavailable?.());
     tiles.addTo(current);
     current.on("click", ({ latlng }) => {
       const { lat, lng } = latlng.wrap();
-      callbacks.current.select({ lat, lon: lng });
+      callbacks.current.select?.({ lat, lon: lng });
     });
     const resize = new ResizeObserver(() => current.invalidateSize());
     resize.observe(container.current);
@@ -91,7 +91,7 @@ export function AddressMap({
     if (!point) return;
     const location = [point.lat, point.lon] as const;
     const next = marker([...location], {
-      draggable: true,
+      draggable: !!callbacks.current.select,
       icon: divIcon({
         className: "",
         html: '<span class="block size-5 rounded-full border-2 border-white bg-primary shadow-float"></span>',
@@ -101,7 +101,7 @@ export function AddressMap({
     });
     next.on("dragend", () => {
       const value = next.getLatLng().wrap();
-      callbacks.current.select({ lat: value.lat, lon: value.lng });
+      callbacks.current.select?.({ lat: value.lat, lon: value.lng });
     });
     pin.current = next.addTo(current);
     current.panTo([...location]);

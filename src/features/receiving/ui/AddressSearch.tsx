@@ -84,11 +84,9 @@ export function AddressSearch({
         <Button full variant="secondary" disabled={pending} onClick={map}>
           Указать на карте
         </Button>
-        {!zone && (
-          <Button full variant="secondary" disabled={pending} icon={<LocateFixed size={18} />} onClick={locate}>
-            Определить мою позицию
-          </Button>
-        )}
+        <Button full variant="secondary" disabled={pending} icon={<LocateFixed size={18} />} onClick={locate}>
+          Определить мою позицию
+        </Button>
         {blocked && pickup && (
           <Button full variant="secondary" disabled={pending} onClick={pickup}>
             Выбрать самовывоз

@@ -8,7 +8,9 @@ import { usePointDelivery, usePointName } from "../address-api";
 import { AddressReviewStatus } from "./AddressDelivery";
 import { useMapLocation } from "./useMapLocation";
 
-const MapPreview = lazy(() => import("../../../ui/AddressMap").then(({ AddressMap }) => ({ default: AddressMap })));
+export const AddressMapPreview = lazy(() =>
+  import("../../../ui/AddressMap").then(({ AddressMap }) => ({ default: AddressMap })),
+);
 
 export function AddressMapStep({
   address,
@@ -53,11 +55,15 @@ export function AddressMapStep({
   const waitingForName = !useTypedAddress && name.isPending;
   const needsText = useTypedAddress || !mapAddress;
   const finalAddress = needsText ? address.trim() : mapAddress;
+  useEffect(() => {
+    if (locateOnOpen && accepted && point && mapAddress && !locating && !check.isFetching && !pending)
+      save(mapAddress, point);
+  }, [locateOnOpen, accepted, point, mapAddress, locating, check.isFetching, pending, save]);
   return (
     <>
       <p className="text-meta text-muted-foreground">Коснитесь нужного места или переместите метку.</p>
       <Suspense fallback={<SkeletonBlock className="h-44 rounded-xl" />}>
-        <MapPreview
+        <AddressMapPreview
           center={center}
           point={point}
           select={(next) => {
@@ -112,7 +118,7 @@ export function AddressMapStep({
                 if (finalAddress) save(finalAddress, point);
               }}
             >
-              Подтвердить адрес
+              Продолжить
             </Button>
           )}
         </>

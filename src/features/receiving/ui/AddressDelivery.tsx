@@ -1,18 +1,17 @@
-import { MapPin } from "lucide-react";
 import type { ReceivingAvailability } from "../../../shared/contracts/receiving";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
-import { ListItem } from "../../../ui/ListItem";
 import { deliveryLabel } from "../delivery-label";
 
-type Check = {
+export type AddressCheck = {
   data: ReceivingAvailability | null | undefined;
   isPending: boolean;
   isError: boolean;
+  isFetching: boolean;
   refetch: () => unknown;
 };
 
-export function AddressReviewStatus({ check, currency }: { check: Check; currency: string }) {
+export function AddressReviewStatus({ check, currency }: { check: AddressCheck; currency: string }) {
   if (check.isPending)
     return (
       <p role="status" className="text-meta">
@@ -54,49 +53,6 @@ export function ManualDeliveryStatus() {
         Проверим адрес. Если точку найти не удастся, магазин уточнит возможность и стоимость доставки.
       </p>
     </Card>
-  );
-}
-
-export function AddressReview({
-  address,
-  check,
-  currency,
-  pending,
-  save,
-  another,
-  pickup,
-}: {
-  address: string;
-  check: Check & { isFetching: boolean };
-  currency: string;
-  pending: boolean;
-  save: () => void;
-  another: () => void;
-  pickup?: () => void;
-}) {
-  const result = check.isError ? undefined : check.data;
-  return (
-    <>
-      <ListItem title={address} icon={<MapPin size={20} />} />
-      <AddressReviewStatus check={check} currency={currency} />
-      {result?.mode === "delivery" &&
-        (result.available ? (
-          <Button full disabled={check.isFetching} loading={pending} onClick={save}>
-            Подтвердить адрес
-          </Button>
-        ) : (
-          <>
-            <Button full disabled={pending} onClick={another}>
-              Указать другой адрес
-            </Button>
-            {pickup && (
-              <Button full variant="secondary" disabled={pending} onClick={pickup}>
-                Выбрать самовывоз
-              </Button>
-            )}
-          </>
-        ))}
-    </>
   );
 }
 
