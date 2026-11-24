@@ -60,8 +60,9 @@ it("§9.11 · §9.12 после таймаута getMe подключение с
   const original = await newestInvite(id);
   const telegram = mockTelegram();
   const step = await mutation(id);
-  vi.spyOn(AbortSignal, "timeout").mockReturnValueOnce(AbortSignal.abort());
+  const timeout = vi.spyOn(AbortSignal, "timeout").mockReturnValueOnce(AbortSignal.abort());
   await changeShopBot(db, bindings, step, { action: "connect", version: step.version, token }, origin);
+  expect(timeout.mock.calls.slice(0, 2)).toEqual([[15_000], [5000]]);
   const methods = telegram.mock.calls.map(([url]) => new URL(String(url)).pathname.split("/").at(-1));
   expect(methods).toEqual(["getMe", "getMe", "setWebhook", "setChatMenuButton"]);
   const encrypted = await db.prepare("SELECT token FROM shop_bots WHERE shop_id=?").bind(id).first();

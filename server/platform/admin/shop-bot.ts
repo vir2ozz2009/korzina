@@ -14,6 +14,7 @@ const botDetails = z.object({
   username: z.string().regex(/^[a-z][a-z0-9_]{4,31}$/i),
 });
 type ConnectStage = "getMe" | "prepare_encryption_key" | "setWebhook" | "setChatMenuButton" | "save_binding";
+type SerializeBotChange = <T>(operation: () => Promise<T>) => Promise<T>;
 
 export async function managedBot(database: D1Database | undefined, shopId: string) {
   return database
@@ -46,11 +47,10 @@ export function miniAppAddress(origin: string, shopId: string, cabinet = false) 
 
 async function validateBot(token: string) {
   if (!botToken.test(token)) throw new ApiError("TOKEN_INVALID", "Токен не подошёл");
-  const { result, httpStatus } = await telegramRequest(token, "getMe", {}).catch((error: unknown) => {
+  const { result, httpStatus } = await telegramRequest(token, "getMe", {}, 15_000).catch((error: unknown) => {
     if (!(error instanceof TelegramApiError) || (error.failure.kind !== "timeout" && error.failure.kind !== "network"))
       throw error;
-    // getMe is read-only. Leave time for the rest of the coordinated update.
-    return telegramRequest(token, "getMe", {}, 4000);
+    return telegramRequest(token, "getMe", {});
   });
   const details = botDetails.safeParse(result);
   if (!details.success) throw new TelegramApiError({ kind: "invalid_response", httpStatus }, "TOKEN_INVALID");
@@ -103,29 +103,24 @@ async function disconnectBot(
   return result;
 }
 
-export async function changeShopBot(
+async function connectBot(
   database: D1Database,
-  secrets: AuthSecrets,
   mutation: ShopMutation,
-  input: BotChange,
+  encryptionKey: string | undefined,
+  token: string,
+  bot: z.infer<typeof botDetails>,
   origin: string,
 ) {
-  const ready = await prepareShopChange(database, mutation);
-  if (ready.replay) return ready.replay;
-  const shopId = ready.shop.id;
-  const encryptionKey = secrets.ENCRYPTION_KEY;
+  const shopId = mutation.id;
   let stage: ConnectStage = "save_binding";
   let rollbackWebhook: (() => Promise<unknown>) | undefined;
   try {
+    // The card may have changed while getMe was in flight.
+    const ready = await prepareShopChange(database, mutation);
+    if (ready.replay) return ready.replay;
     const previous = await managedBot(database, shopId);
-    if (input.action === "disconnect") return await disconnectBot(database, mutation, encryptionKey, previous);
-
-    const { token } = input;
-    stage = "getMe";
-    const bot = await validateBot(token);
     const id = String(bot.id);
 
-    stage = "save_binding";
     const used = await database
       .withSession("first-primary")
       .prepare("SELECT shop_id FROM shop_bots WHERE telegram_id=? AND shop_id<>?")
@@ -167,10 +162,37 @@ export async function changeShopBot(
       await detachBot(encryptionKey, shopId, previous).catch(() => {});
     return result;
   } catch (error) {
-    if (input.action === "connect") logConnectFailure(shopId, stage, error);
+    logConnectFailure(shopId, stage, error);
     await rollbackWebhook?.().catch(() => {});
-    if (stage === "getMe" && error instanceof TelegramApiError && error.code === "AUTH_FAILED")
-      throw new ApiError("TOKEN_INVALID", error.message);
     throw error;
   }
+}
+
+export async function changeShopBot(
+  database: D1Database,
+  secrets: AuthSecrets,
+  mutation: ShopMutation,
+  input: BotChange,
+  origin: string,
+  serialize: SerializeBotChange = (operation) => operation(),
+) {
+  const key = secrets.ENCRYPTION_KEY;
+  if (input.action === "disconnect") {
+    return serialize(async () => {
+      const ready = await prepareShopChange(database, mutation);
+      if (ready.replay) return ready.replay;
+      return disconnectBot(database, mutation, key, await managedBot(database, ready.shop.id));
+    });
+  }
+
+  const ready = await prepareShopChange(database, mutation);
+  if (ready.replay) return ready.replay;
+  const { token } = input;
+  const bot = await validateBot(token).catch((error: unknown) => {
+    logConnectFailure(ready.shop.id, "getMe", error);
+    if (error instanceof TelegramApiError && error.code === "AUTH_FAILED")
+      throw new ApiError("TOKEN_INVALID", error.message);
+    throw error;
+  });
+  return serialize(() => connectBot(database, mutation, key, token, bot, origin));
 }
