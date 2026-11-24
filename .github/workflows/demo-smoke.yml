@@ -30,8 +30,20 @@ jobs:
       # Native Node TypeScript, no dependencies or repeat of the full check.
       - run: node scripts/catalog-smoke.ts https://demo.korzina.app --wait-for-build
   storefront:
+    name: Browser smoke (${{ matrix.suite.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+          # Keep the long purchase and login scenarios on independent runners.
+          - name: purchase
+            files: 'e2e/purchase\.spec\.ts$'
+          - name: telegram
+            files: 'e2e/telegram-login\.spec\.ts$'
+          - name: storefront
+            files: 'e2e/(?!purchase\.spec\.ts$|telegram-login\.spec\.ts$)'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,12 +53,13 @@ jobs:
       - run: npm ci
       - run: npx playwright install chromium
       - run: node scripts/wait-for-demo.ts
-      - run: npm run test:e2e -- --grep-invert @home-cart
+      - run: npm run test:e2e -- "$SMOKE_FILES" --grep-invert @home-cart
         env:
           E2E_BASE_URL: https://demo.korzina.app
+          SMOKE_FILES: ${{ matrix.suite.files }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: demo-browser-result
+          name: demo-browser-result-${{ matrix.suite.name }}
           path: test-results/
           retention-days: 7
