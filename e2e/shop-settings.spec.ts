@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { checkSales } from "./seller-statistics";
 import { checkShopHours } from "./shop-hours";
 
 const query = "shop=test2&store=test2";
@@ -50,7 +51,7 @@ test("Блок 7: продавец сохраняет настройки и пр
     await expect(page.getByText("Свой цвет", { exact: true })).toBeVisible();
     await page.screenshot({ path: "test-results/shop-settings-color-390.png", animations: "disabled" });
 
-    await page.goto(`/seller?${query}`);
+    await test.step("§14.1 · главная, статистика и возврат со сбоем сводки", () => checkSales(page, local, query));
     const show = page.getByRole("button", { name: "Приостановить приём", exact: true });
     const resume = page.getByRole("button", { name: "Возобновить", exact: true });
     const pause = page.getByRole("dialog", { name: "Приостановить приём" });

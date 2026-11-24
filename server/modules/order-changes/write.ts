@@ -1,5 +1,6 @@
 import type { OrderStage } from "../../../src/shared/contracts/buyer-order";
 import { orderBalance, orderFinance } from "../checkout/order-workflow";
+import { refreshOrderSales } from "../seller-sales/projection";
 import type { ChangeState } from "./state";
 
 export function writeOrderChange(
@@ -26,7 +27,7 @@ export function writeOrderChange(
     row.fulfillment_state,
     row.number,
   );
-  return storage.sql
+  const { id } = storage.sql
     .exec<{ id: number }>(
       "INSERT INTO buyer_order_events(order_number,actor,event,created_at,details) VALUES(?,?,?,?,?) RETURNING id",
       row.number,
@@ -35,7 +36,9 @@ export function writeOrderChange(
       now,
       JSON.stringify(details),
     )
-    .one().id;
+    .one();
+  if (stage === "completed") refreshOrderSales(storage, row.number, snapshot.currency);
+  return id;
 }
 
 export function queueBuyerChange(

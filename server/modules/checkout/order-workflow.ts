@@ -1,7 +1,7 @@
 import type { OrderStage, PaymentState } from "../../../src/shared/contracts/buyer-order";
 import type { OrderSnapshot } from "../../../src/shared/contracts/checkout";
 import type { CompositionChange, TimeChange } from "../../../src/shared/contracts/order-changes";
-import type { RecordedPayment } from "../../../src/shared/contracts/seller-order";
+import type { RecordedPayment, SalesRefund } from "../../../src/shared/contracts/seller-order";
 import type { PaymentOption } from "../../../src/shared/contracts/seller-payments";
 import { addMinor, subtractMinor } from "../../../src/shared/money";
 
@@ -16,6 +16,7 @@ export type OrderWorkflow = {
     paidMinor: number;
     latestPayment?: RecordedPayment;
     returnedMinor: number;
+    salesRefund?: SalesRefund;
     waivedMinor: number;
     debtOpened: boolean;
     receiptReason?: string;
@@ -44,7 +45,11 @@ export function orderFinance(work: OrderWorkflow, snapshot: OrderSnapshot, payme
 
 export function orderBalance(finance: NonNullable<OrderWorkflow["finance"]>, totalMinor: number, stage: OrderStage) {
   const received = subtractMinor(finance.paidMinor, finance.returnedMinor);
-  const cost = stage === "cancelled" ? 0 : totalMinor;
+  const refund = finance.salesRefund;
+  const returnedFromSale = refund
+    ? addMinor(refund.itemsMinor, refund.deliveryMinor, ...Object.values(refund.variants ?? {}))
+    : 0;
+  const cost = stage === "cancelled" ? 0 : subtractMinor(totalMinor, Math.min(totalMinor, returnedFromSale));
   const discounted = subtractMinor(cost, Math.min(cost, finance.waivedMinor));
   const outstandingMinor = subtractMinor(discounted, Math.min(discounted, received));
   const refundMinor = subtractMinor(received, Math.min(received, cost));

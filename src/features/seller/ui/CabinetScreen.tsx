@@ -21,6 +21,7 @@ import { CabinetLogin } from "./CabinetLogin";
 import { CabinetMore } from "./CabinetMore";
 import { LaunchReadiness } from "./LaunchReadiness";
 import { ShareLinkField } from "./ShareLinkField";
+import { StatsCard } from "./sales/StatsCard";
 import { PauseCard } from "./settings/PauseCard";
 import { ReconnectStaffBot } from "./team/ReconnectStaffBot";
 import { useShareLink } from "./useShareLink";
@@ -145,6 +146,12 @@ export function CabinetScreen() {
                       <p className="text-small text-muted-foreground">Витрина пока закрыта</p>
                     )}
                   </Card>
+                  {(shop.role === "owner" || shop.permissions.includes("payments")) && (
+                    <StatsCard
+                      key={`stats:${shop.id}:${telegramId}`}
+                      session={{ store: shop.slug, account: telegramId }}
+                    />
+                  )}
                   {shop.status !== "draft" && (!shop.teamRole || shop.permissions.includes("shop_settings")) && (
                     <PauseCard key={shop.id} store={shop.slug} />
                   )}

@@ -26,6 +26,7 @@ function useSellerOrdersLive(store: string, account: string | undefined) {
 
     const refresh = (data?: Update) => {
       void invalidateSellerOrders(client, store, data?.id, data?.cursor);
+      void client.invalidateQueries({ queryKey: ["seller-sales", store] });
       void client.invalidateQueries({
         queryKey: ["seller-chat", store],
         predicate: ({ queryKey }) => queryKey[2] !== "history" || data?.id === undefined || queryKey[3] === data.id,

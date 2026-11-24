@@ -10,9 +10,11 @@ import { ApiError } from "../../../src/shared/errors";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
 import { readSeller, type Seller } from "../../auth/roles";
 import type { ShopEnv } from "../../shop/env";
+import { shopTimeZoneSql } from "../../shop/time-zone";
 import { proposeChanges, quoteChanges } from "../order-changes/composition";
 import { pickReplacements } from "../order-changes/pick";
 import { changeTime, timeAvailability } from "../order-changes/time";
+import { ensureSalesProjection } from "../seller-sales/projection";
 import { changeSellerOrder, permitted } from "./command";
 import { orderListRevision, sellerOrders } from "./list";
 import { sellerLiveTicket, upgradeSellerOrders } from "./live";
@@ -41,7 +43,18 @@ export const sellerOrderRoutes = new Hono<SellerOrderEnv>()
     if (query.focus === "receipt" || query.focus === "payment" || query.focus === "debt" || query.debt)
       permitted(seller, "payments");
     const money = seller.role === "owner" || seller.permissions.includes("payments");
-    return c.json(sellerOrders(c.env.storage, query, c.env.timeZone ?? defaultShopTimeZone, money));
+    let zone = c.env.timeZone ?? defaultShopTimeZone;
+    if (query.completedFrom) {
+      permitted(seller, "payments");
+      const settings = c.env.storage.sql
+        .exec<{ zone: string; currency: string }>(
+          `SELECT ${shopTimeZoneSql} AS zone,(SELECT currency FROM catalog_state WHERE id=1) AS currency`,
+        )
+        .one();
+      zone = settings.zone;
+      ensureSalesProjection(c.env.storage, zone, settings.currency);
+    }
+    return c.json(sellerOrders(c.env.storage, query, zone, money));
   })
   .get("/workday", zValidator("query", workdayDay, validationFailure), (c) => {
     const seller = c.get("seller");

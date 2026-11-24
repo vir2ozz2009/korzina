@@ -24,6 +24,7 @@ export function useCabinet(store?: string) {
       return response.json();
     },
     retry: false,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -71,6 +72,8 @@ export function useSellerLogout() {
       client.removeQueries({ queryKey: ["chat-photo"] });
       await client.cancelQueries({ queryKey: cabinetKey });
       client.removeQueries({ queryKey: cabinetKey });
+      await client.cancelQueries({ queryKey: ["seller-sales"] });
+      client.removeQueries({ queryKey: ["seller-sales"] });
       await client.cancelQueries({ queryKey: ["seller-orders"] });
       client.removeQueries({ queryKey: ["seller-orders"] });
       await client.cancelQueries({ queryKey: ["seller-catalog"] });
