@@ -87,7 +87,7 @@ export function AddressSheet({
   function open(next: View, locate = false) {
     if (next === "map") {
       setLocateOnOpen(locate);
-      setPoint(view === "edit" || view === "manual" ? draft.point : undefined);
+      if (view === "edit" || view === "manual") setPoint(draft.point);
     }
     setError("");
     setTrail([...trail, next]);
@@ -99,11 +99,13 @@ export function AddressSheet({
   }
   function another() {
     setError("");
+    setPoint(undefined);
     setTrail(choices.length ? ["choose", firstEntry] : [firstEntry]);
   }
 
   function editAddress(address: DeliveryAddress) {
     setDraft(address);
+    setPoint(address.point);
     setError("");
     setTrail((previous) => {
       if (previous.at(-1) !== "map") return [...previous, "edit"];
@@ -126,6 +128,7 @@ export function AddressSheet({
       point: unchanged ? address.point : undefined,
       acceptedWithoutPoint: unchanged ? address.acceptedWithoutPoint : undefined,
     });
+    if (!unchanged) setPoint(undefined);
   }
 
   async function saveAddress(address: DeliveryAddress, verify = false) {
@@ -176,7 +179,7 @@ export function AddressSheet({
             pickup={pickup}
             create={() => {
               change(empty);
-              open(firstEntry);
+              another();
             }}
           />
         )}
@@ -224,10 +227,7 @@ export function AddressSheet({
             useTypedAddress={useDraftAddress}
             point={point}
             locateOnOpen={locateOnOpen}
-            setPoint={(next) => {
-              setPoint(next);
-              setError("");
-            }}
+            setPoint={setPoint}
             rememberOutside={rememberOutside}
             currency={currency}
             pending={pending}
