@@ -195,3 +195,29 @@ it("§14.5 · сотруднику требуется payments, чужой ма�
     .run();
   expect((await getAuth(path, permitted.headers)).status).toBe(403);
 });
+
+it("§14.5 · сотрудник с одним правом payments получает сигнал статистики без данных заказов", async () => {
+  const { headers, accountId } = await sellerFixture(shopId, "employee", ["payments"]);
+  await env.PLATFORM.prepare("UPDATE memberships SET team_role='custom' WHERE account_id=?").bind(accountId).run();
+  expect((await getAuth("/api/seller/orders?store=lavka", headers)).status).toBe(403);
+  const ticket = await postAuth("/api/seller/orders/live-ticket?store=lavka", {}, headers);
+  expect(ticket.status).toBe(200);
+  const { ticket: token } = await ticket.json<{ ticket: string }>();
+  const response = await getAuth(`/api/seller/orders/live?store=lavka&ticket=${token}`, {
+    ...headers,
+    Origin: "https://demo.korzina.app",
+    Upgrade: "websocket",
+  });
+  expect(response.status).toBe(101);
+  const socket = response.webSocket;
+  if (!socket) throw new Error("Нет соединения");
+  try {
+    const next = new Promise((resolve) =>
+      socket.addEventListener("message", (event) => resolve(JSON.parse(event.data)), { once: true }),
+    );
+    socket.accept();
+    expect(await next).toEqual({ topic: "sales" });
+  } finally {
+    socket.close();
+  }
+});

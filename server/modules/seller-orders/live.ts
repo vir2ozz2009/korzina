@@ -1,14 +1,18 @@
 import { ApiError } from "../../../src/shared/errors";
 import { credential, sellerCookie } from "../../auth/cookies";
-import { readSellerSession } from "../../auth/roles";
+import { readSellerSession, type Seller } from "../../auth/roles";
 import { newToken, tokenHash } from "../../auth/tokens";
 import type { ShopEnv } from "../../shop/env";
-import { permitted } from "./command";
 import { orderListRevision } from "./list";
 
 type Shop = ShopEnv["Bindings"];
 type Subscription = { session: string; shop: string };
 const liveTag = "seller-orders";
+function liveTopic(seller: Seller) {
+  if (seller.role === "owner" || seller.permissions.includes("orders")) return "orders";
+  if (seller.permissions.includes("payments")) return "sales";
+  throw new ApiError("FORBIDDEN", "Доступ ограничен");
+}
 
 export async function sellerLiveTicket(env: Shop, request: Request) {
   const token = credential(request, sellerCookie);
@@ -41,14 +45,14 @@ export async function upgradeSellerOrders(ctx: DurableObjectState, env: Shop, re
     .toArray()[0];
   if (!row) throw new ApiError("UNAUTHORIZED", "Подключение истекло");
   const seller = await readSellerSession(env.platform, row.session_hash, env.shop.id);
-  permitted(seller, "orders");
+  const topic = liveTopic(seller);
   const account = `seller:${seller.accountId}`;
   const { 0: client, 1: socket } = new WebSocketPair();
   for (const old of ctx.getWebSockets(account))
     if (old.readyState === WebSocket.OPEN) old.close(1000, "New connection");
   ctx.acceptWebSocket(socket, [liveTag, account]);
   socket.serializeAttachment({ session: row.session_hash, shop: env.shop.id } satisfies Subscription);
-  socket.send(JSON.stringify({ topic: "orders", cursor: orderListRevision(env.storage) }));
+  socket.send(JSON.stringify(topic === "orders" ? { topic, cursor: orderListRevision(env.storage) } : { topic }));
   return new Response(null, { status: 101, webSocket: client });
 }
 
@@ -60,8 +64,8 @@ export async function signalSellerOrders(ctx: DurableObjectState, database: D1Da
     sockets.map(async (socket) => {
       try {
         const { session, shop } = socket.deserializeAttachment() as Subscription;
-        permitted(await readSellerSession(database, session, shop), "orders");
-        if (socket.readyState === WebSocket.OPEN) socket.send(data);
+        const topic = liveTopic(await readSellerSession(database, session, shop));
+        if (socket.readyState === WebSocket.OPEN) socket.send(topic === "orders" ? data : JSON.stringify({ topic }));
       } catch {
         if (socket.readyState === WebSocket.OPEN) socket.close(1008, "Access expired");
       }

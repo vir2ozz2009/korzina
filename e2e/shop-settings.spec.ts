@@ -125,7 +125,7 @@ test("Блок 7: продавец сохраняет настройки и пр
         await expect(page.getByRole("dialog", { name: "Добавить сотрудника" })).toBeVisible();
         await page.screenshot({ path: "test-results/team-invite-390.png", animations: "disabled" });
         await page.goto(`/seller/bot?${query}`);
-        await expect(page.getByText("Бота подключает администратор Korzina")).toBeVisible();
+        await expect(page.getByText("Бот подключён · @KorzinaE2EFixtureBot", { exact: true })).toBeVisible();
         await page.getByRole("button", { name: "Настроить уведомления сотрудников", exact: true }).click();
         await expect(page.getByRole("table", { name: "Уведомления по ролям" })).toBeVisible();
         await expect(page.getByRole("checkbox", { name: "Сборщик · Оплаты и чеки" })).toBeDisabled();

@@ -1,20 +1,24 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { HttpError } from "../../shared/http-error";
 import { useCabinet } from "./api";
 import { invalidateSellerOrders, sellerOrdersSocket } from "./orders-api";
 
-type Update = { topic: "orders"; cursor: number; id?: number };
+type OrderUpdate = { topic: "orders"; cursor: number; id?: number };
+type Update = OrderUpdate | { topic: "sales" };
 
 export function SellerOrderUpdates() {
   const store = useRouterState({ select: (state) => state.location.search.store });
   const cabinet = useCabinet(store);
   const current = cabinet.isError ? undefined : cabinet.data?.current;
-  useSellerOrdersLive(current?.permissions?.includes("orders") ? current.slug : "", cabinet.data?.telegramId);
+  const orders = current?.permissions?.includes("orders") ?? false;
+  const payments = current?.permissions?.includes("payments") ?? false;
+  useSellerOrdersLive(orders || payments ? (current?.slug ?? "") : "", cabinet.data?.telegramId, orders, payments);
   return null;
 }
 
-function useSellerOrdersLive(store: string, account: string | undefined) {
+function useSellerOrdersLive(store: string, account: string | undefined, orders: boolean, payments: boolean) {
   const client = useQueryClient();
   useEffect(() => {
     if (!store || !account) return;
@@ -24,23 +28,32 @@ function useSellerOrdersLive(store: string, account: string | undefined) {
     let socket: WebSocket | undefined;
     let poll: ReturnType<typeof setInterval> | undefined;
 
-    const refresh = (data?: Update) => {
+    const sales = { queryKey: ["seller-sales", store] };
+    const refresh = (data?: OrderUpdate) => {
+      if (payments) void client.invalidateQueries(sales);
+      if (!orders) return;
       void invalidateSellerOrders(client, store, data?.id, data?.cursor);
-      void client.invalidateQueries({ queryKey: ["seller-sales", store] });
       void client.invalidateQueries({
         queryKey: ["seller-chat", store],
         predicate: ({ queryKey }) => queryKey[2] !== "history" || data?.id === undefined || queryKey[3] === data.id,
       });
     };
+    const refreshAccess = () => {
+      void client.resetQueries(sales);
+      void client.invalidateQueries({ queryKey: ["seller", "cabinet"] });
+    };
     const receive = (data: Update, broadcast: boolean) => {
-      if (data?.topic !== "orders" || !Number.isSafeInteger(data.cursor)) return;
-      refresh(data);
+      if (data?.topic === "orders" && Number.isSafeInteger(data.cursor)) refresh(data);
+      else if (data?.topic === "sales" && payments) void client.invalidateQueries(sales);
+      else return;
       if (broadcast) channel?.postMessage(data);
     };
-    channel?.addEventListener("message", (event: MessageEvent<Update | "refresh">) => {
-      if (document.visibilityState !== "visible") return;
-      if (event.data === "refresh") refresh();
-      else receive(event.data, false);
+    channel?.addEventListener("message", (event: MessageEvent<Update | "refresh" | "access">) => {
+      if (event.data === "access") refreshAccess();
+      else if (document.visibilityState === "visible") {
+        if (event.data === "refresh") refresh();
+        else receive(event.data, false);
+      }
     });
 
     const startPolling = () => {
@@ -70,14 +83,23 @@ function useSellerOrdersLive(store: string, account: string | undefined) {
           });
           connection.addEventListener(
             "close",
-            () => {
+            (event) => {
               clearTimeout(untilOpen);
+              if (event.code === 1008 && !signal.aborted) {
+                refreshAccess();
+                channel?.postMessage("access");
+              }
               finish();
             },
             { once: true },
           );
         });
-      } catch {
+      } catch (error) {
+        if (!signal.aborted && error instanceof HttpError && (error.status === 401 || error.status === 403)) {
+          refreshAccess();
+          channel?.postMessage("access");
+          return;
+        }
         // A failed connection uses a visible-only fallback.
       }
       if (!signal.aborted) startPolling();
@@ -114,5 +136,5 @@ function useSellerOrdersLive(store: string, account: string | undefined) {
       channel?.close();
       document.removeEventListener("visibilitychange", visibility);
     };
-  }, [account, client, store]);
+  }, [account, client, orders, payments, store]);
 }

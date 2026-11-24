@@ -32,7 +32,8 @@ export const sellerOrderRoutes = new Hono<SellerOrderEnv>()
     if (c.req.path.endsWith("/live") && c.req.method === "GET")
       return upgradeSellerOrders(c.env.object, c.env, c.req.raw);
     const seller = await readSeller(c.req.raw, c.env.platform, c.env.shop.id);
-    if (seller.role !== "owner" && !seller.permissions.includes("orders"))
+    const canSubscribe = c.req.path.endsWith("/live-ticket") && seller.permissions.includes("payments");
+    if (seller.role !== "owner" && !seller.permissions.includes("orders") && !canSubscribe)
       throw new ApiError("FORBIDDEN", "Нет доступа к заказам");
     c.set("seller", seller);
     await next();

@@ -14,7 +14,7 @@ export function StatsCard({ session }: { session: SalesSession }) {
   if (noSalesAccess(query.error)) return null;
   const data = query.isError ? undefined : query.data;
   return (
-    <Card className="relative space-y-0">
+    <Card className="relative space-y-0!">
       <Link
         to="/seller/statistics"
         search={(previous) => ({ shop: previous.shop, store: session.store, ...data?.period })}
