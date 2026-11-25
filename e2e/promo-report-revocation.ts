@@ -59,19 +59,23 @@ export async function checkPromoReportRevocation(page: Page) {
   await page.goto(url);
   const detail = page.getByRole("button", { name: /Заказы с акцией/ });
   const order = page.getByRole("button", { name: /Заказ №91/ });
-  const period = page.getByLabel("Период");
+  const period = page.getByRole("button", { name: /За всё время|Последние 7 дней/ });
+  const choosePeriod = async (label: string) => {
+    await period.click();
+    await page.getByRole("dialog", { name: "Период" }).getByRole("button", { name: label }).click();
+  };
   await detail.click();
   await expect(order).toBeVisible();
 
   status = 503;
-  await period.selectOption("7");
+  await choosePeriod("Последние 7 дней");
   await expect(page.getByText("Не удалось загрузить результаты")).toBeVisible();
   status = 200;
   await page.getByRole("button", { name: "Повторить" }).click();
   await expect(order).toBeVisible();
 
   status = 403;
-  await period.selectOption("all");
+  await choosePeriod("За всё время");
   await expect(page.getByRole("alert")).toHaveText("Доступ к результатам ограничен");
   await expect(period).toHaveCount(0);
   await expect(order).toHaveCount(0);

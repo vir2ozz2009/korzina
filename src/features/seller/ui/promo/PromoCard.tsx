@@ -19,7 +19,7 @@ export function PromoCard({
   const { terms, status } = current;
   const [copy, setCopy] = useState("");
   return (
-    <Card className="space-y-2.5">
+    <Card className="space-y-3">
       <div className="flex items-start justify-between gap-2">
         <h2 className="min-w-0 wrap-anywhere text-title-2">{terms.name || "Без названия"}</h2>
         <PromoBadge status={status} />
@@ -28,10 +28,10 @@ export function PromoCard({
         <span>Выгода</span>
         <span className="text-right">{promoBenefit(terms, currency)}</span>
       </div>
-      <p className="wrap-anywhere text-body text-muted-foreground">
+      <p className="wrap-anywhere text-meta text-muted-foreground">
         {promoConditions(terms, currency, promoScope(terms, catalog))}
       </p>
-      <div className="flex justify-between gap-3 text-body">
+      <div className="flex justify-between gap-3 text-meta">
         <span>Срок</span>
         <span className="text-right">{promoPeriod(terms.fromDate, terms.throughDate)}</span>
       </div>
@@ -92,9 +92,9 @@ export function PromoActions({
           Опубликовать
         </Button>
       )}
-      {status !== "ended" && (
+      {status !== "ended" && status !== "disabled" && (
         <Button full variant="secondary" onClick={edit}>
-          Изменить
+          {status === "draft" ? "Открыть черновик" : "Изменить"}
         </Button>
       )}
       {(status === "active" || status === "scheduled") && (

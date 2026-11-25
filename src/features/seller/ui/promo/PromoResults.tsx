@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, ChevronRight } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { CalendarDays } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { PromoOffer } from "../../../../shared/contracts/promo";
 import { calendarDate, shopDateTime } from "../../../../shared/datetime";
 import { errorKind } from "../../../../shared/http-error";
@@ -9,10 +9,11 @@ import { Button } from "../../../../ui/Button";
 import { Card } from "../../../../ui/Card";
 import { Input } from "../../../../ui/Input";
 import { ListItem } from "../../../../ui/ListItem";
-import { SelectField } from "../../../../ui/SelectField";
+import { Sheet } from "../../../../ui/Sheet";
 import { SkeletonBlock } from "../../../../ui/SkeletonBlock";
 import { promoRequest, type Report } from "./api";
 import { clearReportFilters, useReportFilters } from "./filter-state";
+import { Metric, PromoReportMetrics } from "./PromoReportMetrics";
 
 type Props = {
   offer: PromoOffer;
@@ -30,15 +31,6 @@ const periodOptions = [
   ["custom", "Свой период"],
 ] as const;
 
-function Metric({ title, value, prominent = false }: { title: string; value: React.ReactNode; prominent?: boolean }) {
-  return (
-    <div className={`flex items-start justify-between gap-3 ${prominent ? "text-title-3" : "text-body"}`}>
-      <span className="min-w-0 wrap-anywhere">{title}</span>
-      <span className="shrink-0 text-right tabular-nums">{value}</span>
-    </div>
-  );
-}
-
 export function PromoResults(props: Props) {
   const [denied, setDenied] = useState(false);
   const closeReport = useCallback(() => setDenied(true), []);
@@ -52,6 +44,8 @@ function PromoReport({ offer, store, account, currency, zone, openOrder, onDenie
     account,
     offer.id,
   );
+  const [periodOpen, setPeriodOpen] = useState(false);
+  const periodTrigger = useRef<HTMLButtonElement>(null);
   const through = shopDateTime(Date.now(), zone).date;
   const days = period === "7" ? 6 : 29;
   const dates: Record<string, string> =
@@ -84,22 +78,34 @@ function PromoReport({ offer, store, account, currency, zone, openOrder, onDenie
         <p>Начало {offer.terms.fromDate}</p>
       ) : (
         <>
-          <SelectField
-            aria-label="Период"
-            caption={periodOptions.find(([key]) => key === period)?.[1]}
-            icon={<CalendarDays size={16} />}
-            value={period}
-            onChange={(event) => {
-              setPeriod(event.target.value);
-              setOffset(0);
-            }}
+          <Button
+            full
+            variant="secondary"
+            ref={periodTrigger}
+            icon={<CalendarDays size={16} aria-hidden="true" />}
+            aria-haspopup="dialog"
+            onClick={() => setPeriodOpen(true)}
           >
-            {periodOptions.map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </SelectField>
+            {periodOptions.find(([key]) => key === period)?.[1] ?? "За всё время"}
+          </Button>
+          <Sheet open={periodOpen} title="Период" onOpenChange={setPeriodOpen} returnFocus={periodTrigger}>
+            <div className="space-y-2">
+              {periodOptions.map(([key, label]) => (
+                <Button
+                  key={key}
+                  full
+                  variant={key === period ? "soft" : "secondary"}
+                  aria-pressed={key === period}
+                  onClick={() => {
+                    setPeriod(key);
+                    setPeriodOpen(false);
+                  }}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </Sheet>
           {period === "custom" && (
             <div className="grid grid-cols-2 gap-2">
               <Input
@@ -136,68 +142,12 @@ function PromoReport({ offer, store, account, currency, zone, openOrder, onDenie
             query.data &&
             (query.data.orderCount ? (
               <>
-                <button
-                  type="button"
-                  aria-expanded={detail}
-                  onClick={() => setDetail(!detail)}
-                  className="flex min-h-11 w-full items-center justify-between gap-3 text-left text-title-3"
-                >
-                  Заказы с акцией
-                  <span className="flex shrink-0 items-center gap-2">
-                    {query.data.orderCount}
-                    <ChevronRight size={16} aria-hidden="true" className={detail ? "rotate-90" : ""} />
-                  </span>
-                </button>
-                <div className="space-y-2 border-t border-border pt-2.5">
-                  <Metric title="Сумма товаров в этих заказах" value={formatMinor(query.data.itemsMinor, currency)} />
-                  <Metric title="Доставка" value={formatMinor(query.data.deliveryMinor, currency)} />
-                  <Metric title="Скидка по этой акции" value={formatMinor(query.data.savingsMinor, currency)} />
-                  <Metric title="Покупатели" value={query.data.customers} />
-                  {!!query.data.guestOrders && <Metric title="Заказов гостей" value={query.data.guestOrders} />}
-                </div>
-                {(query.data.thresholdCount > 0 || query.data.purchaseStats.length > 0) && (
-                  <div className="space-y-2.5 border-t border-border pt-2.5">
-                    {query.data.thresholdCount > 0 && (
-                      <Metric
-                        title="Средняя сумма товаров со скидкой от порога"
-                        value={formatMinor(query.data.thresholdAverage ?? 0, currency)}
-                      />
-                    )}
-                    {query.data.purchaseStats.map((stat) => (
-                      <div className="space-y-2.5" key={`${stat.mode}:${stat.target}`}>
-                        <Metric
-                          title={
-                            stat.mode === "from"
-                              ? `Воспользовались скидкой с покупки №${stat.target}`
-                              : stat.target === 1
-                                ? "Сделали первую покупку с акцией"
-                                : `Сделали покупку №${stat.target} с акцией`
-                          }
-                          value={stat.buyers}
-                        />
-                        {stat.mode === "exact" && stat.target === 1 && (
-                          <>
-                            <Metric
-                              title="Заказали ещё раз за 30 дней"
-                              value={stat.matured ? `${stat.repeated} из ${stat.matured}` : "—"}
-                              prominent
-                            />
-                            {!stat.matured && (
-                              <p className="text-small text-muted-foreground">
-                                Результат появится через 30 дней после первой покупки
-                              </p>
-                            )}
-                            {!!stat.waiting && (
-                              <p className="text-small text-muted-foreground">
-                                Ещё у {stat.waiting} покупателей период наблюдения продолжается
-                              </p>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <PromoReportMetrics
+                  report={query.data}
+                  currency={currency}
+                  detail={detail}
+                  toggle={() => setDetail(!detail)}
+                />
                 {detail && (
                   <>
                     {query.data.orders.map((order) => (
@@ -225,7 +175,7 @@ function PromoReport({ offer, store, account, currency, zone, openOrder, onDenie
             ) : (
               <>
                 <Metric title="Заказы с акцией" value={0} prominent />
-                <p className="text-small text-muted-foreground">
+                <p className="text-meta text-muted-foreground">
                   {period === "all"
                     ? "Здесь появятся результаты после первого выполненного заказа со скидкой"
                     : "За этот период заказов с акцией нет"}

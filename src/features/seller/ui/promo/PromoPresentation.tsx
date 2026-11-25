@@ -21,7 +21,7 @@ const statusTone: Record<PromoStatus, string> = {
 };
 export function PromoBadge({ status }: { status: PromoStatus }) {
   return (
-    <span className={`shrink-0 rounded-pill px-2 py-1 text-micro font-semibold ${statusTone[status]}`}>
+    <span className={`shrink-0 inline-flex min-h-6 items-center rounded-pill px-2 text-micro ${statusTone[status]}`}>
       {statusTitle[status]}
     </span>
   );
@@ -29,9 +29,12 @@ export function PromoBadge({ status }: { status: PromoStatus }) {
 
 export function promoPeriod(from?: string, through?: string) {
   const display = (date: string) =>
-    new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(
-      new Date(`${date}T00:00:00Z`),
-    );
+    new Intl.DateTimeFormat("ru-RU", {
+      day: "numeric",
+      month: "long",
+      ...(Number(date.slice(0, 4)) !== new Date().getFullYear() && { year: "numeric" }),
+      timeZone: "UTC",
+    }).format(new Date(`${date}T00:00:00Z`));
   return [from && `с ${display(from)}`, through && `по ${display(through)}`].filter(Boolean).join(" ") || "Без срока";
 }
 
@@ -89,20 +92,24 @@ export function OfferTile({ offer, currency, onClick }: { offer: PromoOffer; cur
         <span className="min-w-0 flex-1 wrap-anywhere text-label">{terms.name || "Без названия"}</span>
         <PromoBadge status={offer.status} />
       </span>
-      <span className="mt-1.5 block space-y-1 text-small text-muted-foreground">
-        <span className="block wrap-anywhere">{promoConditions(terms, currency)}</span>
-        {!!terms.totalLimit && (
-          <span className="block font-semibold text-foreground">
-            Осталось {Math.max(0, terms.totalLimit - offer.used)} из {terms.totalLimit}
-          </span>
-        )}
-        {personalLimit(terms) && <span className="block">{personalLimit(terms)}</span>}
-        {!!offer.orders && (
-          <span className="block font-semibold text-foreground">
-            {offer.orders} заказов · скидок на {formatMinor(offer.savingsMinor, currency)}
-          </span>
-        )}
+      <span className="mt-1.5 block wrap-anywhere text-small text-muted-foreground">
+        {promoConditions(terms, currency)}
       </span>
+      {(terms.totalLimit || personalLimit(terms)) && (
+        <span className="mt-1.5 flex flex-wrap gap-x-2 gap-y-1 text-small">
+          {!!terms.totalLimit && (
+            <span className="font-semibold">
+              Осталось {Math.max(0, terms.totalLimit - offer.used)} из {terms.totalLimit}
+            </span>
+          )}
+          {personalLimit(terms) && <span className="text-muted-foreground">{personalLimit(terms)}</span>}
+        </span>
+      )}
+      {!!offer.orders && (
+        <span className="mt-2 block text-small font-semibold">
+          {offer.orders} заказов · скидок на {formatMinor(offer.savingsMinor, currency)}
+        </span>
+      )}
     </button>
   );
 }
@@ -127,11 +134,11 @@ export function PromoPriceTile({
         <span className="min-w-0 space-y-1">
           <span className="block wrap-anywhere text-label">{price.productName}</span>
           {price.variantName && (
-            <span className="block wrap-anywhere text-body text-muted-foreground">{price.variantName}</span>
+            <span className="block wrap-anywhere text-meta text-muted-foreground">{price.variantName}</span>
           )}
           <span className="flex flex-wrap items-baseline gap-x-2">
             <span className="text-title-3 text-primary-text">{formatMinor(price.priceMinor, currency)}</span>
-            <del className="text-body text-muted-foreground">{formatMinor(price.oldPriceMinor, currency)}</del>
+            <del className="text-meta text-muted-foreground">{formatMinor(price.oldPriceMinor, currency)}</del>
           </span>
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-small text-muted-foreground">
             <PromoBadge status={price.status} />

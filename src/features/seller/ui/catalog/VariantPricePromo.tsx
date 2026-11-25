@@ -27,6 +27,10 @@ export function VariantPricePromo({
   disabled: boolean;
   heading?: ReactNode;
 }) {
+  const currencyLabel =
+    new Intl.NumberFormat("ru-RU", { style: "currency", currency })
+      .formatToParts(0)
+      .find((part) => part.type === "currency")?.value ?? currency;
   const periodId = useId();
   const [open, setOpen] = useState(false);
   const [moment, setMoment] = useState("during");
@@ -51,7 +55,7 @@ export function VariantPricePromo({
         label="Обычная цена"
         value={row.oldPrice}
         inputMode="decimal"
-        hint={`${currency} · валюта магазина`}
+        hint={`${currencyLabel} · валюта магазина`}
         disabled={disabled}
         onChange={(event) => patch({ oldPrice: event.target.value })}
       />
@@ -59,7 +63,7 @@ export function VariantPricePromo({
         label={heading || row.oldPrice ? "Цена по акции" : "Цена"}
         value={row.price}
         inputMode="decimal"
-        hint={heading || row.oldPrice ? `${currency} · ниже обычной цены` : undefined}
+        hint={heading || row.oldPrice ? `${currencyLabel} · ниже обычной цены` : undefined}
         disabled={disabled}
         onChange={(event) => patch({ price: event.target.value })}
       />
