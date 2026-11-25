@@ -109,15 +109,19 @@ it("§10.2, §10.5 и §13.3 · суммы неполной истории, до
 
 it("право на денежные задачи и журнал проверяется при каждом чтении и не переносится между магазинами", async () => {
   const denied = await sellerFixture(id, "employee", ["orders"]);
-  const allowed = await sellerFixture(id, "employee", ["payments"]);
+  const allowed = await sellerFixture(id, "employee", ["orders", "payments"]);
   for (const path of ["", "/operations", "/tasks"]) {
     const suffix = `${path}?group=review&store=`;
     expect((await getAuth(`${endpoint}${suffix}lavka`, denied.headers)).status).toBe(403);
     expect((await getAuth(`${endpoint}${suffix}test2`, allowed.headers)).status).toBe(403);
     expect((await getAuth(`${endpoint}${suffix}lavka`, allowed.headers)).status).toBe(200);
   }
-  await env.PLATFORM.prepare("UPDATE memberships SET permissions='[]' WHERE account_id=?")
+  await env.PLATFORM.prepare("UPDATE memberships SET permissions='[\"orders\"]' WHERE account_id=?")
     .bind(allowed.accountId)
     .run();
   expect((await getAuth(`${endpoint}?store=lavka&rev=1`, allowed.headers)).status).toBe(403);
+  expect((await getAuth(`${endpoint}/operations?store=lavka`, allowed.headers)).status).toBe(403);
+  const orders = await getAuth("/api/seller/orders?store=lavka", allowed.headers);
+  expect(orders.status).toBe(200);
+  expect(await orders.json()).toMatchObject({ money: false });
 });

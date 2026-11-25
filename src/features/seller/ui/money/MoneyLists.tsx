@@ -11,6 +11,7 @@ import { IconButton } from "../../../../ui/IconButton";
 import { Input } from "../../../../ui/Input";
 import { ListItem } from "../../../../ui/ListItem";
 import { useMoneyOperations, useMoneyTasks } from "../../money-api";
+import { isMoneyForbidden, MoneyAccessRestricted } from "./MoneyAccessRestricted";
 import { methods } from "./MoneyOverview";
 
 type Session = { store: string; account: string; timeZone?: string };
@@ -24,6 +25,7 @@ export function MoneyTasks({
   open: (number: number, receipt?: boolean) => void;
 }) {
   const query = useMoneyTasks(session, group);
+  if (isMoneyForbidden(query.error)) return <MoneyAccessRestricted />;
   return (
     <QueryBoundary query={query} template="list">
       {({ pages }) => (
@@ -81,6 +83,7 @@ export function MoneyOperations({
 }) {
   const field = useRef<HTMLElement>(null);
   const query = useMoneyOperations(session, { ...period, method, search: term.trim() });
+  if (isMoneyForbidden(query.error)) return <MoneyAccessRestricted />;
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">

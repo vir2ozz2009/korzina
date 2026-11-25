@@ -87,18 +87,31 @@ function OrderView({ store, order, entry }: { store: string; order: SellerOrder;
   }, [entry]);
 
   const mutation = useSellerOrderCommand(store);
-  const attempt = useRef<{ body: string; key: string } | undefined>(undefined);
+  const attempt = useRef<{ intent: string; command: SellerOrderCommand; key: string } | undefined>(undefined);
   function submit(command: SellerOrderCommand) {
     if (mutation.isPending) return;
-    const body = JSON.stringify(command);
-    const current = attempt.current?.body === body ? attempt.current : { body, key: crypto.randomUUID() };
+    // An orders event may advance the displayed revision after a payment commits but before its response arrives.
+    const intent = JSON.stringify(
+      command.action === "recordPayment" ? { ...command, expectedRevision: undefined } : command,
+    );
+    const current =
+      attempt.current?.intent === intent ? attempt.current : { intent, command, key: crypto.randomUUID() };
     attempt.current = current;
     mutation.mutate(
-      { command, number: order.number, key: current.key },
+      { command: current.command, number: order.number, key: current.key },
       {
         onSuccess: () => {
           attempt.current = undefined;
           setSheet(undefined);
+        },
+        onError: (error) => {
+          if (
+            command.action === "recordPayment" &&
+            error instanceof HttpError &&
+            error.status < 500 &&
+            error.status !== 408
+          )
+            attempt.current = undefined;
         },
       },
     );
