@@ -38,7 +38,7 @@
 - [x] 25.11.2026 · Андрей принял проверенный объём блока 11 и поручил выпустить 12.1 при зелёных проверках.
 - [x] 25.11.2026 · [PR #282](https://github.com/vir2ozz2009/korzina/pull/282) проверен и выпущен на [demo `7cb98b1`, магазин `test2`](https://demo.korzina.app/?shop=test2). [Check и smoke превью](https://github.com/vir2ozz2009/korzina/actions/runs/45587873041) · [Demo smoke 4/4](https://github.com/vir2ozz2009/korzina/actions/runs/45588919428).
 - [x] 25.11.2026 · Исправления M4 и K4c по [локальному отчёту #291](https://github.com/vir2ozz2009/korzina/pull/291) защищены браузерными регрессиями. [Сценарии повторной проверки](progress/promo-discounts-local-check.md#перепроверка-m4-и-k4c).
-- [ ] **12.1 · Доработка до приёмки.** Облачный Codex выполняет [задание по общей доступности и соответствию холсту](tasks/promo-discounts-alignment.md), выпускает на demo и передаёт SHA, снимки и чек-лист через Work локальному Codex. Затем СТОП на решении Андрея. Первое касание M4 пропущено по решению Андрея. K4c подтверждён на demo 68468c4.
+- [ ] **12.1 · Доработка до приёмки.** [PR #298](https://github.com/vir2ozz2009/korzina/pull/298) · [12 пар, ревизия `476215404872732672` и проверки доступности](progress/promo-discounts-alignment.md). После выпуска Work передаёт demo SHA и [чек-лист](progress/promo-discounts-local-check.md) локальному Codex для живого Telegram iOS. Первое касание M4 пропущено по решению Андрея. K4c подтверждён на demo `68468c4`. Затем СТОП на решении Андрея.
 
 ### Шаги блока 11 · Деньги и статистика продаж
 
