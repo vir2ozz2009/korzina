@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   check:
-    if: github.event.pull_request.draft == false && startsWith(github.head_ref, 'task/')
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -42,6 +42,11 @@ jobs:
           if [[ "$full_check" == false ]]; then
             echo 'Documentation-only pull request. Check completed without tests.'
           fi
+      - name: Check visual evidence for changed UI
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/check-visual-evidence.py
       - uses: actions/setup-node@v4
         if: steps.scope.outputs.full_check == 'true'
         with:
