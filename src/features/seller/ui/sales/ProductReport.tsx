@@ -61,20 +61,23 @@ export function ProductReport({ session }: { session: SalesSession }) {
             <dl className="grid grid-cols-3 gap-2 text-small">
               <div>
                 <dt>Продано</dt>
-                <dd className="text-label">{data.quantity} шт.</dd>
+                <dd className="text-label">{data.quantity === null ? "—" : `${data.quantity} шт.`}</dd>
               </div>
               <div>
                 <dt>Заказы</dt>
-                <dd className="text-label">{data.orderCount}</dd>
+                <dd className="text-label">{data.orderCount ?? "—"}</dd>
               </div>
               <div>
                 <dt>Выручка</dt>
-                <dd className="text-label">{formatMinor(data.revenueMinor, data.currency)}</dd>
+                <dd className="text-label">
+                  {data.revenueMinor === null ? "—" : formatMinor(data.revenueMinor, data.currency)}
+                </dd>
               </div>
             </dl>
             {data.incomplete ? (
               <p className="text-small">Данные за период неполные</p>
             ) : (
+              data.quantity !== null &&
               !data.archived &&
               data.period.to <= calendarDate(shopDateTime(Date.now(), data.timeZone).date, -1) && (
                 <p className="text-small">{weeklyPace(data.quantity, data.period)}</p>

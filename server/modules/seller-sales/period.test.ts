@@ -1,14 +1,39 @@
 import { env } from "cloudflare:workers";
 import { beforeAll, expect, it, vi } from "vitest";
-import { productSales, salesReport, salesSummary } from "../../../src/shared/contracts/seller-sales";
+import { productSales, salesRank, salesReport, salesSummary } from "../../../src/shared/contracts/seller-sales";
 import { calendarDate } from "../../../src/shared/datetime";
 import { getAuth, sellerFixture } from "../../testing/auth";
+import { snapshot } from "../../testing/orders";
 import { setupPlatform } from "../../testing/platform";
 import { catalogSql } from "../catalog/testing";
 
 const shop = "korzina-demo-lavka";
 const root = "/api/seller/statistics";
 beforeAll(setupPlatform);
+
+it("§10.2, §14.5 · за период без подтверждённых строк неполная история не становится нулём", async () => {
+  const { headers } = await sellerFixture(shop);
+  await catalogSql(
+    "INSERT INTO orders(customer,created_at,status,payment_status,snapshot) VALUES('guest:legacy-sales',?,'completed','confirmed',?)",
+    Date.parse("2026-10-01T08:30:00Z"),
+    JSON.stringify(snapshot),
+  );
+  await catalogSql("DELETE FROM settings WHERE key='sales_projection_zone'");
+  const query = "store=lavka&from=2026-10-01&to=2026-10-01";
+  const product = await getAuth(`${root}/products/product-01?${query}`, headers);
+  expect(productSales.parse(await product.json())).toMatchObject({
+    incomplete: true,
+    quantity: null,
+    orderCount: null,
+    revenueMinor: null,
+  });
+  const ranking = await getAuth(`${root}/products?${query}`, headers);
+  expect(salesRank.parse(await ranking.json()).rows[0]).toMatchObject({
+    incomplete: true,
+    quantity: null,
+    share: null,
+  });
+});
 
 it("§9.3 · границы час/день/неделя/месяц, неполные интервалы и локальные сутки 23/25 часов", async () => {
   const { headers } = await sellerFixture(shop);

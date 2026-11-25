@@ -52,11 +52,14 @@ function RankRow({ row, period, store }: { row: SalesRank["rows"][number]; perio
     >
       <div className="flex justify-between gap-3 text-label">
         <span>{row.name}</span>
-        <span className="shrink-0">{row.quantity} шт.</span>
+        <span className="shrink-0">{row.quantity === null ? "—" : `${row.quantity} шт.`}</span>
       </div>
-      <div className="mt-2 h-1.5 rounded-pill bg-secondary" aria-hidden="true">
-        <div className="h-full origin-left rounded-pill bg-primary" style={{ transform: `scaleX(${row.share})` }} />
-      </div>
+      {row.share !== null && (
+        <div className="mt-2 h-1.5 rounded-pill bg-secondary" aria-hidden="true">
+          <div className="h-full origin-left rounded-pill bg-primary" style={{ transform: `scaleX(${row.share})` }} />
+        </div>
+      )}
+      {row.incomplete && <span className="text-small text-muted-foreground">Данные за период неполные</span>}
     </Link>
   );
 }

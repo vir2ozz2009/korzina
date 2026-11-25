@@ -4,8 +4,23 @@ import { missingCompletion } from "./report";
 
 const pageSize = 10;
 
+function incompleteHistory(storage: DurableObjectStorage, timeZone: string, currency: string, period: SalesPeriod) {
+  return (
+    missingCompletion(storage, timeZone, currency, period) ||
+    storage.sql
+      .exec(
+        "SELECT 1 FROM sales_orders WHERE currency=? AND day BETWEEN ? AND ? AND revenue_minor IS NULL LIMIT 1",
+        currency,
+        period.from,
+        period.to,
+      )
+      .toArray().length > 0
+  );
+}
+
 export function rankProducts(
   storage: DurableObjectStorage,
+  timeZone: string,
   currency: string,
   period: SalesPeriod,
   cursor?: string,
@@ -22,13 +37,15 @@ export function rankProducts(
   const start = offset === undefined ? 0 : Number(offset);
   if (cursor && (key !== scope || !Number.isSafeInteger(start) || start < 0))
     throw new ApiError("VERSION_CONFLICT", "Список изменился");
+  const incomplete = incompleteHistory(storage, timeZone, currency, period);
   const rows = storage.sql
-    .exec<{ id: string; name: string; quantity: number; maxQuantity: number }>(
+    .exec<{ id: string; name: string; quantity: number | null; maxQuantity: number | null }>(
       `WITH sold AS (
       SELECT product_id,MAX(name) AS name,SUM(quantity) AS quantity FROM sales_products_daily
       WHERE currency=? AND day BETWEEN ? AND ? GROUP BY product_id
     ), ranked AS (
-      SELECT p.id,p.name,COALESCE(s.quantity,0) AS quantity FROM products p LEFT JOIN sold s ON p.id=s.product_id
+      SELECT p.id,p.name,COALESCE(s.quantity, CASE WHEN ? THEN NULL ELSE 0 END) AS quantity
+      FROM products p LEFT JOIN sold s ON p.id=s.product_id
       UNION ALL SELECT s.product_id,s.name,s.quantity FROM sold s WHERE NOT EXISTS(SELECT 1 FROM products p WHERE p.id=s.product_id)
     )
     SELECT *,MAX(quantity) OVER () AS maxQuantity FROM ranked
@@ -36,6 +53,7 @@ export function rankProducts(
       currency,
       period.from,
       period.to,
+      Number(incomplete),
       pageSize + 1,
       start,
     )
@@ -44,7 +62,8 @@ export function rankProducts(
     period,
     rows: rows.slice(0, pageSize).map(({ maxQuantity, ...row }) => ({
       ...row,
-      share: maxQuantity > 0 ? row.quantity / maxQuantity : 0,
+      incomplete,
+      share: row.quantity === null ? null : maxQuantity && maxQuantity > 0 ? row.quantity / maxQuantity : 0,
     })),
     next: rows.length > pageSize ? `${scope}|${start + pageSize}` : undefined,
   };
@@ -92,18 +111,11 @@ export function readProductSales(
       ...(variant ? [variant] : []),
     )
     .one();
-  const incomplete =
-    missingCompletion(storage, timeZone, currency, period) ||
-    storage.sql
-      .exec(
-        "SELECT 1 FROM sales_orders WHERE currency=? AND day BETWEEN ? AND ? AND revenue_minor IS NULL LIMIT 1",
-        currency,
-        period.from,
-        period.to,
-      )
-      .toArray().length > 0;
+  const incomplete = incompleteHistory(storage, timeZone, currency, period);
+  const values =
+    incomplete && totals.orderCount === 0 ? { quantity: null, orderCount: null, revenueMinor: null } : totals;
   return {
-    ...totals,
+    ...values,
     currency,
     period,
     timeZone,

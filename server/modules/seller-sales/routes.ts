@@ -70,7 +70,7 @@ export const sellerSalesRoutes = new Hono<SalesEnv>()
   })
   .get("/products", validatePeriod, (c) => {
     const query = c.req.valid("query");
-    return c.json(rankProducts(c.env.storage, c.get("currency"), selection(c, query), query.cursor));
+    return c.json(rankProducts(c.env.storage, c.get("timeZone"), c.get("currency"), selection(c, query), query.cursor));
   })
   .get("/products/:id", validatePeriod, (c) => {
     const query = c.req.valid("query");
