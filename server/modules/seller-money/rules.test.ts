@@ -121,5 +121,7 @@ it("право на денежные задачи и журнал проверя
     .run();
   expect((await getAuth(`${endpoint}?store=lavka&rev=1`, allowed.headers)).status).toBe(403);
   expect((await getAuth(`${endpoint}/operations?store=lavka`, allowed.headers)).status).toBe(403);
-  expect((await getAuth("/api/seller/cabinet?store=lavka", allowed.headers)).status).toBe(200);
+  const orders = await getAuth("/api/seller/orders?store=lavka", allowed.headers);
+  expect(orders.status).toBe(200);
+  expect(await orders.json()).toMatchObject({ money: false });
 });
