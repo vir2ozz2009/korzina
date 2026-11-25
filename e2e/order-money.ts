@@ -1,8 +1,47 @@
 import { expect, type Page, test } from "@playwright/test";
+import type { BuyerOrder } from "../src/shared/contracts/buyer-order";
 import type { SellerOrder } from "../src/shared/contracts/seller-order";
 import { formatMinor, minorInput } from "../src/shared/money";
 
 const moneyRoot = "/seller/money?store=test2";
+
+export async function captureBuyerMoneyPreview(page: Page, number: number) {
+  const path = `/api/orders/${number}?shop=test2`;
+  const response = await page.request.get(path);
+  expect(response.ok()).toBe(true);
+  const original = (await response.json()) as BuyerOrder;
+  const url = `**${path}`;
+  let fixture: BuyerOrder = {
+    ...original,
+    paymentStatus: "confirmed",
+    debtMinor: 69,
+    topUp: { id: "preview-topup", status: "pending_review" },
+  };
+  await page.route(url, (route) => route.fulfill({ json: fixture }));
+  try {
+    await page.reload({ waitUntil: "domcontentloaded" });
+    const submitted = page.getByText("Подтверждение отправлено · повторно платить не нужно");
+    await expect(submitted).toBeVisible();
+    await submitted.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "test-results/block11-preview-buyer-top-up-390.png", animations: "disabled" });
+    fixture = {
+      ...original,
+      stage: "completed",
+      paymentStatus: "confirmed",
+      refundMinor: 40,
+      returnedMinor: 20,
+      refund: { id: "preview-refund", amountMinor: 40, needsAllocation: false, details: { text: "Учебные реквизиты" } },
+    };
+    await page.reload({ waitUntil: "domcontentloaded" });
+    const pending = page.getByText("Реквизиты переданы, деньги ожидаются");
+    await expect(pending).toBeVisible();
+    await pending.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "test-results/block11-preview-buyer-refund-390.png", animations: "disabled" });
+  } finally {
+    await page.unroute(url);
+    await page.reload({ waitUntil: "domcontentloaded" });
+  }
+}
 
 export async function checkMoneyTopUp(buyer: Page, seller: Page, number: number, amount: number, currency: string) {
   await test.step("Блок 11 · покупатель отправляет отдельный чек, продавец подтверждает его из задач", async () => {
