@@ -36,7 +36,8 @@
 - [x] 25.11.2026 · Андрей одобрил [ревизию `476215404872732672`](https://designs.magicpath.ai/v1/deep-mountain-9517?revisionId=476215404872732672&history=design). Все пять сценариев §14 прошли на 360 и 390 px. Активные промокоды и скидки в профиле отложены до [A12](tasks/A12.md).
 - [x] 25.11.2026 · Реализация 12.1 по ревизии `476215404872732672` в [PR #282](https://github.com/vir2ozz2009/korzina/pull/282). [Сценарии и статус проверки](progress/A1.md).
 - [x] 25.11.2026 · Андрей принял проверенный объём блока 11 и поручил выпустить 12.1 при зелёных проверках.
-- [ ] Проверки [PR #282](https://github.com/vir2ozz2009/korzina/pull/282), выпуск 12.1 на demo и передача чек-листа локальному Codex. 12.2 и 12.3 не начинаем до приёмки 12.1.
+- [x] 25.11.2026 · [PR #282](https://github.com/vir2ozz2009/korzina/pull/282) проверен и выпущен на [demo `7cb98b1`, магазин `test2`](https://demo.korzina.app/?shop=test2). [Check и smoke превью](https://github.com/vir2ozz2009/korzina/actions/runs/45587873041) · [Demo smoke 4/4](https://github.com/vir2ozz2009/korzina/actions/runs/45588919428).
+- [ ] **СТОП на локальной проверке 12.1.** Локальный Codex проходит [чек-лист](progress/promo-discounts-local-check.md), затем принимает Андрей. 12.2 и 12.3 не начинаем.
 
 ### Шаги блока 11 · Деньги и статистика продаж
 
