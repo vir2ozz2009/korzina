@@ -183,7 +183,12 @@ export function CartScreen() {
               </>
             )}
             {cart.promo && (
-              <CartPromotion cart={cart} currency={currency} disabled={checking || !!pendingProducts.size} />
+              <CartPromotion
+                cart={cart}
+                currency={currency}
+                disabled={checking || !!pendingProducts.size}
+                deliveryMinor={total?.deliveryMinor}
+              />
             )}
             <div className="flex items-baseline justify-between gap-2">
               <span>Товары</span>

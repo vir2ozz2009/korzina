@@ -9,6 +9,8 @@ import type {
 import { calendarDate, defaultShopTimeZone, shopDayStart } from "../../../src/shared/datetime";
 import { ApiError } from "../../../src/shared/errors";
 
+import { netSavings } from "./result-sql";
+
 type StoredOffer = {
   id: string;
   revision: number;
@@ -19,10 +21,10 @@ type StoredOffer = {
 };
 export type OfferRow = StoredOffer & { used: number; personal_used: number; orders: number; savings: number };
 const summary = `(SELECT COUNT(*) FROM promo_uses u WHERE u.offer_id=p.id AND u.released_at IS NULL) used,
-  (SELECT COUNT(*) FROM promo_uses u JOIN orders o ON o.number=u.order_number WHERE u.offer_id=p.id AND o.status='completed') orders,
-  COALESCE((SELECT SUM(u.amount_minor) FROM promo_uses u JOIN orders o ON o.number=u.order_number WHERE u.offer_id=p.id AND o.status='completed'),0) savings`;
+  (SELECT COUNT(*) FROM promo_uses u JOIN orders o ON o.number=u.order_number WHERE u.offer_id=p.id AND o.status='completed' AND u.amount_minor>0) orders,
+  COALESCE((SELECT SUM(${netSavings}) FROM promo_uses u JOIN orders o ON o.number=u.order_number WHERE u.offer_id=p.id AND o.status='completed' AND u.amount_minor>0),0) savings`;
 
-export function statusOf(row: StoredOffer, now: number): PromoStatus {
+function statusOf(row: StoredOffer, now: number): PromoStatus {
   if (row.state !== "published") return row.state;
   if (row.ends_at !== null && row.ends_at <= now) return "ended";
   if (row.starts_at !== null && row.starts_at > now) return "scheduled";

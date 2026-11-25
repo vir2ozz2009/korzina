@@ -19,6 +19,17 @@ export type Report = {
   orderCount: number;
   customers: number;
   guestOrders: number;
+  deliveryMinor: number;
+  thresholdCount: number;
+  thresholdAverage: number | null;
+  purchaseStats: {
+    mode: "exact" | "from";
+    target: number;
+    buyers: number;
+    matured: number;
+    waiting: number;
+    repeated: number;
+  }[];
   itemsMinor: number;
   savingsMinor: number;
   orders: { number: number; completedAt: number; name: string; itemsMinor: number; savingMinor: number }[];

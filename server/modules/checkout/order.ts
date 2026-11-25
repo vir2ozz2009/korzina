@@ -94,12 +94,14 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
       input.payment,
       input.payment === "transfer" ? input.methodId : undefined,
     );
-    if (!method) throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Этот способ оплаты недоступен");
+    if (!method && previous.totalMinor !== 0 && snapshot.totalMinor !== 0)
+      throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Этот способ оплаты недоступен");
     if (JSON.stringify(quoteTerms(previous)) !== JSON.stringify(quoteTerms(snapshot)))
       throw new ApiError("QUOTE_CHANGED", "Условия заказа изменились", {
         beforeMinor: previous.totalMinor,
         afterMinor: snapshot.totalMinor,
       });
+    if (!method) throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Этот способ оплаты недоступен");
     const seatReserved = reserveTime(storage, snapshot.receiving.mode, snapshot.time, now);
     const { paymentSettings, ...details } = snapshot;
     const proof = input.payment === "transfer" ? (input.proofMediaId ?? null) : null;

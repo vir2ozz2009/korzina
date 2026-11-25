@@ -33,6 +33,8 @@ export function OrderPayment({
   refundDetails?: () => void;
   replaceProof?: () => void;
 }) {
+  if (order.totalMinor === 0 && order.adjustments?.length && !order.refundMinor)
+    return <Card>Оплата не требуется</Card>;
   const changed = order.composition?.totals;
   const cash = (order.topUpPayment?.id ?? order.paymentOption?.id ?? order.payment) === "cash";
   const option = order.paymentOption?.name ?? (order.payment === "cash" ? "Наличными при получении" : "Перевод");

@@ -10,7 +10,7 @@ export const promoCode = z
   .max(40)
   .transform((value) => value.normalize("NFKC").toUpperCase())
   .pipe(z.string().regex(/^[\p{L}\p{N}_-]{1,40}$/u));
-export const promoKinds = ["automatic", "code"] as const;
+const promoKinds = ["automatic", "code"] as const;
 export const promoStatuses = ["active", "scheduled", "draft", "ended", "disabled"] as const;
 export const promoTerms = z.object({
   name: z.string().trim().max(120),

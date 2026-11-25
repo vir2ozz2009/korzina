@@ -49,9 +49,11 @@ export function DoneScreen() {
             <h1 className="text-title-1">Заказ №{order.number}</h1>
             <p>Заказ сохранён</p>
             <p>
-              {order.payment === "cash"
-                ? `Оплатите ${formatMinor(order.totalMinor, order.currency)} при получении`
-                : "Чек отправлен. Магазин проверит оплату."}
+              {order.totalMinor === 0 && order.adjustments?.length
+                ? "Оплата не требуется"
+                : order.payment === "cash"
+                  ? `Оплатите ${formatMinor(order.totalMinor, order.currency)} при получении`
+                  : "Чек отправлен. Магазин проверит оплату."}
             </p>
           </Card>
           <ListItem

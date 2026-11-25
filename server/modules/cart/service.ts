@@ -27,6 +27,10 @@ export function readCartState(
 ) {
   const now = source.now ?? Date.now();
   const effective = effectivePrice("v.", !!source.promotions, now);
+  const priceWindow = source.promotions
+    ? `'nextPriceAt',CASE WHEN v.promo_starts_at>${now} THEN v.promo_starts_at
+          WHEN v.promo_ends_at>${now} THEN v.promo_ends_at END,`
+    : "";
   const variantId = variantIds[0] ?? "";
   const batch = variantIds.length > 1;
   const row = storage.sql
@@ -34,7 +38,7 @@ export function readCartState(
       `SELECT COALESCE(c.revision,0) AS revision,s.currency,c.quote,i.fingerprint,i.response,c.promo_code,c.promo_alternative,
       (SELECT json_group_array(json_object(
         'variantId',w.variant_id,'productId',p.id,'name',p.name,'unit',v.name,'quantity',w.quantity,
-        'priceMinor',${effective.price},'oldPriceMinor',${effective.old},${source.promotions ? "'categoryId',p.category_id," : ""}'stock',v.stock,
+        'priceMinor',${effective.price},'oldPriceMinor',${effective.old},${source.promotions ? "'categoryId',p.category_id," : ""}${priceWindow}'stock',v.stock,
         'available',COALESCE(v.visible AND v.product_available AND NOT v.product_paused AND v.sale_pause IS NULL AND (v.stock IS NULL OR v.stock>0),0),
         'photo',CASE WHEN m.id IS NOT NULL THEN json_object('id',m.id,'edgeColor',m.edge_color,'cropPosition',json(m.crop_position)) END))
       FROM (SELECT json_extract(j.value,'$.variantId') AS variant_id,json_extract(j.value,'$.quantity') AS quantity
@@ -158,7 +162,7 @@ export function changeCart(
     if ("promoAction" in input) {
       if (!source.promotions) throw new ApiError("FORBIDDEN", "Акции недоступны");
       const prior = reprice(cart);
-      if (input.promoAction !== "remove") {
+      if ("code" in input) {
         const candidate = pricePromoCart(
           storage,
           customer,
@@ -192,7 +196,8 @@ export function changeCart(
         )
           throw new ApiError("VALIDATION", "Промокод не применён", { promo: candidate.promo });
       }
-      codes.code = input.promoAction === "remove" ? null : input.code;
+      if (input.promoAction === "remove") codes.code = null;
+      else if ("code" in input) codes.code = input.code;
       codes.alternative = null;
       next = { ...cart, revision: cart.revision + 1 };
       persistCart(storage, customer, next);

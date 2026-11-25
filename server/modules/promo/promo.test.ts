@@ -126,3 +126,94 @@ it("§7.4 сравнивает замену, отмена и неизвестн�
     await (await buy("cart", { ...compare, promoAction: "apply", comparedTotal: 40000 }, cookie)).json(),
   ).toMatchObject({ totalMinor: 40000, promo: { code: "NEW" } });
 });
+
+it("§7.8 оформляет нулевой итог без метода перевода и чека, минимум до скидки остаётся в силе", async () => {
+  const owner = (await sellerFixture(shop)).headers;
+  const full = { ...terms, discount: { type: "percent", value: 10000 } };
+  expect((await seller(owner, { action: "publish", revision: 0, terms: full })).status).toBe(200);
+  await catalogSql(
+    "UPDATE settings SET value=? WHERE key='purchase_payment'",
+    JSON.stringify({ minimumMinor: 49000, methods: ["transfer"], instruction: "Счёт магазина" }),
+  );
+  const cookie = await customer("sku-01");
+  await code(cookie);
+  const quote = await getQuote(cookie);
+  expect(quote).toMatchObject({
+    totalMinor: 0,
+    itemsBeforeDiscountMinor: 49000,
+    paymentSettings: { methods: ["cash"] },
+  });
+  expect((await buy("checkout", { quoteRevision: quote.quoteRevision, payment: "cash" }, cookie)).status).toBe(201);
+});
+
+it("§11 §14 агрегирует выполненные заказы, не удваивает события, сохраняет историю при повторе", async () => {
+  const { headers } = await sellerFixture(shop);
+  const response = await seller(headers, { action: "publish", revision: 0, terms });
+  const original = await response.json<PromoOffer>();
+  const cookie = await customer("sku-01");
+  await code(cookie);
+  const quote = await getQuote(cookie);
+  const placed = await buy("checkout", { payment: "cash", quoteRevision: quote.quoteRevision }, cookie);
+  const order = await placed.json<OrderResult>();
+  const report = () => getAuth(`/api/seller/promotions/${original.id}/report?store=lavka`, headers);
+  expect(await (await report()).json()).toMatchObject({ orderCount: 0, savingsMinor: 0 });
+  await catalogSql("UPDATE orders SET status='completed' WHERE number=?", order.number);
+  for (let round = 0; round < 2; round++) {
+    await catalogSql(
+      "INSERT INTO buyer_order_events(order_number,actor,event,created_at) VALUES(?,'test','order.complete',?)",
+      order.number,
+      Date.now(),
+    );
+  }
+  expect(await (await report()).json()).toMatchObject({
+    orderCount: 1,
+    itemsMinor: 41500,
+    savingsMinor: 7500,
+    guestOrders: 1,
+  });
+  await catalogSql(
+    "UPDATE orders SET fulfillment_state=? WHERE number=?",
+    JSON.stringify({ finance: { salesRefund: { variants: { "sku-01": 8300 } } } }),
+    order.number,
+  );
+  expect(await (await report()).json()).toMatchObject({
+    orderCount: 1,
+    itemsMinor: 33200,
+    savingsMinor: 6000,
+    guestOrders: 1,
+  });
+  await catalogSql("UPDATE promo_offers SET ends_at=? WHERE id=?", Date.now() - 1000, original.id);
+  const key = crypto.randomUUID();
+  const repeat = () => seller(headers, { action: "repeat", revision: 1 }, `/${original.id}`, key);
+  const copy = await (await repeat()).json<PromoOffer>();
+  expect(copy).toMatchObject({ status: "draft", orders: 0, used: 0 });
+  expect(copy.id).not.toBe(original.id);
+  expect(await (await repeat()).json()).toEqual(copy);
+  expect(await (await report()).json()).toMatchObject({ orderCount: 1, savingsMinor: 6000 });
+});
+
+it("§13.21 §14.5 цена фасовки до, во время и после периода совпадает с витриной и корзиной", async () => {
+  const { headers } = await sellerFixture(shop);
+  const path = "/api/seller/promotions?store=lavka";
+  const now = Date.now();
+  await catalogSql(
+    "UPDATE variants SET price_minor=80,old_price_minor=100,promo_starts_at=?,promo_ends_at=? WHERE id='sku-01'",
+    now + 60000,
+    now + 120000,
+  );
+  const live = () => getAuth("/api/catalog/live?shop=lavka&ids=sku-01");
+  expect(await (await live()).json()).toMatchObject({ items: [{ priceMinor: 100, oldPriceMinor: null }] });
+  expect(await (await getAuth(`${path}&status=scheduled&kind=price`, headers)).json()).toMatchObject({
+    prices: [{ variantId: "sku-01", status: "scheduled", priceMinor: 80, oldPriceMinor: 100 }],
+  });
+  await catalogSql("UPDATE variants SET promo_starts_at=? WHERE id='sku-01'", now - 1000);
+  expect(await (await live()).json()).toMatchObject({ items: [{ priceMinor: 80, oldPriceMinor: 100 }] });
+  const cookie = await customer("sku-01");
+  expect(await readCart(cookie)).toMatchObject({ lines: [{ priceMinor: 80, oldPriceMinor: 100 }] });
+  await catalogSql("UPDATE variants SET promo_ends_at=? WHERE id='sku-01'", now - 100);
+  expect(await (await live()).json()).toMatchObject({ items: [{ priceMinor: 100, oldPriceMinor: null }] });
+  expect(await readCart(cookie)).toMatchObject({
+    lines: [{ priceMinor: 100 }],
+    review: { changes: [{ oldPriceMinor: 80 }] },
+  });
+});

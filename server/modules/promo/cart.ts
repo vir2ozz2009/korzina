@@ -63,10 +63,20 @@ export function pricePromoCart(
   const label = (terms: Candidate["terms"]) => promoLabel(terms, (value) => formatMinor(value, cart.currency ?? "RUB"));
   const priced = calculatePromo(cart, candidates, buyer, label, codes.code ?? undefined);
   if (priced.promo) {
-    if (nextChangeAt) priced.promo.nextChangeAt = nextChangeAt;
+    const nextPriceAt = Math.min(
+      ...cart.lines.flatMap((line) => (line.nextPriceAt ? [line.nextPriceAt] : [])),
+      nextChangeAt ?? Infinity,
+    );
+    if (Number.isFinite(nextPriceAt)) priced.promo.nextChangeAt = nextPriceAt;
     if (codes.alternative) {
       const alternate = calculatePromo(cart, candidates, buyer, label, codes.alternative);
-      priced.promo.alternative = { code: codes.alternative, totalMinor: alternate.totalMinor };
+      priced.promo.alternative = {
+        code: codes.alternative,
+        totalMinor: alternate.totalMinor,
+        reason: alternate.promo?.reason,
+        missingMinor: alternate.promo?.missingMinor,
+        missingQuantity: alternate.promo?.missingQuantity,
+      };
     }
   }
   return priced;

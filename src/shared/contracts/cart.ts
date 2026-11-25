@@ -11,7 +11,7 @@ const cartChangeInput = z.object({
 export const cartCommandInput = z.union([
   cartChangeInput,
   z.object({ confirm: z.literal(true), expectedRevision }),
-  z.object({ promoAction: z.literal("remove"), expectedRevision }),
+  z.object({ promoAction: z.enum(["remove", "keep"]), expectedRevision }),
   z.object({ promoAction: z.literal("compare"), code: promoCode, expectedRevision }),
   z.object({
     promoAction: z.literal("apply"),
@@ -31,6 +31,7 @@ const cartLine = z.object({
   priceMinor: money,
   oldPriceMinor: money.nullable().optional(),
   categoryId: z.string().nullable().optional(),
+  nextPriceAt: z.number().nullable().optional(),
   stock: z.number().int().nullable(),
   available: z.boolean(),
   image: catalogImageContract.nullable().optional(),
@@ -43,6 +44,7 @@ const cartAdjustment = z.object({
   amount: money,
   sourceRevision: z.number().optional(),
   code: z.string().optional(),
+  minimumMinor: money.optional(),
   purchase: z.object({ mode: z.enum(["exact", "from"]), number: z.number() }).optional(),
   allocations: z.array(z.object({ variantId: z.string(), amount: money })).optional(),
 });

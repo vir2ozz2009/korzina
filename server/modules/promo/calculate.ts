@@ -20,7 +20,7 @@ export type Candidate = {
 };
 export type Buyer = { confirmed: boolean; completed: number; exactUsed: boolean };
 
-export function discountAmount(terms: PromoTerms, base: number, currency: string) {
+function discountAmount(terms: PromoTerms, base: number, currency: string) {
   const unit = 10 ** currencyDigits(currency);
   const discount = terms.discount;
   return Math.min(
@@ -149,6 +149,7 @@ export function calculatePromo(
       amount: -amount,
       code: offer.terms.code,
       purchase: offer.terms.purchase,
+      minimumMinor: offer.terms.minimumMinor,
       allocations: lines.map((line, index) => ({ variantId: line.variantId, amount: amounts[index] })),
     });
   }

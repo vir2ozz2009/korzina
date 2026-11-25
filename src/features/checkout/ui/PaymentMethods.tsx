@@ -27,6 +27,7 @@ export function PaymentMethods({
   locked: boolean;
   quoteRevision: string;
 }) {
+  if (!choices) return null;
   return (
     <Card>
       <h2 className="text-title-3">Способ оплаты</h2>

@@ -104,7 +104,6 @@ export function purchaseDraft(env: Shop, subject: string, kind: "guest" | "teleg
       throw new ApiError("SLOT_TAKEN", time ? timeChangedMessage : "Выберите доступное время получения");
   }
   if (!context.phone && kind !== "telegram") throw new ApiError("VALIDATION", "Войдите или укажите номер телефона");
-  if (!paymentSettings.methods.length) throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Оплата пока недоступна");
   const savings = new Map(
     cart.adjustments.flatMap((item) => item.allocations ?? []).map((item) => [item.variantId, item.amount]),
   );
@@ -134,6 +133,10 @@ export function purchaseDraft(env: Shop, subject: string, kind: "guest" | "teleg
     });
   const deliveryMinor =
     fulfillment.mode === "delivery" && fulfillment.payee === "shop" ? (fulfillment.feeMinor ?? 0) : 0;
+  const totalMinor = addMinor(itemsMinor, deliveryMinor);
+  const free = totalMinor === 0 && cart.adjustments.some((item) => item.kind === "promotion");
+  if (!free && !paymentSettings.methods.length)
+    throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Оплата пока недоступна");
   const snapshot: PurchaseQuote = {
     revision: cart.revision,
     currency: cart.currency,
@@ -142,13 +145,13 @@ export function purchaseDraft(env: Shop, subject: string, kind: "guest" | "teleg
     itemsMinor,
     ...(cart.adjustments.length ? { itemsBeforeDiscountMinor: beforeDiscount } : {}),
     deliveryMinor,
-    totalMinor: addMinor(itemsMinor, deliveryMinor),
+    totalMinor,
     receiving,
     fulfillment,
     time,
     phone: context.phone,
     telegramLinked: kind === "telegram",
-    paymentSettings,
+    paymentSettings: free ? { minimumMinor: paymentSettings.minimumMinor, methods: ["cash"] } : paymentSettings,
   };
   return { snapshot, cart, storedReceiving: context.receiving, customerName: context.buyer_name };
 }

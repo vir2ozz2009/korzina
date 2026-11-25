@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import type { Cart } from "../../../shared/contracts/cart";
 import type { PromoReason } from "../../../shared/contracts/promo";
 import { HttpError } from "../../../shared/http-error";
-import { formatMinor } from "../../../shared/money";
+import { addMinor, formatMinor } from "../../../shared/money";
 import { Button } from "../../../ui/Button";
 import { Input } from "../../../ui/Input";
 import { Sheet } from "../../../ui/Sheet";
@@ -33,7 +33,17 @@ function message(
   if (promo?.reason === "quantity") return `Добавьте подходящие товары · ещё ${promo.missingQuantity} шт.`;
   return promo?.reason && descriptions[promo.reason];
 }
-export function CartPromotion({ cart, currency, disabled }: { cart: Cart; currency: string; disabled: boolean }) {
+export function CartPromotion({
+  cart,
+  currency,
+  disabled,
+  deliveryMinor = 0,
+}: {
+  cart: Cart;
+  currency: string;
+  disabled: boolean;
+  deliveryMinor?: number;
+}) {
   const [mode, setMode] = useState<"actions" | "edit" | "compare">();
   const [input, setInput] = useState("");
   const [candidate, setCandidate] = useState<NonNullable<Cart["promo"]>["alternative"]>();
@@ -49,12 +59,12 @@ export function CartPromotion({ cart, currency, disabled }: { cart: Cart; curren
     setCandidate(undefined);
     setError("");
   };
-  const submit = async (action: "remove" | "compare" | "apply", code = input, comparedTotal?: number) => {
+  const submit = async (action: "remove" | "keep" | "compare" | "apply", code = input, comparedTotal?: number) => {
     if (mutation.isPending) return;
     setError("");
     const expectedRevision = cart.revision;
     const request =
-      action === "remove"
+      action === "remove" || action === "keep"
         ? ({ promoAction: action, expectedRevision } as const)
         : { promoAction: action, code, expectedRevision, comparedTotal };
     const value = JSON.stringify(request);
@@ -153,10 +163,10 @@ export function CartPromotion({ cart, currency, disabled }: { cart: Cart; curren
           {mode === "compare" && alternative && (
             <>
               <p>
-                {promo?.code} · {formatMinor(cart.totalMinor, currency)}
+                {promo?.code} · {formatMinor(addMinor(cart.totalMinor, deliveryMinor), currency)}
               </p>
               <p>
-                {alternative.code} · {formatMinor(alternative.totalMinor, currency)}
+                {alternative.code} · {formatMinor(addMinor(alternative.totalMinor, deliveryMinor), currency)}
               </p>
               {message(alternative, currency) && <p>{message(alternative, currency)}</p>}
               <Button
@@ -166,7 +176,15 @@ export function CartPromotion({ cart, currency, disabled }: { cart: Cart; curren
               >
                 Заменить код
               </Button>
-              <Button full variant="secondary" disabled={mutation.isPending} onClick={close}>
+              <Button
+                full
+                variant="secondary"
+                disabled={mutation.isPending}
+                onClick={() => {
+                  if (promo?.alternative) void submit("keep");
+                  else close();
+                }}
+              >
                 Оставить прежний
               </Button>
             </>

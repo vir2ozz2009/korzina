@@ -106,6 +106,40 @@ export function PromoResults({
                 <ListItem title="Сумма товаров в этих заказах" value={formatMinor(query.data.itemsMinor, currency)} />
                 <ListItem title="Скидка по этой акции" value={formatMinor(query.data.savingsMinor, currency)} />
                 <ListItem title="Покупатели" value={query.data.customers} />
+                {!!query.data.deliveryMinor && (
+                  <ListItem title="Доставка отдельно" value={formatMinor(query.data.deliveryMinor, currency)} />
+                )}
+                {query.data.thresholdCount > 0 && (
+                  <ListItem
+                    title="Средняя сумма товаров со скидкой от порога"
+                    value={formatMinor(query.data.thresholdAverage ?? 0, currency)}
+                  />
+                )}
+                {query.data.purchaseStats.map((stat) => (
+                  <div key={`${stat.mode}:${stat.target}`}>
+                    <ListItem
+                      title={
+                        stat.mode === "from"
+                          ? `Воспользовались скидкой с покупки №${stat.target}`
+                          : stat.target === 1
+                            ? "Сделали первую покупку с акцией"
+                            : `Сделали покупку №${stat.target} с акцией`
+                      }
+                      value={stat.buyers}
+                    />
+                    {stat.mode === "exact" && stat.target === 1 && (
+                      <div className="space-y-1 px-3 text-caption">
+                        <p className="text-label">Заказали ещё раз за 30 дней</p>
+                        <p>
+                          {stat.matured
+                            ? `${stat.repeated} из ${stat.matured}`
+                            : "Результат появится через 30 дней после первой покупки"}
+                        </p>
+                        {!!stat.waiting && <p>Ещё у {stat.waiting} покупателей период наблюдения продолжается</p>}
+                      </div>
+                    )}
+                  </div>
+                ))}
                 {!!query.data.guestOrders && <p>Заказов гостей · {query.data.guestOrders}</p>}
                 {detail && (
                   <>
