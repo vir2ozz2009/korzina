@@ -3,6 +3,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { HttpError } from "../../shared/http-error";
 import { useCabinet } from "./api";
+import { sellerMoneyRefresh } from "./money-api";
 import { invalidateSellerOrders, sellerOrdersSocket } from "./orders-api";
 
 type OrderUpdate = { topic: "orders"; cursor: number; id?: number };
@@ -33,7 +34,7 @@ function useSellerOrdersLive(store: string, account: string | undefined, orders:
     const refresh = (data?: OrderUpdate) => {
       if (payments) {
         void client.invalidateQueries(sales);
-        void client.invalidateQueries(money);
+        void client.invalidateQueries(sellerMoneyRefresh(store));
       }
       if (!orders) return;
       void invalidateSellerOrders(client, store, data?.id, data?.cursor);

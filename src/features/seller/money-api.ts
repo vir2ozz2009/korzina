@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { type QueryFilters, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type {
   SellerMoneyOperation,
   SellerMoneyOverview,
@@ -21,6 +21,19 @@ const periodOptions = {
     query.state.error instanceof ConnectionError ? false : "always",
 } as const;
 const key = (session: Session) => ["seller-money", session.store, session.account] as const;
+
+export function sellerMoneyRefresh(store: string): QueryFilters {
+  return {
+    queryKey: ["seller-money", store],
+    // Live updates bypass refetchOnReconnect. Leave a failed first read to its visible Retry action.
+    predicate: ({ queryKey, state }) =>
+      !(
+        (queryKey[3] === "overview" || queryKey[3] === "operations") &&
+        state.data === undefined &&
+        state.error instanceof ConnectionError
+      ),
+  };
+}
 
 async function read<T>(
   session: Session,
