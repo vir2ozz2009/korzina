@@ -1,4 +1,5 @@
 import { expect, type Page, type Route } from "@playwright/test";
+import { calendarDate, shopDateTime } from "../src/shared/datetime";
 
 export async function checkSales(page: Page, local: boolean, query: string) {
   const summary = "**/api/seller/statistics/summary?**";
@@ -85,7 +86,9 @@ export async function checkSales(page: Page, local: boolean, query: string) {
 
 async function checkProductReport(page: Page, local: boolean, query: string) {
   const product = "product-17";
-  const period = { from: "2026-11-10", to: "2026-11-23" };
+  const timeZone = "Europe/Moscow";
+  const { date: today } = shopDateTime(await page.evaluate(() => Date.now()), timeZone);
+  const period = { from: calendarDate(today, -14), to: calendarDate(today, -1) };
   if (!local) {
     await page.route(`**/api/seller/statistics/products/${product}?**`, (route) =>
       route.fulfill({
@@ -99,7 +102,7 @@ async function checkProductReport(page: Page, local: boolean, query: string) {
           incomplete: false,
           archived: false,
           variants: [{ id: "sku-20", unit: "350 г", archived: false }],
-          timeZone: "Europe/Moscow",
+          timeZone,
           canOpenProduct: true,
         },
       }),
