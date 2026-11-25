@@ -6,6 +6,7 @@ import { errorKind } from "../../../../shared/http-error";
 import { formatMinor } from "../../../../shared/money";
 import { Card } from "../../../../ui/Card";
 import { ListItem } from "../../../../ui/ListItem";
+import { isMoneyForbidden, MoneyAccessRestricted } from "./MoneyAccessRestricted";
 
 export const methods = { transfer: "Переводом", cash: "Наличными", unknown: "Способ не указан" } as const;
 export const groups = [
@@ -25,6 +26,7 @@ export function MoneyOverview({
   tasks: (group: SellerMoneyTask["kind"]) => void;
   operations: (method?: keyof typeof methods) => void;
 }) {
+  if (isMoneyForbidden(query.error)) return <MoneyAccessRestricted />;
   const allowed = errorKind(query.error) !== "access";
   return (
     <>
