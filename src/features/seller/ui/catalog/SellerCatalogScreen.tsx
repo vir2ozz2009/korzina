@@ -66,7 +66,7 @@ export function SellerCatalogScreen() {
               ? "Новый бренд"
               : "Редактировать бренд";
 
-  const frame: CatalogFrame = (children, footer) => (
+  const frame: CatalogFrame = (children, footer, header) => (
     <div className={editor ? "[--tab-height:0]" : undefined}>
       <Screen
         template={id || type === "showcase" ? "form" : "list"}
@@ -75,7 +75,8 @@ export function SellerCatalogScreen() {
             <Header
               catalog
               title={
-                login
+                header?.title ??
+                (login
                   ? "Вход"
                   : scopedCategory && !id
                     ? "Товары категории"
@@ -83,16 +84,17 @@ export function SellerCatalogScreen() {
                       ? "Товары бренда"
                       : parent && !id
                         ? "Подкатегории"
-                        : title
+                        : title)
               }
               onBack={
-                !id && (scopedCategory || scopedBrand || parent)
+                header?.onBack ??
+                (!id && (scopedCategory || scopedBrand || parent)
                   ? () => {
                       if (scopedCategory || parent)
                         nav.leave(`/seller/categories/${encodeURIComponent(scopedCategory ?? parent ?? "")}`);
                       else nav.leave(`/seller/brands/${encodeURIComponent(scopedBrand ?? "")}`);
                     }
-                  : undefined
+                  : undefined)
               }
               actions={
                 cabinet.data && cabinet.data.shops.length > 1 ? (
@@ -209,13 +211,14 @@ function CatalogContent({
       </QueryBoundary>,
     );
   const { currency, canWrite } = visible;
-  const withAccess: CatalogFrame = (children, footer) =>
+  const withAccess: CatalogFrame = (children, footer, header) =>
     frame(
       <>
         {!canWrite && type !== "showcase" && <p className="text-meta text-muted-foreground">Только просмотр</p>}
         {children}
       </>,
       canWrite ? footer : undefined,
+      header,
     );
   if (type === "showcase") return <Showcase store={store} canWrite={canWrite} frame={withAccess} />;
   if (type === "products")

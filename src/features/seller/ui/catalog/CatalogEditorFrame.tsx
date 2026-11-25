@@ -4,7 +4,8 @@ import { Button } from "../../../../ui/Button";
 import { Dialog } from "../../../../ui/Dialog";
 import { useCatalogNav } from "./navigation";
 
-export type CatalogFrame = (children: ReactNode, footer?: ReactNode) => ReactNode;
+export type CatalogHeader = { title: string; onBack: () => void };
+export type CatalogFrame = (children: ReactNode, footer?: ReactNode, header?: CatalogHeader) => ReactNode;
 export function CatalogEditorFrame({
   store,
   fallback,
@@ -12,6 +13,7 @@ export function CatalogEditorFrame({
   dirty,
   busy,
   onSave,
+  header,
   children,
 }: {
   store: string;
@@ -20,6 +22,7 @@ export function CatalogEditorFrame({
   dirty: boolean;
   busy: boolean;
   onSave: () => void;
+  header?: CatalogHeader;
   children: ReactNode;
 }) {
   const nav = useCatalogNav(store);
@@ -51,5 +54,6 @@ export function CatalogEditorFrame({
         </div>
       </div>
     ) : undefined,
+    header,
   );
 }

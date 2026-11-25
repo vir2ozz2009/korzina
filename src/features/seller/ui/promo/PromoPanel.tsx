@@ -50,11 +50,13 @@ export function PromoPanel({
           ? "Условия акции"
           : panel === "example"
             ? "Пример корзины"
-            : panel === "disable"
-              ? "Отключить акцию?"
-              : panel === "discard"
-                ? "Сохранить изменения?"
-                : "Сводка акции"
+            : panel === "enable"
+              ? "Включить акцию?"
+              : panel === "disable"
+                ? "Отключить акцию?"
+                : panel === "discard"
+                  ? "Сохранить изменения?"
+                  : "Сводка акции"
       }
       form
       onOpenChange={(open) => {
@@ -111,6 +113,18 @@ export function PromoPanel({
                     ? "Запланировать"
                     : "Опубликовать"}
             </Button>
+            {panel === "enable" && (
+              <Button
+                full
+                variant="secondary"
+                onClick={() => {
+                  setTerms(offerTerms);
+                  setPanel("form");
+                }}
+              >
+                Изменить условия
+              </Button>
+            )}
             {panel === "summary" && (
               <Button full variant="secondary" onClick={() => review("example", offerTerms)}>
                 Посмотреть пример

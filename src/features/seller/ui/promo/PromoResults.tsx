@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { CalendarDays } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { PromoOffer } from "../../../../shared/contracts/promo";
 import { calendarDate, shopDateTime } from "../../../../shared/datetime";
 import { errorKind } from "../../../../shared/http-error";
@@ -8,9 +9,11 @@ import { Button } from "../../../../ui/Button";
 import { Card } from "../../../../ui/Card";
 import { Input } from "../../../../ui/Input";
 import { ListItem } from "../../../../ui/ListItem";
+import { Sheet } from "../../../../ui/Sheet";
 import { SkeletonBlock } from "../../../../ui/SkeletonBlock";
 import { promoRequest, type Report } from "./api";
 import { clearReportFilters, useReportFilters } from "./filter-state";
+import { Metric, PromoReportMetrics } from "./PromoReportMetrics";
 
 type Props = {
   offer: PromoOffer;
@@ -20,6 +23,13 @@ type Props = {
   zone: string;
   openOrder: (number: number) => void;
 };
+
+const periodOptions = [
+  ["all", "За всё время"],
+  ["7", "Последние 7 дней"],
+  ["30", "Последние 30 дней"],
+  ["custom", "Свой период"],
+] as const;
 
 export function PromoResults(props: Props) {
   const [denied, setDenied] = useState(false);
@@ -34,6 +44,8 @@ function PromoReport({ offer, store, account, currency, zone, openOrder, onDenie
     account,
     offer.id,
   );
+  const [periodOpen, setPeriodOpen] = useState(false);
+  const periodTrigger = useRef<HTMLButtonElement>(null);
   const through = shopDateTime(Date.now(), zone).date;
   const days = period === "7" ? 6 : 29;
   const dates: Record<string, string> =
@@ -59,29 +71,41 @@ function PromoReport({ offer, store, account, currency, zone, openOrder, onDenie
   if (denied) return null;
   return (
     <Card className="space-y-3">
-      <h2 className="text-title-3">Результаты</h2>
+      <h2 className="text-title-2">Результаты</h2>
       {offer.status === "draft" ? (
         <p>Результаты появятся после запуска</p>
       ) : offer.status === "scheduled" ? (
         <p>Начало {offer.terms.fromDate}</p>
       ) : (
         <>
-          <label className="block">
-            Период
-            <select
-              className="min-h-12 w-full rounded-lg border border-border bg-card px-3"
-              value={period}
-              onChange={(event) => {
-                setPeriod(event.target.value);
-                setOffset(0);
-              }}
-            >
-              <option value="all">За всё время</option>
-              <option value="7">Последние 7 дней</option>
-              <option value="30">Последние 30 дней</option>
-              <option value="custom">Свой период</option>
-            </select>
-          </label>
+          <Button
+            full
+            variant="secondary"
+            ref={periodTrigger}
+            icon={<CalendarDays size={16} aria-hidden="true" />}
+            aria-haspopup="dialog"
+            onClick={() => setPeriodOpen(true)}
+          >
+            {periodOptions.find(([key]) => key === period)?.[1] ?? "За всё время"}
+          </Button>
+          <Sheet open={periodOpen} title="Период" onOpenChange={setPeriodOpen} returnFocus={periodTrigger}>
+            <div className="space-y-2">
+              {periodOptions.map(([key, label]) => (
+                <Button
+                  key={key}
+                  full
+                  variant={key === period ? "soft" : "secondary"}
+                  aria-pressed={key === period}
+                  onClick={() => {
+                    setPeriod(key);
+                    setPeriodOpen(false);
+                  }}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </Sheet>
           {period === "custom" && (
             <div className="grid grid-cols-2 gap-2">
               <Input
@@ -118,45 +142,12 @@ function PromoReport({ offer, store, account, currency, zone, openOrder, onDenie
             query.data &&
             (query.data.orderCount ? (
               <>
-                <ListItem title="Заказы с акцией" value={query.data.orderCount} onClick={() => setDetail(!detail)} />
-                <ListItem title="Сумма товаров в этих заказах" value={formatMinor(query.data.itemsMinor, currency)} />
-                <ListItem title="Скидка по этой акции" value={formatMinor(query.data.savingsMinor, currency)} />
-                <ListItem title="Покупатели" value={query.data.customers} />
-                {!!query.data.deliveryMinor && (
-                  <ListItem title="Доставка отдельно" value={formatMinor(query.data.deliveryMinor, currency)} />
-                )}
-                {query.data.thresholdCount > 0 && (
-                  <ListItem
-                    title="Средняя сумма товаров со скидкой от порога"
-                    value={formatMinor(query.data.thresholdAverage ?? 0, currency)}
-                  />
-                )}
-                {query.data.purchaseStats.map((stat) => (
-                  <div key={`${stat.mode}:${stat.target}`}>
-                    <ListItem
-                      title={
-                        stat.mode === "from"
-                          ? `Воспользовались скидкой с покупки №${stat.target}`
-                          : stat.target === 1
-                            ? "Сделали первую покупку с акцией"
-                            : `Сделали покупку №${stat.target} с акцией`
-                      }
-                      value={stat.buyers}
-                    />
-                    {stat.mode === "exact" && stat.target === 1 && (
-                      <div className="space-y-1 px-3 text-caption">
-                        <p className="text-label">Заказали ещё раз за 30 дней</p>
-                        <p>
-                          {stat.matured
-                            ? `${stat.repeated} из ${stat.matured}`
-                            : "Результат появится через 30 дней после первой покупки"}
-                        </p>
-                        {!!stat.waiting && <p>Ещё у {stat.waiting} покупателей период наблюдения продолжается</p>}
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {!!query.data.guestOrders && <p>Заказов гостей · {query.data.guestOrders}</p>}
+                <PromoReportMetrics
+                  report={query.data}
+                  currency={currency}
+                  detail={detail}
+                  toggle={() => setDetail(!detail)}
+                />
                 {detail && (
                   <>
                     {query.data.orders.map((order) => (
@@ -182,11 +173,14 @@ function PromoReport({ offer, store, account, currency, zone, openOrder, onDenie
                 )}
               </>
             ) : (
-              <p>
-                {period === "all"
-                  ? "Здесь появятся результаты после первого выполненного заказа со скидкой"
-                  : "За этот период заказов с акцией нет"}
-              </p>
+              <>
+                <Metric title="Заказы с акцией" value={0} prominent />
+                <p className="text-meta text-muted-foreground">
+                  {period === "all"
+                    ? "Здесь появятся результаты после первого выполненного заказа со скидкой"
+                    : "За этот период заказов с акцией нет"}
+                </p>
+              </>
             ))}
         </>
       )}

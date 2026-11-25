@@ -1,5 +1,6 @@
 import { permissionSchema } from "../../../src/shared/contracts/auth";
 import { ApiError } from "../../../src/shared/errors";
+import { resolveFeatures } from "../../../src/shared/flags";
 import { credential, sellerCookie } from "../../auth/cookies";
 import { effectiveSellerPermissions } from "../../auth/roles";
 import { tokenHash } from "../../auth/tokens";
@@ -35,13 +36,13 @@ export async function readCabinet(database: D1Database, request: Request, appEnv
     .withSession("first-primary")
     .prepare(`SELECT a.telegram_id AS telegramId, sh.id, sh.slug, sh.name, sh.status, m.role,
       m.team_role AS teamRole, m.permissions, sh.time_zone AS timeZone,
-      COALESCE((SELECT enabled FROM feature_overrides WHERE shop_id=sh.id AND key='promotions'),0) AS promotions
+      COALESCE((SELECT enabled FROM feature_overrides WHERE shop_id=sh.id AND key='promotions'),?) AS promotions
       FROM seller_sessions s JOIN accounts a ON a.id=s.account_id
       LEFT JOIN memberships m ON m.account_id=a.id AND m.revoked_at IS NULL AND m.role IN ('owner','employee')
         AND s.shop_id=m.shop_id
       LEFT JOIN shops sh ON sh.id=m.shop_id AND sh.status IN ('draft','active','paused')
       WHERE s.token_hash=? AND s.expires_at>? AND a.telegram_id IS NOT NULL AND s.shop_id IS NOT NULL ORDER BY sh.name, sh.id`)
-    .bind(await tokenHash(token), Date.now())
+    .bind(Number(resolveFeatures([]).promotions), await tokenHash(token), Date.now())
     .all<{
       telegramId: string;
       id: string | null;

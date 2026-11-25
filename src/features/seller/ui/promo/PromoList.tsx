@@ -1,18 +1,11 @@
-import { type PromoStatus, promoStatuses } from "../../../../shared/contracts/promo";
-import { formatMinor } from "../../../../shared/money";
+import { Plus } from "lucide-react";
+import { promoStatuses } from "../../../../shared/contracts/promo";
 import { Button } from "../../../../ui/Button";
 import { Card } from "../../../../ui/Card";
-import { ListItem } from "../../../../ui/ListItem";
-import { Price } from "../../../../ui/Price";
-import { ProductImage } from "../../../../ui/ProductImage";
+import { SelectField } from "../../../../ui/SelectField";
 import type { PromoList as ListData } from "./api";
-export const statusTitle: Record<PromoStatus, string> = {
-  active: "Действует",
-  scheduled: "Запланировано",
-  draft: "Черновик",
-  ended: "Завершено",
-  disabled: "Отключено",
-};
+import { OfferTile, PromoPriceTile, statusTitle } from "./PromoPresentation";
+
 export function PromoList({
   data,
   kind,
@@ -25,7 +18,6 @@ export function PromoList({
   create,
   open,
   openProduct,
-  image,
 }: {
   data?: ListData;
   kind: string;
@@ -38,67 +30,79 @@ export function PromoList({
   create: () => void;
   open: (id: string) => void;
   openProduct: (id: string, variant?: string) => void;
-  image: (id: string) => string;
 }) {
   return (
     <>
-      <Button full onClick={create}>
+      <Button full size="lg" icon={<Plus size={18} aria-hidden="true" />} onClick={create}>
         Создать акцию
       </Button>
       <div className="grid grid-cols-2 gap-2">
-        <label>
-          <select
-            aria-label="Вид акции"
-            className="min-h-12 w-full rounded-lg border border-border bg-card px-2"
-            value={kind}
-            onChange={(e) => {
-              setKind(e.target.value);
-              setOffset(0);
-            }}
-          >
-            <option value="">Все виды</option>
-            <option value="automatic">Автоскидки</option>
-            <option value="code">Промокоды</option>
-            <option value="price">Цена по акции</option>
-          </select>
-        </label>
-        <label>
-          <select
-            aria-label="Статус акции"
-            className="min-h-12 w-full rounded-lg border border-border bg-card px-2"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setOffset(0);
-            }}
-          >
-            <option value="">Все статусы</option>
-            {promoStatuses.map((value) => (
-              <option key={value} value={value}>
-                {statusTitle[value]}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          aria-label="Вид акции"
+          surface="transparent"
+          value={kind}
+          onChange={(e) => {
+            setKind(e.target.value);
+            setOffset(0);
+          }}
+        >
+          <option value="">Все виды</option>
+          <option value="automatic">Скидки</option>
+          <option value="code">Промокоды</option>
+          <option value="price">Цены по акции</option>
+        </SelectField>
+        <SelectField
+          aria-label="Статус акции"
+          surface="transparent"
+          value={status}
+          onChange={(e) => {
+            setStatus(e.target.value);
+            setOffset(0);
+          }}
+        >
+          <option value="">Все статусы</option>
+          {promoStatuses.map((value) => (
+            <option key={value} value={value}>
+              {statusTitle[value]}
+            </option>
+          ))}
+        </SelectField>
       </div>
-      {data?.offers.map((offer) => (
-        <ListItem
-          key={offer.id}
-          title={offer.terms.name || "Без названия"}
-          subtitle={`${statusTitle[offer.status]}${offer.terms.totalLimit ? ` · Осталось ${Math.max(0, offer.terms.totalLimit - offer.used)} из ${offer.terms.totalLimit}` : ""}${offer.orders ? ` · ${offer.orders} заказов · скидок на ${formatMinor(offer.savingsMinor, currency)}` : ""}`}
-          onClick={() => open(offer.id)}
-        />
-      ))}
-      {data?.prices?.map((price) => (
-        <ListItem
-          key={price.variantId}
-          title={[price.productName, price.variantName].filter(Boolean).join(" · ")}
-          icon={price.photoId ? <ProductImage src={image(price.photoId)} alt="" className="w-12" /> : undefined}
-          subtitle={`${statusTitle[price.status]} · ${[price.fromDate, price.throughDate].filter(Boolean).join(" — ") || "Без даты окончания"}`}
-          value={<Price amountMinor={price.priceMinor} oldMinor={price.oldPriceMinor} currency={currency} />}
-          onClick={() => openProduct(price.productId, price.variantId)}
-        />
-      ))}
+      {data?.offers
+        .filter((offer) => offer.status === "active")
+        .map((offer) => (
+          <OfferTile key={offer.id} offer={offer} currency={currency} onClick={() => open(offer.id)} />
+        ))}
+      {data?.prices
+        ?.filter((price) => price.status === "active")
+        .map((price) => (
+          <PromoPriceTile
+            key={price.variantId}
+            price={price}
+            currency={currency}
+            onClick={() => openProduct(price.productId, price.variantId)}
+          />
+        ))}
+      {data?.offers
+        .filter((offer) => offer.status === "scheduled")
+        .map((offer) => (
+          <OfferTile key={offer.id} offer={offer} currency={currency} onClick={() => open(offer.id)} />
+        ))}
+      {data?.prices
+        ?.filter((price) => price.status === "scheduled")
+        .map((price) => (
+          <PromoPriceTile
+            key={price.variantId}
+            price={price}
+            currency={currency}
+            onClick={() => openProduct(price.productId, price.variantId)}
+          />
+        ))}
+      {data?.offers
+        .filter((offer) => offer.status !== "active" && offer.status !== "scheduled")
+        .map((offer) => (
+          <OfferTile key={offer.id} offer={offer} currency={currency} onClick={() => open(offer.id)} />
+        ))}
       {!data?.offers.length &&
         !data?.prices?.length &&
         (kind || status ? (

@@ -23,7 +23,7 @@ export function useProductEditor(store: string, currency: string, canWrite: bool
   const [initialVariants] = useState(variants);
   const [editing, setEditing] = useState<{ index: number; value: VariantDraft; nameError?: string } | undefined>(() => {
     const index = variants.findIndex((variant) => variant.id === nav.params.get("variant"));
-    return variants.length > 1 && index >= 0 ? { index, value: variants[index] } : undefined;
+    return index >= 0 ? { index, value: variants[index] } : undefined;
   });
   const [pause, setPause] = useState<SellerProductInput["pause"]>();
   const [modal, setModal] = useState<Modal>();

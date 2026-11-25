@@ -10,6 +10,7 @@ import { readSeller } from "../../auth/roles";
 import { requireFeature } from "../../middleware/feature";
 import { executeCommand } from "../../shop/commands";
 import type { ShopEnv } from "../../shop/env";
+import { catalogImage } from "../catalog/images";
 import { calculatePromo, promoLabel } from "./calculate";
 import { effectivePrice } from "./cart";
 import { datesFor, listOffers, readOffer, validateTerms, writeOffer } from "./offers";
@@ -34,7 +35,10 @@ export const sellerPromoRoutes = new Hono<PromoEnv>()
     const prices = listPromoPrices(c.env.storage, input, c.env.timeZone);
     return c.json({
       ...offers,
-      prices: prices.slice(0, 30),
+      prices: prices.slice(0, 30).map(({ photoId, ...price }) => ({
+        ...price,
+        image: catalogImage(photoId ?? null, c.env.shop.id, c.env.media.MEDIA_PUBLIC_URL),
+      })),
       nextOffset: prices.length > 30 ? input.offset + 30 : offers.nextOffset,
       timeZone: c.env.timeZone,
     });
@@ -53,7 +57,12 @@ export const sellerPromoRoutes = new Hono<PromoEnv>()
         .toArray(),
     });
   })
-  .get("/:id", id, (c) => c.json(readOffer(c.env.storage, c.req.valid("param").id)))
+  .get("/:id", id, (c) => {
+    const { storage } = c.env;
+    const offer = readOffer(storage, c.req.valid("param").id);
+    const { currency } = storage.sql.exec<{ currency: string }>("SELECT currency FROM catalog_state WHERE id=1").one();
+    return c.json({ ...offer, currency });
+  })
   .get("/:id/report", id, zValidator("query", reportInput, validationFailure), (c) => {
     const offer = readOffer(c.env.storage, c.req.valid("param").id);
     return c.json(reportOffer(c.env.storage, offer, c.req.valid("query"), c.env.timeZone));

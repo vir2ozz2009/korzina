@@ -9,18 +9,13 @@ function Entry() {
 }
 
 describe("реестр функций и клиент", () => {
-  it("addon по умолчанию выключен, включая ошибочный default: true; core не зарегистрирован", () => {
-    expect(resolveFeatures([])).toEqual({ cashback: false, maps: true, promotions: false });
-    expect(resolveFeatures([], [{ key: "addon", kind: "addon", default: true, description: "test" }])).toEqual({
-      addon: false,
-    });
+  it("NEW_FEATURE §3: default применяется независимо от типа, индивидуальный off имеет приоритет", () => {
+    const defaults = { cashback: false, maps: true, promotions: true };
+    expect(resolveFeatures([])).toEqual(defaults);
+    expect(resolveFeatures([{ key: "promotions", enabled: false }])).toEqual({ ...defaults, promotions: false });
     expect(flags.some((flag) => String(flag.key) === "catalog")).toBe(false);
-    expect(featureEnabled({ cashback: true, maps: true, promotions: false }, "unknown" as FeatureKey)).toBe(false);
-    expect(resolveFeatures([{ key: "removed", enabled: true }])).toEqual({
-      cashback: false,
-      maps: true,
-      promotions: false,
-    });
+    expect(featureEnabled(defaults, "unknown" as FeatureKey)).toBe(false);
+    expect(resolveFeatures([{ key: "removed", enabled: true }])).toEqual(defaults);
   });
 
   it("rollout использует default; явный off побеждает true и явный on побеждает false", () => {

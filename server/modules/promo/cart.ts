@@ -5,6 +5,9 @@ import { type OfferRow, offerOf } from "./offers";
 
 export type PromoSelection = { code: string | null; alternative: string | null };
 
+export const automaticPromoWhere = (now: number | string) =>
+  `p.state='published' AND p.kind='automatic' AND (p.ends_at IS NULL OR p.ends_at>${now})`;
+
 function context(
   storage: DurableObjectStorage,
   subject: string,
@@ -57,9 +60,14 @@ export function pricePromoCart(
   cart: Cart,
   codes: PromoSelection,
   now = Date.now(),
+  hasAutomatic = true,
 ) {
   if (!cart.currency) return cart;
-  const { buyer, candidates, nextChangeAt } = context(storage, subject, confirmed, codes, now);
+  // The cart state already checked this shop's indexed automatic offers. Keep the no-offer hot path in budget.
+  const { buyer, candidates, nextChangeAt } =
+    hasAutomatic || codes.code || codes.alternative
+      ? context(storage, subject, confirmed, codes, now)
+      : { buyer: { confirmed, completed: 0, exactUsed: false }, candidates: [], nextChangeAt: undefined };
   const label = (terms: Candidate["terms"]) => promoLabel(terms, (value) => formatMinor(value, cart.currency ?? "RUB"));
   const priced = calculatePromo(cart, candidates, buyer, label, codes.code ?? undefined);
   if (priced.promo) {
