@@ -2,8 +2,8 @@ import { z } from "zod";
 import { salesPeriod } from "./seller-sales";
 
 const method = z.enum(["cash", "transfer", "unknown"]);
-export const moneyKind = z.enum(["received", "returned"]);
-export const moneyGroup = z.enum(["review", "topUp", "refund"]);
+const moneyKind = z.enum(["received", "returned"]);
+const moneyGroup = z.enum(["review", "topUp", "refund"]);
 
 export const moneyPeriod = salesPeriod
   .partial()
