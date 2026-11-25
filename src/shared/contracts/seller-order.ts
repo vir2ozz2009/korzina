@@ -48,6 +48,7 @@ export type SellerOrder = Omit<OrderResult, "paymentStatus"> &
     events: SellerOrderEvent[];
     receipts: ReceiptRef[];
     balance: SellerBalance;
+    paymentRequired?: boolean;
     availableRefundMinor?: number;
     permissions: { assembly: boolean; payments: boolean; chat?: boolean };
   };

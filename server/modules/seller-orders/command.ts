@@ -13,7 +13,7 @@ import { closeTopUp, reviewTopUp } from "../checkout/top-up-proof";
 import { pendingComposition } from "../order-changes/state";
 import { correctMoneyOperation, recordMoneyOperation } from "../seller-money/ledger";
 import { refreshOrderSales } from "../seller-sales/projection";
-import { sellerOrder, sellerOrderRow } from "./order";
+import { sellerOrder, sellerOrderRow, withoutSellerPaymentData } from "./order";
 import { changePayment, paymentForTransition } from "./payment";
 import { nextOrderStage } from "./transition";
 
@@ -178,15 +178,5 @@ export function changeSellerOrder(
     return { status: 200, body: sellerOrder(storage, number, actor, env.timeZone) };
   }).body;
   // A replay may contain a response from before the current member lost payments.
-  if (actor.role !== "owner" && !actor.permissions.includes("payments")) {
-    const { refund: _refund, returnedMinor: _returned, availableRefundMinor: _available, ...order } = result;
-    return {
-      ...order,
-      receipts: [],
-      topUp: undefined,
-      topUpPayment: undefined,
-      permissions: { ...order.permissions, payments: false },
-    };
-  }
-  return result;
+  return actor.role === "owner" || actor.permissions.includes("payments") ? result : withoutSellerPaymentData(result);
 }

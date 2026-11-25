@@ -99,6 +99,10 @@ it("§10.3–§10.4, T05 · возврат в пределах резерва, Q
   expect(race.map((result) => result.status).sort()).toEqual([200, 409]);
   const { refund } = await f.details();
   expect(refund).toMatchObject({ amountMinor: 60 });
+  const restricted = await getAuth(`${f.sellerOrder}?store=lavka`, denied).then((result) => result.json<SellerOrder>());
+  expect(restricted.refund).toBeUndefined();
+  expect(restricted.receipts).toEqual([]);
+  expect(restricted.balance).toMatchObject({ paidMinor: 0, refundMinor: 0 });
   const qr = crypto.randomUUID();
   await catalogSql(
     `INSERT INTO media(id,owner,purpose,status,ready,bytes,mime,request_key,fingerprint,created_at,expires_at)
