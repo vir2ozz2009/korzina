@@ -35,7 +35,7 @@ export function PromoForm({
         : catalog?.variants.map((v) => ({ id: v.id, name: [v.productName, v.name].filter(Boolean).join(" · ") }));
   const money = (value?: number) => (value ? minorInput(value, currency).replace(/,0+$/u, "") : "");
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <Card>
         <Input label="Название" maxLength={120} value={terms.name} onChange={(e) => patch({ name: e.target.value })} />
         <PromoSelect

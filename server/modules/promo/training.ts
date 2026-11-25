@@ -67,7 +67,7 @@ export function seedPromoTraining(storage: DurableObjectStorage, now = Date.now(
       };
       const { number } = sql
         .exec<{ number: number }>(
-          "INSERT INTO orders(customer,created_at,status,payment_status,snapshot) VALUES(? ,?,'completed','paid',?) RETURNING number",
+          "INSERT INTO orders(customer,created_at,status,payment_status,snapshot) VALUES(?,?,'completed','confirmed',?) RETURNING number",
           `guest:${actor}-${index + 1}`,
           completedAt - 60_000,
           JSON.stringify(snapshot),

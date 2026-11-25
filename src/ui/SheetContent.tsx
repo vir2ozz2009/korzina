@@ -51,7 +51,7 @@ export function SheetContent({
         >
           {!form && !screen && <div aria-hidden className="mx-auto mb-3 h-1 w-10 shrink-0 rounded-pill bg-border" />}
           <div
-            className={`flex shrink-0 items-center justify-between gap-3 ${screen ? "px-3 pt-[max(0.75rem,var(--safe-top))] pb-3" : ""}`}
+            className={`flex shrink-0 items-center justify-between gap-3 ${screen ? "min-h-18 px-3 pt-[max(0.75rem,var(--safe-top))] pb-3" : ""}`}
           >
             {onBack && (
               <IconButton aria-label="Назад" onClick={onBack}>
