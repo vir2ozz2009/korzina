@@ -149,7 +149,7 @@ test(
       await expect(rows).toHaveCount(0);
       await expect(seller.getByText("Ничего не найдено")).toHaveCount(0);
       const selectedUrl = seller.url();
-      expect(defaultParseSearch(new URL(selectedUrl).search).q).toBe(order);
+      expect(defaultParseSearch(new URL(selectedUrl).search)).toMatchObject({ q: order, from, to });
 
       await context.setOffline(false);
       await expect.poll(() => timeline.some(({ event }) => event === "browser online")).toBe(true);
