@@ -1,5 +1,7 @@
 import { type ErrorCode, errorStatus } from "./errors";
 
+export class ConnectionError extends Error {}
+
 export class HttpError extends Error {
   constructor(
     public readonly status: number,
