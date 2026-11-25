@@ -2,11 +2,11 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { sellerHistory } from "../../../../app/shell/tab-history";
 import { salesPeriod } from "../../../../shared/contracts/seller-sales";
 import { defaultShopTimeZone } from "../../../../shared/datetime";
-import { EmptyState } from "../../../../ui/EmptyState";
 import { useMoneyOverview } from "../../money-api";
 import { SellerOrdersShell } from "../orders/SellerOrdersShell";
 import { periodPreset } from "../sales/dates";
 import { PeriodPicker } from "../sales/PeriodPicker";
+import { MoneyAccessRestricted } from "./MoneyAccessRestricted";
 import { MoneyOperations, MoneyTasks } from "./MoneyLists";
 import { groups, MoneyOverview, type methods } from "./MoneyOverview";
 
@@ -34,7 +34,7 @@ export function MoneyScreen() {
         allowed ? (
           <MoneyView key={`${store}:${view}`} session={{ store, account, timeZone }} view={view} group={group} />
         ) : (
-          <EmptyState title="Доступ ограничен" />
+          <MoneyAccessRestricted />
         )
       }
     </SellerOrdersShell>
