@@ -61,7 +61,7 @@ export const sellerPromoRoutes = new Hono<PromoEnv>()
     const { storage } = c.env;
     const offer = readOffer(storage, c.req.valid("param").id);
     const { currency } = storage.sql.exec<{ currency: string }>("SELECT currency FROM catalog_state WHERE id=1").one();
-    return c.json({ ...offer, currency });
+    return c.json({ ...offer, currency, timeZone: c.env.timeZone });
   })
   .get("/:id/report", id, zValidator("query", reportInput, validationFailure), (c) => {
     const offer = readOffer(c.env.storage, c.req.valid("param").id);

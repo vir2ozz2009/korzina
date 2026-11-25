@@ -48,16 +48,19 @@ export function CartPromotion({
   const [input, setInput] = useState("");
   const [candidate, setCandidate] = useState<NonNullable<Cart["promo"]>["alternative"]>();
   const [error, setError] = useState("");
+  const [rejectedCode, setRejectedCode] = useState("");
   const key = useRef<{ value: string; key: string }>(undefined);
   const trigger = useRef<HTMLButtonElement>(null);
   const field = useRef<HTMLFormElement>(null);
   const mutation = usePromoCart();
   const { promo } = cart;
   const alternative = candidate ?? promo?.alternative;
+  const canSubmit = !!input.trim() && input.trim().toUpperCase() !== rejectedCode && !mutation.isPending;
   const close = () => {
     setMode(undefined);
     setCandidate(undefined);
     setError("");
+    setRejectedCode("");
   };
   const submit = async (action: "remove" | "keep" | "compare" | "apply", code = input, comparedTotal?: number) => {
     if (mutation.isPending) return;
@@ -73,13 +76,26 @@ export function CartPromotion({
       const result = await mutation.mutateAsync({ input: request, key: key.current.key });
       key.current = undefined;
       if (action === "compare") {
-        setCandidate(result.promo?.alternative);
+        const compared = result.promo?.alternative;
+        if (!compared || compared.reason === "unknown") {
+          setRejectedCode(code.trim().toUpperCase());
+          setError(descriptions.unknown ?? "");
+          field.current?.querySelector("input")?.focus();
+          return;
+        }
+        setCandidate(compared);
         setMode("compare");
       } else close();
     } catch (failure) {
       const details = failure instanceof HttpError ? failure.details : null;
       const promo =
         details && typeof details === "object" && "promo" in details ? (details.promo as Cart["promo"]) : undefined;
+      if (promo?.reason) {
+        setRejectedCode(code.trim().toUpperCase());
+        setCandidate(undefined);
+        setMode("edit");
+        setInput(code);
+      }
       setError(
         message(promo, currency) ??
           (failure instanceof TypeError ? "Нет связи. Повторите." : (failure as Error).message),
@@ -141,7 +157,7 @@ export function CartPromotion({
               className="space-y-3"
               onSubmit={(event) => {
                 event.preventDefault();
-                void submit(promo?.code ? "compare" : "apply");
+                if (canSubmit) void submit(promo?.code ? "compare" : "apply");
               }}
             >
               <Input
@@ -155,7 +171,7 @@ export function CartPromotion({
                   setError("");
                 }}
               />
-              <Button full type="submit" disabled={!input.trim()} loading={mutation.isPending}>
+              <Button full type="submit" disabled={!canSubmit} loading={mutation.isPending}>
                 Применить
               </Button>
             </form>
@@ -171,6 +187,7 @@ export function CartPromotion({
               {message(alternative, currency) && <p>{message(alternative, currency)}</p>}
               <Button
                 full
+                disabled={alternative.reason === "unknown"}
                 loading={mutation.isPending}
                 onClick={() => void submit("apply", alternative.code, alternative.totalMinor)}
               >

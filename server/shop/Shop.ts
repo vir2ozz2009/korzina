@@ -194,6 +194,10 @@ export class Shop extends DurableObject<Env> {
       throw new ApiError("FORBIDDEN", "Сидирование недоступно");
     const { seedCatalog } = await import("../modules/catalog/seed");
     seedCatalog(this.ctx.storage);
+    if (this.env.APP_ENV === "demo" || this.env.APP_ENV === "preview") {
+      const { promoTrainingShop, seedPromoTraining } = await import("../modules/promo/training");
+      if (shopId === promoTrainingShop) seedPromoTraining(this.ctx.storage);
+    }
     if (this.env.APP_ENV === "preview" && shopId === "korzina-demo-test2") {
       const { seedPreviewPromos } = await import("../modules/promo/preview");
       seedPreviewPromos(this.ctx.storage);

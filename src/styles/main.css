@@ -76,3 +76,8 @@
 [data-vaul-drawer][data-form-sheet] {
   touch-action: pan-y;
 }
+
+[data-vaul-drawer][data-screen-sheet] {
+  height: min(var(--sheet-viewport-height, 100dvh), var(--sheet-telegram-height, 100dvh));
+  max-height: none;
+}

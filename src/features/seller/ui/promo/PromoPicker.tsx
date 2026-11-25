@@ -72,21 +72,16 @@ export function PromoPicker({
               )
             }
           />
-          <ListItem
-            title={step === "first" ? "Промокод для новых покупателей" : "Промокод"}
-            subtitle="Покупатель вводит код"
-            icon={<Tag size={20} />}
-            onClick={() =>
-              create(
-                "code",
-                step === "first"
-                  ? { purchase: { mode: "exact", number: 1 }, confirmed: true }
-                  : step === "larger"
-                    ? { minimumMinor: 1 }
-                    : {},
-              )
-            }
-          />
+          {step !== "larger" && (
+            <ListItem
+              title={step === "first" ? "Промокод для новых покупателей" : "Промокод"}
+              subtitle="Покупатель вводит код"
+              icon={<Tag size={20} />}
+              onClick={() =>
+                create("code", step === "first" ? { purchase: { mode: "exact", number: 1 }, confirmed: true } : {})
+              }
+            />
+          )}
           {step === "all" && (
             <ListItem title="Цена по акции на товар" icon={<Package size={20} />} onClick={() => setStep("price")} />
           )}

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import { calendarDate, shopDateTime } from "../../../../shared/datetime";
-import { parseMinorInput } from "../../../../shared/money";
+import { currencyUnit, parseMinorInput } from "../../../../shared/money";
 import { Button } from "../../../../ui/Button";
 import { Card } from "../../../../ui/Card";
 import { Input } from "../../../../ui/Input";
@@ -12,25 +12,23 @@ import { SelectField } from "../../../../ui/SelectField";
 import { Sheet } from "../../../../ui/Sheet";
 import type { VariantDraft } from "./VariantFields";
 
+export type PricePromoContext = { currency: string; zone: string; product: { name: string; image?: string } };
+
 export function VariantPricePromo({
   row,
   patch,
   currency,
   zone,
+  product,
   disabled,
   heading,
 }: {
   row: VariantDraft;
   patch: (draft: Partial<VariantDraft>) => void;
-  currency: string;
-  zone: string;
   disabled: boolean;
   heading?: ReactNode;
-}) {
-  const currencyLabel =
-    new Intl.NumberFormat("ru-RU", { style: "currency", currency })
-      .formatToParts(0)
-      .find((part) => part.type === "currency")?.value ?? currency;
+} & PricePromoContext) {
+  const currencyLabel = currencyUnit(currency);
   const periodId = useId();
   const [open, setOpen] = useState(false);
   const [moment, setMoment] = useState("during");
@@ -48,6 +46,9 @@ export function VariantPricePromo({
     row.promoDates === undefined && row.promoEndsAt
       ? calendarDate(shopDateTime(row.promoEndsAt, zone).date, -1)
       : (row.promoDates?.throughDate ?? "");
+  const name = product.name.trim() || "Товар";
+  const unit = row.name.trim();
+  const listing = { ...price, name, unit, image: product.image };
   const prices = (
     <>
       {heading}
@@ -125,11 +126,14 @@ export function VariantPricePromo({
         size={heading ? "lg" : "md"}
         variant={heading ? "primary" : "secondary"}
         disabled={!valid}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setMoment("during");
+          setOpen(true);
+        }}
       >
         Как увидит покупатель
       </Button>
-      <Sheet open={open} title="Как увидит покупатель" onOpenChange={setOpen}>
+      <Sheet open={open} title="Как увидит покупатель" onOpenChange={setOpen} onBack={() => setOpen(false)} screen>
         <div className="space-y-3">
           {timed && (
             <div className="grid grid-cols-3 gap-2">
@@ -148,20 +152,24 @@ export function VariantPricePromo({
               ))}
             </div>
           )}
-          <p>Плитка товара</p>
-          <div inert className="max-w-44">
-            <ProductTile
-              {...price}
-              name={row.name || "Товар"}
-              unit=""
-              href="#"
-              cart={{ value: 0, max: 1, onChange: () => {} }}
-            />
-          </div>
-          <p>Карточка товара</p>
-          <Price {...price} size="display" />
-          <p>Корзина</p>
-          <ProductRow {...price} variant="order" name={row.name || "Товар"} unit="" quantity={1} />
+          <Card>
+            <h3 className="text-title-3">Плитка товара</h3>
+            <div inert className="max-w-44">
+              <ProductTile {...listing} href="#" cart={{ value: 0, max: 1, onChange: () => {} }} />
+            </div>
+          </Card>
+          <Card>
+            <h3 className="text-title-3">Карточка товара</h3>
+            <p className="text-title-2 wrap-anywhere">{name}</p>
+            {unit && <p className="text-caption text-muted-foreground">{unit}</p>}
+            <Price {...price} size="display" />
+          </Card>
+          <Card>
+            <h3 className="text-title-3">Строка корзины</h3>
+            <div inert>
+              <ProductRow {...listing} variant="cart" quantity={1} />
+            </div>
+          </Card>
           <Button full variant="secondary" onClick={() => setOpen(false)}>
             Изменить
           </Button>

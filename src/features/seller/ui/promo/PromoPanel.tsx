@@ -3,8 +3,9 @@ import { shopDateTime } from "../../../../shared/datetime";
 import { Button } from "../../../../ui/Button";
 import { Sheet } from "../../../../ui/Sheet";
 import type { PromoCatalog } from "./api";
+import { PromoExample } from "./PromoExample";
 import { PromoForm } from "./PromoForm";
-import { PromoExample, Summary } from "./PromoSummary";
+import { Summary } from "./PromoSummary";
 export type Panel = "form" | "summary" | "example" | "disable" | "enable" | "discard";
 export type Action = "draft" | "publish" | "disable" | "enable" | "repeat";
 export function PromoPanel({
@@ -42,6 +43,11 @@ export function PromoPanel({
 }) {
   const offerTerms = terms ?? current?.terms;
   const future = offerTerms?.fromDate && offerTerms.fromDate > shopDateTime(Date.now(), zone).date;
+  const requestClose = () => {
+    if (busy) return;
+    if (panel === "form" && terms && JSON.stringify(terms) !== JSON.stringify(current?.terms)) setPanel("discard");
+    else close();
+  };
   return (
     <Sheet
       open={!!panel}
@@ -59,18 +65,15 @@ export function PromoPanel({
                   : "Сводка акции"
       }
       form
+      screen={panel === "form"}
       onOpenChange={(open) => {
-        if (!open && !busy) {
-          if (panel === "form" && terms && JSON.stringify(terms) !== JSON.stringify(current?.terms))
-            setPanel("discard");
-          else close();
-        }
+        if (!open) requestClose();
       }}
       onBack={
         panel === "example" || panel === "summary" || panel === "discard"
           ? () => setPanel("form")
           : panel === "form"
-            ? onBackForm
+            ? (onBackForm ?? requestClose)
             : undefined
       }
     >
@@ -78,14 +81,21 @@ export function PromoPanel({
         {panel === "form" && terms && (
           <>
             <PromoForm terms={terms} set={setTerms} currency={currency} catalog={catalog} zone={zone} />
-            <Button full onClick={() => review("summary")}>
-              {current && current.status !== "draft" ? "Проверить изменения" : "К публикации"}
-            </Button>
-            <Button full variant="secondary" onClick={() => review("example")}>
+            {current && current.status !== "draft" && (
+              <Button full onClick={() => review("summary")}>
+                Проверить изменения
+              </Button>
+            )}
+            <Button
+              full
+              size="lg"
+              variant={current && current.status !== "draft" ? "secondary" : "primary"}
+              onClick={() => review("example")}
+            >
               Проверить на примере
             </Button>
             {(!current || current.status === "draft") && (
-              <Button full variant="secondary" loading={busy} onClick={() => save("draft")}>
+              <Button full size="lg" variant="secondary" loading={busy} onClick={() => save("draft")}>
                 Сохранить черновик
               </Button>
             )}

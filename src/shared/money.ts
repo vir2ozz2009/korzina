@@ -72,6 +72,14 @@ export function discountPercent(amount: number, oldAmount: number): number {
   return old > current ? Number(((old - current) * 100n) / old) : 0;
 }
 
+export function currencyUnit(currency: string) {
+  return (
+    new Intl.NumberFormat("ru-RU", { style: "currency", currency })
+      .formatToParts(0)
+      .find((part) => part.type === "currency")?.value ?? currency
+  );
+}
+
 export function currencyDigits(currency: string) {
   return new Intl.NumberFormat("ru", { style: "currency", currency }).resolvedOptions().maximumFractionDigits ?? 2;
 }

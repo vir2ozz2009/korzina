@@ -91,7 +91,7 @@ function PromoWorkspace({
   });
   const detail = useQuery({
     queryKey: [...base, "offer", id],
-    queryFn: () => promoRequest<PromoOffer & { currency?: string }>(store, `/${id}`),
+    queryFn: () => promoRequest<PromoOffer & { currency?: string; timeZone?: string }>(store, `/${id}`),
     enabled: !!id,
     retry: false,
   });
@@ -103,6 +103,7 @@ function PromoWorkspace({
   });
   const current = id ? detail.data : undefined;
   const currency = current?.currency ?? list.data?.currency ?? "RUB";
+  const storeZone = current?.timeZone ?? list.data?.timeZone ?? zone;
   const openProduct = (id: string, variant?: string) =>
     nav.open(`/seller/products/${id}`, { back: nav.location.href, variant });
   const openList = () => (nav.params.get("back") ? nav.leave("/seller/promotions") : nav.open("/seller/promotions"));
@@ -205,7 +206,7 @@ function PromoWorkspace({
             store={store}
             account={account}
             currency={currency}
-            zone={zone}
+            zone={storeZone}
             openOrder={(number) => nav.open(`/seller/orders/${number}`, { back: nav.location.href })}
           />
           <PromoActions
@@ -230,7 +231,7 @@ function PromoWorkspace({
         openProduct={openProduct}
       />
       <PromoPanel
-        {...{ panel, setPanel, terms, setTerms, current, currency, zone, store, save, review, close, error }}
+        {...{ panel, setPanel, terms, setTerms, current, currency, zone: storeZone, store, save, review, close, error }}
         onBackForm={
           previousChooser && !current
             ? () => {

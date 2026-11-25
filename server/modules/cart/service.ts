@@ -113,6 +113,13 @@ export function changeCart(
           source.now,
         );
         const reason = candidate.promo?.reason;
+        if (
+          (input.promoAction === "compare" || codes.alternative !== input.code || reason === "unknown") &&
+          ["unknown", "expired", "disabled", "scheduled", "limit", "personal_limit", "purchase_used"].includes(
+            reason ?? "",
+          )
+        )
+          throw new ApiError("VALIDATION", "Промокод не применён", { promo: candidate.promo });
         if (input.promoAction === "compare")
           return {
             ...prior,
@@ -129,13 +136,6 @@ export function changeCart(
           };
         if (codes.code && codes.code !== input.code && input.comparedTotal !== candidate.totalMinor)
           throw new ApiError("VERSION_CONFLICT", "Пересчитайте замену кода", { cart: prior });
-        if (
-          codes.alternative !== input.code &&
-          ["unknown", "expired", "disabled", "scheduled", "limit", "personal_limit", "purchase_used"].includes(
-            reason ?? "",
-          )
-        )
-          throw new ApiError("VALIDATION", "Промокод не применён", { promo: candidate.promo });
       }
       if (input.promoAction === "remove") codes.code = null;
       else if ("code" in input) codes.code = input.code;
