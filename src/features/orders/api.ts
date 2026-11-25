@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ActiveOrders, RepeatPreview } from "../../shared/contracts/buyer-order";
+import type { RefundDetails } from "../../shared/contracts/order-refund";
 import { checkResponse, errorKind, HttpError } from "../../shared/http-error";
 import { commandHeaders, shopApi, shopKey } from "../../shared/shop-api";
 
@@ -75,13 +76,22 @@ export function useOrderChange(number: number) {
   const client = useQueryClient();
   return useMutation({
     retry: (count, error) => count < 1 && errorKind(error) === "retry",
-    mutationFn: async (input: { key: string; expectedVersion: number; proofMediaId?: string }) => {
+    mutationFn: async (input: {
+      key: string;
+      expectedVersion: number;
+      proofMediaId?: string;
+      obligationId?: string;
+    }) => {
       const options = { headers: commandHeaders(input.key) };
       const response = input.proofMediaId
         ? await endpoint.proof.$post(
             {
               param: param(number),
-              json: { expectedVersion: input.expectedVersion, proofMediaId: input.proofMediaId },
+              json: {
+                expectedVersion: input.expectedVersion,
+                proofMediaId: input.proofMediaId,
+                obligationId: input.obligationId,
+              },
             },
             options,
           )
@@ -101,6 +111,25 @@ export function useOrderChange(number: number) {
       void client.invalidateQueries({ queryKey: [...orderKeys, "active"] });
       void client.invalidateQueries({ queryKey: [...orderKeys, "list"] });
     },
+  });
+}
+export function useRefundDetails(number: number) {
+  const client = useQueryClient();
+  return useMutation({
+    retry: (count, error) => count < 1 && errorKind(error) === "retry",
+    mutationFn: async ({
+      key,
+      ...json
+    }: RefundDetails & { key: string; expectedVersion: number; refundId: string }) => {
+      const response = await endpoint.refund.$post({ param: param(number), json }, { headers: commandHeaders(key) });
+      await checkResponse(response);
+      return response.json();
+    },
+    onError: (error) => {
+      if (error instanceof HttpError && error.code === "VERSION_CONFLICT")
+        void client.invalidateQueries({ queryKey: orderKey(number) });
+    },
+    onSuccess: (order) => client.setQueryData(orderKey(number), order),
   });
 }
 export function useRepeatOrder(number: number) {

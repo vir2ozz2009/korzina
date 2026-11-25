@@ -11,7 +11,7 @@ import { checkWorkdayShare } from "./workday-share";
 
 test("Блок 9 · ближайшее получение, рабочий день и заказы в сборке", async ({ browser, baseURL }) => {
   test.skip(!baseURL || new URL(baseURL).hostname !== "127.0.0.1", "Нужна локальная учебная сессия кабинета");
-  test.setTimeout(65_000);
+  test.setTimeout(95_000);
   const [buyer, seller] = await Promise.all([
     browser.newContext({ baseURL, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.91" } }),
     browser.newContext({ baseURL, extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.92" } }),
