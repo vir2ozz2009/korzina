@@ -1,5 +1,4 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { QueryBoundary } from "../../../../app/shell/QueryBoundary";
 import { sellerHistory } from "../../../../app/shell/tab-history";
 import { salesPeriod } from "../../../../shared/contracts/seller-sales";
 import { defaultShopTimeZone } from "../../../../shared/datetime";
@@ -117,12 +116,5 @@ function Overview({
   operations: (method?: keyof typeof methods) => void;
 }) {
   const query = useMoneyOverview(session, period);
-  return (
-    <>
-      {query.isError && !query.data && choosePeriod}
-      <QueryBoundary query={query} template="list">
-        {(data) => <MoneyOverview data={data} choosePeriod={choosePeriod} tasks={tasks} operations={operations} />}
-      </QueryBoundary>
-    </>
-  );
+  return <MoneyOverview query={query} choosePeriod={choosePeriod} tasks={tasks} operations={operations} />;
 }

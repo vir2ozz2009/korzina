@@ -6,12 +6,20 @@ import type {
   SellerMoneyTask,
 } from "../../shared/contracts/seller-money";
 import type { SalesPeriod } from "../../shared/contracts/seller-sales";
-import { checkResponse } from "../../shared/http-error";
+import { ConnectionError, checkResponse } from "../../shared/http-error";
 import { sellerSessionHeaders } from "./api";
 
 type Session = { store: string; account: string };
 type Selection = Partial<SalesPeriod> & { method?: "cash" | "transfer" | "unknown"; search?: string };
 const options = { retry: false, refetchOnWindowFocus: "always" } as const;
+const periodOptions = {
+  retry: false,
+  // A paused request never reaches the recoverable error state while offline.
+  networkMode: "always",
+  refetchOnReconnect: false,
+  refetchOnWindowFocus: (query: { state: { error: unknown } }) =>
+    query.state.error instanceof ConnectionError ? false : "always",
+} as const;
 const key = (session: Session) => ["seller-money", session.store, session.account] as const;
 
 async function read<T>(
@@ -22,9 +30,14 @@ async function read<T>(
 ) {
   const query = new URLSearchParams({ store: session.store });
   for (const [name, value] of Object.entries(filters)) if (value) query.set(name, value);
-  const response = await fetch(`/api/seller/money${path}?${query}`, { signal, headers: sellerSessionHeaders() });
-  await checkResponse(response);
-  return response.json() as Promise<T>;
+  try {
+    const response = await fetch(`/api/seller/money${path}?${query}`, { signal, headers: sellerSessionHeaders() });
+    await checkResponse(response);
+    return (await response.json()) as T;
+  } catch (error) {
+    if (error instanceof TypeError && !signal.aborted) throw new ConnectionError("Нет соединения", { cause: error });
+    throw error;
+  }
 }
 
 export function useMoneyOverview(session: Session, period: Partial<SalesPeriod>) {
@@ -38,7 +51,7 @@ export function useMoneyOverview(session: Session, period: Partial<SalesPeriod>)
       const result = await read<SellerMoneyOverview | { unchanged: true }>(session, "", filters, signal);
       return "unchanged" in result && previous ? previous : (result as SellerMoneyOverview);
     },
-    ...options,
+    ...periodOptions,
   });
 }
 
@@ -49,7 +62,7 @@ export function useMoneyOperations(session: Session, selection: Selection) {
       read<SellerMoneyPage<SellerMoneyOperation>>(session, "/operations", { ...selection, cursor: pageParam }, signal),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (data) => data.cursor,
-    ...options,
+    ...periodOptions,
   });
 }
 
