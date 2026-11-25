@@ -56,7 +56,8 @@ export function readProductSales(
   currency: string,
   period: SalesPeriod,
   id: string,
-  variant?: string,
+  variant: string | undefined,
+  canReadCatalog: boolean,
 ) {
   const product = storage.sql
     .exec<{ name: string; archived: number }>(
@@ -110,5 +111,6 @@ export function readProductSales(
     name: product.name,
     variants,
     archived: !!product.archived || variants.some((item) => item.id === variant && item.archived),
+    canOpenProduct: canReadCatalog && !product.archived,
   };
 }

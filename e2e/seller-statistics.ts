@@ -60,6 +60,11 @@ export async function checkSales(page: Page, local: boolean, query: string) {
   await expect(
     page.getByRole("group", { name: "График · Выручка" }).or(page.getByText("Нет продаж", { exact: true })),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Период", exact: true }).click();
+  await expect(
+    page.getByRole("dialog").getByRole("button", { name: "7 полных дней, по вчера включительно" }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
   await page.screenshot({ path: "test-results/seller-statistics-390.png", animations: "disabled" });
   await page.getByRole("button", { name: "Назад", exact: true }).click();
   await expect(page).toHaveURL(/\/seller[?].*store=test2/u);
@@ -74,4 +79,43 @@ export async function checkSales(page: Page, local: boolean, query: string) {
   await expect(page).toHaveURL(report.href);
   await page.goBack();
   await expect(page).toHaveURL(/\/seller[?].*store=test2/u);
+  await checkProductReport(page, local, query);
+  await page.goto(`/seller?${query}`);
+}
+
+async function checkProductReport(page: Page, local: boolean, query: string) {
+  const product = "product-17";
+  const period = { from: "2026-11-10", to: "2026-11-23" };
+  if (!local) {
+    await page.route(`**/api/seller/statistics/products/${product}?**`, (route) =>
+      route.fulfill({
+        json: {
+          period,
+          currency: "RUB",
+          name: "Куриное филе",
+          quantity: 30,
+          orderCount: 12,
+          revenueMinor: 120000,
+          incomplete: false,
+          archived: false,
+          variants: [{ id: "sku-20", unit: "350 г", archived: false }],
+          timeZone: "Europe/Moscow",
+          canOpenProduct: true,
+        },
+      }),
+    );
+  }
+  const path = `/seller/statistics/products/${product}?${query}&from=${period.from}&to=${period.to}&variant=sku-20`;
+  await page.goto(path);
+  const open = page.getByRole("button", { name: "Открыть карточку товара", exact: true });
+  await expect(open).toBeVisible();
+  if (!local) await expect(page.getByText("При таком темпе за неделю — около 15 шт.")).toBeVisible();
+  await page.screenshot({ path: "test-results/block11-product-statistics-390.png", animations: "disabled" });
+  if (local) {
+    await open.click();
+    await expect(page).toHaveURL(/\/seller\/products\/product-17\?/u);
+    await page.getByRole("button", { name: "Назад", exact: true }).click();
+    await expect(page).toHaveURL(/\/seller\/statistics\/products\/product-17\?.*variant=sku-20/u);
+    await expect(open).toBeVisible();
+  }
 }

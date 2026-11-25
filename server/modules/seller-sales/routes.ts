@@ -8,11 +8,19 @@ import { validationFailure } from "../../auth/request";
 import { readSeller } from "../../auth/roles";
 import type { ShopEnv } from "../../shop/env";
 import { shopTimeZoneSql } from "../../shop/time-zone";
+import { readsSellerCatalog } from "../seller-catalog/access";
 import { rankProducts, readProductSales } from "./products";
 import { ensureSalesProjection } from "./projection";
 import { completedWeek, sellerSalesDays, sellerSalesReport, weeklyRevenue } from "./report";
 
-type SalesEnv = ShopEnv & { Variables: ShopEnv["Variables"] & { timeZone: string; currency: string; now: number } };
+type SalesEnv = ShopEnv & {
+  Variables: ShopEnv["Variables"] & {
+    timeZone: string;
+    currency: string;
+    now: number;
+    canReadCatalog: boolean;
+  };
+};
 
 function selection(c: { get(key: "now"): number; get(key: "timeZone"): string }, query: z.infer<typeof salesSearch>) {
   return query.from && query.to ? { from: query.from, to: query.to } : completedWeek(c.get("now"), c.get("timeZone"));
@@ -36,6 +44,7 @@ export const sellerSalesRoutes = new Hono<SalesEnv>()
     c.set("timeZone", timeZone || c.env.timeZone || defaultShopTimeZone);
     c.set("currency", currency);
     c.set("now", Date.now());
+    c.set("canReadCatalog", readsSellerCatalog(seller));
     ensureSalesProjection(storage, c.get("timeZone"), currency);
     await next();
   })
@@ -73,6 +82,7 @@ export const sellerSalesRoutes = new Hono<SalesEnv>()
         selection(c, query),
         c.req.param("id"),
         query.variant,
+        c.get("canReadCatalog"),
       ),
     );
   });

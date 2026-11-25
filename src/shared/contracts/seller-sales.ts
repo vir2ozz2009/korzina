@@ -60,5 +60,6 @@ export const productSales = z.object({
   revenueMinor: amount,
   incomplete: z.boolean(),
   archived: z.boolean(),
+  canOpenProduct: z.boolean().optional().default(false),
   timeZone: z.string(),
 });

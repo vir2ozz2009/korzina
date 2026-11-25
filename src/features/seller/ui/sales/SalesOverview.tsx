@@ -44,7 +44,7 @@ export function SalesOverview({ session }: { session: SalesSession }) {
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
-        <PeriodPicker period={dates} timeZone={zone} apply={apply} />
+        <PeriodPicker period={dates} timeZone={zone} completedWeek apply={apply} />
       </div>
       {!report.data && <Card>{compareControl}</Card>}
       <SalesQuery query={report} title="Не удалось загрузить график">
@@ -142,10 +142,14 @@ function SalesComparison({ report }: { report: SalesReport }) {
       : `Выручка ${delta > 0 ? "выросла" : "снизилась"} на ${showMetric(Math.abs(delta), "revenueMinor", currency)}`;
   const average = showMetric(metricValue(current, "average"), "average", currency);
   const before = showMetric(metricValue(previous, "average"), "average", currency);
+  const orders =
+    current.orderCount === previous.orderCount
+      ? `Число заказов не изменилось — ${current.orderCount}`
+      : `Заказов стало ${current.orderCount} вместо ${previous.orderCount}`;
+  const check = average === before ? `средний чек остался ${average}` : `средний чек — ${average} вместо ${before}`;
   return (
     <p className="text-small">
-      {revenue}. Заказы — {current.orderCount} и {previous.orderCount}, средний чек — {average}
-      {average === before ? "" : ` и ${before}`}.
+      {revenue}. {orders}, {check}.
     </p>
   );
 }
