@@ -3,8 +3,9 @@ import type { ReactNode } from "react";
 import { EmptyState } from "../../../../ui/EmptyState";
 import type { SalesSession } from "../../sales-api";
 import { SellerOrdersShell } from "../orders/SellerOrdersShell";
+import { ProductReport } from "./ProductReport";
 import { SalesOverview } from "./SalesOverview";
-import { ProductReport, SalesRanking } from "./SalesProducts";
+import { SalesRanking } from "./SalesProducts";
 
 function Shell({
   title,

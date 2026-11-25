@@ -19,6 +19,7 @@ import { authCommand, validationFailure } from "../../auth/request";
 import { readSeller, type Seller } from "../../auth/roles";
 import { executeCommand } from "../../shop/commands";
 import type { ShopEnv } from "../../shop/env";
+import { readsSellerCatalog, writesSellerCatalog } from "./access";
 import { confirmCatalogStock, runCatalogBulk } from "./bulk";
 import { sellerGroup, sellerGroups } from "./groups-read";
 import { deleteGroup, reorderCategories, saveGroup } from "./groups-write";
@@ -27,7 +28,6 @@ import { copySellerProduct, saveSellerProduct } from "./products-write";
 
 type CatalogEnv = ShopEnv & { Variables: ShopEnv["Variables"] & { seller: Seller; canWrite: boolean } };
 const idParam = zValidator("param", sellerCatalogId, validationFailure);
-const canManage = (seller: Seller) => seller.role === "owner" || seller.permissions.includes("products");
 function command<T>(c: Context<CatalogEnv>, execute: () => T) {
   const { storage, db } = c.env;
   const { body } = executeCommand(storage, db, `seller:catalog:${c.get("seller").accountId}`, c.get("command"), () => {
@@ -42,8 +42,8 @@ export const sellerCatalogRoutes = new Hono<CatalogEnv>()
   .use("*", async (c, next) => {
     c.header("Cache-Control", "private, no-store");
     const seller = await readSeller(c.req.raw, c.env.platform, c.env.shop.id);
-    const canWrite = canManage(seller);
-    if (!canWrite && (seller.teamRole || c.req.method !== "GET"))
+    const canWrite = writesSellerCatalog(seller);
+    if (!canWrite && (!readsSellerCatalog(seller) || c.req.method !== "GET"))
       throw new ApiError("FORBIDDEN", "Недостаточно прав для каталога продавца");
     c.set("seller", seller);
     c.set("canWrite", canWrite);

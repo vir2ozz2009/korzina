@@ -46,7 +46,15 @@ export type SalesTotals = z.infer<typeof totals>;
 
 export const salesRank = z.object({
   period: salesPeriod,
-  rows: z.array(z.object({ id: z.string(), name: z.string(), quantity: amount, share: z.number() })),
+  rows: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      quantity: amount.nullable(),
+      share: z.number().nullable(),
+      incomplete: z.boolean().optional().default(false),
+    }),
+  ),
   next: z.string().optional(),
 });
 export type SalesRank = z.infer<typeof salesRank>;
@@ -55,10 +63,11 @@ export const productSales = z.object({
   currency: salesSummary.shape.currency,
   name: z.string(),
   variants: z.array(z.object({ id: z.string(), unit: z.string(), archived: z.boolean() })),
-  quantity: amount,
-  orderCount: amount,
-  revenueMinor: amount,
+  quantity: amount.nullable(),
+  orderCount: amount.nullable(),
+  revenueMinor: amount.nullable(),
   incomplete: z.boolean(),
   archived: z.boolean(),
+  canOpenProduct: z.boolean().optional().default(false),
   timeZone: z.string(),
 });

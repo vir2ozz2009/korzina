@@ -15,8 +15,29 @@ const fixtureShop = {
 test("Блок 7: продавец сохраняет настройки и проверяет видимую и тихую паузу", async ({ browser, baseURL }) => {
   test.setTimeout(90_000);
   const local = baseURL ? new URL(baseURL).hostname === "127.0.0.1" : false;
-  const seller = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
-  const buyer = await browser.newContext({ baseURL, viewport: { width: 390, height: 844 } });
+  // The two local roles are independent clients, including in the worker's request budget.
+  const [seller, buyer] = await Promise.all(
+    ["192.0.2.121", "192.0.2.122"].map((ip) =>
+      browser.newContext({
+        baseURL,
+        viewport: { width: 390, height: 844 },
+        extraHTTPHeaders: local ? { "CF-Connecting-IP": ip } : undefined,
+      }),
+    ),
+  );
+  if (local && baseURL) {
+    const origin = new URL(baseURL).origin;
+    for (const context of [seller, buyer]) {
+      await context.route(
+        (url) => url.origin !== origin,
+        async (route) => {
+          const headers = await route.request().allHeaders();
+          delete headers["cf-connecting-ip"];
+          await route.continue({ headers });
+        },
+      );
+    }
+  }
   const page = await seller.newPage();
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
