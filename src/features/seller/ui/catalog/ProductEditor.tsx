@@ -33,7 +33,6 @@ export function ProductEditor({
   frame: CatalogFrame;
   promoZone?: string;
 }) {
-  const promotion = promoZone ? { currency, zone: promoZone } : undefined;
   const editor = useProductEditor(store, currency, canWrite, initial);
   const {
     nav,
@@ -62,6 +61,9 @@ export function ProductEditor({
     confirmStock,
     copyProduct,
   } = editor;
+  const promotion = promoZone
+    ? { currency, zone: promoZone, product: { name: text.name, image: photos.items[0]?.src } }
+    : undefined;
   return (
     <CatalogEditorFrame
       frame={frame}

@@ -6,7 +6,7 @@ import { Card } from "../../../../ui/Card";
 import { Input } from "../../../../ui/Input";
 import { Sheet } from "../../../../ui/Sheet";
 import { Switch } from "../../../../ui/Switch";
-import { VariantPricePromo } from "./VariantPricePromo";
+import { type PricePromoContext, VariantPricePromo } from "./VariantPricePromo";
 
 export type VariantDraft = {
   key: string;
@@ -76,7 +76,7 @@ export function VariantFields({
   disabled: boolean;
   sale?: boolean;
   error?: string;
-  promotion?: { currency: string; zone: string };
+  promotion?: PricePromoContext;
   promoHeading?: ReactNode;
 }) {
   const [showPause, setShowPause] = useState(false);

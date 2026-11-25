@@ -128,7 +128,14 @@ function PromoReport({ offer, store, account, currency, zone, openOrder, onDenie
               />
             </div>
           )}
-          {dates.through === through && <p className="text-caption">Сегодня · по сейчас</p>}
+          {dates.from && dates.through && dates.from <= dates.through && (
+            <div className="text-caption text-muted-foreground">
+              <p>
+                {dates.from.split("-").reverse().join(".")} — {dates.through.split("-").reverse().join(".")}
+              </p>
+              {dates.through === through && <p>За сегодня — по текущий момент</p>}
+            </div>
+          )}
           {query.isFetching && <SkeletonBlock className="h-16" />}
           {query.isError && (
             <p>

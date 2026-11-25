@@ -5,6 +5,7 @@ import { ListItem } from "../../../../ui/ListItem";
 import { PromoPhoto } from "../promo/PromoPresentation";
 import type { useProductEditor } from "./useProductEditor";
 import { VariantFields, variantDraft } from "./VariantFields";
+import type { PricePromoContext } from "./VariantPricePromo";
 
 type Editor = ReturnType<typeof useProductEditor>;
 
@@ -17,7 +18,7 @@ export function ProductVariantEditor({
   editor: Editor;
   canWrite: boolean;
   editing: NonNullable<Editor["editing"]>;
-  promotion?: { currency: string; zone: string };
+  promotion?: PricePromoContext;
 }) {
   const { variants, setVariants, setEditing, disabled, patchVariant, text, photos } = editor;
   const body = (
@@ -89,7 +90,7 @@ export function ProductVariants({
   editor: Editor;
   canWrite: boolean;
   currency: string;
-  promotion?: { currency: string; zone: string };
+  promotion?: PricePromoContext;
 }) {
   const { variants, setEditing, disabled, patchVariant } = editor;
   return (

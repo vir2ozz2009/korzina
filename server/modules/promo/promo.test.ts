@@ -112,6 +112,16 @@ it("§7.4 сравнивает замену, отмена и неизвестн�
   const cookie = await customer("sku-01");
   const prior = await code(cookie);
   const compare = { promoAction: "compare", code: "NEW", expectedRevision: prior.revision };
+  const rejected = await buy("cart", { ...compare, code: "UNKNOWN" }, cookie);
+  expect(rejected.status).toBe(400);
+  expect(await rejected.json()).toMatchObject({ error: { details: { promo: { reason: "unknown" } } } });
+  expect(await readCart(cookie)).toMatchObject({ revision: prior.revision, totalMinor: 41500, promo: { code: "HOT" } });
+  const blank = await customer("sku-01");
+  const untouched = await readCart(blank);
+  expect(
+    (await buy("cart", { promoAction: "apply", code: "UNKNOWN", expectedRevision: untouched.revision }, blank)).status,
+  ).toBe(400);
+  expect(await readCart(blank)).toEqual(untouched);
   const comparison = await buy("cart", compare, cookie);
   expect(await comparison.json()).toMatchObject({
     totalMinor: 41500,
