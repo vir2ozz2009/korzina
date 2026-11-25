@@ -12,6 +12,7 @@ import { useCabinet } from "../../api";
 import { CabinetLogin } from "../CabinetLogin";
 import { useCatalogNav } from "../catalog/navigation";
 import { type PromoList as ListData, type PromoCatalog, promoRequest } from "./api";
+import { useListFilters } from "./filter-state";
 import { PromoCard } from "./PromoCard";
 import { PromoList } from "./PromoList";
 import { type Action, type Panel, PromoPanel } from "./PromoPanel";
@@ -75,9 +76,7 @@ function PromoWorkspace({
   const nav = useCatalogNav(store);
   const id = nav.location.pathname.split("/")[3];
   const client = useQueryClient();
-  const [kind, setKind] = useState("");
-  const [status, setStatus] = useState("");
-  const [offset, setOffset] = useState(0);
+  const { kind, setKind, status, setStatus, offset, setOffset } = useListFilters(store, account);
   const [chooser, setChooser] = useState<Parameters<typeof PromoPicker>[0]["step"]>();
   const [previousChooser, setPreviousChooser] = useState<typeof chooser>();
   const [panel, setPanel] = useState<Panel>();

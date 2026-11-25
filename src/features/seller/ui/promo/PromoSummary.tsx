@@ -228,6 +228,7 @@ export function PromoExample({
               {line.name} · {line.quantity} · {formatMinor(line.totalMinor ?? 0, currency)}
             </p>
           ))}
+          <p>Товары · {formatMinor(mutation.data.itemsMinor ?? mutation.data.totalMinor, currency)}</p>
           {mutation.data.adjustments.map((item) => (
             <p key={item.sourceId}>
               {item.label} · −{formatMinor(-item.amount, currency)}

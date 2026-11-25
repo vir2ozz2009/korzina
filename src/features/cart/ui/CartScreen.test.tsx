@@ -68,7 +68,7 @@ it("§3.1: удаление можно отменить, а на время пе
     const input = cartCommandInput.parse(JSON.parse(String(init.body)));
     if (!("quantity" in input)) throw new Error("Unexpected confirmation");
     commands.push(input);
-    if (input.quantity === 2) return increase.promise.then((response) => response.clone());
+    if (input.quantity === 2 && input.expectedRevision === 1) return increase.promise;
     return Response.json(
       cartContract.parse({
         ...emptyCart,

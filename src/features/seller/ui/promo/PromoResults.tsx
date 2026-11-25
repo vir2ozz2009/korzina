@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import type { PromoOffer } from "../../../../shared/contracts/promo";
 import { calendarDate, shopDateTime } from "../../../../shared/datetime";
 import { formatMinor } from "../../../../shared/money";
@@ -9,6 +8,7 @@ import { Input } from "../../../../ui/Input";
 import { ListItem } from "../../../../ui/ListItem";
 import { SkeletonBlock } from "../../../../ui/SkeletonBlock";
 import { promoRequest, type Report } from "./api";
+import { useReportFilters } from "./filter-state";
 
 export function PromoResults({
   offer,
@@ -25,10 +25,11 @@ export function PromoResults({
   zone: string;
   openOrder: (number: number) => void;
 }) {
-  const [period, setPeriod] = useState("all");
-  const [custom, setCustom] = useState({ from: "", through: "" });
-  const [offset, setOffset] = useState(0);
-  const [detail, setDetail] = useState(false);
+  const { period, setPeriod, custom, setCustom, offset, setOffset, detail, setDetail } = useReportFilters(
+    store,
+    account,
+    offer.id,
+  );
   const through = shopDateTime(Date.now(), zone).date;
   const days = period === "7" ? 6 : 29;
   const dates: Record<string, string> =
