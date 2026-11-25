@@ -4,7 +4,7 @@ import { readDocument, readLive } from "./service";
 
 type Parsed = Exclude<ReturnType<typeof readShoppingSearch>, { kind: "error" }>;
 
-export function readShoppingMatches(storage: DurableObjectStorage, query: Parsed, shopId: string) {
+export function readShoppingMatches(storage: DurableObjectStorage, query: Parsed, shopId: string, promotions = false) {
   const names = query.kind === "single" ? [query.q] : query.parts;
   const matches = new Map(
     [...new Set(names)].map((q) => [
@@ -17,6 +17,8 @@ export function readShoppingMatches(storage: DurableObjectStorage, query: Parsed
   const offers = readLive(
     storage,
     items.flatMap((item) => item.variants.map((variant) => variant.id)),
+    false,
+    promotions,
   );
   const byId = new Map(items.map((item) => [item.id, item]));
   const groups = Array.from(matches, ([term, match]) => {

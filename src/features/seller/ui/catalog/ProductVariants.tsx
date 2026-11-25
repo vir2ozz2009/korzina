@@ -11,10 +11,12 @@ export function ProductVariantEditor({
   editor,
   canWrite,
   editing,
+  promotion,
 }: {
   editor: Editor;
   canWrite: boolean;
   editing: NonNullable<Editor["editing"]>;
+  promotion?: { currency: string; zone: string };
 }) {
   const { variants, setVariants, setEditing, disabled, patchVariant } = editor;
   return (
@@ -22,6 +24,7 @@ export function ProductVariantEditor({
       <h2 className="text-title-3">{editing.value.id ? "Редактировать фасовку" : "Новая фасовка"}</h2>
       <VariantFields
         row={editing.value}
+        promotion={promotion}
         multiple
         disabled={disabled}
         sale
@@ -68,10 +71,12 @@ export function ProductVariants({
   editor,
   canWrite,
   currency,
+  promotion,
 }: {
   editor: Editor;
   canWrite: boolean;
   currency: string;
+  promotion?: { currency: string; zone: string };
 }) {
   const { variants, setEditing, disabled, patchVariant } = editor;
   return (
@@ -79,6 +84,7 @@ export function ProductVariants({
       {variants.length === 1 ? (
         <VariantFields
           row={variants[0]}
+          promotion={promotion}
           patch={(patch) => patchVariant(0, patch)}
           multiple={false}
           disabled={disabled}

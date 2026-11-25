@@ -104,7 +104,12 @@ export function preferredVariants(
       );
 }
 
-export function readSearch(storage: DurableObjectStorage, input: CatalogSearchInput, shopId: string) {
+export function readSearch(
+  storage: DurableObjectStorage,
+  input: CatalogSearchInput,
+  shopId: string,
+  promotions = false,
+) {
   const { ids, count, suggestion, requested } = findMatches(storage, input);
   const document = readDocument(storage, { limit: 16, productIds: ids.join(",") || "," }, shopId);
   const byId = new Map(document.items.map((item) => [item.id, item]));
@@ -115,6 +120,8 @@ export function readSearch(storage: DurableObjectStorage, input: CatalogSearchIn
   const offers = readLive(
     storage,
     items.flatMap((item) => item.variants.map((item) => item.id)),
+    false,
+    promotions,
   );
   return {
     ...document,

@@ -68,7 +68,7 @@ it("§3.1: удаление можно отменить, а на время пе
     const input = cartCommandInput.parse(JSON.parse(String(init.body)));
     if (!("quantity" in input)) throw new Error("Unexpected confirmation");
     commands.push(input);
-    if (input.quantity === 2) return increase.promise;
+    if (input.quantity === 2 && input.expectedRevision === 1) return increase.promise;
     return Response.json(
       cartContract.parse({
         ...emptyCart,
@@ -105,6 +105,7 @@ it("§3.1: удаление можно отменить, а на время пе
   await waitFor(() => expect(commands).toHaveLength(2));
   fireEvent.click(undo);
   await screen.findByRole("button", { name: "Удалить Томаты" });
+  await waitFor(() => expect(button("Удалить Томаты").disabled).toBe(false));
   expect(commands).toEqual([
     { variantId: "sku-01", quantity: 2, expectedRevision: 1 },
     { variantId: "sku-01", quantity: 0, expectedRevision: 2 },

@@ -53,7 +53,7 @@ export const favoritesRoutes = new Hono<ShopEnv>()
   })
   .get("/", async (c) => c.json(await readTileFavorites(c.env, c.req.raw)))
   .post("/tiles", authBodyLimit, zValidator("json", favoriteIdsInput, validationFailure), (c) =>
-    c.json(readFavoriteTiles(c.env.storage, c.env.shop.id, c.req.valid("json").ids)),
+    c.json(readFavoriteTiles(c.env.storage, c.env.shop.id, c.req.valid("json").ids, c.env.features.promotions)),
   )
   .post("/", authBodyLimit, authCommand, zValidator("json", favoriteInput, validationFailure), async (c) => {
     const subject = await buyer(c.env, c.req.raw);

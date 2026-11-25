@@ -110,6 +110,8 @@ export const variants = sqliteTable(
     position: integer("position").notNull().default(0),
     priceMinor: integer("price_minor").notNull(),
     oldPriceMinor: integer("old_price_minor"),
+    promoStartsAt: integer("promo_starts_at"),
+    promoEndsAt: integer("promo_ends_at"),
     stock: integer("stock"),
     stockRevision: integer("stock_revision").notNull().default(0),
     purchased: integer("purchased").notNull().default(0),

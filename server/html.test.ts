@@ -10,7 +10,7 @@ it("HTML изолирует тему витрины от кабинета, не 
     status: "active",
     plan: "base",
     createdAt: 0,
-    features: { cashback: false, maps: true },
+    features: { cashback: false, maps: true, promotions: false },
     theme: { preset: "herb" },
   };
   const shell = () =>

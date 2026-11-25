@@ -34,7 +34,8 @@ export async function readCabinet(database: D1Database, request: Request, appEnv
   const rows = await database
     .withSession("first-primary")
     .prepare(`SELECT a.telegram_id AS telegramId, sh.id, sh.slug, sh.name, sh.status, m.role,
-      m.team_role AS teamRole, m.permissions, sh.time_zone AS timeZone
+      m.team_role AS teamRole, m.permissions, sh.time_zone AS timeZone,
+      COALESCE((SELECT enabled FROM feature_overrides WHERE shop_id=sh.id AND key='promotions'),0) AS promotions
       FROM seller_sessions s JOIN accounts a ON a.id=s.account_id
       LEFT JOIN memberships m ON m.account_id=a.id AND m.revoked_at IS NULL AND m.role IN ('owner','employee')
         AND s.shop_id=m.shop_id
@@ -51,10 +52,11 @@ export async function readCabinet(database: D1Database, request: Request, appEnv
       teamRole: string | null;
       permissions: string | null;
       timeZone: string | null;
+      promotions: number;
     }>();
   const actor = rows.results[0];
   if (!actor) throw new ApiError("UNAUTHORIZED", "Войдите через Telegram");
-  const shops = rows.results.flatMap(({ telegramId: _, id, permissions, ...shop }) => {
+  const shops = rows.results.flatMap(({ telegramId: _, id, permissions, promotions, ...shop }) => {
     if (!id) return [];
     const allowed =
       shop.role === "owner"
@@ -67,7 +69,15 @@ export async function readCabinet(database: D1Database, request: Request, appEnv
               return [];
             }
           })();
-    return [{ id, ...shop, permissions: allowed, storefrontUrl: storefrontUrl(request.url, appEnv, shop.slug) }];
+    return [
+      {
+        id,
+        ...shop,
+        promotions: promotions === 1 && (shop.role === "owner" || shop.teamRole === "manager"),
+        permissions: allowed,
+        storefrontUrl: storefrontUrl(request.url, appEnv, shop.slug),
+      },
+    ];
   });
   const current = slug ? shops.find((shop) => shop.slug === slug) : shops[0];
   if (slug && !current) throw new ApiError("FORBIDDEN", "Нет доступа к магазину");

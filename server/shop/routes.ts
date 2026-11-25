@@ -17,6 +17,7 @@ import { storefrontReceiving } from "../modules/fulfillment/storefront-receiving
 import { mediaRoutes } from "../modules/media/routes";
 import { buyerChatRoutes, sellerChatRoutes } from "../modules/order-chat/routes";
 import { profileRoutes } from "../modules/profile/routes";
+import { sellerPromoRoutes } from "../modules/promo/routes";
 import { sellerCatalogRoutes } from "../modules/seller-catalog/routes";
 import { sellerMoneyRoutes } from "../modules/seller-money/routes";
 import { sellerOrderRoutes } from "../modules/seller-orders/routes";
@@ -64,6 +65,7 @@ export function shopRoutes() {
       .route("/seller/payments", sellerPaymentRoutes)
       .route("/seller/profile", sellerProfileRoutes)
       .route("/seller/statistics", sellerSalesRoutes)
+      .route("/seller/promotions", sellerPromoRoutes)
       .route("/seller/money", sellerMoneyRoutes)
       .route("/favorites", favoritesRoutes)
       .route("/profile", profileRoutes)

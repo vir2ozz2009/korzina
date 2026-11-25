@@ -21,6 +21,8 @@ import { useConfirmCart } from "../api";
 import { useCart } from "../CartProvider";
 import { cartSnapshot } from "../snapshot";
 import { CartNotice } from "./CartNotice";
+import { CartPromotion } from "./CartPromotion";
+import { usePromoRefresh } from "./usePromoRefresh";
 
 export function CartScreen() {
   const { query, change, pendingProducts } = useCart();
@@ -44,6 +46,7 @@ export function CartScreen() {
   const back = useBack();
   const confirm = useConfirmCart(useToast());
   const cart = query.data ?? saved;
+  usePromoRefresh(cart?.promo, refetch);
   const checking = opening || query.isFetching;
   const currency = cart?.currency;
   const available = cart?.lines.filter((line) => line.available) ?? [];
@@ -61,6 +64,7 @@ export function CartScreen() {
   function row(line: CartLine, currency: string) {
     const issue = issues.get(line.variantId);
     const pending = pendingProducts.has(line.productId);
+    const previous = issue?.oldPriceMinor ?? line.oldPriceMinor;
     return (
       <li key={line.variantId}>
         <ProductRow
@@ -76,11 +80,7 @@ export function CartScreen() {
               ? (line.totalMinor ?? multiplyMinor(line.priceMinor, line.quantity))
               : multiplyMinor(line.priceMinor, line.quantity)
           }
-          previous={
-            issue?.oldPriceMinor === undefined
-              ? undefined
-              : formatMinor(multiplyMinor(issue.oldPriceMinor, line.quantity), currency)
-          }
+          previous={previous == null ? undefined : formatMinor(multiplyMinor(previous, line.quantity), currency)}
           note={
             !line.available
               ? "Не учитывается"
@@ -182,10 +182,24 @@ export function CartScreen() {
                 <Divider />
               </>
             )}
+            {cart.promo && (
+              <CartPromotion
+                cart={cart}
+                currency={currency}
+                disabled={checking || !!pendingProducts.size}
+                deliveryMinor={total?.deliveryMinor}
+              />
+            )}
             <div className="flex items-baseline justify-between gap-2">
               <span>Товары</span>
-              <strong>{formatMinor(cart.totalMinor, currency)}</strong>
+              <strong>{formatMinor(cart.itemsMinor ?? cart.totalMinor, currency)}</strong>
             </div>
+            {cart.adjustments.map((item) => (
+              <div key={item.sourceId} className="flex justify-between gap-2">
+                <span>{item.label}</span>
+                <strong>−{formatMinor(-item.amount, currency)}</strong>
+              </div>
+            ))}
             {method && (
               <div className="flex justify-between gap-3">
                 <span>{method === "pickup" ? "Самовывоз" : "Доставка"}</span>
@@ -201,7 +215,9 @@ export function CartScreen() {
                   <span className="text-label">
                     {courier ? "К оплате магазину" : late ? "Итого за товары" : "Итого"}
                   </span>
-                  <strong className="text-title-3">{formatMinor(total.totalMinor, currency)}</strong>
+                  <strong className="text-title-3">
+                    {formatMinor(cart.promo ? cart.totalMinor + total.deliveryMinor : total.totalMinor, currency)}
+                  </strong>
                 </div>
               </>
             )}

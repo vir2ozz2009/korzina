@@ -7,6 +7,7 @@ import { defaultShopTimeZone } from "../../../src/shared/datetime";
 import { ApiError } from "../../../src/shared/errors";
 import type { ShopEnv } from "../../shop/env";
 import { pauseUntil, uncategorizedId } from "../catalog/sale-pause";
+import { datesFor } from "../promo/offers";
 import { attachCatalogPhoto, catalogPhotoIds, retireUnusedPhotos } from "./photos";
 import { catalogVersion, sellerProduct } from "./products-read";
 
@@ -87,6 +88,16 @@ export function saveSellerProduct(env: Shop, accountId: string, input: SellerPro
 
   const changes = input.variants.map((variant, position) => {
     const prior = variant.id ? variants.get(variant.id) : undefined;
+    const dates =
+      variant.promoDates !== undefined
+        ? datesFor(variant.promoDates ?? {}, env.timeZone)
+        : { start: prior?.promoStartsAt ?? null, end: prior?.promoEndsAt ?? null };
+    if (variant.promoDates && !env.features.promotions) throw new ApiError("FORBIDDEN", "Акции недоступны");
+    if (
+      (dates.start !== null || dates.end !== null) &&
+      (variant.oldPriceMinor === null || variant.oldPriceMinor <= variant.priceMinor)
+    )
+      throw new ApiError("VALIDATION", "Цена по акции должна быть ниже обычной");
     let nextStock = variant.stock;
     if (prior) {
       const baseline = variant.stockBaseline;
@@ -105,6 +116,7 @@ export function saveSellerProduct(env: Shop, accountId: string, input: SellerPro
       id: prior?.id ?? crypto.randomUUID(),
       name: variant.name || prior?.name || "",
       position,
+      dates,
       nextStock,
       salePause,
     };
@@ -150,10 +162,10 @@ export function saveSellerProduct(env: Shop, accountId: string, input: SellerPro
 
   for (const variant of changes) {
     storage.sql.exec(
-      `INSERT INTO variants(id,product_id,name,position,price_minor,old_price_minor,visible,stock,sale_pause)
-      VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,position=excluded.position,
+      `INSERT INTO variants(id,product_id,name,position,price_minor,old_price_minor,visible,stock,sale_pause,promo_starts_at,promo_ends_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,position=excluded.position,
       price_minor=excluded.price_minor,old_price_minor=excluded.old_price_minor,visible=excluded.visible,
-      stock=excluded.stock,sale_pause=excluded.sale_pause`,
+      stock=excluded.stock,sale_pause=excluded.sale_pause,promo_starts_at=excluded.promo_starts_at,promo_ends_at=excluded.promo_ends_at`,
       variant.id,
       id,
       variant.name,
@@ -163,6 +175,8 @@ export function saveSellerProduct(env: Shop, accountId: string, input: SellerPro
       Number(variant.visible),
       variant.nextStock,
       variant.salePause,
+      variant.dates.start,
+      variant.dates.end,
     );
   }
   storage.sql.exec(
@@ -197,8 +211,8 @@ export function copySellerProduct(env: Shop, id: string, revision: number) {
     id,
   );
   storage.sql.exec(
-    `INSERT INTO variants(id,product_id,name,position,price_minor,old_price_minor,visible,stock,sale_pause,photo_id)
-    SELECT lower(hex(randomblob(16))),?,name,position,price_minor,old_price_minor,visible,stock,sale_pause,photo_id
+    `INSERT INTO variants(id,product_id,name,position,price_minor,old_price_minor,visible,stock,sale_pause,photo_id,promo_starts_at,promo_ends_at)
+    SELECT lower(hex(randomblob(16))),?,name,position,price_minor,old_price_minor,visible,stock,sale_pause,photo_id,promo_starts_at,promo_ends_at
     FROM variants WHERE product_id=?`,
     copy,
     id,

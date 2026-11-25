@@ -5,6 +5,7 @@ import { Button } from "../../../../ui/Button";
 import { Input } from "../../../../ui/Input";
 import { Sheet } from "../../../../ui/Sheet";
 import { Switch } from "../../../../ui/Switch";
+import { VariantPricePromo } from "./VariantPricePromo";
 
 export type VariantDraft = {
   key: string;
@@ -12,6 +13,9 @@ export type VariantDraft = {
   name: string;
   price: string;
   oldPrice: string;
+  promoDates?: SellerProductInput["variants"][number]["promoDates"];
+  promoStartsAt?: number | null;
+  promoEndsAt?: number | null;
   stock: string;
   unlimited: boolean;
   visible: boolean;
@@ -26,6 +30,8 @@ export function variantDraft(currency: string, row?: SellerVariant): VariantDraf
     name: row?.name ?? "",
     price: row ? minorInput(row.priceMinor, currency) : "",
     oldPrice: row?.oldPriceMinor == null ? "" : minorInput(row.oldPriceMinor, currency),
+    promoStartsAt: row?.promoStartsAt,
+    promoEndsAt: row?.promoEndsAt,
     stock: row?.stock == null ? "" : String(row.stock),
     unlimited: row?.stock === null,
     visible: row?.visible ?? true,
@@ -45,6 +51,7 @@ export function variantInput(row: VariantDraft, currency: string) {
     name: row.name,
     priceMinor,
     oldPriceMinor,
+    ...(row.promoDates !== undefined && { promoDates: row.promoDates }),
     visible: row.visible,
     stock: row.unlimited ? null : Number(row.stock),
     stockBaseline: row.baseline,
@@ -59,6 +66,7 @@ export function VariantFields({
   disabled,
   sale,
   error,
+  promotion,
 }: {
   row: VariantDraft;
   patch: (draft: Partial<VariantDraft>) => void;
@@ -66,6 +74,7 @@ export function VariantFields({
   disabled: boolean;
   sale?: boolean;
   error?: string;
+  promotion?: { currency: string; zone: string };
 }) {
   const [showPause, setShowPause] = useState(false);
   const inSale =
@@ -85,19 +94,20 @@ export function VariantFields({
         />
       )}
       <Input
-        label="Цена"
+        label={promotion && row.oldPrice ? "Цена по акции" : "Цена"}
         value={row.price}
         inputMode="decimal"
         disabled={disabled}
         onChange={(event) => patch({ price: event.target.value })}
       />
       <Input
-        label="Старая цена"
+        label={promotion ? "Обычная цена (для акции)" : "Старая цена"}
         value={row.oldPrice}
         inputMode="decimal"
         disabled={disabled}
         onChange={(event) => patch({ oldPrice: event.target.value })}
       />
+      {promotion && <VariantPricePromo {...promotion} row={row} patch={patch} disabled={disabled} />}
       <Input
         label="Остаток"
         value={row.stock}

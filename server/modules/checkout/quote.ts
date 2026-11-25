@@ -47,7 +47,11 @@ export function purchaseSummary(env: Shop, subject: string) {
     env.timeZone ?? defaultShopTimeZone,
     Date.now(),
   );
-  const cart = readCart(env.storage, subject, { id: env.shop.id, mediaOrigin: env.media.MEDIA_PUBLIC_URL });
+  const cart = readCart(env.storage, subject, {
+    id: env.shop.id,
+    mediaOrigin: env.media.MEDIA_PUBLIC_URL,
+    promotions: env.features.promotions,
+  });
   const availability = selection.receiving ? checkFulfillment(settings, selection.receiving) : null;
   const deliveryMinor =
     availability?.available &&
@@ -63,7 +67,7 @@ export function purchaseSummary(env: Shop, subject: string) {
     deliveryMinor,
     totalMinor: addMinor(cart.totalMinor, deliveryMinor),
     minimumMinor: paymentSettings.minimumMinor,
-    shortMinor: Math.max(0, paymentSettings.minimumMinor - cart.totalMinor),
+    shortMinor: Math.max(0, paymentSettings.minimumMinor - (cart.itemsMinor ?? cart.totalMinor)),
     acceptingOrders: acceptingOrders && acceptsCheckout(env),
     closedMessage,
     unavailable,
@@ -84,7 +88,12 @@ export function purchaseDraft(env: Shop, subject: string, kind: "guest" | "teleg
   if (closedMessage) throw new ApiError("SHOP_CLOSED", closedMessage);
   const pause = receiving && unavailable[receiving.mode];
   if (pause) throw new ApiError("SHOP_CLOSED", pause);
-  const cart = readCart(storage, subject, { id: env.shop.id, mediaOrigin: env.media.MEDIA_PUBLIC_URL });
+  const cart = readCart(storage, subject, {
+    id: env.shop.id,
+    mediaOrigin: env.media.MEDIA_PUBLIC_URL,
+    promotions: env.features.promotions,
+    now,
+  });
   if (cart.review) throw new ApiError("QUOTE_CHANGED", "Подтвердите изменения в корзине", { cart });
   if (!receiving) throw new ApiError("VALIDATION", "Укажите способ получения");
   const fulfillment = requireFulfillment(settings, receiving, true);
@@ -95,42 +104,54 @@ export function purchaseDraft(env: Shop, subject: string, kind: "guest" | "teleg
       throw new ApiError("SLOT_TAKEN", time ? timeChangedMessage : "Выберите доступное время получения");
   }
   if (!context.phone && kind !== "telegram") throw new ApiError("VALIDATION", "Войдите или укажите номер телефона");
-  if (!paymentSettings.methods.length) throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Оплата пока недоступна");
+  const savings = new Map(
+    cart.adjustments.flatMap((item) => item.allocations ?? []).map((item) => [item.variantId, item.amount]),
+  );
   const lines = cart.lines
     .filter((line) => line.available && line.quantity > 0)
-    .map(({ variantId, productId, name, unit, quantity, priceMinor, image }) => ({
-      variantId,
-      productId,
-      name,
-      unit,
-      quantity,
-      priceMinor,
-      image,
-      totalMinor: multiplyMinor(quantity, priceMinor),
-    }));
+    .map(({ variantId, productId, name, unit, quantity, priceMinor, image }) => {
+      const promoSavingsMinor = savings.get(variantId) ?? 0;
+      return {
+        variantId,
+        productId,
+        name,
+        unit,
+        quantity,
+        priceMinor,
+        image,
+        ...(promoSavingsMinor ? { promoSavingsMinor } : {}),
+        totalMinor: multiplyMinor(quantity, priceMinor) - promoSavingsMinor,
+      };
+    });
   if (!lines.length || !cart.currency) throw new ApiError("VALIDATION", "Корзина пуста");
-  const itemsMinor = addMinor(...lines.map((line) => line.totalMinor));
-  if (itemsMinor < paymentSettings.minimumMinor)
+  const beforeDiscount = cart.itemsMinor ?? cart.totalMinor;
+  const itemsMinor = cart.totalMinor;
+  if (beforeDiscount < paymentSettings.minimumMinor)
     throw new ApiError("MIN_ORDER_SUM", "Добавьте товары до минимальной суммы", {
-      itemsMinor,
+      itemsMinor: beforeDiscount,
       minimumMinor: paymentSettings.minimumMinor,
     });
   const deliveryMinor =
     fulfillment.mode === "delivery" && fulfillment.payee === "shop" ? (fulfillment.feeMinor ?? 0) : 0;
+  const totalMinor = addMinor(itemsMinor, deliveryMinor);
+  const free = totalMinor === 0 && cart.adjustments.some((item) => item.kind === "promotion");
+  if (!free && !paymentSettings.methods.length)
+    throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Оплата пока недоступна");
   const snapshot: PurchaseQuote = {
     revision: cart.revision,
     currency: cart.currency,
     lines,
     ...(cart.adjustments.length ? { adjustments: cart.adjustments } : {}),
     itemsMinor,
+    ...(cart.adjustments.length ? { itemsBeforeDiscountMinor: beforeDiscount } : {}),
     deliveryMinor,
-    totalMinor: addMinor(itemsMinor, deliveryMinor),
+    totalMinor,
     receiving,
     fulfillment,
     time,
     phone: context.phone,
     telegramLinked: kind === "telegram",
-    paymentSettings,
+    paymentSettings: free ? { minimumMinor: paymentSettings.minimumMinor, methods: ["cash"] } : paymentSettings,
   };
   return { snapshot, cart, storedReceiving: context.receiving, customerName: context.buyer_name };
 }

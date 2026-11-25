@@ -10,6 +10,7 @@ import { executeCommand } from "../../shop/commands";
 import { acceptsCheckout, type ShopEnv } from "../../shop/env";
 import { removeOrderedLines } from "../cart/service";
 import { reserveTime } from "../fulfillment/availability";
+import { consumePromotion } from "../promo/cart";
 import type { ReservedOrder } from "./order-reservation";
 import { paymentOptions, selectedPayment } from "./payment-settings";
 import { loadQuote, purchaseDraft } from "./quote";
@@ -93,12 +94,14 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
       input.payment,
       input.payment === "transfer" ? input.methodId : undefined,
     );
-    if (!method) throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Этот способ оплаты недоступен");
+    if (!method && previous.totalMinor !== 0 && snapshot.totalMinor !== 0)
+      throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Этот способ оплаты недоступен");
     if (JSON.stringify(quoteTerms(previous)) !== JSON.stringify(quoteTerms(snapshot)))
       throw new ApiError("QUOTE_CHANGED", "Условия заказа изменились", {
         beforeMinor: previous.totalMinor,
         afterMinor: snapshot.totalMinor,
       });
+    if (!method) throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Этот способ оплаты недоступен");
     const seatReserved = reserveTime(storage, snapshot.receiving.mode, snapshot.time, now);
     const { paymentSettings, ...details } = snapshot;
     const proof = input.payment === "transfer" ? (input.proofMediaId ?? null) : null;
@@ -140,6 +143,7 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
         }),
       )
       .one();
+    consumePromotion(storage, number, order.adjustments, actor.kind === "telegram" ? subject : null);
     storage.sql.exec("INSERT INTO order_outbox(order_number,event,created_at) VALUES(?,'order.placed',?)", number, now);
     removeOrderedLines(storage, subject, cart, storedReceiving);
     env.changes.orderPlaced(number);

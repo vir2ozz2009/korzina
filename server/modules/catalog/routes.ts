@@ -28,7 +28,7 @@ export const catalogRoutes = new Hono<ShopEnv>()
         await readPage(
           c.req.valid("query"),
           async (input) => readDocument(c.env.storage, input, c.env.shop.id),
-          async (ids) => readLive(c.env.storage, ids),
+          async (ids) => readLive(c.env.storage, ids, false, c.env.features.promotions),
           async (input) => readSelection(c.env.storage, input),
         ),
       ),
@@ -38,7 +38,7 @@ export const catalogRoutes = new Hono<ShopEnv>()
     zValidator("query", catalogSearchInput, (result) => {
       if (!result.success) throw new ApiError("VALIDATION", "Некорректный запрос поиска");
     }),
-    (c) => c.json(readSearch(c.env.storage, c.req.valid("query"), c.env.shop.id)),
+    (c) => c.json(readSearch(c.env.storage, c.req.valid("query"), c.env.shop.id, c.env.features.promotions)),
   )
   .post(
     "/shopping-search",
@@ -54,7 +54,7 @@ export const catalogRoutes = new Hono<ShopEnv>()
     (c) => {
       const parsed = readShoppingSearch(c.req.valid("json").q);
       if (parsed.kind === "error") throw new ApiError("VALIDATION", parsed.message);
-      return c.json(readShoppingMatches(c.env.storage, parsed, c.env.shop.id));
+      return c.json(readShoppingMatches(c.env.storage, parsed, c.env.shop.id, c.env.features.promotions));
     },
   )
   .get("/selection", zValidator("query", catalogListInput), (c) =>
@@ -71,7 +71,7 @@ export const catalogRoutes = new Hono<ShopEnv>()
           .pipe(z.array(z.string().min(1).max(120)).max(800)),
       }),
     ),
-    (c) => c.json(readLive(c.env.storage, c.req.valid("query").ids)),
+    (c) => c.json(readLive(c.env.storage, c.req.valid("query").ids, false, c.env.features.promotions)),
   )
   .get(
     "/document",
@@ -90,8 +90,16 @@ export const catalogRoutes = new Hono<ShopEnv>()
     zValidator("query", catalogLiveInput, (result) => {
       if (!result.success) throw new ApiError("VALIDATION", "Некорректные SKU каталога");
     }),
-    (c) => c.json(readLive(c.env.storage, c.req.valid("query").ids)),
+    (c) => c.json(readLive(c.env.storage, c.req.valid("query").ids, false, c.env.features.promotions)),
   )
   .get("/products/:id", (c) =>
-    c.json(readProduct(c.env.storage, c.req.param("id"), c.env.shop.id, c.env.media.MEDIA_PUBLIC_URL)),
+    c.json(
+      readProduct(
+        c.env.storage,
+        c.req.param("id"),
+        c.env.shop.id,
+        c.env.media.MEDIA_PUBLIC_URL,
+        c.env.features.promotions,
+      ),
+    ),
   );

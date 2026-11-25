@@ -1,4 +1,5 @@
 import type { CatalogOffer, CatalogTile } from "../../../src/shared/contracts/catalog";
+import { effectivePrice } from "../promo/cart";
 import { documentImage } from "./images";
 import { mediaJsonSql } from "./queries";
 
@@ -10,7 +11,8 @@ type Source = {
   hideOutOfStock: number;
 };
 
-export function readRecommendations(storage: DurableObjectStorage, shopId: string, source: Source) {
+export function readRecommendations(storage: DurableObjectStorage, shopId: string, source: Source, promotions = false) {
+  const price = effectivePrice("v.", promotions, Date.now());
   const items: CatalogTile[] = [];
   const offers: CatalogOffer[] = [];
   if (source.recommendations === "off" || (source.recommendations === "manual" && source.recommendationIds === "[]"))
@@ -29,7 +31,7 @@ export function readRecommendations(storage: DurableObjectStorage, shopId: strin
       (SELECT ${mediaJsonSql} FROM product_photos pp JOIN media m ON m.id=pp.media_id
         WHERE pp.product_id=p.id AND m.ready=1 AND m.status='attached' ORDER BY pp.position LIMIT 1) AS photo,
       (SELECT json_group_array(json_object('id',v.id,'name',v.name,'photoId',v.photo_id,
-        'priceMinor',v.price_minor,'oldPriceMinor',v.old_price_minor,'stock',v.stock,
+        'priceMinor',${price.price},'oldPriceMinor',${price.old},'stock',v.stock,
         'available',v.sale_pause IS NULL AND NOT v.product_paused AND (v.stock IS NULL OR v.stock>0)))
         FROM (SELECT * FROM variants WHERE product_id=p.id AND visible=1
           ${!manual || source.hideOutOfStock ? "AND sale_pause IS NULL AND NOT product_paused AND (stock IS NULL OR stock>0)" : ""}

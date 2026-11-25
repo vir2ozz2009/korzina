@@ -4,6 +4,7 @@ import { ApiError } from "../../../src/shared/errors";
 import { addMinor, multiplyMinor } from "../../../src/shared/money";
 import type { CommandIdentity } from "../../middleware/idempotency";
 import { parseSelection, rememberOrderedAddress } from "../fulfillment/service";
+import { effectivePrice, pricePromoCart } from "../promo/cart";
 import { type CartSource, reconcileQuote, type SavedQuote, savedQuote, toLine } from "./quote";
 
 type CartState = {
@@ -13,6 +14,8 @@ type CartState = {
   quote: string | null;
   fingerprint: string | null;
   response: string | null;
+  promo_code: string | null;
+  promo_alternative: string | null;
 };
 
 export function readCartState(
@@ -22,14 +25,20 @@ export function readCartState(
   variantIds: string[] = [],
   identity?: CommandIdentity,
 ) {
+  const now = source.now ?? Date.now();
+  const effective = effectivePrice("v.", !!source.promotions, now);
+  const priceWindow = source.promotions
+    ? `'nextPriceAt',CASE WHEN v.promo_starts_at>${now} THEN v.promo_starts_at
+          WHEN v.promo_ends_at>${now} THEN v.promo_ends_at END,`
+    : "";
   const variantId = variantIds[0] ?? "";
   const batch = variantIds.length > 1;
   const row = storage.sql
     .exec<CartState>(
-      `SELECT COALESCE(c.revision,0) AS revision,s.currency,c.quote,i.fingerprint,i.response,
+      `SELECT COALESCE(c.revision,0) AS revision,s.currency,c.quote,i.fingerprint,i.response,c.promo_code,c.promo_alternative,
       (SELECT json_group_array(json_object(
         'variantId',w.variant_id,'productId',p.id,'name',p.name,'unit',v.name,'quantity',w.quantity,
-        'priceMinor',v.price_minor,'stock',v.stock,
+        'priceMinor',${effective.price},'oldPriceMinor',${effective.old},${source.promotions ? "'categoryId',p.category_id," : ""}${priceWindow}'stock',v.stock,
         'available',COALESCE(v.visible AND v.product_available AND NOT v.product_paused AND v.sale_pause IS NULL AND (v.stock IS NULL OR v.stock>0),0),
         'photo',CASE WHEN m.id IS NOT NULL THEN json_object('id',m.id,'edgeColor',m.edge_color,'cropPosition',json(m.crop_position)) END))
       FROM (SELECT json_extract(j.value,'$.variantId') AS variant_id,json_extract(j.value,'$.quantity') AS quantity
@@ -60,6 +69,7 @@ export function readCartState(
   );
   return {
     ...current,
+    codes: { code: row.promo_code, alternative: row.promo_alternative },
     initial: !saved && current.cart.lines.length > 0,
     offered: rows.filter((line) => line.quantity === 0),
     previous: row.response,
@@ -82,9 +92,11 @@ export function persistCart(storage: DurableObjectStorage, customer: string, car
 
 export function readCart(storage: DurableObjectStorage, customer: string, source: CartSource): Cart {
   return storage.transactionSync(() => {
-    const { cart, changed, initial } = readCartState(storage, customer, source);
+    const { cart, changed, initial, codes } = readCartState(storage, customer, source);
     if (changed || initial) persistCart(storage, customer, cart);
-    return cart;
+    return source.promotions
+      ? pricePromoCart(storage, customer, customer.startsWith("telegram:"), cart, codes, source.now)
+      : cart;
   });
 }
 
@@ -107,7 +119,7 @@ export function removeOrderedLines(
   }
   const extras = cartTotals(cart.lines.filter((line) => !line.available));
   storage.sql.exec(
-    "UPDATE carts SET revision=?,lines=?,quote=?,receiving=?,updated_at=? WHERE customer=?",
+    "UPDATE carts SET revision=?,lines=?,quote=?,receiving=?,updated_at=?,promo_code=NULL,promo_alternative=NULL WHERE customer=?",
     cart.revision + 1,
     JSON.stringify(extras.lines.map(({ variantId, quantity }) => ({ variantId, quantity }))),
     JSON.stringify(savedQuote({ ...cart, ...extras, review: undefined })),
@@ -136,17 +148,65 @@ export function changeCart(
       offered: [offered],
       changed,
       initial,
+      codes,
     } = current;
+    const reprice = (value: Cart) =>
+      source.promotions
+        ? pricePromoCart(storage, customer, customer.startsWith("telegram:"), value, codes, source.now)
+        : value;
     if (cart.revision !== input.expectedRevision) {
       if (changed || initial) persistCart(storage, customer, cart);
-      return new ApiError("VERSION_CONFLICT", "Корзина изменилась. Попробуйте ещё раз.", { cart });
+      return new ApiError("VERSION_CONFLICT", "Корзина изменилась. Попробуйте ещё раз.", { cart: reprice(cart) });
     }
     let next = cart;
-    if ("confirm" in input) {
+    if ("promoAction" in input) {
+      if (!source.promotions) throw new ApiError("FORBIDDEN", "Акции недоступны");
+      const prior = reprice(cart);
+      if ("code" in input) {
+        const candidate = pricePromoCart(
+          storage,
+          customer,
+          customer.startsWith("telegram:"),
+          cart,
+          { code: input.code, alternative: null },
+          source.now,
+        );
+        const reason = candidate.promo?.reason;
+        if (input.promoAction === "compare")
+          return {
+            ...prior,
+            promo: {
+              ...prior.promo,
+              alternative: {
+                code: input.code,
+                totalMinor: candidate.totalMinor,
+                reason,
+                missingMinor: candidate.promo?.missingMinor,
+                missingQuantity: candidate.promo?.missingQuantity,
+              },
+            },
+          };
+        if (codes.code && codes.code !== input.code && input.comparedTotal !== candidate.totalMinor)
+          throw new ApiError("VERSION_CONFLICT", "Пересчитайте замену кода", { cart: prior });
+        if (
+          codes.alternative !== input.code &&
+          ["unknown", "expired", "disabled", "scheduled", "limit", "personal_limit", "purchase_used"].includes(
+            reason ?? "",
+          )
+        )
+          throw new ApiError("VALIDATION", "Промокод не применён", { promo: candidate.promo });
+      }
+      if (input.promoAction === "remove") codes.code = null;
+      else if ("code" in input) codes.code = input.code;
+      codes.alternative = null;
+      next = { ...cart, revision: cart.revision + 1 };
+      persistCart(storage, customer, next);
+      storage.sql.exec("UPDATE carts SET promo_code=?,promo_alternative=NULL WHERE customer=?", codes.code, customer);
+    } else if ("confirm" in input) {
       if (cart.review) next = { ...cart, revision: cart.revision + 1, review: undefined };
     } else {
       if (input.quantity > 0 && !offered?.available)
-        return new ApiError("STOCK_CHANGED", "Товар больше недоступен", { cart });
+        return new ApiError("STOCK_CHANGED", "Товар больше недоступен", { cart: reprice(cart) });
       const quantity = Math.min(input.quantity, offered?.stock ?? 999);
       const previous = cart.lines.find((line) => line.variantId === input.variantId);
       if ((previous?.quantity ?? 0) !== quantity || input.quantity > quantity) {
@@ -172,7 +232,8 @@ export function changeCart(
         next = { ...cart, revision: cart.revision + 1, ...totals, review };
       }
     }
-    if (next !== cart || initial) persistCart(storage, customer, next);
+    if (!("promoAction" in input) && (next !== cart || initial)) persistCart(storage, customer, next);
+    next = reprice(next);
     storage.sql.exec(
       "INSERT INTO idempotency(scope,key,fingerprint,response,created_at) VALUES(?,?,?,?,?)",
       `cart:${customer}`,

@@ -1,5 +1,5 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import { Boxes, House, MoreHorizontal, Package, Wallet } from "lucide-react";
+import { Boxes, House, MoreHorizontal, Package, Tag, Wallet } from "lucide-react";
 import { useEffect } from "react";
 
 import { useSellerOrderBadge } from "../../features/seller/orders-api";
@@ -11,9 +11,18 @@ const tabs = [
   { path: "/seller/orders", title: "Заказы", Icon: Package, permission: "orders" as const },
   { path: "/seller/products", title: "Товары", Icon: Boxes, permission: "products" as const },
   { path: "/seller/money", title: "Деньги", Icon: Wallet, permission: "payments" as const },
+  { path: "/seller/promotions", title: "Акции", Icon: Tag, promotions: true },
   { path: "/seller/more", title: "Ещё", Icon: MoreHorizontal },
 ];
-export function SellerTabs({ store = "", permissions }: { store?: string; permissions?: Permission[] }) {
+export function SellerTabs({
+  store = "",
+  permissions,
+  promotions,
+}: {
+  store?: string;
+  permissions?: Permission[];
+  promotions?: boolean;
+}) {
   const orders = !permissions || permissions.includes("orders") ? store : "";
   const badge = useSellerOrderBadge(orders);
   const router = useRouter();
@@ -28,7 +37,11 @@ export function SellerTabs({ store = "", permissions }: { store?: string; permis
       className="fixed bottom-0 left-1/2 z-30 flex w-full max-w-(--content-max) -translate-x-1/2 border-t border-border bg-card pb-(--safe-bottom)"
     >
       {tabs
-        .filter(({ permission }) => !permission || !permissions || permissions.includes(permission))
+        .filter(
+          (tab) =>
+            (!("promotions" in tab) || promotions) &&
+            (!tab.permission || !permissions || permissions.includes(tab.permission)),
+        )
         .map(({ path, title, Icon }) => (
           <button
             key={path}

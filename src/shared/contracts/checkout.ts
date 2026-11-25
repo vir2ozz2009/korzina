@@ -38,6 +38,7 @@ export type PaymentSettings = z.infer<typeof paymentSettingsInput>;
 type PurchaseLine = Pick<CartLine, "variantId" | "productId" | "name" | "unit" | "quantity" | "priceMinor"> & {
   lineId?: string;
   totalMinor: number;
+  promoSavingsMinor?: number;
   image?: CartLine["image"];
 };
 export type PurchaseQuote = {
@@ -46,6 +47,7 @@ export type PurchaseQuote = {
   lines: PurchaseLine[];
   adjustments?: CartAdjustment[];
   itemsMinor: number;
+  itemsBeforeDiscountMinor?: number;
   deliveryMinor: number;
   totalMinor: number;
   receiving: Receiving;

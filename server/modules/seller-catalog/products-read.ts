@@ -124,12 +124,17 @@ export function sellerProduct(storage: DurableObjectStorage, shopId: string, id:
   const variants = storage.sql
     .exec<Omit<SellerVariant, "visible"> & { visible: number }>(
       `
-    SELECT id,name,price_minor AS priceMinor,old_price_minor AS oldPriceMinor,visible,stock,stock_revision AS stockRevision,
+    SELECT id,name,price_minor AS priceMinor,old_price_minor AS oldPriceMinor,promo_starts_at AS promoStartsAt,promo_ends_at AS promoEndsAt,visible,stock,stock_revision AS stockRevision,
     purchased,sale_pause AS salePause FROM variants WHERE product_id=? ORDER BY position,id`,
       id,
     )
     .toArray()
-    .map((row) => ({ ...row, visible: Boolean(row.visible) }));
+    .map(({ promoStartsAt, promoEndsAt, ...row }) => ({
+      ...row,
+      visible: Boolean(row.visible),
+      ...(promoStartsAt != null && { promoStartsAt }),
+      ...(promoEndsAt != null && { promoEndsAt }),
+    }));
   const photos = storage.sql
     .exec<{ id: string; image: string }>(
       `SELECT m.id,${mediaJsonSql} AS image FROM product_photos pp

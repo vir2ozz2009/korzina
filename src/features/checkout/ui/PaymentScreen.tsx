@@ -143,7 +143,7 @@ export function PaymentScreen() {
   return (
     <Screen
       template="checkout"
-      header={<Header title="Оплата" />}
+      header={<Header title={quote?.totalMinor === 0 ? "Подтверждение заказа" : "Оплата"} />}
       after={
         quote &&
         timeReady &&
@@ -235,7 +235,7 @@ export function PaymentScreen() {
                 />
               )}
               <PaymentMethods
-                choices={methods}
+                choices={quote.totalMinor === 0 ? undefined : methods}
                 selected={selected}
                 select={setMethod}
                 receipt={receipt}

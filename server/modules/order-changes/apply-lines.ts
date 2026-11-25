@@ -3,6 +3,7 @@ import { orderLineKey } from "../../../src/shared/contracts/order-changes";
 import { addMinor } from "../../../src/shared/money";
 import { releaseOrderReservation } from "../checkout/order-reservation";
 import { orderFinance } from "../checkout/order-workflow";
+import { releasePromotion } from "../promo/cart";
 import type { ChangeState } from "./state";
 
 export function applyLines(
@@ -39,9 +40,36 @@ export function applyLines(
 
   if (!lines.length) {
     releaseOrderReservation(storage, snapshot, false);
+    releasePromotion(storage, row.number);
     snapshot.seatReserved = false;
   }
   snapshot.lines = lines;
+  const promotion = snapshot.adjustments?.find((item) => item.kind === "promotion");
+  if (promotion) {
+    const savings = addMinor(...lines.map((line) => line.promoSavingsMinor ?? 0));
+    snapshot.itemsBeforeDiscountMinor = addMinor(
+      ...lines.map((line) => addMinor(line.totalMinor, line.promoSavingsMinor ?? 0)),
+    );
+    snapshot.adjustments = snapshot.adjustments?.flatMap((item) =>
+      item === promotion
+        ? savings > 0
+          ? [
+              {
+                ...item,
+                amount: -savings,
+                allocations: lines
+                  .filter((line) => line.promoSavingsMinor)
+                  .map((line) => ({
+                    variantId: line.variantId,
+                    amount: line.promoSavingsMinor ?? 0,
+                  })),
+              },
+            ]
+          : []
+        : [item],
+    );
+    storage.sql.exec("UPDATE promo_uses SET amount_minor=? WHERE order_number=?", savings, row.number);
+  }
   snapshot.reservedStock = [...stock];
   snapshot.itemsMinor = addMinor(...lines.map(({ totalMinor }) => totalMinor));
   snapshot.totalMinor = lines.length ? addMinor(snapshot.itemsMinor, snapshot.deliveryMinor) : 0;

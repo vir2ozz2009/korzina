@@ -97,3 +97,29 @@ export function useConfirmCart(notify: (message: string) => void) {
     },
   });
 }
+
+type PromoCartInput = Extract<CartCommandInput, { promoAction: string }>;
+export function usePromoCart() {
+  const client = useQueryClient();
+  return useMutation({
+    scope: { id: JSON.stringify(cartKey) },
+    retry: (count, error) => count < 1 && errorKind(error) === "retry",
+    networkMode: "always",
+    mutationFn: async ({ input, key }: { input: PromoCartInput; key: string }) => {
+      await ensureShopSession();
+      return sendCart(input, key);
+    },
+    onMutate: () => client.cancelQueries({ queryKey: cartKey }),
+    onSuccess: (cart, { input }) => {
+      if (input.promoAction === "compare") return;
+      client.setQueryData<Cart>(cartKey, (previous) =>
+        previous && previous.revision > cart.revision ? previous : cart,
+      );
+    },
+    onError: (error) => {
+      const details = error instanceof HttpError ? error.details : undefined;
+      if (details && typeof details === "object" && "cart" in details)
+        client.setQueryData<Cart>(cartKey, details.cart as Cart);
+    },
+  });
+}

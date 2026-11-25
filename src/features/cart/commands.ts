@@ -22,7 +22,7 @@ export function optimisticCart(cart: Cart, pending: CartCommand[]): Cart {
   return {
     ...cart,
     currency: cart.currency ?? pending[0].currency,
-    ...cartTotals([...lines.values()], cart.adjustments),
+    ...cartTotals([...lines.values()], cart.promo ? [] : cart.adjustments),
   };
 }
 
