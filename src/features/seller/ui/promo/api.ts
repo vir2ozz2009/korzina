@@ -36,7 +36,10 @@ export async function promoRequest<T>(
   const query = new URLSearchParams({ store, ...params });
   const response = await fetch(`/api/seller/promotions${path}?${query}`, {
     method: options ? "POST" : "GET",
-    headers: { ...sellerSessionHeaders(), ...(options && commandHeaders(options.key)) },
+    headers: {
+      ...sellerSessionHeaders(),
+      ...(options && { "Content-Type": "application/json", ...commandHeaders(options.key) }),
+    },
     body: options ? JSON.stringify(options.body) : undefined,
   });
   await checkResponse(response);

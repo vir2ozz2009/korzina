@@ -129,7 +129,12 @@ export function sellerProduct(storage: DurableObjectStorage, shopId: string, id:
       id,
     )
     .toArray()
-    .map((row) => ({ ...row, visible: Boolean(row.visible) }));
+    .map(({ promoStartsAt, promoEndsAt, ...row }) => ({
+      ...row,
+      visible: Boolean(row.visible),
+      ...(promoStartsAt != null && { promoStartsAt }),
+      ...(promoEndsAt != null && { promoEndsAt }),
+    }));
   const photos = storage.sql
     .exec<{ id: string; image: string }>(
       `SELECT m.id,${mediaJsonSql} AS image FROM product_photos pp

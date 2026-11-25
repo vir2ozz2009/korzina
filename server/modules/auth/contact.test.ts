@@ -47,6 +47,7 @@ it("§9.3 Telegram переносит заказы, адреса, корзину
   await runInDurableObject(catalogStub(), async (_shop, { storage }) => {
     const bindings = {
       shop: { id: shopId, slug: "test", name: "Test", status: "active", plan: "base", createdAt: 0 },
+      features: { cashback: false, promotions: true, maps: true },
       db: drizzle(storage),
       storage,
       secrets: { ENCRYPTION_KEY: botFixtureKey },
@@ -73,12 +74,12 @@ it("§9.3 Telegram переносит заказы, адреса, корзину
     const where = { mode: "delivery", address: "28 Lê Lợi", acceptedWithoutPoint: true } as const;
     saveReceiving(storage, subject, { expectedRevision: 0, receiving: where });
     storage.sql.exec(
-      "UPDATE carts SET lines=? WHERE customer=?",
+      "UPDATE carts SET lines=?,promo_code='GUEST' WHERE customer=?",
       JSON.stringify([{ variantId: "sku-01", quantity: 1 }]),
       subject,
     );
     storage.sql.exec(
-      "INSERT INTO carts(customer,lines) VALUES(?,?)",
+      "INSERT INTO carts(customer,lines,promo_code) VALUES(?,?,'ACCOUNT')",
       "telegram:12345",
       JSON.stringify([
         { variantId: "sku-01", quantity: 3 },
@@ -160,11 +161,12 @@ it("§9.3 Telegram переносит заказы, адреса, корзину
     expect(await finished.json()).toMatchObject({ subject: "telegram:12345", kind: "telegram", pending: false });
     expect((await submit("/telegram/finish", { exchange }, origin)).status).toBe(401);
     const row = storage.sql
-      .exec<{ lines: string; receiving: string }>(
-        "SELECT lines,receiving FROM carts WHERE customer=?",
+      .exec<{ lines: string; receiving: string; promo_code: string; promo_alternative: string }>(
+        "SELECT lines,receiving,promo_code,promo_alternative FROM carts WHERE customer=?",
         "telegram:12345",
       )
       .one();
+    expect(row).toMatchObject({ promo_code: "ACCOUNT", promo_alternative: "GUEST" });
     expect(JSON.parse(row.lines)).toEqual([
       { variantId: "sku-01", quantity: 2 },
       { variantId: "sku-02", quantity: 1 },
