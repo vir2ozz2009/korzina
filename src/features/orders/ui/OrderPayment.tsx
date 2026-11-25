@@ -22,11 +22,22 @@ function paymentText(order: BuyerOrder) {
   }
 }
 
-export function OrderPayment({ order, onTopUp }: { order: BuyerOrder; onTopUp?: () => void }) {
+export function OrderPayment({
+  order,
+  onTopUp,
+  refundDetails,
+  replaceProof,
+}: {
+  order: BuyerOrder;
+  onTopUp?: () => void;
+  refundDetails?: () => void;
+  replaceProof?: () => void;
+}) {
   const changed = order.composition?.totals;
   const cash = (order.topUpPayment?.id ?? order.paymentOption?.id ?? order.payment) === "cash";
   const option = order.paymentOption?.name ?? (order.payment === "cash" ? "Наличными при получении" : "Перевод");
-  const topUp = changed && !!order.debtMinor && onTopUp;
+  const topUp = !!order.debtMinor && onTopUp;
+  const replacementRaisedPrice = !!order.debtMinor && changed && changed.currentMinor > changed.originalMinor;
   const payment =
     order.paymentStatus === "pending_review" && order.topUpPayment
       ? "Чек отправлен, магазин проверит"
@@ -34,17 +45,40 @@ export function OrderPayment({ order, onTopUp }: { order: BuyerOrder; onTopUp?: 
   return (
     <Card>
       <p className="text-label">Оплата · {option}</p>
-      {changed && (
+      {changed && !replacementRaisedPrice && (
         <>
           <p>
             Итого {formatMinor(changed.currentMinor, order.currency)} (было{" "}
             {formatMinor(changed.originalMinor, order.currency)})
           </p>
-          {!!changed.paidMinor && <p>Оплачено {formatMinor(changed.paidMinor, order.currency)}</p>}
+          {!!changed.paidMinor && <p>Оплачено {formatMinor(changed.paidMinor ?? 0, order.currency)}</p>}
         </>
       )}
-      {topUp && cash ? (
+      {replacementRaisedPrice && changed && (
+        <p>
+          После замены сумма заказа выросла с {formatMinor(changed.originalMinor, order.currency)} до{" "}
+          {formatMinor(changed.currentMinor, order.currency)}. Уже оплачено{" "}
+          {formatMinor(changed.paidMinor ?? 0, order.currency)}.
+        </p>
+      )}
+      {order.topUp?.status === "pending_review" ? (
         <>
+          <p>Подтверждение отправлено · повторно платить не нужно</p>
+          <Button full variant="secondary" onClick={replaceProof}>
+            Заменить чек
+          </Button>
+        </>
+      ) : order.topUp?.status === "rejected" ? (
+        <>
+          <p>Магазин не подтвердил оплату</p>
+          {order.topUp.reason && <p>{order.topUp.reason}</p>}
+          <Button full onClick={replaceProof}>
+            Прикрепить чек
+          </Button>
+        </>
+      ) : topUp && cash ? (
+        <>
+          <p>Нужно доплатить {formatMinor(order.debtMinor ?? 0, order.currency)}</p>
           <p>Отдайте {order.receiving.mode === "delivery" ? "курьеру при получении" : "при получении"}</p>
           <Button full variant="secondary" onClick={onTopUp}>
             Оплатить иначе
@@ -52,7 +86,7 @@ export function OrderPayment({ order, onTopUp }: { order: BuyerOrder; onTopUp?: 
         </>
       ) : (
         <>
-          <p>{payment}</p>
+          <p>{topUp ? `Нужно доплатить ${formatMinor(order.debtMinor ?? 0, order.currency)}` : payment}</p>
           {topUp && (
             <Button full onClick={onTopUp}>
               Доплатить
@@ -60,6 +94,24 @@ export function OrderPayment({ order, onTopUp }: { order: BuyerOrder; onTopUp?: 
           )}
         </>
       )}
+      {order.refund && (
+        <>
+          {order.refund.details ? (
+            <p>Реквизиты переданы, деньги ожидаются</p>
+          ) : (
+            <Button full variant="secondary" onClick={refundDetails}>
+              Указать реквизиты
+            </Button>
+          )}
+          {!!order.returnedMinor && (
+            <>
+              <p>Возвращено {formatMinor(order.returnedMinor, order.currency)}</p>
+              <p>Осталось вернуть {formatMinor(order.refund.amountMinor, order.currency)}</p>
+            </>
+          )}
+        </>
+      )}
+      {!order.refund && !!order.returnedMinor && <p>Деньги возвращены</p>}
     </Card>
   );
 }

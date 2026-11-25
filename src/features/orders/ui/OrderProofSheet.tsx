@@ -43,6 +43,7 @@ export function OrderProofSheet({ order, close, saved }: { order: BuyerOrder; cl
         key: current.commandKey,
         expectedVersion: order.version,
         proofMediaId: current.proofMediaId,
+        obligationId: order.topUp?.id,
       });
       saved();
     } catch {
@@ -52,7 +53,7 @@ export function OrderProofSheet({ order, close, saved }: { order: BuyerOrder; cl
   return (
     <Sheet
       open
-      title="Заменить подтверждение оплаты"
+      title={order.topUp && !order.topUp.proof ? "Прикрепить чек" : "Заменить подтверждение оплаты"}
       onOpenChange={(open) => {
         if (!open && !pending) close();
       }}

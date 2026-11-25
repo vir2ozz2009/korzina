@@ -61,6 +61,7 @@ function OrderView({ store, order, entry }: { store: string; order: SellerOrder;
   const toast = useToast();
   const replacementPending = !!order.composition?.expiresAt;
   const next = mainAction(order.stage, order.receiving.mode === "delivery");
+  const paymentRequired = order.paymentRequired ?? order.balance.outstandingMinor > 0;
   const review = order.paymentStatus === "pending_review" || order.topUp?.status === "pending_review";
   const [sheet, setSheet] = useState<OrderAction | "more" | undefined>(() =>
     entry === "receipt" && review && order.permissions.payments
@@ -69,7 +70,7 @@ function OrderView({ store, order, entry }: { store: string; order: SellerOrder;
           entry === "next" &&
           next &&
           isHandoff(next.action) &&
-          (order.balance.outstandingMinor === 0 || order.permissions.payments)
+          (!paymentRequired || order.permissions.payments)
         ? next.action
         : undefined,
   );
@@ -130,7 +131,7 @@ function OrderView({ store, order, entry }: { store: string; order: SellerOrder;
       sheet === "confirmTransfer" ||
       sheet === "setDeliveryFee" ||
       (sheet !== "more" && isHandoff(sheet) && order.balance.outstandingMinor > 0));
-  const allowedNext = !next || !isHandoff(next.action) || !order.balance.outstandingMinor || order.permissions.payments;
+  const allowedNext = !next || !isHandoff(next.action) || !paymentRequired || order.permissions.payments;
   return (
     <>
       {order.composition && <SellerChangeSummary change={order.composition} timeZone={order.timeZone} />}

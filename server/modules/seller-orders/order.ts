@@ -8,6 +8,41 @@ import { orderBalance, orderFinance, orderWorkflow } from "../checkout/order-wor
 import { orderComposition, orderTimeChange } from "../order-changes/state";
 import { availableOrderRefund } from "./refunds";
 
+const moneyEvents = new Set([
+  "order.openRefund",
+  "order.markRefundReturned",
+  "order.refundDetails",
+  "order.recordPayment",
+  "order.correctPayment",
+  "order.confirmTransfer",
+  "order.rejectProof",
+  "order.waiveDue",
+]);
+
+export function withoutSellerPaymentData(order: SellerOrder): SellerOrder {
+  const {
+    refund: _refund,
+    returnedMinor: _returned,
+    availableRefundMinor: _available,
+    transferReview: _review,
+    ...safe
+  } = order;
+  if (safe.composition) {
+    const { paidMinor: _paid, refundMinor: _owing, topUpMinor: _topUp, ...totals } = safe.composition.totals;
+    safe.composition = { ...safe.composition, totals };
+  }
+  return {
+    ...safe,
+    receipts: [],
+    topUp: undefined,
+    topUpPayment: undefined,
+    events: safe.events.filter((event) => !moneyEvents.has(event.event)),
+    balance: { paidMinor: 0, outstandingMinor: 0, debtMinor: 0, refundMinor: 0 },
+    paymentRequired: order.paymentRequired ?? order.balance.outstandingMinor > 0,
+    permissions: { ...order.permissions, payments: false },
+  };
+}
+
 export function sellerOrderRow(storage: DurableObjectStorage, number: number) {
   const row = storage.sql
     .exec<OrderRow>(
@@ -58,7 +93,7 @@ export function sellerOrder(
         .toArray()
     : [];
   const balance = orderBalance(finance, snapshot.totalMinor, row.status);
-  return {
+  const result: SellerOrder = {
     ...snapshot,
     number,
     stage: row.status,
@@ -77,6 +112,7 @@ export function sellerOrder(
     permissions,
     events,
     balance,
+    paymentRequired: balance.outstandingMinor > 0,
     receipts,
     ...(permissions.payments && {
       refund: openOrderRefund(finance, number, snapshot.totalMinor, row.status),
@@ -84,4 +120,5 @@ export function sellerOrder(
       returnedMinor: finance.returnedMinor || undefined,
     }),
   };
+  return permissions.payments ? result : withoutSellerPaymentData(result);
 }

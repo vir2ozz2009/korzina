@@ -57,7 +57,7 @@ export function buyerOrder(row: OrderRow): BuyerOrder {
   const work = orderWorkflow(row);
   const finance = orderFinance(work, snapshot, row.payment_status);
   const { debtMinor, refundMinor } = orderBalance(finance, snapshot.totalMinor, row.status);
-  const payment = finance.latestPayment?.method ?? snapshot.payment;
+  const payment = snapshot.payment;
   return {
     ...snapshot,
     payment,
