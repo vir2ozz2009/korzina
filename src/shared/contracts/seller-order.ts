@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { OrderStage, PaymentState } from "./buyer-order";
 import type { OrderResult } from "./checkout";
 import type { CompositionSummary, TimeChange } from "./order-changes";
+import { type RefundSummary, refundAllocationInput, refundIdInput, type TopUpConfirmation } from "./order-refund";
 import { workdayFocus } from "./workday";
 
 const revision = z.number().int().nonnegative();
@@ -29,24 +30,28 @@ export type SellerOrderEvent = {
   reason: string | null;
   details: string | null;
 };
-export type SellerOrder = Omit<OrderResult, "paymentStatus"> & {
-  composition?: CompositionSummary;
-  timeChange?: TimeChange;
-  topUpPayment?: OrderResult["paymentOption"];
-  createdAt: number;
-  stage: OrderStage;
-  revision: number;
-  paymentStatus: PaymentState;
-  packed: string[];
-  handedOff: boolean;
-  readyForPickup: boolean;
-  deliveryAssigned: boolean;
-  timeZone: string;
-  events: SellerOrderEvent[];
-  receipts: ReceiptRef[];
-  balance: SellerBalance;
-  permissions: { assembly: boolean; payments: boolean; chat?: boolean };
-};
+export type SellerOrder = Omit<OrderResult, "paymentStatus"> &
+  RefundSummary & {
+    composition?: CompositionSummary;
+    timeChange?: TimeChange;
+    topUpPayment?: OrderResult["paymentOption"];
+    topUp?: TopUpConfirmation;
+    createdAt: number;
+    stage: OrderStage;
+    revision: number;
+    paymentStatus: PaymentState;
+    packed: string[];
+    handedOff: boolean;
+    readyForPickup: boolean;
+    deliveryAssigned: boolean;
+    timeZone: string;
+    events: SellerOrderEvent[];
+    receipts: ReceiptRef[];
+    balance: SellerBalance;
+    paymentRequired?: boolean;
+    availableRefundMinor?: number;
+    permissions: { assembly: boolean; payments: boolean; chat?: boolean };
+  };
 
 const receiptId = z.uuid();
 export const sellerOrderCommand = z.discriminatedUnion("action", [
@@ -55,11 +60,26 @@ export const sellerOrderCommand = z.discriminatedUnion("action", [
   stageCommand.extend({ action: z.literal("setAllPacked"), packed: z.boolean() }),
   stageCommand.extend({ action: z.literal("recordPayment"), ...paymentInput.shape }),
   stageCommand.extend({ action: z.literal("correctPayment"), ...paymentInput.shape }),
-  stageCommand.extend({ action: z.literal("confirmTransfer"), proof: receiptId, amountMinor: positiveAmount }),
-  stageCommand.extend({ action: z.literal("rejectProof"), proof: receiptId, reason: note }),
+  stageCommand.extend({
+    action: z.literal("confirmTransfer"),
+    proof: receiptId,
+    amountMinor: positiveAmount,
+    obligationId: refundIdInput.optional(),
+  }),
+  stageCommand.extend({
+    action: z.literal("rejectProof"),
+    proof: receiptId,
+    reason: note,
+    obligationId: refundIdInput.optional(),
+  }),
   stageCommand.extend({ action: z.literal("waiveDue"), reason: note }),
+  stageCommand.extend({ action: z.literal("openRefund"), amountMinor: positiveAmount }),
   stageCommand.extend({
     action: z.literal("markRefundReturned"),
+    refundId: refundIdInput.optional(),
+    amountMinor: positiveAmount.optional(),
+    comment: note.optional(),
+    allocations: z.array(refundAllocationInput).min(1).max(100).optional(),
     allocation: z
       .discriminatedUnion("kind", [
         z.strictObject({ kind: z.enum(["items", "delivery"]), amountMinor: positiveAmount }),

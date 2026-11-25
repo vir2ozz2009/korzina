@@ -11,6 +11,7 @@ import { authBodyLimit, authCommand, validationFailure } from "../../auth/reques
 import { readSeller, type Seller } from "../../auth/roles";
 import type { ShopEnv } from "../../shop/env";
 import { shopTimeZoneSql } from "../../shop/time-zone";
+import { refundImage } from "../checkout/refund-details";
 import { proposeChanges, quoteChanges } from "../order-changes/composition";
 import { pickReplacements } from "../order-changes/pick";
 import { changeTime, timeAvailability } from "../order-changes/time";
@@ -102,6 +103,15 @@ export const sellerOrderRoutes = new Hono<SellerOrderEnv>()
       .one();
     return c.json({ rev, count });
   })
+  .get(
+    "/:number/refund/:id",
+    zValidator("param", z.object({ number: orderNumberInput, id: z.uuid() }), validationFailure),
+    (c) => {
+      permitted(c.get("seller"), "payments");
+      const { number, id } = c.req.valid("param");
+      return refundImage(c.env, number, id);
+    },
+  )
   .post("/live-ticket", (c) => sellerLiveTicket(c.env, c.req.raw).then((ticket) => c.json(ticket)))
   .get("/:number", params, (c) =>
     c.json(sellerOrder(c.env.storage, c.req.valid("param").number, c.get("seller"), c.env.timeZone)),

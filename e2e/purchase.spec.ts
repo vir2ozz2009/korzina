@@ -5,6 +5,7 @@ import { checkDeliveryDraft, checkTextDelivery } from "./address-regressions";
 import { verifyBuyerOrderReload, verifyFavoriteCart, verifyOrderCancellation, verifySavedAddress } from "./after-order";
 import { checkCheckoutRecovery } from "./checkout-recovery";
 import { freshPage } from "./fresh-page";
+import { captureBuyerMoneyPreview } from "./order-money";
 import { verifyPaymentHelp } from "./payment-help";
 import { chooseDeliveryAddress } from "./purchase-address";
 import { checkChangedReceivingTime, checkClosedReceivingDay } from "./receiving-recheck";
@@ -177,6 +178,10 @@ test("B10: товар, доставка и заказ наличными", async
   await page.screenshot({ path: "test-results/purchase-done-390.png", animations: "disabled" });
   await test.step("§13.1: после открытия заказа и перезагрузки остаётся магазин test2", () =>
     verifyBuyerOrderReload(page, order.number));
+  if (host?.endsWith(".workers.dev")) {
+    await test.step("O5b · доплата на проверке и частичный возврат в сборке preview", () =>
+      captureBuyerMoneyPreview(page, order.number));
+  }
   await page.getByRole("button", { name: "К покупкам" }).click();
   await expect(page).toHaveURL(/\/\?shop=test2$/);
   // Demo allows 120 API requests per minute. Start the second part in a fresh window.

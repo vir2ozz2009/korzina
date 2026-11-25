@@ -112,19 +112,29 @@ it("§14.1, §9.1, П3 · неделя по времени магазина, п�
       expect(response.status).toBe(200);
       return salesReport.parse(await response.json());
     };
-    const refund = (amountMinor: number) =>
+    const path = `/api/seller/orders/${returned}/transition?store=lavka`;
+    const open = (amountMinor: number) =>
+      postAuth(path, { action: "openRefund", amountMinor, expectedRevision: 0 }, headers);
+    expect((await open(501)).status).toBe(400);
+    const opened = await open(500);
+    expect(opened.status).toBe(200);
+    const { refund } = await opened.json<{ refund: { id: string } }>();
+    const key = crypto.randomUUID();
+    const record = () =>
       postAuth(
-        `/api/seller/orders/${returned}/transition?store=lavka`,
+        path,
         {
           action: "markRefundReturned",
-          expectedRevision: 0,
-          allocation: { kind: "items", amountMinor },
+          amountMinor: 500,
+          expectedRevision: 1,
+          refundId: refund.id,
+          allocations: [{ kind: "items", amountMinor: 500 }],
+          comment: "Возврат подтверждён",
         },
-        { ...headers, "Idempotency-Key": "455033f9-3b9b-49d9-964a-4c29e42962f0" },
+        { ...headers, "Idempotency-Key": key },
       );
-    expect((await refund(501)).status).toBe(400);
-    expect((await refund(500)).status).toBe(200);
-    expect((await refund(500)).status).toBe(200);
+    expect((await record()).status).toBe(200);
+    expect((await record()).status).toBe(200);
     const afterRefund = await report();
     expect(afterRefund.current).toMatchObject({
       revenueMinor: 500,

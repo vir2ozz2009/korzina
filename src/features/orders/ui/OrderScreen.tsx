@@ -24,6 +24,7 @@ import { CancelOrderSheet } from "./CancelOrderSheet";
 import { OrderContactsSheet } from "./OrderContactsSheet";
 import { OrderPayment } from "./OrderPayment";
 import { OrderProofSheet } from "./OrderProofSheet";
+import { RefundDetailsSheet } from "./RefundDetailsSheet";
 import { RepeatSheet } from "./RepeatSheet";
 import { TopUpSheet } from "./TopUpSheet";
 
@@ -34,7 +35,7 @@ export function OrderScreen() {
   const order = query.data;
   const navigate = useNavigate();
   const toast = useToast();
-  const [sheet, setSheet] = useState<"cancel" | "repeat" | "proof" | "contacts" | "login" | "top-up">();
+  const [sheet, setSheet] = useState<"cancel" | "repeat" | "proof" | "contacts" | "login" | "top-up" | "refund">();
   const close = () => setSheet(undefined);
   const home = () => void navigate({ to: "/", search: buyerOrderSearch });
   const header = <Header title={`Заказ №${raw}`} />;
@@ -156,7 +157,12 @@ export function OrderScreen() {
             ))}
           </Card>
           <PurchaseTotals {...order} done />
-          <OrderPayment order={order} onTopUp={() => setSheet("top-up")} />
+          <OrderPayment
+            order={order}
+            onTopUp={() => setSheet("top-up")}
+            refundDetails={() => setSheet("refund")}
+            replaceProof={() => setSheet("proof")}
+          />
           <Button
             full
             variant="secondary"
@@ -173,7 +179,7 @@ export function OrderScreen() {
           <Button full variant="secondary" onClick={() => setSheet("contacts")}>
             Связь с магазином
           </Button>
-          {order.canReplaceProof && (
+          {order.canReplaceProof && !order.topUp?.status && (
             <Button full variant="secondary" disabled={disabled} onClick={() => setSheet("proof")}>
               {order.debtMinor ? "Прислать чек" : "Заменить подтверждение оплаты"}
             </Button>
@@ -195,6 +201,9 @@ export function OrderScreen() {
           {sheet === "cancel" && <CancelOrderSheet order={order} close={close} refresh={() => void query.refetch()} />}
           {sheet === "repeat" && <RepeatSheet number={number} currency={order.currency} close={close} />}
           {sheet === "top-up" && <TopUpSheet order={order} close={close} />}
+          {sheet === "refund" && order.refund && !order.refund.details && (
+            <RefundDetailsSheet order={order} close={close} />
+          )}
           {sheet === "proof" && (
             <OrderProofSheet
               order={order}

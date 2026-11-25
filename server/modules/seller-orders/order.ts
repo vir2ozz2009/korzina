@@ -3,8 +3,45 @@ import { defaultShopTimeZone } from "../../../src/shared/datetime";
 import { ApiError } from "../../../src/shared/errors";
 import type { Seller } from "../../auth/roles";
 import { type OrderRow, unpackOrder } from "../checkout/buyer-orders";
+import { openOrderRefund } from "../checkout/order-refund";
 import { orderBalance, orderFinance, orderWorkflow } from "../checkout/order-workflow";
 import { orderComposition, orderTimeChange } from "../order-changes/state";
+import { availableOrderRefund } from "./refunds";
+
+const moneyEvents = new Set([
+  "order.openRefund",
+  "order.markRefundReturned",
+  "order.refundDetails",
+  "order.recordPayment",
+  "order.correctPayment",
+  "order.confirmTransfer",
+  "order.rejectProof",
+  "order.waiveDue",
+]);
+
+export function withoutSellerPaymentData(order: SellerOrder): SellerOrder {
+  const {
+    refund: _refund,
+    returnedMinor: _returned,
+    availableRefundMinor: _available,
+    transferReview: _review,
+    ...safe
+  } = order;
+  if (safe.composition) {
+    const { paidMinor: _paid, refundMinor: _owing, topUpMinor: _topUp, ...totals } = safe.composition.totals;
+    safe.composition = { ...safe.composition, totals };
+  }
+  return {
+    ...safe,
+    receipts: [],
+    topUp: undefined,
+    topUpPayment: undefined,
+    events: safe.events.filter((event) => !moneyEvents.has(event.event)),
+    balance: { paidMinor: 0, outstandingMinor: 0, debtMinor: 0, refundMinor: 0 },
+    paymentRequired: order.paymentRequired ?? order.balance.outstandingMinor > 0,
+    permissions: { ...order.permissions, payments: false },
+  };
+}
 
 export function sellerOrderRow(storage: DurableObjectStorage, number: number) {
   const row = storage.sql
@@ -24,7 +61,8 @@ export function sellerOrder(
   timeZone = defaultShopTimeZone,
 ): SellerOrder {
   const row = sellerOrderRow(storage, number);
-  const { seatReserved: _seat, reservedStock: _stock, customerNameKey: _nameKey, ...snapshot } = unpackOrder(row);
+  const saved = unpackOrder(row);
+  const { seatReserved: _seat, reservedStock: _stock, customerNameKey: _nameKey, ...snapshot } = saved;
   const state = orderWorkflow(row);
   const finance = orderFinance(state, snapshot, row.payment_status);
   const permissions = {
@@ -38,21 +76,24 @@ export function sellerOrder(
       number,
     )
     .toArray();
+  const topProof = state.topUp?.proof ?? null;
+  const latestProof = row.payment_status === "pending_review" ? row.proof_media_id : (topProof ?? row.proof_media_id);
   const receipts = permissions.payments
     ? storage.sql
         .exec<{ id: string; createdAt: number; mime: string }>(
           `SELECT id, created_at AS createdAt, mime FROM media
        WHERE status='attached' AND ready=1 AND purpose='receipt'
-       AND (id=? OR id IN (SELECT media_id FROM order_receipt_history WHERE order_number=?))
+       AND (id=? OR id=? OR id IN (SELECT media_id FROM order_receipt_history WHERE order_number=?))
        ORDER BY id=? DESC, created_at DESC LIMIT 100`,
           row.proof_media_id,
+          topProof,
           number,
-          row.proof_media_id,
+          latestProof,
         )
         .toArray()
     : [];
   const balance = orderBalance(finance, snapshot.totalMinor, row.status);
-  return {
+  const result: SellerOrder = {
     ...snapshot,
     number,
     stage: row.status,
@@ -62,6 +103,7 @@ export function sellerOrder(
     composition: orderComposition({ row, snapshot, work: state }, permissions.payments),
     timeChange: orderTimeChange(row, state),
     topUpPayment: balance.debtMinor > 0 && permissions.payments ? state.topUpPayment : undefined,
+    topUp: balance.debtMinor > 0 && permissions.payments ? state.topUp : undefined,
     packed: state.packed ?? [],
     handedOff: state.handedOff ?? false,
     readyForPickup: state.readyForPickup ?? false,
@@ -70,6 +112,13 @@ export function sellerOrder(
     permissions,
     events,
     balance,
+    paymentRequired: balance.outstandingMinor > 0,
     receipts,
+    ...(permissions.payments && {
+      refund: openOrderRefund(finance, number, snapshot.totalMinor, row.status),
+      availableRefundMinor: availableOrderRefund(row, saved, finance),
+      returnedMinor: finance.returnedMinor || undefined,
+    }),
   };
+  return permissions.payments ? result : withoutSellerPaymentData(result);
 }

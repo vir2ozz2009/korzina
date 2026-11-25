@@ -12,11 +12,13 @@ export function PeriodPicker({
   period,
   timeZone,
   weeks = false,
+  completedWeek = weeks,
   apply,
 }: {
   period: SalesPeriod;
   timeZone: string;
   weeks?: boolean;
+  completedWeek?: boolean;
   apply: (period: SalesPeriod) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -29,7 +31,7 @@ export function PeriodPicker({
   };
   const ranges = weeks
     ? ([
-        ["1 неделя", 7],
+        ["7 полных дней, по вчера включительно", 7],
         ["2 недели", 14],
         ["3 недели", 21],
         ["4 недели", 28],
@@ -37,7 +39,7 @@ export function PeriodPicker({
     : ([
         ["Сегодня", 1],
         ["Вчера", -1],
-        ["Последние 7 дней", 7],
+        [completedWeek ? "7 полных дней, по вчера включительно" : "Последние 7 дней", 7],
         ["Последние 30 дней", 30],
       ] as const);
   return (
@@ -60,7 +62,9 @@ export function PeriodPicker({
           <ListItem
             key={label}
             title={label}
-            onClick={() => choose(periodPreset(timeZone, Math.abs(days), weeks || days < 0))}
+            onClick={() =>
+              choose(periodPreset(timeZone, Math.abs(days), weeks || days < 0 || (days === 7 && completedWeek)))
+            }
           />
         ))}
         <ListItem title="Свой период" onClick={() => setCustom(true)} />
@@ -104,7 +108,15 @@ export function PeriodPicker({
               name="end"
               value={draft.to}
               onChange={(e) => setDraft({ ...draft, to: e.target.value })}
-              error={error === "to" ? "Введите дату" : error === "order" ? "Проверьте даты периода" : undefined}
+              error={
+                error === "to"
+                  ? "Введите дату"
+                  : error === "order"
+                    ? draft.from > draft.to
+                      ? "Конец периода раньше начала"
+                      : "Проверьте даты периода"
+                    : undefined
+              }
             />
             <Button full type="submit">
               Применить

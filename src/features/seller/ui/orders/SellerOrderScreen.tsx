@@ -17,6 +17,9 @@ import { OrderStageSheet, type StageSheetAction } from "./OrderStageSheet";
 import { isHandoff, mainAction, type OrderAction, rollbackStage } from "./order-actions";
 import { SellerOrdersShell } from "./SellerOrdersShell";
 import { SellerReceivingActions } from "./SellerReceivingActions";
+import { SellerRefundSheet } from "./SellerRefundSheet";
+
+type Entry = "next" | "packing" | "payment" | "receipt";
 
 export function SellerOrderScreen() {
   const location = useRouterState({ select: (state) => state.location });
@@ -24,22 +27,13 @@ export function SellerOrderScreen() {
   return (
     <SellerOrdersShell title={Number.isSafeInteger(number) && number > 0 ? `Заказ №${number}` : "Заказ"}>
       {(store) => (
-        <OrderQuery
-          key={`${store}:${number}`}
-          store={store}
-          number={number}
-          entry={
-            location.search.action === "next" || location.search.action === "packing"
-              ? location.search.action
-              : undefined
-          }
-        />
+        <OrderQuery key={`${store}:${number}`} store={store} number={number} entry={location.search.action} />
       )}
     </SellerOrdersShell>
   );
 }
 
-function OrderQuery({ store, number, entry }: { store: string; number: number; entry?: "next" | "packing" }) {
+function OrderQuery({ store, number, entry }: { store: string; number: number; entry?: Entry }) {
   const query = useSellerOrder(store, number);
   const navigate = useNavigate();
   if (!Number.isSafeInteger(number) || number < 1 || (query.error instanceof HttpError && query.error.status === 404))
@@ -62,25 +56,29 @@ function OrderQuery({ store, number, entry }: { store: string; number: number; e
   );
 }
 
-function OrderView({ store, order, entry }: { store: string; order: SellerOrder; entry?: "next" | "packing" }) {
+function OrderView({ store, order, entry }: { store: string; order: SellerOrder; entry?: Entry }) {
   const [draft, setDraft] = useState(false);
   const toast = useToast();
   const replacementPending = !!order.composition?.expiresAt;
   const next = mainAction(order.stage, order.receiving.mode === "delivery");
+  const paymentRequired = order.paymentRequired ?? order.balance.outstandingMinor > 0;
+  const review = order.paymentStatus === "pending_review" || order.topUp?.status === "pending_review";
   const [sheet, setSheet] = useState<OrderAction | "more" | undefined>(() =>
-    !replacementPending &&
-    entry === "next" &&
-    next &&
-    isHandoff(next.action) &&
-    (order.balance.outstandingMinor === 0 || order.permissions.payments)
-      ? next.action
-      : undefined,
+    entry === "receipt" && review && order.permissions.payments
+      ? "confirmTransfer"
+      : !replacementPending &&
+          entry === "next" &&
+          next &&
+          isHandoff(next.action) &&
+          (!paymentRequired || order.permissions.payments)
+        ? next.action
+        : undefined,
   );
   const focusDone = useRef(false);
   useEffect(() => {
-    if (entry !== "packing" || focusDone.current) return;
+    if ((entry !== "packing" && entry !== "payment") || focusDone.current) return;
     const frame = requestAnimationFrame(() => {
-      const heading = document.getElementById("order-packing");
+      const heading = document.getElementById(entry === "packing" ? "order-packing" : "order-payment");
       heading?.focus({ preventScroll: true });
       heading?.scrollIntoView({ block: "start" });
       focusDone.current = true;
@@ -133,13 +131,14 @@ function OrderView({ store, order, entry }: { store: string; order: SellerOrder;
       sheet === "confirmTransfer" ||
       sheet === "setDeliveryFee" ||
       (sheet !== "more" && isHandoff(sheet) && order.balance.outstandingMinor > 0));
-  const allowedNext = !next || !isHandoff(next.action) || !order.balance.outstandingMinor || order.permissions.payments;
+  const allowedNext = !next || !isHandoff(next.action) || !paymentRequired || order.permissions.payments;
   return (
     <>
       {order.composition && <SellerChangeSummary change={order.composition} timeZone={order.timeZone} />}
       <SellerReceivingActions order={order} store={store} />
       <OrderDetails
         order={order}
+        store={store}
         pending={pending}
         action={action}
         composition={
@@ -155,6 +154,7 @@ function OrderView({ store, order, entry }: { store: string; order: SellerOrder;
         }
       />
       <OrderHistory order={order} />
+      {entry === "receipt" && !review && <p role="status">Задача уже закрыта</p>}
       {!sheet && error && <p role="alert">{error}</p>}
       {!allowedNext && <p className="text-meta text-muted-foreground">Для завершения шага нужно право на оплату.</p>}
       {!draft && (
@@ -193,6 +193,16 @@ function OrderView({ store, order, entry }: { store: string; order: SellerOrder;
             </Button>
           </div>
         </Sheet>
+      ) : sheet === "markRefundReturned" || sheet === "openRefund" ? (
+        <SellerRefundSheet
+          key={sheet}
+          order={order}
+          openRefund={sheet === "openRefund"}
+          error={error}
+          pending={pending}
+          close={close}
+          submit={submit}
+        />
       ) : payment ? (
         <OrderPaymentSheet
           key={sheet}

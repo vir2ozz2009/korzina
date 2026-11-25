@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Cart } from "./cart";
 import type { OrderResult } from "./checkout";
 import type { CompositionSummary, TimeChange } from "./order-changes";
+import type { RefundSummary, TopUpConfirmation } from "./order-refund";
 import type { TimeChoice } from "./receiving-time";
 
 export const orderNumberInput = z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER);
@@ -10,7 +11,10 @@ export const historyInput = z.object({
   cursor: z.string().max(100).optional(),
 });
 export const orderChangeInput = z.strictObject({ expectedVersion: z.number().int().nonnegative() });
-export const replaceProofInput = orderChangeInput.extend({ proofMediaId: z.uuid() });
+export const replaceProofInput = orderChangeInput.extend({
+  proofMediaId: z.uuid(),
+  obligationId: z.string().max(100).optional(),
+});
 export const repeatOrderInput = z.strictObject({
   expectedCartRevision: z.number().int().nonnegative(),
   check: z.string().max(12_000),
@@ -34,11 +38,12 @@ export type BuyerOrder = Omit<OrderResult, "paymentStatus"> &
     composition?: CompositionSummary;
     timeChange?: TimeChange;
     topUpPayment?: OrderResult["paymentOption"];
+    topUp?: TopUpConfirmation;
     canCancel: boolean;
     canReplaceProof: boolean;
     refundMinor?: number;
     debtMinor?: number;
-  };
+  } & RefundSummary;
 export type ActiveOrders =
   | {
       rev: string;

@@ -29,8 +29,12 @@ function useSellerOrdersLive(store: string, account: string | undefined, orders:
     let poll: ReturnType<typeof setInterval> | undefined;
 
     const sales = { queryKey: ["seller-sales", store] };
+    const money = { queryKey: ["seller-money", store] };
     const refresh = (data?: OrderUpdate) => {
-      if (payments) void client.invalidateQueries(sales);
+      if (payments) {
+        void client.invalidateQueries(sales);
+        void client.invalidateQueries(money);
+      }
       if (!orders) return;
       void invalidateSellerOrders(client, store, data?.id, data?.cursor);
       void client.invalidateQueries({
@@ -41,6 +45,7 @@ function useSellerOrdersLive(store: string, account: string | undefined, orders:
     const refreshAccess = () => {
       if (!payments) return;
       void client.resetQueries(sales);
+      void client.resetQueries(money);
       void client.invalidateQueries({ queryKey: ["seller", "cabinet"] });
     };
     const receive = (data: Update, broadcast: boolean) => {

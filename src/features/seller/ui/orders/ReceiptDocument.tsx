@@ -4,10 +4,20 @@ import type { ReceiptRef } from "../../../../shared/contracts/seller-order";
 import { Button } from "../../../../ui/Button";
 import { sellerReceiptFile } from "../../orders-api";
 
-export function ReceiptDocument({ store, number, receipt }: { store: string; number: number; receipt: ReceiptRef }) {
+export function ReceiptDocument({
+  store,
+  number,
+  receipt,
+  refund = false,
+}: {
+  store: string;
+  number: number;
+  receipt: ReceiptRef;
+  refund?: boolean;
+}) {
   const file = useQuery({
-    queryKey: ["seller-orders", store, "receipt", number, receipt.id],
-    queryFn: ({ signal }) => sellerReceiptFile(store, number, receipt.id, signal),
+    queryKey: ["seller-orders", store, refund ? "refund" : "receipt", number, receipt.id],
+    queryFn: ({ signal }) => sellerReceiptFile(store, number, receipt.id, signal, refund ? "refund" : "receipts"),
     gcTime: 0,
     retry: false,
   });
@@ -27,7 +37,7 @@ export function ReceiptDocument({ store, number, receipt }: { store: string; num
         </Button>
       </>
     );
-  if (!url) return <p role="status">Загружаем чек…</p>;
+  if (!url) return <p role="status">{refund ? "Загружаем QR…" : "Загружаем чек…"}</p>;
   if (receipt.mime === "application/pdf")
     return (
       <>
@@ -44,5 +54,11 @@ export function ReceiptDocument({ store, number, receipt }: { store: string; num
         </a>
       </>
     );
-  return <img src={url} alt="Документ чека" className="max-h-[60dvh] w-full rounded-lg object-contain" />;
+  return (
+    <img
+      src={url}
+      alt={refund ? "QR для возврата" : "Документ чека"}
+      className="max-h-[60dvh] w-full rounded-lg object-contain"
+    />
+  );
 }

@@ -5,6 +5,7 @@ import type { ShopEnv } from "../../shop/env";
 import { buyerOrder, buyerOrderRow, unpackOrder } from "./buyer-orders";
 import { releaseOrderReservation } from "./order-reservation";
 import { orderBalance, orderFinance, orderWorkflow } from "./order-workflow";
+import { archiveProof, defaultTopUp } from "./top-up-proof";
 
 type Shop = ShopEnv["Bindings"];
 function checkVersion(actual: number, expected: number) {
@@ -74,13 +75,21 @@ export function replaceBuyerProof(
   expected: number,
   mediaId: string,
   command: CommandIdentity,
+  obligationId?: string,
 ) {
   const { storage } = env;
   return executeCommand(storage, env.db, `order-proof:${customer}:${number}`, command, () => {
     const row = buyerOrderRow(storage, customer, number);
-    if (!buyerOrder(row).canReplaceProof)
-      throw new ApiError("VERSION_CONFLICT", "Магазин уже проверил оплату", buyerOrder(row));
+    const current = buyerOrder(row);
+    if (!current.canReplaceProof) throw new ApiError("VERSION_CONFLICT", "Магазин уже проверил оплату", current);
     checkVersion(row.version, expected);
+    const work = orderWorkflow(row);
+    const topUp = obligationId ? current.topUp : undefined;
+    const isTransfer = (current.topUpPayment?.id ?? current.paymentOption?.id ?? current.payment) !== "cash";
+    if (obligationId && (topUp?.id !== obligationId || !isTransfer))
+      throw new ApiError("VERSION_CONFLICT", "Способ оплаты или сумма изменились", current);
+    if (!obligationId && row.payment_status !== "pending_review" && row.payment_status !== "rejected")
+      throw new ApiError("VERSION_CONFLICT", "Первоначальная оплата уже проверена", current);
     const now = Date.now();
     const media = storage.sql.exec(
       "UPDATE media SET status='attached',expires_at=NULL WHERE id=? AND owner=? AND purpose='receipt' AND status='temp' AND ready=1 AND expires_at>?",
@@ -89,6 +98,26 @@ export function replaceBuyerProof(
       now,
     );
     if (!media.rowsWritten) throw new ApiError("VALIDATION", "Чек недоступен. Прикрепите файл повторно.");
+    if (topUp) {
+      archiveProof(storage, number, topUp.proof);
+      const fulfillment_state = JSON.stringify({
+        ...work,
+        topUp: { ...defaultTopUp(number), status: "pending_review", proof: mediaId },
+      });
+      storage.sql.exec(
+        "UPDATE orders SET version=version+1,fulfillment_state=? WHERE number=?",
+        fulfillment_state,
+        number,
+      );
+      storage.sql.exec(
+        "INSERT OR IGNORE INTO workday_notice(id,kind,order_number,expires_at) VALUES(?,'receipt',?,?)",
+        `receipt:${number}:${mediaId}`,
+        number,
+        now + 86_400_000,
+      );
+      env.changes.order(number);
+      return { status: 200, body: buyerOrder({ ...row, fulfillment_state, version: row.version + 1 }) };
+    }
     if (row.proof_media_id)
       storage.sql.exec(
         "INSERT INTO order_receipt_history(order_number,media_id,created_at) VALUES(?,?,?)",

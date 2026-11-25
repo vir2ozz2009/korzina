@@ -5,6 +5,7 @@ import type { AvailabilityDay } from "../src/shared/contracts/receiving-time";
 import type { SellerOrder } from "../src/shared/contracts/seller-order";
 import { formatReceivingTime } from "../src/shared/datetime";
 import { formatMinor } from "../src/shared/money";
+import { checkMoneyRefund, checkMoneyTopUp } from "./order-money";
 import { placePickup } from "./seller-orders";
 
 export async function checkOrderChanges(browser: Browser, baseURL: string) {
@@ -203,13 +204,14 @@ export async function checkOrderChanges(browser: Browser, baseURL: string) {
       await expect(cabinet.getByRole("textbox", { name: "Сообщение" })).toHaveValue("");
     });
 
-    await step({ action: "recordPayment", method: "cash", amountMinor: topUp });
+    await checkMoneyTopUp(storefront, cabinet, order.number, topUp, order.currency);
     await step({ action: "setAllPacked", packed: true });
     await step({ action: "markReady" });
     const completed = await step({ action: "markPickedUp" });
     expect(completed).toMatchObject({ stage: "completed", balance: { outstandingMinor: 0, debtMinor: 0 } });
-    await storefront.getByRole("button", { name: `Открыть заказ №${order.number}`, exact: true }).click();
+    await storefront.goto(`/orders/${order.number}?shop=test2`);
     await expect(storefront.getByRole("heading", { name: "Выдан", exact: true })).toBeVisible();
+    await checkMoneyRefund(storefront, cabinet, completed);
 
     await test.step("#228 · 03а, §13.2: «Не нужно» обновляет строку продавца без перезагрузки", async () => {
       const declined = await placePickup(buyer.request, false);

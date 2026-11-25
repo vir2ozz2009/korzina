@@ -1,7 +1,9 @@
 import { createRoute, lazyRouteComponent } from "@tanstack/react-router";
 import type { SellerOrdersQuery } from "../shared/contracts/seller-order";
 import { workdayFocuses } from "../shared/workday-kinds";
+import { moneyBack, moneyRoutes } from "./money-routes";
 import { rootRoute } from "./root";
+import { day, search } from "./seller-route-search";
 
 const sellerScreen = lazyRouteComponent(() => import("../features/seller/ui/CabinetScreen"), "CabinetScreen");
 const team = lazyRouteComponent(() => import("../features/seller/ui/team/TeamScreen"), "TeamScreen");
@@ -22,9 +24,6 @@ const settingsRoutes = [
   ["/seller/shop-data", "О магазине"],
   ["/seller/shop-color", "Цвет витрины"],
 ] as const;
-const search = (input: Record<string, unknown>): { store?: string } => ({
-  store: typeof input.store === "string" && /^[a-z0-9-]{1,63}$/.test(input.store) ? input.store : undefined,
-});
 const catalog = lazyRouteComponent(
   () => import("../features/seller/ui/catalog/SellerCatalogScreen"),
   "SellerCatalogScreen",
@@ -49,11 +48,6 @@ const workdayBack = (input: unknown) =>
   /^\/seller(?:\/(?:orders|statistics|workday\/(?:packing|calendar)))?(?:\?|$)/u.test(input)
     ? input
     : undefined;
-const day = (input: unknown) => {
-  if (typeof input !== "string" || !/^\d{4}-\d{2}-\d{2}$/u.test(input)) return undefined;
-  const parsed = new Date(`${input}T00:00:00Z`);
-  return Number.isFinite(parsed.getTime()) && parsed.toISOString().startsWith(input) ? input : undefined;
-};
 type WorkdaySearch = ReturnType<typeof search> & {
   day?: string;
   month?: string;
@@ -106,10 +100,13 @@ const listSearch = (
 });
 const orderSearch = (
   input: Record<string, unknown>,
-): ReturnType<typeof search> & { back?: string; action?: "next" | "packing" } => ({
+): ReturnType<typeof search> & { back?: string; action?: "next" | "packing" | "payment" | "receipt" } => ({
   ...search(input),
-  back: workdayBack(input.back),
-  action: input.action === "next" || input.action === "packing" ? input.action : undefined,
+  back: workdayBack(input.back) ?? moneyBack(input.back),
+  action:
+    input.action === "next" || input.action === "packing" || input.action === "payment" || input.action === "receipt"
+      ? input.action
+      : undefined,
 });
 const catalogRoutes = [
   ["/seller/products", "Товары", true],
@@ -125,6 +122,7 @@ const catalogRoutes = [
 ] as const;
 const chat = lazyRouteComponent(() => import("../features/seller/ui/orders/SellerChatScreen"), "SellerChatScreen");
 export const sellerRoutes = [
+  ...moneyRoutes,
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/seller/statistics",
