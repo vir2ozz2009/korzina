@@ -9,6 +9,7 @@ import type { SellerOrderCalendar, SellerPackingList, SellerWorkday } from "../.
 import { checkResponse, HttpError } from "../../shared/http-error";
 import { commandHeaders } from "../../shared/shop-api";
 import { sellerSessionHeaders } from "./api";
+import { sellerMoneyRefresh } from "./money-api";
 
 const root = (store: string) => ["seller-orders", store] as const;
 const orderKey = (store: string, number: number) => [...root(store), "order", number] as const;
@@ -151,7 +152,7 @@ export function useSellerOrderCommand(store: string) {
         previous && previous.revision > order.revision ? previous : order,
       );
       void client.invalidateQueries(affected);
-      void client.invalidateQueries({ queryKey: ["seller-money", store] });
+      void client.invalidateQueries(sellerMoneyRefresh(store));
     },
     onError: (error, { number }) => {
       if (error instanceof HttpError && (error.status === 409 || error.status === 403))

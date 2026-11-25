@@ -1,6 +1,7 @@
 import { expect, type Page, type Request } from "@playwright/test";
+import { defaultParseSearch } from "@tanstack/react-router";
 import { periodLabel } from "../../src/features/seller/ui/sales/dates";
-import { cabinet, test } from "./fixture";
+import { anywhere, cabinet, configure, hours, placeOrder, resume, test, transition } from "./fixture";
 
 const operations = "/api/seller/money/operations";
 const live = /\/api\/seller\/orders\/live\?/;
@@ -31,7 +32,7 @@ async function holdLiveRefresh(page: Page, mark: (event: string) => void) {
 test(
   "#280 · §3.6 и §5: поиск в «Операциях» ждёт явного повтора после сбоя сети",
   { tag: "@regression" },
-  async ({ seller }, info) => {
+  async ({ page, seller, rememberOrder }, info) => {
     const context = seller.context();
     const timeline: { ms: number; event: string; [key: string]: unknown }[] = [];
     const start = Date.now();
@@ -63,7 +64,11 @@ test(
         ).traceMoneySearch(event, data);
       const filters = () => {
         const params = new URLSearchParams(location.search);
-        return { q: params.get("q"), from: params.get("from"), to: params.get("to") };
+        return {
+          search: document.querySelector<HTMLInputElement>("search input")?.value,
+          from: params.get("from"),
+          to: params.get("to"),
+        };
       };
       window.addEventListener("offline", () => report("browser offline", filters()));
       window.addEventListener("online", () => report("browser online", filters()));
@@ -88,6 +93,19 @@ test(
     const frame = await holdLiveRefresh(seller, mark);
 
     try {
+      if (!process.env.E2E_BASE_URL) {
+        await configure(seller.request, { delivery: anywhere, requiredDetails: [], minimumMinor: 120000 });
+        await resume(seller.request);
+        await hours(seller.request, "after_order");
+        const order = await placeOrder(page);
+        rememberOrder(order.number);
+        await transition(seller.request, order.number, { action: "accept" });
+        await transition(seller.request, order.number, {
+          action: "recordPayment",
+          method: "cash",
+          amountMinor: order.totalMinor,
+        });
+      }
       await seller.goto(`/seller/money/operations?${cabinet}`);
       const revision = await seller
         .locator('meta[name="build-revision"]')
@@ -117,14 +135,24 @@ test(
       await context.setOffline(true);
       await search.fill(order);
       await expect(retry).toBeVisible();
+      expect(timeline).toContainEqual(
+        expect.objectContaining({
+          event: "GET failed",
+          from,
+          to,
+          search: order,
+          error: "net::ERR_INTERNET_DISCONNECTED",
+        }),
+      );
       await expect(search).toHaveValue(order);
       await expect(date).toBeVisible();
       await expect(rows).toHaveCount(0);
       await expect(seller.getByText("Ничего не найдено")).toHaveCount(0);
       const selectedUrl = seller.url();
-      expect(new URL(selectedUrl).searchParams.get("q")).toBe(order);
+      expect(defaultParseSearch(new URL(selectedUrl).search).q).toBe(order);
 
       await context.setOffline(false);
+      await expect.poll(() => timeline.some(({ event }) => event === "browser online")).toBe(true);
       const automatic = seller.waitForRequest(matches, { timeout: 700 }).catch(() => null);
       frame.send();
       const beforeClick = await automatic;
@@ -150,6 +178,7 @@ test(
       const attachment = JSON.stringify(timeline, null, 2);
       await info.attach("money-operations-timeline.json", { body: attachment, contentType: "application/json" });
       for (const entry of timeline) console.log(`[#280] ${JSON.stringify(entry)}`);
+      if (!process.env.E2E_BASE_URL) await hours(seller.request, "2");
     }
   },
 );
