@@ -83,7 +83,7 @@ describe("флаги в D1 → Worker → Shop", () => {
     await expect(readFeatures(env.PLATFORM, "missing")).resolves.toEqual({
       cashback: false,
       maps: true,
-      promotions: false,
+      promotions: true,
     });
     const unavailable = vi.spyOn(env.PLATFORM, "withSession").mockImplementation(() => {
       throw new Error("unavailable");
@@ -112,7 +112,7 @@ describe("флаги в D1 → Worker → Shop", () => {
       expect(await readFeatures(env.PLATFORM, "korzina-demo-lavka")).toEqual({
         cashback: false,
         maps: true,
-        promotions: false,
+        promotions: true,
       });
       expect(primary).toHaveBeenCalledExactlyOnceWith("first-primary");
       expect(queries).toHaveBeenCalledExactlyOnceWith(featureQuery);

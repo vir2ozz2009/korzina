@@ -2,6 +2,7 @@ import { exports } from "cloudflare:workers";
 import { beforeAll, beforeEach, expect, it } from "vitest";
 import { cartContract } from "../../../src/shared/contracts/cart";
 import { catalogSearchContract, shoppingSearchContract } from "../../../src/shared/contracts/catalog";
+import { resolveFeatures } from "../../../src/shared/flags";
 import { assertSqlBudget, type SqlMetrics } from "../../metrics";
 import { cookieFrom, getAuth, postAuth } from "../../testing/auth";
 import { beforeFrozenClock } from "../../testing/clock";
@@ -95,6 +96,7 @@ it("изменение корзины ≤4 SQL вместе с проверко�
             status: "active",
             plan: "base",
             createdAt: 0,
+            features: resolveFeatures([]),
           }),
         ),
       },

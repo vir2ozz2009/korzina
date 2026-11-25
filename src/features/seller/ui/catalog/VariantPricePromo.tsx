@@ -1,11 +1,14 @@
-import { useState } from "react";
+import type { ReactNode } from "react";
+import { useId, useState } from "react";
 import { calendarDate, shopDateTime } from "../../../../shared/datetime";
 import { parseMinorInput } from "../../../../shared/money";
 import { Button } from "../../../../ui/Button";
+import { Card } from "../../../../ui/Card";
 import { Input } from "../../../../ui/Input";
 import { Price } from "../../../../ui/Price";
 import { ProductRow } from "../../../../ui/ProductRow";
 import { ProductTile } from "../../../../ui/ProductTile";
+import { SelectField } from "../../../../ui/SelectField";
 import { Sheet } from "../../../../ui/Sheet";
 import type { VariantDraft } from "./VariantFields";
 
@@ -15,13 +18,16 @@ export function VariantPricePromo({
   currency,
   zone,
   disabled,
+  heading,
 }: {
   row: VariantDraft;
   patch: (draft: Partial<VariantDraft>) => void;
   currency: string;
   zone: string;
   disabled: boolean;
+  heading?: ReactNode;
 }) {
+  const periodId = useId();
   const [open, setOpen] = useState(false);
   const [moment, setMoment] = useState("during");
   const [timed, setTimed] = useState(Boolean(row.promoDates || row.promoStartsAt || row.promoEndsAt));
@@ -38,12 +44,31 @@ export function VariantPricePromo({
     row.promoDates === undefined && row.promoEndsAt
       ? calendarDate(shopDateTime(row.promoEndsAt, zone).date, -1)
       : (row.promoDates?.throughDate ?? "");
-  return (
+  const prices = (
     <>
-      <label className="block">
-        Срок · {zone}
-        <select
-          className="min-h-12 w-full rounded-lg border border-border bg-card px-3"
+      {heading}
+      <Input
+        label="Обычная цена"
+        value={row.oldPrice}
+        inputMode="decimal"
+        hint={`${currency} · валюта магазина`}
+        disabled={disabled}
+        onChange={(event) => patch({ oldPrice: event.target.value })}
+      />
+      <Input
+        label={heading || row.oldPrice ? "Цена по акции" : "Цена"}
+        value={row.price}
+        inputMode="decimal"
+        hint={heading || row.oldPrice ? `${currency} · ниже обычной цены` : undefined}
+        disabled={disabled}
+        onChange={(event) => patch({ price: event.target.value })}
+      />
+      <div className="space-y-1.5">
+        <label htmlFor={periodId} className="block text-label">
+          Срок
+        </label>
+        <SelectField
+          id={periodId}
           disabled={disabled}
           value={timed ? "dates" : ""}
           onChange={(event) => {
@@ -57,10 +82,11 @@ export function VariantPricePromo({
         >
           <option value="">Без срока</option>
           <option value="dates">Указать даты</option>
-        </select>
-      </label>
+        </SelectField>
+      </div>
       {timed && (
         <>
+          <p className="text-small text-muted-foreground">Часовой пояс · {zone}</p>
           <Input
             type="date"
             label="Начало"
@@ -85,7 +111,18 @@ export function VariantPricePromo({
           />
         </>
       )}
-      <Button full variant="secondary" disabled={!valid} onClick={() => setOpen(true)}>
+    </>
+  );
+  return (
+    <>
+      {heading ? <Card>{prices}</Card> : prices}
+      <Button
+        full
+        size={heading ? "lg" : "md"}
+        variant={heading ? "primary" : "secondary"}
+        disabled={!valid}
+        onClick={() => setOpen(true)}
+      >
         Как увидит покупатель
       </Button>
       <Sheet open={open} title="Как увидит покупатель" onOpenChange={setOpen}>

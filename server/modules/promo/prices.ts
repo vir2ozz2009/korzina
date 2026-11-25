@@ -1,5 +1,8 @@
 import type { z } from "zod";
 import type { PromoPrice, promoListInput } from "../../../src/shared/contracts/promo";
+
+type PricedVariant = Omit<PromoPrice, "image"> & { photoId: string | null };
+
 import { calendarDate, defaultShopTimeZone, shopDateTime } from "../../../src/shared/datetime";
 
 export function listPromoPrices(
@@ -14,7 +17,7 @@ export function listPromoPrices(
   )
     return [];
   const rows = storage.sql
-    .exec<Omit<PromoPrice, "status"> & { starts: number | null; ends: number | null }>(
+    .exec<Omit<PricedVariant, "status"> & { starts: number | null; ends: number | null }>(
       `SELECT v.id variantId,p.id productId,v.name variantName,p.name productName,v.price_minor priceMinor,v.old_price_minor oldPriceMinor,
      v.promo_starts_at starts,v.promo_ends_at ends,COALESCE(v.photo_id,(SELECT media_id FROM product_photos
        WHERE product_id=p.id ORDER BY position LIMIT 1)) photoId
@@ -32,7 +35,7 @@ export function listPromoPrices(
     )
     .toArray();
   return rows.map(
-    ({ starts, ends, ...row }): PromoPrice => ({
+    ({ starts, ends, ...row }): PricedVariant => ({
       ...row,
       status: starts !== null && starts > now ? "scheduled" : "active",
       fromDate: starts === null ? undefined : shopDateTime(starts, zone).date,

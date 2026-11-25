@@ -7,6 +7,25 @@ import { Input } from "../../../../ui/Input";
 import { Switch } from "../../../../ui/Switch";
 import { example, type PromoCatalog } from "./api";
 
+export function promoScope(terms: PromoTerms, catalog?: PromoCatalog) {
+  const scope = terms.scope;
+  const names =
+    scope.type === "all"
+      ? "Все товары"
+      : scope.ids
+          .map((id) =>
+            scope.type === "categories"
+              ? (catalog?.categories.find((item) => item.id === id)?.name ?? "Категория")
+              : scope.type === "products"
+                ? (catalog?.variants.find((item) => item.productId === id)?.productName ?? "Товар")
+                : (catalog?.variants
+                    .filter((item) => item.id === id)
+                    .map((item) => [item.productName, item.name].filter(Boolean).join(" · "))[0] ?? "Фасовка"),
+          )
+          .join(", ");
+  return names;
+}
+
 export function Summary({
   terms,
   currency,
@@ -23,21 +42,7 @@ export function Summary({
   const money = (value: number) => formatMinor(value, currency);
   const discount = terms.discount;
   const maximum = discount.type === "fixed" ? discount.value : discount.capMinor;
-  const scope = terms.scope;
-  const names =
-    scope.type === "all"
-      ? "Все товары"
-      : scope.ids
-          .map((id) =>
-            scope.type === "categories"
-              ? (catalog?.categories.find((item) => item.id === id)?.name ?? "Категория")
-              : scope.type === "products"
-                ? (catalog?.variants.find((item) => item.productId === id)?.productName ?? "Товар")
-                : (catalog?.variants
-                    .filter((item) => item.id === id)
-                    .map((item) => [item.productName, item.name].filter(Boolean).join(" · "))[0] ?? "Фасовка"),
-          )
-          .join(", ");
+  const names = promoScope(terms, catalog);
   return (
     <dl className="space-y-2 text-caption">
       <div>

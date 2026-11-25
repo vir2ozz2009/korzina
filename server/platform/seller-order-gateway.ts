@@ -1,6 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import { ApiError } from "../../src/shared/errors";
 import { forwardToShop } from "../shop/forward";
+import { readFeatures } from "./features";
 import { shopContexts } from "./shop-context";
 
 export const sellerOrderGateway = createMiddleware<{ Bindings: Env }>(async (c) => {
@@ -9,5 +10,8 @@ export const sellerOrderGateway = createMiddleware<{ Bindings: Env }>(async (c) 
   const origin = new URL("http://localhost/");
   origin.searchParams.set("shop", store);
   const shop = await shopContexts.read(new Request(origin), c.env);
+  if (c.req.path.startsWith("/api/seller/promotions")) {
+    return forwardToShop(c, { ...shop, features: await readFeatures(c.env.PLATFORM, shop.id) });
+  }
   return forwardToShop(c, shop);
 });

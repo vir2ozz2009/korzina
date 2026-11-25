@@ -1,5 +1,5 @@
 import { useRouter, useRouterState } from "@tanstack/react-router";
-import { Boxes, House, MoreHorizontal, Package, Tag, Wallet } from "lucide-react";
+import { BadgePercent, Boxes, House, MoreHorizontal, Package, Wallet } from "lucide-react";
 import { useEffect } from "react";
 
 import { useSellerOrderBadge } from "../../features/seller/orders-api";
@@ -11,7 +11,7 @@ const tabs = [
   { path: "/seller/orders", title: "Заказы", Icon: Package, permission: "orders" as const },
   { path: "/seller/products", title: "Товары", Icon: Boxes, permission: "products" as const },
   { path: "/seller/money", title: "Деньги", Icon: Wallet, permission: "payments" as const },
-  { path: "/seller/promotions", title: "Акции", Icon: Tag, promotions: true },
+  { path: "/seller/promotions", title: "Акции", Icon: BadgePercent, promotions: true },
   { path: "/seller/more", title: "Ещё", Icon: MoreHorizontal },
 ];
 export function SellerTabs({

@@ -75,7 +75,8 @@ export async function handleShopRequest(
       changes,
       teamPreview: data.teamPreview === true && shop.status === "draft",
       timeZone,
-      features: context.success ? context.data : resolveFeatures([]),
+      // Malformed internal feature metadata cannot enable promotions.
+      features: context.success ? context.data : resolveFeatures([{ key: "promotions", enabled: false }]),
       db,
       storage,
       object: ctx,

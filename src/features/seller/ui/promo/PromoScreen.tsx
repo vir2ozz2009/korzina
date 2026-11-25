@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Screen } from "../../../../app/shell/Screen";
 import { SellerTabs } from "../../../../app/shell/SellerTabs";
+import { sellerHistory } from "../../../../app/shell/tab-history";
 import type { PromoOffer, PromoTerms } from "../../../../shared/contracts/promo";
 import { promoTerms } from "../../../../shared/contracts/promo";
 import { defaultShopTimeZone } from "../../../../shared/datetime";
@@ -13,7 +14,7 @@ import { CabinetLogin } from "../CabinetLogin";
 import { useCatalogNav } from "../catalog/navigation";
 import { type PromoList as ListData, type PromoCatalog, promoRequest } from "./api";
 import { useListFilters } from "./filter-state";
-import { PromoCard } from "./PromoCard";
+import { PromoActions, PromoCard } from "./PromoCard";
 import { PromoList } from "./PromoList";
 import { type Action, type Panel, PromoPanel } from "./PromoPanel";
 import { PromoPicker } from "./PromoPicker";
@@ -55,26 +56,24 @@ export function PromoScreen() {
       account={cabinet.data?.telegramId ?? ""}
       permissions={current.permissions}
       zone={current.timeZone ?? defaultShopTimeZone}
-      shopId={current.id}
     />
   );
 }
 
 function PromoWorkspace({
   store,
-  shopId,
   account,
   permissions,
   zone,
 }: {
   store: string;
-  shopId: string;
   account: string;
   permissions: NonNullable<ReturnType<typeof useCabinet>["data"]>["shops"][number]["permissions"];
   zone: string;
 }) {
   const nav = useCatalogNav(store);
   const id = nav.location.pathname.split("/")[3];
+  useEffect(() => sellerHistory.visit(nav.location.href), [nav.location.href]);
   const client = useQueryClient();
   const { kind, setKind, status, setStatus, offset, setOffset } = useListFilters(store, account);
   const [chooser, setChooser] = useState<Parameters<typeof PromoPicker>[0]["step"]>();
@@ -92,7 +91,7 @@ function PromoWorkspace({
   });
   const detail = useQuery({
     queryKey: [...base, "offer", id],
-    queryFn: () => promoRequest<PromoOffer>(store, `/${id}`),
+    queryFn: () => promoRequest<PromoOffer & { currency?: string }>(store, `/${id}`),
     enabled: !!id,
     retry: false,
   });
@@ -103,10 +102,10 @@ function PromoWorkspace({
     retry: false,
   });
   const current = id ? detail.data : undefined;
-  const currency = list.data?.currency ?? "RUB";
+  const currency = current?.currency ?? list.data?.currency ?? "RUB";
   const openProduct = (id: string, variant?: string) =>
     nav.open(`/seller/products/${id}`, { back: nav.location.href, variant });
-  const openList = () => nav.open("/seller/promotions");
+  const openList = () => (nav.params.get("back") ? nav.leave("/seller/promotions") : nav.open("/seller/promotions"));
   const close = () => {
     setPanel(undefined);
     setTerms(undefined);
@@ -117,7 +116,7 @@ function PromoWorkspace({
       promoRequest<PromoOffer>(store, path, {}, { body, key }),
     networkMode: "always",
     onSuccess: async (offer, { body }) => {
-      client.setQueryData([...base, "offer", offer.id], offer);
+      client.setQueryData([...base, "offer", offer.id], { ...offer, currency });
       await client.invalidateQueries({ queryKey: [...base, "list"] });
       operation.current = undefined;
       close();
@@ -184,34 +183,22 @@ function PromoWorkspace({
   return (
     <Screen
       template="list"
-      header={<Header title={current?.terms.name || "Продвижение"} onBack={id ? openList : undefined} />}
+      header={<Header title={id ? "Акция" : "Продвижение"} headingLevel={1} onBack={id ? openList : undefined} />}
       state={{ query: (id ? detail : list) as typeof list }}
-      after={<SellerTabs store={store} permissions={permissions} promotions />}
+      after={!id && <SellerTabs store={store} permissions={permissions} promotions />}
     >
       {!id && (
         <PromoList
           data={list.data}
           {...{ kind, status, offset, currency, setKind, setStatus, setOffset }}
           create={() => setChooser("goals")}
-          open={(id) => nav.open(`/seller/promotions/${id}`)}
+          open={(id) => nav.open(`/seller/promotions/${id}`, { back: nav.location.href })}
           openProduct={openProduct}
-          image={(id) => `/api/media-public/${encodeURIComponent(shopId)}/${encodeURIComponent(id)}/full.webp`}
         />
       )}
       {current && (
         <>
-          <PromoCard
-            {...{ current, currency, zone, setPanel }}
-            catalog={catalog.data}
-            busy={mutation.isPending}
-            review={() => review("summary", current.terms)}
-            edit={() => {
-              setTerms(current.terms);
-              setPanel("form");
-            }}
-            save={() => save("repeat")}
-            error={panel ? undefined : error}
-          />
+          <PromoCard key={current.id} current={current} currency={currency} catalog={catalog.data} />
           <PromoResults
             key={current.id}
             offer={current}
@@ -220,6 +207,18 @@ function PromoWorkspace({
             currency={currency}
             zone={zone}
             openOrder={(number) => nav.open(`/seller/orders/${number}`, { back: nav.location.href })}
+          />
+          <PromoActions
+            status={current.status}
+            setPanel={setPanel}
+            busy={mutation.isPending}
+            review={() => review("summary", current.terms)}
+            edit={() => {
+              setTerms(current.terms);
+              setPanel("form");
+            }}
+            save={() => save("repeat")}
+            error={panel ? undefined : error}
           />
         </>
       )}

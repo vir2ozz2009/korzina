@@ -61,7 +61,7 @@ export async function serveHtml(request: Request, env: Env): Promise<Response> {
               plan: shop.plan,
               createdAt: shop.createdAt,
               name: "Магазин",
-              features: {},
+              features: { promotions: false },
               theme: DEFAULT_THEME,
             });
     const page = themedHtml(

@@ -12,6 +12,10 @@ import { ProductStockPrompt } from "./ProductStockPrompt";
 import { ProductVariantEditor, ProductVariants } from "./ProductVariants";
 import { useProductEditor } from "./useProductEditor";
 
+function variantsUnchanged(a: unknown, b: unknown) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
 export function ProductEditor({
   store,
   currency,
@@ -66,6 +70,18 @@ export function ProductEditor({
       dirty={dirty && !editing}
       busy={busy}
       onSave={saveProduct}
+      header={
+        editing && promotion
+          ? {
+              title: editing.value.id ? "Редактировать фасовку" : "Новая фасовка",
+              onBack: () => {
+                if (nav.params.get("variant") && variantsUnchanged(editing.value, editor.variants[editing.index]))
+                  nav.leave("/seller/products");
+                else editor.setEditing(undefined);
+              },
+            }
+          : undefined
+      }
     >
       {editing ? (
         <ProductVariantEditor editor={editor} canWrite={canWrite} editing={editing} promotion={promotion} />

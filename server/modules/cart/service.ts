@@ -4,7 +4,7 @@ import { ApiError } from "../../../src/shared/errors";
 import { addMinor, multiplyMinor } from "../../../src/shared/money";
 import type { CommandIdentity } from "../../middleware/idempotency";
 import { parseSelection, rememberOrderedAddress } from "../fulfillment/service";
-import { effectivePrice, pricePromoCart } from "../promo/cart";
+import { automaticPromoWhere, effectivePrice, pricePromoCart } from "../promo/cart";
 import { type CartSource, reconcileQuote, type SavedQuote, savedQuote, toLine } from "./quote";
 
 type CartState = {
@@ -14,6 +14,7 @@ type CartState = {
   quote: string | null;
   fingerprint: string | null;
   response: string | null;
+  has_automatic: number;
   promo_code: string | null;
   promo_alternative: string | null;
 };
@@ -36,6 +37,7 @@ export function readCartState(
   const row = storage.sql
     .exec<CartState>(
       `SELECT COALESCE(c.revision,0) AS revision,s.currency,c.quote,i.fingerprint,i.response,c.promo_code,c.promo_alternative,
+      ${source.promotions ? `EXISTS(SELECT 1 FROM promo_offers p WHERE ${automaticPromoWhere(Math.trunc(now))})` : "0"} AS has_automatic,
       (SELECT json_group_array(json_object(
         'variantId',w.variant_id,'productId',p.id,'name',p.name,'unit',v.name,'quantity',w.quantity,
         'priceMinor',${effective.price},'oldPriceMinor',${effective.old},${source.promotions ? "'categoryId',p.category_id," : ""}${priceWindow}'stock',v.stock,
@@ -70,6 +72,7 @@ export function readCartState(
   return {
     ...current,
     codes: { code: row.promo_code, alternative: row.promo_alternative },
+    hasAutomatic: row.has_automatic === 1,
     initial: !saved && current.cart.lines.length > 0,
     offered: rows.filter((line) => line.quantity === 0),
     previous: row.response,
@@ -92,10 +95,10 @@ export function persistCart(storage: DurableObjectStorage, customer: string, car
 
 export function readCart(storage: DurableObjectStorage, customer: string, source: CartSource): Cart {
   return storage.transactionSync(() => {
-    const { cart, changed, initial, codes } = readCartState(storage, customer, source);
+    const { cart, changed, initial, codes, hasAutomatic } = readCartState(storage, customer, source);
     if (changed || initial) persistCart(storage, customer, cart);
     return source.promotions
-      ? pricePromoCart(storage, customer, customer.startsWith("telegram:"), cart, codes, source.now)
+      ? pricePromoCart(storage, customer, customer.startsWith("telegram:"), cart, codes, source.now, hasAutomatic)
       : cart;
   });
 }
@@ -152,7 +155,15 @@ export function changeCart(
     } = current;
     const reprice = (value: Cart) =>
       source.promotions
-        ? pricePromoCart(storage, customer, customer.startsWith("telegram:"), value, codes, source.now)
+        ? pricePromoCart(
+            storage,
+            customer,
+            customer.startsWith("telegram:"),
+            value,
+            codes,
+            source.now,
+            current.hasAutomatic,
+          )
         : value;
     if (cart.revision !== input.expectedRevision) {
       if (changed || initial) persistCart(storage, customer, cart);

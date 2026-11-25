@@ -2,6 +2,7 @@ import { Plus } from "lucide-react";
 import { Button } from "../../../../ui/Button";
 import { Card } from "../../../../ui/Card";
 import { ListItem } from "../../../../ui/ListItem";
+import { PromoPhoto } from "../promo/PromoPresentation";
 import type { useProductEditor } from "./useProductEditor";
 import { VariantFields, variantDraft } from "./VariantFields";
 
@@ -18,14 +19,25 @@ export function ProductVariantEditor({
   editing: NonNullable<Editor["editing"]>;
   promotion?: { currency: string; zone: string };
 }) {
-  const { variants, setVariants, setEditing, disabled, patchVariant } = editor;
-  return (
-    <Card className="space-y-3">
-      <h2 className="text-title-3">{editing.value.id ? "Редактировать фасовку" : "Новая фасовка"}</h2>
+  const { variants, setVariants, setEditing, disabled, patchVariant, text, photos } = editor;
+  const body = (
+    <>
+      {!promotion && <h2 className="text-title-3">{editing.value.id ? "Редактировать фасовку" : "Новая фасовка"}</h2>}
       <VariantFields
         row={editing.value}
         promotion={promotion}
-        multiple
+        promoHeading={
+          promotion && (
+            <div className="flex items-center gap-3">
+              <PromoPhoto src={photos.items[0]?.src} className="w-14 shrink-0" />
+              <div className="min-w-0 wrap-anywhere">
+                <p className="text-title-3">{text.name || "Товар"}</p>
+                {editing.value.name && <p className="text-body text-muted-foreground">{editing.value.name}</p>}
+              </div>
+            </div>
+          )
+        }
+        multiple={variants.length > 1 || !editing.value.id}
         disabled={disabled}
         sale
         error={editing.nameError}
@@ -63,8 +75,9 @@ export function ProductVariantEditor({
           Удалить фасовку
         </Button>
       )}
-    </Card>
+    </>
   );
+  return promotion ? body : <Card>{body}</Card>;
 }
 
 export function ProductVariants({

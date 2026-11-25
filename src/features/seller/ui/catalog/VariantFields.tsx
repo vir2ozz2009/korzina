@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import type { SellerProductInput, SellerVariant } from "../../../../shared/contracts/seller-catalog";
 import { minorInput, parseMinorInput } from "../../../../shared/money";
 import { Button } from "../../../../ui/Button";
+import { Card } from "../../../../ui/Card";
 import { Input } from "../../../../ui/Input";
 import { Sheet } from "../../../../ui/Sheet";
 import { Switch } from "../../../../ui/Switch";
@@ -67,6 +68,7 @@ export function VariantFields({
   sale,
   error,
   promotion,
+  promoHeading,
 }: {
   row: VariantDraft;
   patch: (draft: Partial<VariantDraft>) => void;
@@ -75,39 +77,26 @@ export function VariantFields({
   sale?: boolean;
   error?: string;
   promotion?: { currency: string; zone: string };
+  promoHeading?: ReactNode;
 }) {
   const [showPause, setShowPause] = useState(false);
   const inSale =
     row.visible &&
     (row.unlimited || Number(row.stock) > 0) &&
     (row.pause === "resume" || (!row.pause && row.salePause === null));
-  return (
+  const nameField = multiple && (
+    <Input
+      label="Название фасовки"
+      value={row.name}
+      maxLength={120}
+      disabled={disabled}
+      error={error}
+      onChange={(event) => patch({ name: event.target.value })}
+    />
+  );
+  const stockFields = (
     <>
-      {multiple && (
-        <Input
-          label="Название фасовки"
-          value={row.name}
-          maxLength={120}
-          disabled={disabled}
-          error={error}
-          onChange={(event) => patch({ name: event.target.value })}
-        />
-      )}
-      <Input
-        label={promotion && row.oldPrice ? "Цена по акции" : "Цена"}
-        value={row.price}
-        inputMode="decimal"
-        disabled={disabled}
-        onChange={(event) => patch({ price: event.target.value })}
-      />
-      <Input
-        label={promotion ? "Обычная цена (для акции)" : "Старая цена"}
-        value={row.oldPrice}
-        inputMode="decimal"
-        disabled={disabled}
-        onChange={(event) => patch({ oldPrice: event.target.value })}
-      />
-      {promotion && <VariantPricePromo {...promotion} row={row} patch={patch} disabled={disabled} />}
+      {promoHeading && nameField}
       <Input
         label="Остаток"
         value={row.stock}
@@ -141,6 +130,32 @@ export function VariantFields({
           }}
         />
       )}
+    </>
+  );
+  return (
+    <>
+      {!promoHeading && nameField}
+      {promotion ? (
+        <VariantPricePromo {...promotion} row={row} patch={patch} disabled={disabled} heading={promoHeading} />
+      ) : (
+        <>
+          <Input
+            label="Цена"
+            value={row.price}
+            inputMode="decimal"
+            disabled={disabled}
+            onChange={(event) => patch({ price: event.target.value })}
+          />
+          <Input
+            label="Старая цена"
+            value={row.oldPrice}
+            inputMode="decimal"
+            disabled={disabled}
+            onChange={(event) => patch({ oldPrice: event.target.value })}
+          />
+        </>
+      )}
+      {promoHeading ? <Card>{stockFields}</Card> : stockFields}
       {showPause && (
         <Sheet open title={inSale ? "Снять с продажи" : "Сколько есть?"} onOpenChange={setShowPause} form>
           <div className="space-y-2">

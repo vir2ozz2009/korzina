@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { CatalogImage } from "./catalog";
 
 const minor = z.number().int().min(1).max(1_000_000_000);
 const count = z.number().int().min(1).max(1_000_000);
@@ -90,5 +91,5 @@ export type PromoPrice = {
   status: "active" | "scheduled";
   fromDate?: string;
   throughDate?: string;
-  photoId?: string;
+  image: CatalogImage | null;
 };
