@@ -28,8 +28,16 @@ export function useListFilters(store: string, account: string) {
     setOffset: (offset: number) => patch({ offset }),
   };
 }
+const reportKey = (store: string, account: string, id: string) => `korzina:promo-report:${store}:${account}:${id}`;
+export function clearReportFilters(store: string, account: string, id: string) {
+  try {
+    sessionStorage.removeItem(reportKey(store, account, id));
+  } catch {
+    // There is no saved selection when storage is disabled.
+  }
+}
 export function useReportFilters(store: string, account: string, id: string) {
-  const { value, patch } = useSelection(`korzina:promo-report:${store}:${account}:${id}`, {
+  const { value, patch } = useSelection(reportKey(store, account, id), {
     period: "all",
     custom: { from: "", through: "" },
     offset: 0,
