@@ -188,10 +188,15 @@ test(
     await seller.getByRole("button", { name: "Чат по заказу", exact: true }).click();
     await expect(seller).toHaveURL(new RegExp(`/seller/orders/${order.number}/chat\\?`));
     const message = "QA1 · Заказ будет готов к открытию";
-    await seller.getByRole("textbox").fill(message);
+    const composer = seller.getByRole("textbox", { name: "Сообщение", exact: true });
+    const historyMessage = seller
+      .getByRole("list", { name: "История переписки", exact: true })
+      .getByText(message, { exact: true });
+    await composer.fill(message);
     await seller.getByRole("button", { name: "Отправить", exact: true }).click();
-    await expect(seller.getByText(message, { exact: true })).toBeVisible();
+    await expect(historyMessage).toBeVisible();
+    await expect(composer).toHaveValue("");
     await seller.reload();
-    await expect(seller.getByText(message, { exact: true })).toBeVisible();
+    await expect(historyMessage).toBeVisible();
   },
 );
