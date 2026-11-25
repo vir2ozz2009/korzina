@@ -15,6 +15,7 @@ export {
 } from "../modules/checkout/schema";
 export { favorites } from "../modules/favorites/schema";
 export { media, mediaUsage } from "../modules/media/schema";
+export { promoOffers, promoUses } from "../modules/promo/schema";
 
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
