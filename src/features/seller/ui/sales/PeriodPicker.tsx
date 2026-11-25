@@ -1,5 +1,5 @@
 import { CalendarDays } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { type SalesPeriod, salesPeriod } from "../../../../shared/contracts/seller-sales";
 import { calendarDate } from "../../../../shared/datetime";
 import { Button } from "../../../../ui/Button";
@@ -21,6 +21,7 @@ export function PeriodPicker({
   completedWeek?: boolean;
   apply: (period: SalesPeriod) => void;
 }) {
+  const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [custom, setCustom] = useState(false);
   const [draft, setDraft] = useState(period);
@@ -47,7 +48,8 @@ export function PeriodPicker({
       <Button
         variant="secondary"
         icon={<CalendarDays size={16} />}
-        onClick={() => {
+        onClick={(event) => {
+          trigger.current = event.currentTarget;
           setDraft(period);
           setCustom(false);
           setError(undefined);
@@ -57,7 +59,7 @@ export function PeriodPicker({
         Период
       </Button>
       <p className="text-small text-muted-foreground">{periodLabel(period)}</p>
-      <Sheet open={open} title="Период" onOpenChange={setOpen}>
+      <Sheet open={open} title="Период" onOpenChange={setOpen} returnFocus={trigger}>
         {ranges.map(([label, days]) => (
           <ListItem
             key={label}

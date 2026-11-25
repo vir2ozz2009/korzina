@@ -1,5 +1,5 @@
 import { ArrowLeft, X } from "lucide-react";
-import { type ReactNode, useId } from "react";
+import { type ReactNode, type RefObject, useId } from "react";
 import { Drawer } from "vaul";
 import { IconButton } from "./IconButton";
 import { useSheetViewport } from "./useSheetViewport";
@@ -9,6 +9,7 @@ export function SheetContent({
   onBack,
   title,
   description,
+  returnFocus,
   form = false,
   children,
 }: {
@@ -17,6 +18,7 @@ export function SheetContent({
   onBack?: () => void;
   title: string;
   description?: string;
+  returnFocus?: RefObject<HTMLElement | null>;
   form?: boolean;
   children: ReactNode;
 }) {
@@ -28,6 +30,12 @@ export function SheetContent({
         <Drawer.Overlay className="fixed inset-0 z-40 bg-foreground/40" />
         <Drawer.Content
           ref={sheet}
+          onCloseAutoFocus={(event) => {
+            const trigger = returnFocus?.current;
+            if (!trigger?.isConnected) return;
+            event.preventDefault();
+            trigger.focus({ preventScroll: true });
+          }}
           data-form-sheet={form || undefined}
           aria-describedby={description ? descriptionId : undefined}
           className="fixed inset-x-0 z-50 mx-auto flex max-w-(--content-max) flex-col rounded-t-xl bg-card px-5 pt-3 pb-[max(1.25rem,var(--safe-bottom))] shadow-sheet outline-none"

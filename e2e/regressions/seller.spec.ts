@@ -15,6 +15,27 @@ import {
 
 const tag = { tag: "@regression" };
 
+test("Блок 11 · сценарий 10 возвращает фокус на кнопку периода", tag, async ({ seller }) => {
+  for (const path of ["/seller/money", "/seller/money/operations"]) {
+    await seller.goto(`${path}?${cabinet}`);
+    const trigger = seller.getByRole("button", { name: "Период", exact: true });
+    const sheet = seller.getByRole("dialog", { name: "Период", exact: true });
+    const close = sheet.getByRole("button", { name: "Закрыть", exact: true });
+    await trigger.focus();
+    await seller.keyboard.press("Enter");
+    await close.focus();
+    await seller.keyboard.press("Enter");
+    await expect(sheet).toBeHidden();
+    await expect(trigger).toBeFocused();
+
+    await seller.keyboard.press("Enter");
+    await close.focus();
+    await seller.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+    await expect(trigger).toBeFocused();
+  }
+});
+
 test.beforeEach(async ({ seller }) => {
   await configure(seller.request, { delivery: anywhere, requiredDetails: [], minimumMinor: 120000 });
   await resume(seller.request);
@@ -27,41 +48,39 @@ async function clickStage(seller: Page, number: number, name: string, stage: Ord
 }
 
 for (const mode of ["delivery", "pickup"] as const) {
-  test(
-    `#235 этапы ${mode === "delivery" ? "доставки" : "самовывоза"} не откатываются после действий продавца`,
-    tag,
-    async ({ page, seller, rememberOrder }) => {
-      await hours(seller.request, "after_order");
-      try {
-        const order = await placeOrder(page, mode);
-        rememberOrder(order.number);
-        await seller.goto(`/seller/orders/${order.number}?${cabinet}`);
-        await clickStage(seller, order.number, "Принять", "accepted");
-        await expect(seller.getByRole("button", { name: "Принять", exact: true })).toHaveCount(0);
-        await seller.getByRole("button", { name: "Отметить все собранными" }).click();
-        await expect(seller.getByText("Собрано 1 из 1")).toBeVisible();
-        await clickStage(seller, order.number, "Сборка завершена", "ready");
-        await transition(seller.request, order.number, {
-          action: "recordPayment",
-          method: "cash",
-          amountMinor: order.totalMinor,
-        });
-        await seller.reload();
-        if (mode === "delivery") {
-          await clickStage(seller, order.number, "Передать курьеру", "handed", "Подтвердить");
-          await expect(seller.getByRole("button", { name: "Передать курьеру", exact: true })).toHaveCount(0);
-          await clickStage(seller, order.number, "Доставлен", "completed", "Подтвердить");
-        } else {
-          await clickStage(seller, order.number, "Выдать заказ", "completed", "Подтвердить");
-        }
-        await expect(
-          seller.getByRole("button", { name: mode === "delivery" ? "Доставлен" : "Выдать заказ", exact: true }),
-        ).toHaveCount(0);
-      } finally {
-        await hours(seller.request, "2");
+  test(`#235 этапы ${mode === "delivery" ? "доставки" : "самовывоза"} не откатываются после действий продавца`, {
+    tag: [tag.tag, "@demo-heavy"],
+  }, async ({ page, seller, rememberOrder }) => {
+    await hours(seller.request, "after_order");
+    try {
+      const order = await placeOrder(page, mode);
+      rememberOrder(order.number);
+      await seller.goto(`/seller/orders/${order.number}?${cabinet}`);
+      await clickStage(seller, order.number, "Принять", "accepted");
+      await expect(seller.getByRole("button", { name: "Принять", exact: true })).toHaveCount(0);
+      await seller.getByRole("button", { name: "Отметить все собранными" }).click();
+      await expect(seller.getByText("Собрано 1 из 1")).toBeVisible();
+      await clickStage(seller, order.number, "Сборка завершена", "ready");
+      await transition(seller.request, order.number, {
+        action: "recordPayment",
+        method: "cash",
+        amountMinor: order.totalMinor,
+      });
+      await seller.reload();
+      if (mode === "delivery") {
+        await clickStage(seller, order.number, "Передать курьеру", "handed", "Подтвердить");
+        await expect(seller.getByRole("button", { name: "Передать курьеру", exact: true })).toHaveCount(0);
+        await clickStage(seller, order.number, "Доставлен", "completed", "Подтвердить");
+      } else {
+        await clickStage(seller, order.number, "Выдать заказ", "completed", "Подтвердить");
       }
-    },
-  );
+      await expect(
+        seller.getByRole("button", { name: mode === "delivery" ? "Доставлен" : "Выдать заказ", exact: true }),
+      ).toHaveCount(0);
+    } finally {
+      await hours(seller.request, "2");
+    }
+  });
 }
 
 test("Блок 9 · 2 на Главной скрыты срочные действия с нулём", tag, async ({ seller }) => {

@@ -16,7 +16,11 @@ const receiving = `/api/seller/receiving/settings?${cabinet}`;
 export const command = () => ({ "Idempotency-Key": crypto.randomUUID() });
 
 export async function json<T>(response: APIResponse): Promise<T> {
-  expect(response.ok(), `${new URL(response.url()).pathname}: HTTP ${response.status()}`).toBe(true);
+  const status = response.status();
+  const headers = response.headers();
+  const limit =
+    status === 429 ? ` (Retry-After: ${headers["retry-after"] ?? "нет"}, cf-ray: ${headers["cf-ray"] ?? "нет"})` : "";
+  expect(response.ok(), `${new URL(response.url()).pathname}: HTTP ${status}${limit}`).toBe(true);
   return response.json();
 }
 
@@ -184,14 +188,17 @@ export async function placeOrder(page: Page, mode: "delivery" | "pickup" = "pick
 
 export const test = base.extend<{ seller: Page; rememberOrder: (number: number) => void; demoPace: undefined }>({
   demoPace: [
-    async ({ baseURL }, use) => {
+    async ({ baseURL }, use, info) => {
       const started = Date.now();
       await use(undefined);
-      // All browser contexts in the nightly run share one runner IP.
-      if (baseURL === "https://demo.korzina.app")
-        await new Promise((resolve) => setTimeout(resolve, Math.max(0, 20_000 - (Date.now() - started))));
+      // The stage walkthroughs issue many API requests, so separate their start
+      // times from the next test by a full limiter window on the shared runner IP.
+      if (baseURL === "https://demo.korzina.app") {
+        const interval = info.tags.includes("@demo-heavy") ? 60_000 : 20_000;
+        await new Promise((resolve) => setTimeout(resolve, Math.max(0, interval - (Date.now() - started))));
+      }
     },
-    { auto: true, timeout: 25_000 },
+    { auto: true, timeout: 65_000 },
   ],
   extraHTTPHeaders: async ({ extraHTTPHeaders }, use, { testId }) => {
     if (shop === "e2e") return use(extraHTTPHeaders);
