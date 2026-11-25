@@ -18,7 +18,7 @@ export function useCatalogNav(store?: string) {
     void router.navigate({ href: href(path, query), replace, ignoreBlocker });
   }
   function leave(fallback: string, ignoreBlocker = false) {
-    const destination = sellerHistory.back(location.href);
+    const destination = location.search.back ?? sellerHistory.back(location.href);
     const next = destination === "/seller/products" || destination === "/seller/more" ? href(fallback) : destination;
     void router
       .navigate({ href: next, replace: true, ignoreBlocker, resetScroll: false })

@@ -28,14 +28,22 @@ const catalog = lazyRouteComponent(
   () => import("../features/seller/ui/catalog/SellerCatalogScreen"),
   "SellerCatalogScreen",
 );
-const catalogSearch = (input: Record<string, unknown>) => ({
+const catalogSearch = (
+  input: Record<string, unknown>,
+): ReturnType<typeof search> & Partial<Record<"back" | "q" | "filter" | "parent" | "category" | "brand", string>> => ({
   ...search(input),
+  back: catalogReportBack(input.back),
   ...Object.fromEntries(
     ["q", "filter", "parent", "category", "brand"].flatMap((key) =>
       typeof input[key] === "string" ? [[key, input[key]]] : [],
     ),
   ),
 });
+function catalogReportBack(input: unknown) {
+  return typeof input === "string" && /^\/seller\/statistics\/products\/[^/?#]+(?:\?|$)/u.test(input)
+    ? input
+    : undefined;
+}
 const list = lazyRouteComponent(() => import("../features/seller/ui/orders/SellerOrdersList"), "SellerOrdersList");
 const order = lazyRouteComponent(() => import("../features/seller/ui/orders/SellerOrderScreen"), "SellerOrderScreen");
 const sales = lazyRouteComponent(() => import("../features/seller/ui/sales/SalesScreen"), "SalesScreen");
