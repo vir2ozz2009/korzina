@@ -38,7 +38,7 @@
 - [x] 25.11.2026 · Андрей принял проверенный объём блока 11 и поручил выпустить 12.1 при зелёных проверках.
 - [x] 25.11.2026 · [PR #282](https://github.com/vir2ozz2009/korzina/pull/282) проверен и выпущен на [demo `7cb98b1`, магазин `test2`](https://demo.korzina.app/?shop=test2). [Check и smoke превью](https://github.com/vir2ozz2009/korzina/actions/runs/45587873041) · [Demo smoke 4/4](https://github.com/vir2ozz2009/korzina/actions/runs/45588919428).
 - [x] 25.11.2026 · Исправления M4 и K4c по [локальному отчёту #291](https://github.com/vir2ozz2009/korzina/pull/291) защищены браузерными регрессиями. [Сценарии повторной проверки](progress/promo-discounts-local-check.md#перепроверка-m4-и-k4c).
-- [ ] **12.1 · Доработка до приёмки.** [PR #298](https://github.com/vir2ozz2009/korzina/pull/298) · [12 пар, ревизия `476215404872732672` и проверки доступности](progress/promo-discounts-alignment.md). После выпуска Work передаёт demo SHA и [чек-лист](progress/promo-discounts-local-check.md) локальному Codex для живого Telegram iOS. Первое касание M4 пропущено по решению Андрея. K4c подтверждён на demo `68468c4`. Затем СТОП на решении Андрея.
+- [ ] **СТОП на приёмке 12.1 Андреем.** На demo `857e890` три маршрута в Telegram iOS заблокированы вводом касаний. [Локальный отчёт и контроль в Chrome](progress/promo-discounts-alignment.md#локальный-прогон-25-ноября-на-demo-857e890) · [Выпуск #298](https://github.com/vir2ozz2009/korzina/pull/298). Решение о приёмке открыто.
 
 ### Шаги блока 11 · Деньги и статистика продаж
 
