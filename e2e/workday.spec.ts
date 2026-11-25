@@ -148,6 +148,19 @@ test("Блок 9 · ближайшее получение, рабочий ден
     }
     await storefront.goto(`/orders/${order.number}?shop=test2`);
     await expect(storefront.getByRole("heading", { name: "Выдан", exact: true })).toBeVisible();
+    await test.step("O5 · задачи и журнал поступлений продавца", async () => {
+      await cabinet.goto("/seller/money?store=test2", { waitUntil: "domcontentloaded" });
+      await expect(cabinet.getByRole("heading", { name: "Задачи", exact: true })).toBeVisible();
+      await expect(cabinet.getByRole("button", { name: /К получению сейчас|Ближайшая задача/u })).toHaveCount(0);
+      await expect(cabinet.getByRole("button", { name: /Проверить чеки/u })).toBeVisible();
+      await cabinet.screenshot({ path: "test-results/block11-seller-money-390.png", animations: "disabled" });
+      await cabinet.getByRole("button", { name: "Операции", exact: true }).click();
+      await expect(cabinet.getByRole("heading", { name: "Операции", exact: true })).toBeVisible();
+      await expect(
+        cabinet.getByRole("button", { name: new RegExp(`Поступление.*Заказ №${order.number}`, "u") }),
+      ).toBeVisible();
+      await cabinet.screenshot({ path: "test-results/block11-seller-operations-390.png", animations: "disabled" });
+    });
     await test.step("Блок 9 · 07, §11.8: оформление без выбора времени при пустом горизонте", async () => {
       expect((await seller.request.post(fixture, { data: "empty" })).status()).toBe(204);
       await preparePickup(buyer.request);

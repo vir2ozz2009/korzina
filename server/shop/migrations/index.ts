@@ -32,6 +32,7 @@ import m0030 from "./0030_composition_deadline.sql?raw";
 import m0031 from "./0031_order_chat.sql?raw";
 import m0032 from "./0032_chat_badge.sql?raw";
 import m0033 from "./0033_seller_sales.sql?raw";
+import m0034 from "./0034_seller_money.sql?raw";
 import journal from "./meta/_journal.json";
 
 export const migrations = {
@@ -71,5 +72,6 @@ export const migrations = {
     m0031,
     m0032,
     m0033,
+    m0034,
   },
 };

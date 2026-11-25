@@ -14,9 +14,11 @@ import type { ShopEnv } from "../../shop/env";
 import { sessions } from "../../shop/schema";
 import { readCustomerWith } from "../auth/service";
 import { orderComposition, orderTimeChange } from "../order-changes/state";
+import { openOrderRefund } from "./order-refund";
 import type { ReservedOrder } from "./order-reservation";
 import { orderBalance, orderFinance, orderWorkflow } from "./order-workflow";
 import { buyerOrderRevisions } from "./schema";
+import { defaultTopUp } from "./top-up-proof";
 
 export type OrderRow = {
   customer: string;
@@ -67,6 +69,7 @@ export function buyerOrder(row: OrderRow): BuyerOrder {
     composition: orderComposition({ row, snapshot, work }),
     timeChange: orderTimeChange(row, work),
     topUpPayment: debtMinor > 0 ? work.topUpPayment : undefined,
+    topUp: debtMinor > 0 ? (work.topUp ?? defaultTopUp(row.number)) : undefined,
     canCancel: isActiveOrder(row.status) && row.status !== "handed" && !work.handedOff,
     canReplaceProof:
       row.status !== "cancelled" &&
@@ -75,6 +78,8 @@ export function buyerOrder(row: OrderRow): BuyerOrder {
         (debtMinor > 0 && (work.topUpPayment ? work.topUpPayment.id !== "cash" : payment === "transfer"))),
     ...(debtMinor > 0 && { debtMinor }),
     ...(refundMinor > 0 && { refundMinor }),
+    refund: openOrderRefund(finance, row.number, snapshot.totalMinor, row.status),
+    returnedMinor: finance.returnedMinor || undefined,
   };
 }
 

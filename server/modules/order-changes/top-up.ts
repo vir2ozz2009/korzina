@@ -13,7 +13,7 @@ type Shop = ShopEnv["Bindings"];
 function choices(env: Shop, state: ChangeState) {
   const { row, snapshot, work } = state;
   const balance = orderBalance(orderFinance(work, snapshot, row.payment_status), snapshot.totalMinor, row.status);
-  if (!balance.debtMinor || !work.composition) throw new ApiError("ORDER_CLOSED", "Доплата недоступна");
+  if (!balance.debtMinor || row.status === "cancelled") throw new ApiError("ORDER_CLOSED", "Доплата недоступна");
   const raw = env.storage.sql
     .exec<{ value: string }>("SELECT value FROM settings WHERE key='purchase_payment'")
     .toArray()[0];
@@ -43,6 +43,8 @@ export function chooseTopUp(
     const state = readChangeState(buyerOrderRow(storage, customer, number));
     if (input.expectedVersion !== state.row.version)
       throw new ApiError("VERSION_CONFLICT", "Заказ изменился. Обновите карточку.");
+    if (state.work.topUp?.status === "pending_review")
+      throw new ApiError("INVALID_TRANSITION", "Подтверждение уже отправлено");
     const option = choices(env, state).options.find(({ id }) => id === input.methodId);
     if (!option) throw new ApiError("PAYMENT_METHOD_UNAVAILABLE", "Этот способ оплаты недоступен");
     state.work.topUpPayment = option;

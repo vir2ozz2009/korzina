@@ -54,7 +54,9 @@ export function OrderPaymentSheet({
   );
   const [validation, setValidation] = useState("");
   const reviewing = action === "confirmTransfer";
-  const canReview = reviewing && order.paymentStatus === "pending_review";
+  const obligationId =
+    order.paymentStatus !== "pending_review" && order.topUp?.status === "pending_review" ? order.topUp.id : undefined;
+  const canReview = reviewing && (order.paymentStatus === "pending_review" || !!obligationId);
   const handoff = isHandoff(action) ? action : undefined;
   const latest = order.receipts[0];
   const parsed = parseMinorInput(value, currency);
@@ -80,7 +82,7 @@ export function OrderPaymentSheet({
       setValidation("Введите корректную сумму");
       return;
     }
-    if (reviewing && latest) return submit({ action, expectedRevision, amountMinor, proof: latest.id });
+    if (reviewing && latest) return submit({ action, expectedRevision, amountMinor, proof: latest.id, obligationId });
     if (action === "setDeliveryFee") return submit({ action, expectedRevision, amountMinor });
     if (!method) return;
     if (handoff) return submit({ action: handoff, expectedRevision, payment: { method, amountMinor } });
@@ -152,7 +154,13 @@ export function OrderPaymentSheet({
                   disabled={!reason.trim()}
                   loading={pending}
                   onClick={() =>
-                    submit({ action: "rejectProof", expectedRevision, proof: latest.id, reason: reason.trim() })
+                    submit({
+                      action: "rejectProof",
+                      expectedRevision,
+                      proof: latest.id,
+                      reason: reason.trim(),
+                      obligationId,
+                    })
                   }
                 >
                   Отклонить чек

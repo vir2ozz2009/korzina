@@ -7,7 +7,7 @@ export async function sellerReceipt(env: ShopEnv["Bindings"], number: number, id
     .exec<{ mime: string }>(
       `SELECT m.mime FROM media m JOIN orders o ON o.number=?
       WHERE m.id=? AND m.purpose='receipt' AND m.status='attached' AND m.ready=1
-      AND (o.proof_media_id=m.id OR EXISTS (
+      AND (o.proof_media_id=m.id OR json_extract(o.fulfillment_state,'$.topUp.proof')=m.id OR EXISTS (
         SELECT 1 FROM order_receipt_history h WHERE h.order_number=o.number AND h.media_id=m.id
       ))`,
       number,

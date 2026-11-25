@@ -9,6 +9,7 @@ import {
   replaceProofInput,
 } from "../../../src/shared/contracts/buyer-order";
 import { compositionAnswer, timeChangeInput } from "../../../src/shared/contracts/order-changes";
+import { submitRefundDetails } from "../../../src/shared/contracts/order-refund";
 import { paymentOptionId } from "../../../src/shared/contracts/seller-payments";
 import { ApiError } from "../../../src/shared/errors";
 import { authBodyLimit, authCommand, validationFailure } from "../../auth/request";
@@ -20,6 +21,7 @@ import { chooseTopUp, topUpChoices } from "../order-changes/top-up";
 import { buyerLiveTicket, upgradeBuyerOrders } from "../order-chat/live";
 import { cancelBuyerOrder, replaceBuyerProof } from "./buyer-order-commands";
 import { activeBuyerOrders, buyerOrder, buyerOrderRow, buyerOrdersPage } from "./buyer-orders";
+import { refundImage, saveRefundDetails } from "./refund-details";
 import { previewRepeatOrder, repeatBuyerOrder } from "./repeat-order";
 
 const params = zValidator("param", z.object({ number: orderNumberInput }), validationFailure);
@@ -47,6 +49,31 @@ export const buyerOrderRoutes = new Hono<ShopEnv>()
   })
   .get("/:number/repeat", params, async (c) =>
     c.json(previewRepeatOrder(c.env, await subject(c.env, c.req.raw), c.req.valid("param").number)),
+  )
+  .get(
+    "/:number/refund/:id",
+    zValidator("param", z.object({ number: orderNumberInput, id: z.uuid() }), validationFailure),
+    async (c) => {
+      const { number, id } = c.req.valid("param");
+      return refundImage(c.env, number, id, await subject(c.env, c.req.raw));
+    },
+  )
+  .post(
+    "/:number/refund",
+    authBodyLimit,
+    authCommand,
+    params,
+    zValidator("json", submitRefundDetails, validationFailure),
+    async (c) =>
+      c.json(
+        saveRefundDetails(
+          c.env,
+          await subject(c.env, c.req.raw),
+          c.req.valid("param").number,
+          c.req.valid("json"),
+          c.get("command"),
+        ),
+      ),
   )
   .post(
     "/:number/composition",
@@ -131,7 +158,7 @@ export const buyerOrderRoutes = new Hono<ShopEnv>()
     params,
     zValidator("json", replaceProofInput, validationFailure),
     async (c) => {
-      const { expectedVersion, proofMediaId } = c.req.valid("json");
+      const { expectedVersion, proofMediaId, obligationId } = c.req.valid("json");
       return c.json(
         replaceBuyerProof(
           c.env,
@@ -140,6 +167,7 @@ export const buyerOrderRoutes = new Hono<ShopEnv>()
           expectedVersion,
           proofMediaId,
           c.get("command"),
+          obligationId,
         ),
       );
     },
