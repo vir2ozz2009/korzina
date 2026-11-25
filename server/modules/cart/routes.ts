@@ -12,7 +12,11 @@ export const cartRoutes = new Hono<ShopEnv>()
   .get("/", async (c) => {
     const session = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);
     return c.json(
-      readCart(c.env.storage, session?.subject ?? "", { id: c.env.shop.id, mediaOrigin: c.env.media.MEDIA_PUBLIC_URL }),
+      readCart(c.env.storage, session?.subject ?? "", {
+        id: c.env.shop.id,
+        mediaOrigin: c.env.media.MEDIA_PUBLIC_URL,
+        promotions: c.env.features.promotions,
+      }),
     );
   })
   .post("/", authBodyLimit, idempotency, zValidator("json", cartCommandInput, validationFailure), async (c) => {
@@ -22,7 +26,7 @@ export const cartRoutes = new Hono<ShopEnv>()
     const result = changeCart(
       c.env.storage,
       session.subject,
-      { id: c.env.shop.id, mediaOrigin: c.env.media.MEDIA_PUBLIC_URL },
+      { id: c.env.shop.id, mediaOrigin: c.env.media.MEDIA_PUBLIC_URL, promotions: c.env.features.promotions },
       c.req.valid("json"),
       c.get("command"),
     );

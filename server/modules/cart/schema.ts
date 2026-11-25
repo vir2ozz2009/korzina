@@ -12,6 +12,8 @@ export const carts = sqliteTable(
     quote: text("quote"),
     receiving: text("receiving"),
     phone: text("phone"),
+    promoCode: text("promo_code"),
+    promoAlternative: text("promo_alternative"),
     buyerName: text("buyer_name"),
   },
   (t) => [index("carts_updated_idx").on(t.updatedAt)],

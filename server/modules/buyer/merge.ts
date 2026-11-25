@@ -75,6 +75,16 @@ function mergeCart(storage: DurableObjectStorage, guest: string, account: string
   if (!from) return;
   const revision = mergeCartLines(storage, guest, account, catalog);
   mergeReceiving(storage, guest, account, revision);
+  storage.sql.exec(
+    `UPDATE carts SET
+    promo_alternative=CASE WHEN promo_code IS NOT NULL AND promo_code<>(SELECT promo_code FROM carts WHERE customer=?)
+      THEN (SELECT promo_code FROM carts WHERE customer=?) ELSE promo_alternative END,
+    promo_code=COALESCE(promo_code,(SELECT promo_code FROM carts WHERE customer=?)) WHERE customer=?`,
+    guest,
+    guest,
+    guest,
+    account,
+  );
   const phone = phones.find(({ customer }) => customer === account)?.phone ?? from.phone;
   if (phone) storage.sql.exec("UPDATE carts SET phone=? WHERE customer=?", phone, account);
   storage.sql.exec("DELETE FROM carts WHERE customer=?", guest);
@@ -93,6 +103,14 @@ function mergeBuyerFavorites(storage: DurableObjectStorage, source: string, targ
 
 function transferOrdersAndReceipts(storage: DurableObjectStorage, from: string, to: string) {
   const result = storage.sql.exec("UPDATE orders SET customer=? WHERE customer=?", to, from);
+  storage.sql.exec(
+    `UPDATE promo_uses SET customer=?,purchase_number=CASE WHEN purchase_number IS NOT NULL AND EXISTS(
+    SELECT 1 FROM promo_uses target WHERE target.customer=? AND target.purchase_number=promo_uses.purchase_number
+    AND target.released_at IS NULL) THEN NULL ELSE purchase_number END WHERE customer=?`,
+    to,
+    to,
+    from,
+  );
   if (!result.rowsWritten) return;
   storage.sql.exec(
     `UPDATE media SET owner=?,request_key='order:'||id WHERE owner=? AND id IN (
@@ -113,7 +131,7 @@ function transferOrdersAndReceipts(storage: DurableObjectStorage, from: string, 
 export const buyerMergeSteps = [
   { tables: ["carts"], run: mergeCart },
   { tables: ["buyer_favorites"], run: mergeBuyerFavorites },
-  { tables: ["orders", "media", "order_receipt_history"], run: transferOrdersAndReceipts },
+  { tables: ["orders", "media", "order_receipt_history", "promo_uses"], run: transferOrdersAndReceipts },
 ] as const;
 
 // The caller also revokes the guest session and completes sign-in in the same transaction.

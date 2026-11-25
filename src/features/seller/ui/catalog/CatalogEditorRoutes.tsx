@@ -8,7 +8,7 @@ import { GroupEditor } from "./GroupEditor";
 import { ProductEditor } from "./ProductEditor";
 
 type EditorRoute = { store: string; id: string; canWrite: boolean; storefront: string; frame: CatalogFrame };
-export function ProductRoute({ id, frame, ...props }: EditorRoute & { currency: string }) {
+export function ProductRoute({ id, frame, ...props }: EditorRoute & { currency: string; promoZone?: string }) {
   const query = useCatalogProduct(props.store, id === "new" ? undefined : id);
   // An editor takes its draft and revision from its first snapshot.
   const [needsRefresh] = useState(query.isStale);

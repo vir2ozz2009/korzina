@@ -1,3 +1,4 @@
+import type { CartAdjustment } from "../../../shared/contracts/cart";
 import type { ReceivingAvailability } from "../../../shared/contracts/receiving";
 import { formatMinor } from "../../../shared/money";
 import { Card } from "../../../ui/Card";
@@ -5,6 +6,8 @@ import { Divider } from "../../../ui/Divider";
 
 export function PurchaseTotals({
   itemsMinor,
+  itemsBeforeDiscountMinor,
+  adjustments,
   totalMinor,
   deliveryMinor,
   currency,
@@ -12,6 +15,8 @@ export function PurchaseTotals({
   done = false,
 }: {
   itemsMinor: number;
+  itemsBeforeDiscountMinor?: number;
+  adjustments?: CartAdjustment[];
   totalMinor: number;
   deliveryMinor: number;
   currency: string;
@@ -26,8 +31,16 @@ export function PurchaseTotals({
     <Card>
       <div className="flex justify-between gap-2">
         <span>Товары</span>
-        <strong>{amount(itemsMinor)}</strong>
+        <strong>{amount(itemsBeforeDiscountMinor ?? itemsMinor)}</strong>
       </div>
+      {adjustments
+        ?.filter((item) => item.kind === "promotion")
+        .map((item) => (
+          <div key={item.sourceId} className="flex justify-between gap-2">
+            <span>{item.label}</span>
+            <strong>−{amount(-item.amount)}</strong>
+          </div>
+        ))}
       {!courier && (
         <div className="flex justify-between gap-2">
           <span>{fulfillment.mode === "pickup" ? "Самовывоз" : "Доставка"}</span>

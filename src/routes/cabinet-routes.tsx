@@ -2,6 +2,7 @@ import { createRoute, lazyRouteComponent } from "@tanstack/react-router";
 import type { SellerOrdersQuery } from "../shared/contracts/seller-order";
 import { workdayFocuses } from "../shared/workday-kinds";
 import { moneyBack, moneyRoutes } from "./money-routes";
+import { promoBack, promotionRoutes } from "./promotion-routes";
 import { rootRoute } from "./root";
 import { day, search } from "./seller-route-search";
 
@@ -30,16 +31,18 @@ const catalog = lazyRouteComponent(
 );
 const catalogSearch = (
   input: Record<string, unknown>,
-): ReturnType<typeof search> & Partial<Record<"back" | "q" | "filter" | "parent" | "category" | "brand", string>> => ({
+): ReturnType<typeof search> &
+  Partial<Record<"back" | "q" | "filter" | "parent" | "category" | "brand" | "variant", string>> => ({
   ...search(input),
   back: catalogReportBack(input.back),
   ...Object.fromEntries(
-    ["q", "filter", "parent", "category", "brand"].flatMap((key) =>
+    ["q", "filter", "parent", "category", "brand", "variant"].flatMap((key) =>
       typeof input[key] === "string" ? [[key, input[key]]] : [],
     ),
   ),
 });
 function catalogReportBack(input: unknown) {
+  if (promoBack(input)) return promoBack(input);
   return typeof input === "string" && /^\/seller\/statistics\/products\/[^/?#]+(?:\?|$)/u.test(input)
     ? input
     : undefined;
@@ -110,7 +113,7 @@ const orderSearch = (
   input: Record<string, unknown>,
 ): ReturnType<typeof search> & { back?: string; action?: "next" | "packing" | "payment" | "receipt" } => ({
   ...search(input),
-  back: workdayBack(input.back) ?? moneyBack(input.back),
+  back: workdayBack(input.back) ?? moneyBack(input.back) ?? promoBack(input.back),
   action:
     input.action === "next" || input.action === "packing" || input.action === "payment" || input.action === "receipt"
       ? input.action
@@ -131,6 +134,7 @@ const catalogRoutes = [
 const chat = lazyRouteComponent(() => import("../features/seller/ui/orders/SellerChatScreen"), "SellerChatScreen");
 export const sellerRoutes = [
   ...moneyRoutes,
+  ...promotionRoutes,
   createRoute({
     getParentRoute: () => rootRoute,
     path: "/seller/statistics",

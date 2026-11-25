@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { catalogImageContract } from "./catalog";
+import { promoCode, promoReasons } from "./promo";
 
 const expectedRevision = z.number().int().nonnegative();
 const cartChangeInput = z.object({
@@ -7,7 +8,18 @@ const cartChangeInput = z.object({
   quantity: z.number().int().min(0).max(999),
   expectedRevision,
 });
-export const cartCommandInput = z.union([cartChangeInput, z.object({ confirm: z.literal(true), expectedRevision })]);
+export const cartCommandInput = z.union([
+  cartChangeInput,
+  z.object({ confirm: z.literal(true), expectedRevision }),
+  z.object({ promoAction: z.literal("remove"), expectedRevision }),
+  z.object({ promoAction: z.literal("compare"), code: promoCode, expectedRevision }),
+  z.object({
+    promoAction: z.literal("apply"),
+    code: promoCode,
+    comparedTotal: z.number().int().nonnegative().optional(),
+    expectedRevision,
+  }),
+]);
 export type CartCommandInput = z.infer<typeof cartCommandInput>;
 const money = z.number().int();
 const cartLine = z.object({
@@ -17,12 +29,41 @@ const cartLine = z.object({
   unit: z.string(),
   quantity: z.number().int().positive(),
   priceMinor: money,
+  oldPriceMinor: money.nullable().optional(),
+  categoryId: z.string().nullable().optional(),
   stock: z.number().int().nullable(),
   available: z.boolean(),
   image: catalogImageContract.nullable().optional(),
   totalMinor: money.optional(),
 });
-const cartAdjustment = z.object({ kind: z.string(), sourceId: z.string(), label: z.string(), amount: money });
+const cartAdjustment = z.object({
+  kind: z.string(),
+  sourceId: z.string(),
+  label: z.string(),
+  amount: money,
+  sourceRevision: z.number().optional(),
+  code: z.string().optional(),
+  purchase: z.object({ mode: z.enum(["exact", "from"]), number: z.number() }).optional(),
+  allocations: z.array(z.object({ variantId: z.string(), amount: money })).optional(),
+});
+const promoResult = z.object({
+  code: z.string().optional(),
+  reason: z.enum(promoReasons).optional(),
+  missingMinor: money.optional(),
+  missingQuantity: z.number().optional(),
+  hint: z.object({ missingMinor: money, label: z.string() }).optional(),
+  telegramHint: z.boolean().optional(),
+  alternative: z
+    .object({
+      code: z.string(),
+      totalMinor: money,
+      reason: z.enum(promoReasons).optional(),
+      missingMinor: money.optional(),
+      missingQuantity: z.number().optional(),
+    })
+    .optional(),
+  nextChangeAt: z.number().optional(),
+});
 const cartIssue = z.object({
   variantId: z.string(),
   oldPriceMinor: money.optional(),
@@ -37,6 +78,8 @@ export const cartContract = z.object({
   count: z.number().int().nonnegative(),
   totalMinor: money,
   adjustments: z.array(cartAdjustment),
+  itemsMinor: money.optional(),
+  promo: promoResult.optional(),
   review: cartReview.optional(),
 });
 export type CartLine = z.infer<typeof cartLine>;

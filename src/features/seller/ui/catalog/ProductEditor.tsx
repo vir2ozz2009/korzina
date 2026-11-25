@@ -19,6 +19,7 @@ export function ProductEditor({
   storefront,
   initial,
   frame,
+  promoZone,
 }: {
   store: string;
   currency: string;
@@ -26,7 +27,9 @@ export function ProductEditor({
   storefront: string;
   initial?: SellerProduct;
   frame: CatalogFrame;
+  promoZone?: string;
 }) {
+  const promotion = promoZone ? { currency, zone: promoZone } : undefined;
   const editor = useProductEditor(store, currency, canWrite, initial);
   const {
     nav,
@@ -65,7 +68,7 @@ export function ProductEditor({
       onSave={saveProduct}
     >
       {editing ? (
-        <ProductVariantEditor editor={editor} canWrite={canWrite} editing={editing} />
+        <ProductVariantEditor editor={editor} canWrite={canWrite} editing={editing} promotion={promotion} />
       ) : (
         <>
           <ProductTextFields
@@ -81,7 +84,7 @@ export function ProductEditor({
           <Card className="space-y-3">
             <CatalogPhotos photos={photos} disabled={disabled} />
           </Card>
-          <ProductVariants editor={editor} canWrite={canWrite} currency={currency} />
+          <ProductVariants editor={editor} canWrite={canWrite} currency={currency} promotion={promotion} />
           <ProductStatusFields
             draft={text}
             disabled={disabled}

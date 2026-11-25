@@ -21,7 +21,10 @@ export function useProductEditor(store: string, currency: string, canWrite: bool
     () => initial?.variants.map((row) => variantDraft(currency, row)) ?? [variantDraft(currency)],
   );
   const [initialVariants] = useState(variants);
-  const [editing, setEditing] = useState<{ index: number; value: VariantDraft; nameError?: string }>();
+  const [editing, setEditing] = useState<{ index: number; value: VariantDraft; nameError?: string } | undefined>(() => {
+    const index = variants.findIndex((variant) => variant.id === nav.params.get("variant"));
+    return variants.length > 1 && index >= 0 ? { index, value: variants[index] } : undefined;
+  });
   const [pause, setPause] = useState<SellerProductInput["pause"]>();
   const [modal, setModal] = useState<Modal>();
   const [error, setError] = useState("");

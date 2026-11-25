@@ -2,7 +2,14 @@ import type { CatalogOffer, CatalogPageInput, CatalogTile } from "../../../src/s
 import { ApiError } from "../../../src/shared/errors";
 import { catalogImage, documentImage } from "./images";
 import { readNavigation } from "./navigation";
-import { documentCountQuery, documentQuery, liveQuery, matchingDocumentQuery, photosSql, productSql } from "./queries";
+import {
+  documentCountQuery,
+  documentQuery,
+  liveQuery,
+  matchingDocumentQuery,
+  photosSql,
+  productQuery,
+} from "./queries";
 import { readRecommendations } from "./recommendations";
 
 type Row = Record<string, SqlStorageValue>;
@@ -42,7 +49,7 @@ function asTiles(rows: TileRow[], shopId: string): CatalogTile[] {
   }));
 }
 
-export function readFavoriteTiles(storage: DurableObjectStorage, shopId: string, ids: string[]) {
+export function readFavoriteTiles(storage: DurableObjectStorage, shopId: string, ids: string[], promotions = false) {
   const query = matchingDocumentQuery({ limit: ids.length }, ids);
   const rows = ids.length ? storage.sql.exec<TileRow>(query.sql, ...query.params).toArray() : [];
   const items = asTiles(rows, shopId);
@@ -50,6 +57,7 @@ export function readFavoriteTiles(storage: DurableObjectStorage, shopId: string,
     storage,
     items.flatMap(({ variants }) => variants.map(({ id }) => id)),
     true,
+    promotions,
   );
   return { items, offers: offers.items, currency: offers.currency };
 }
@@ -85,8 +93,8 @@ export function readDocument(
   };
 }
 
-export function readLive(storage: DurableObjectStorage, ids: string[], includeSoldOut = false) {
-  const query = liveQuery(ids);
+export function readLive(storage: DurableObjectStorage, ids: string[], includeSoldOut = false, promotions = false) {
+  const query = liveQuery(ids, promotions);
   const rows = ids.length ? storage.sql.exec<LiveRow>(query.sql, ...query.params).toArray() : [];
   const state = storage.sql
     .exec<{ currency: string; hideOutOfStock: number; catalogVersion: number }>(
@@ -127,7 +135,13 @@ export function readLive(storage: DurableObjectStorage, ids: string[], includeSo
   };
 }
 
-export function readProduct(storage: DurableObjectStorage, id: string, shopId: string, origin: string) {
+export function readProduct(
+  storage: DurableObjectStorage,
+  id: string,
+  shopId: string,
+  origin: string,
+  promotions = false,
+) {
   const row = storage.sql
     .exec<
       Row & {
@@ -147,7 +161,7 @@ export function readProduct(storage: DurableObjectStorage, id: string, shopId: s
         hideOutOfStock: number;
         variants: string;
       }
-    >(productSql, id)
+    >(productQuery(promotions), id)
     .toArray()[0];
   if (!row) throw new ApiError("NOT_FOUND", "Товар больше недоступен");
   const variants = (JSON.parse(row.variants) as (Variant & { paused: number })[]).map(({ paused, ...v }) => ({
@@ -175,7 +189,7 @@ export function readProduct(storage: DurableObjectStorage, id: string, shopId: s
     categoryId: row.categoryId,
     brandId: row.brandName ? row.brandId : null,
     brandName: row.brandName,
-    recommendations: readRecommendations(storage, shopId, row),
+    recommendations: readRecommendations(storage, shopId, row, promotions),
     catalogVersion: row.catalogVersion,
     currency: row.currency,
     variants: row.hideOutOfStock ? variants.filter((v) => v.available) : variants,

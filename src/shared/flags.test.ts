@@ -10,13 +10,17 @@ function Entry() {
 
 describe("реестр функций и клиент", () => {
   it("addon по умолчанию выключен, включая ошибочный default: true; core не зарегистрирован", () => {
-    expect(resolveFeatures([])).toEqual({ cashback: false, maps: true });
+    expect(resolveFeatures([])).toEqual({ cashback: false, maps: true, promotions: false });
     expect(resolveFeatures([], [{ key: "addon", kind: "addon", default: true, description: "test" }])).toEqual({
       addon: false,
     });
     expect(flags.some((flag) => String(flag.key) === "catalog")).toBe(false);
-    expect(featureEnabled({ cashback: true, maps: true }, "unknown" as FeatureKey)).toBe(false);
-    expect(resolveFeatures([{ key: "removed", enabled: true }])).toEqual({ cashback: false, maps: true });
+    expect(featureEnabled({ cashback: true, maps: true, promotions: false }, "unknown" as FeatureKey)).toBe(false);
+    expect(resolveFeatures([{ key: "removed", enabled: true }])).toEqual({
+      cashback: false,
+      maps: true,
+      promotions: false,
+    });
   });
 
   it("rollout использует default; явный off побеждает true и явный on побеждает false", () => {
@@ -45,7 +49,7 @@ describe("реестр функций и клиент", () => {
             shop:
               enabled === undefined
                 ? undefined
-                : { id: enabled ? "a" : "b", features: { cashback: enabled, maps: true } },
+                : { id: enabled ? "a" : "b", features: { cashback: enabled, maps: true, promotions: false } },
           },
           createElement(Entry),
         ),

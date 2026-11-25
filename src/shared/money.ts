@@ -72,7 +72,7 @@ export function discountPercent(amount: number, oldAmount: number): number {
   return old > current ? Number(((old - current) * 100n) / old) : 0;
 }
 
-function currencyDigits(currency: string) {
+export function currencyDigits(currency: string) {
   return new Intl.NumberFormat("ru", { style: "currency", currency }).resolvedOptions().maximumFractionDigits ?? 2;
 }
 
@@ -90,4 +90,11 @@ export function parseMinorInput(value: string, currency: string) {
   if (!match || (match[2]?.length ?? 0) > digits) return;
   const minor = Number(match[1] + (match[2] ?? "").padEnd(digits, "0"));
   return Number.isSafeInteger(minor) ? minor : undefined;
+}
+
+export function fromBasisPoints(value: number) {
+  return value / 100;
+}
+export function toBasisPoints(value: string) {
+  return Math.round(Number(value.replace(",", ".")) * 100) || 0;
 }

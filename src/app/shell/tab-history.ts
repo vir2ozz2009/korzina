@@ -1,4 +1,11 @@
-const sellerRoots = ["/seller", "/seller/orders", "/seller/products", "/seller/money", "/seller/more"] as const;
+const sellerRoots = [
+  "/seller",
+  "/seller/orders",
+  "/seller/products",
+  "/seller/money",
+  "/seller/promotions",
+  "/seller/more",
+] as const;
 export function sellerTab(href: string) {
   const path = href.split(/[?#]/)[0];
   if (/^\/seller\/(?:categories|brands)(?:\/|$)/u.test(path)) return "/seller/products";

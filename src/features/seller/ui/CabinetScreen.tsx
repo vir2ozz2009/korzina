@@ -62,7 +62,7 @@ export function CabinetScreen() {
       template="form"
       after={
         query.data && !query.isError ? (
-          <SellerTabs store={current?.slug} permissions={current?.permissions} />
+          <SellerTabs store={current?.slug} permissions={current?.permissions} promotions={current?.promotions} />
         ) : undefined
       }
       header={

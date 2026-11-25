@@ -31,6 +31,10 @@ const variantInput = z.strictObject({
   name: z.string().trim().max(120),
   priceMinor: integer,
   oldPriceMinor: integer.nullable(),
+  promoDates: z
+    .object({ fromDate: z.iso.date().optional(), throughDate: z.iso.date().optional() })
+    .nullable()
+    .optional(),
   visible: z.boolean(),
   stock,
   stockBaseline: z.strictObject({ stock, revision: integer, purchased: integer }).optional(),
@@ -93,6 +97,8 @@ export type SellerVariant = {
   name: string;
   priceMinor: number;
   oldPriceMinor: number | null;
+  promoStartsAt?: number | null;
+  promoEndsAt?: number | null;
   stock: number | null;
   stockRevision: number;
   purchased: number;

@@ -13,12 +13,7 @@ export function quoteTerms(quote: PurchaseQuote) {
       priceMinor,
       totalMinor,
     })),
-    adjustments: (quote.adjustments ?? []).map(({ kind, sourceId, label, amount }) => ({
-      kind,
-      sourceId,
-      label,
-      amount,
-    })),
+    adjustments: quote.adjustments ?? [],
     itemsMinor: quote.itemsMinor,
     deliveryMinor: quote.deliveryMinor,
     totalMinor: quote.totalMinor,

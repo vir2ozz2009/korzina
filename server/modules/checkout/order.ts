@@ -10,6 +10,7 @@ import { executeCommand } from "../../shop/commands";
 import { acceptsCheckout, type ShopEnv } from "../../shop/env";
 import { removeOrderedLines } from "../cart/service";
 import { reserveTime } from "../fulfillment/availability";
+import { consumePromotion } from "../promo/cart";
 import type { ReservedOrder } from "./order-reservation";
 import { paymentOptions, selectedPayment } from "./payment-settings";
 import { loadQuote, purchaseDraft } from "./quote";
@@ -140,6 +141,7 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
         }),
       )
       .one();
+    consumePromotion(storage, number, order.adjustments, actor.kind === "telegram" ? subject : null);
     storage.sql.exec("INSERT INTO order_outbox(order_number,event,created_at) VALUES(?,'order.placed',?)", number, now);
     removeOrderedLines(storage, subject, cart, storedReceiving);
     env.changes.orderPlaced(number);

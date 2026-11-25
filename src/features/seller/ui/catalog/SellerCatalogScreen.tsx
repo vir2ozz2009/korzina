@@ -6,6 +6,7 @@ import { Screen } from "../../../../app/shell/Screen";
 import { SellerTabs } from "../../../../app/shell/SellerTabs";
 import { sellerHistory } from "../../../../app/shell/tab-history";
 import type { SellerGroupKind } from "../../../../shared/contracts/seller-catalog";
+import { defaultShopTimeZone } from "../../../../shared/datetime";
 import { HttpError } from "../../../../shared/http-error";
 import { Chip } from "../../../../ui/Chip";
 import { EmptyState } from "../../../../ui/EmptyState";
@@ -123,7 +124,11 @@ export function SellerCatalogScreen() {
           !editor &&
           cabinet.data?.current &&
           !cabinet.isError && (
-            <SellerTabs store={cabinet.data.current.slug} permissions={cabinet.data.current.permissions} />
+            <SellerTabs
+              store={cabinet.data.current.slug}
+              permissions={cabinet.data.current.permissions}
+              promotions={cabinet.data.current.promotions}
+            />
           )
         }
         footer={footer}
@@ -167,6 +172,7 @@ export function SellerCatalogScreen() {
       store={current.slug}
       storefront={current.storefrontUrl}
       account={cabinet.data.telegramId}
+      promoZone={current.promotions ? (current.timeZone ?? defaultShopTimeZone) : undefined}
       canReadSales={current.role === "owner" || (current.permissions?.includes("payments") ?? false)}
       type={type}
       id={id}
@@ -183,6 +189,7 @@ function CatalogContent({
   storefront,
   canReadSales,
   account,
+  promoZone,
 }: {
   store: string;
   type: "products" | SellerGroupKind | "showcase";
@@ -191,6 +198,7 @@ function CatalogContent({
   storefront: string;
   canReadSales: boolean;
   account: string;
+  promoZone?: string;
 }) {
   const access = useCatalogAccess(store);
   const visible = access.data;
@@ -217,6 +225,7 @@ function CatalogContent({
         store={store}
         id={id}
         currency={currency}
+        promoZone={promoZone}
         canWrite={canWrite}
         storefront={storefront}
         frame={withAccess}

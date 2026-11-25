@@ -11,6 +11,7 @@ import { releaseOrderReservation } from "../checkout/order-reservation";
 import { orderBalance, orderFinance, orderWorkflow } from "../checkout/order-workflow";
 import { closeTopUp, reviewTopUp } from "../checkout/top-up-proof";
 import { pendingComposition } from "../order-changes/state";
+import { releasePromotion } from "../promo/cart";
 import { correctMoneyOperation, recordMoneyOperation } from "../seller-money/ledger";
 import { refreshOrderSales } from "../seller-sales/projection";
 import { sellerOrder, sellerOrderRow, withoutSellerPaymentData } from "./order";
@@ -64,6 +65,7 @@ export function changeSellerOrder(
         const late = work.handedOff || (mode === "pickup" && (row.status === "ready" || work.readyForPickup));
         if (late && input.returnStock === undefined) throw new ApiError("VALIDATION", "Выберите, вернуть ли товар");
         releaseOrderReservation(storage, snapshot, !late || input.returnStock === true);
+        if (!work.handedOff) releasePromotion(storage, number);
       }
       finance = paymentForTransition(finance, snapshot, stage, input);
       if ("payment" in input && input.payment && input.payment.method !== "debt")

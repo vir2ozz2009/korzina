@@ -1,10 +1,13 @@
 import type { CatalogPageInput } from "../../../src/shared/contracts/catalog";
 
+import { effectivePrice } from "../promo/cart";
+
 // IS uses indexed OR seeks without the temporary IN btree (which adds N billed reads).
-export function liveQuery(ids: string[]) {
+export function liveQuery(ids: string[], promotions = false, now = Date.now()) {
+  const price = effectivePrice("v.", promotions, now);
   return {
-    sql: `SELECT v.id, v.product_id AS productId, v.price_minor AS priceMinor,
-  v.old_price_minor AS oldPriceMinor, v.stock, v.visible, v.product_available AS productAvailable, (v.product_paused OR v.sale_pause IS NOT NULL) AS paused
+    sql: `SELECT v.id, v.product_id AS productId, ${price.price} AS priceMinor,
+  ${price.old} AS oldPriceMinor, v.stock, v.visible, v.product_available AS productAvailable, (v.product_paused OR v.sale_pause IS NOT NULL) AS paused
   FROM variants v
   WHERE ${ids.length <= 80 ? ids.map(() => "v.id IS ?").join(" OR ") : "v.id IN (SELECT value FROM json_each(?))"}`,
     params: ids.length <= 80 ? ids : [JSON.stringify(ids)],
@@ -72,15 +75,19 @@ export const matchingDocumentQuery = (input: CatalogPageInput, ids: string[]) =>
   buildDocumentQuery(input, false, false, ids);
 export const documentCountQuery = (input: CatalogPageInput, hide = false) => buildDocumentQuery(input, true, hide);
 
-export const productSql = `SELECT p.id, p.name, p.description, p.ingredients, p.storage_notes AS storageNotes, p.recommendations,
+export const productQuery = (promotions = false, now = Date.now()) => {
+  const price = effectivePrice("", promotions, now);
+  return `SELECT p.id, p.name, p.description, p.ingredients, p.storage_notes AS storageNotes, p.recommendations,
   p.recommendation_ids AS recommendationIds, p.sale_pause AS salePause, p.category_id AS categoryId,
   p.brand_id AS brandId, (SELECT name FROM brands WHERE id=p.brand_id AND visible=1) AS brandName, s.version AS catalogVersion, s.currency, s.hide_out_of_stock AS hideOutOfStock,
-  (SELECT json_group_array(json_object('id',id,'name',name,'priceMinor',price_minor,
-    'oldPriceMinor',old_price_minor,'stock',stock,'photoId',photo_id,'paused',sale_pause IS NOT NULL))
-    FROM (SELECT id,name,price_minor,old_price_minor,stock,photo_id,sale_pause FROM variants
+  (SELECT json_group_array(json_object('id',id,'name',name,'priceMinor',${price.price},
+    'oldPriceMinor',${price.old},'stock',stock,'photoId',photo_id,'paused',sale_pause IS NOT NULL))
+    FROM (SELECT id,name,price_minor,old_price_minor,promo_starts_at,promo_ends_at,stock,photo_id,sale_pause FROM variants
       WHERE product_id=p.id AND visible=1 ORDER BY position,id)) AS variants
   FROM products p CROSS JOIN catalog_state s
   WHERE p.id=? AND p.published=1 AND p.visible=1 AND s.id=1`;
+};
+export const productSql = productQuery();
 
 export const photosSql = `SELECT pp.media_id AS id,m.edge_color AS edgeColor,m.content_box AS contentBox,m.crop_position AS cropPosition,m.width,m.height FROM product_photos pp JOIN media m ON m.id=pp.media_id
   WHERE pp.product_id=? AND m.status='attached' AND m.ready=1 ORDER BY pp.position`;

@@ -124,7 +124,7 @@ export function sellerProduct(storage: DurableObjectStorage, shopId: string, id:
   const variants = storage.sql
     .exec<Omit<SellerVariant, "visible"> & { visible: number }>(
       `
-    SELECT id,name,price_minor AS priceMinor,old_price_minor AS oldPriceMinor,visible,stock,stock_revision AS stockRevision,
+    SELECT id,name,price_minor AS priceMinor,old_price_minor AS oldPriceMinor,promo_starts_at AS promoStartsAt,promo_ends_at AS promoEndsAt,visible,stock,stock_revision AS stockRevision,
     purchased,sale_pause AS salePause FROM variants WHERE product_id=? ORDER BY position,id`,
       id,
     )

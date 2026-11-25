@@ -2,6 +2,7 @@ import { ApiError } from "../../../src/shared/errors";
 import type { CommandIdentity } from "../../middleware/idempotency";
 import { executeCommand } from "../../shop/commands";
 import type { ShopEnv } from "../../shop/env";
+import { releasePromotion } from "../promo/cart";
 import { buyerOrder, buyerOrderRow, unpackOrder } from "./buyer-orders";
 import { releaseOrderReservation } from "./order-reservation";
 import { orderBalance, orderFinance, orderWorkflow } from "./order-workflow";
@@ -37,6 +38,7 @@ export function cancelBuyerOrder(
     const finance = orderFinance(work, snapshot, row.payment_status);
     const { refundMinor } = orderBalance(finance, snapshot.totalMinor, "cancelled");
     releaseOrderReservation(storage, snapshot, true);
+    releasePromotion(storage, number);
     const fulfillment_state = JSON.stringify({ ...work, finance, refundMinor, debtMinor: 0 });
     storage.sql.exec(
       "UPDATE orders SET status='cancelled',version=version+1,fulfillment_state=? WHERE number=?",

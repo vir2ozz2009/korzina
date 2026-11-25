@@ -49,6 +49,7 @@ function attachGuest(env: ShopEnv["Bindings"], session: Awaited<ReturnType<typeo
   mergeBuyer(env.storage, session.subject, target, {
     id: env.shop.id,
     mediaOrigin: env.media.MEDIA_PUBLIC_URL,
+    promotions: env.features.promotions,
   });
   env.storage.sql.exec("DELETE FROM sessions WHERE subject=? AND kind='guest'", session.subject);
 }
