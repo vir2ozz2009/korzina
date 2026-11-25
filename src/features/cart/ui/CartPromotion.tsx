@@ -49,7 +49,7 @@ export function CartPromotion({
   const [candidate, setCandidate] = useState<NonNullable<Cart["promo"]>["alternative"]>();
   const [error, setError] = useState("");
   const key = useRef<{ value: string; key: string }>(undefined);
-  const trigger = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
   const field = useRef<HTMLFormElement>(null);
   const mutation = usePromoCart();
   const { promo } = cart;
@@ -89,22 +89,21 @@ export function CartPromotion({
   };
   return (
     <>
-      <div ref={trigger} tabIndex={-1}>
-        <Button
-          full
-          variant="secondary"
-          icon={<Tag size={18} />}
-          disabled={disabled}
-          onClick={() => {
-            setInput("");
-            setError("");
-            setCandidate(undefined);
-            setMode(promo?.alternative ? "compare" : promo?.code ? "actions" : "edit");
-          }}
-        >
-          {promo?.code ?? "Промокод"}
-        </Button>
-      </div>
+      <Button
+        ref={trigger}
+        full
+        variant="secondary"
+        icon={<Tag size={18} />}
+        disabled={disabled}
+        onClick={() => {
+          setInput("");
+          setError("");
+          setCandidate(undefined);
+          setMode(promo?.alternative ? "compare" : promo?.code ? "actions" : "edit");
+        }}
+      >
+        {promo?.code ?? "Промокод"}
+      </Button>
       {promo?.alternative && <p className="text-caption">Выберите код для объединённой корзины</p>}
       {message(promo, currency) && <p className="text-caption text-muted-foreground">{message(promo, currency)}</p>}
       {promo?.telegramHint && (
@@ -117,6 +116,7 @@ export function CartPromotion({
       )}
       <Sheet
         open={!!mode}
+        unmountOnClose
         onOpenChange={(open) => {
           if (!open && !mutation.isPending) close();
         }}

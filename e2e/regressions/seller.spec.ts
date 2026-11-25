@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import type { OrderStage } from "../../src/shared/contracts/buyer-order";
+import { checkPromoReportRevocation } from "../promo-report-revocation";
 import {
   anywhere,
   cabinet,
@@ -134,3 +135,7 @@ test("Блок 7 · пауза приёма видна на витрине и с
     await resume(seller.request);
   }
 });
+
+test("12.1 §11 · K4c: 403 закрывает отчёт, суммы и детализацию", { tag: "@regression" }, ({ page }) =>
+  checkPromoReportRevocation(page),
+);

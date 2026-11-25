@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { useCallback, useEffect, useState } from "react";
 import type { PromoOffer } from "../../../../shared/contracts/promo";
 import { calendarDate, shopDateTime } from "../../../../shared/datetime";
+import { errorKind } from "../../../../shared/http-error";
 import { formatMinor } from "../../../../shared/money";
 import { Button } from "../../../../ui/Button";
 import { Card } from "../../../../ui/Card";
@@ -8,23 +10,25 @@ import { Input } from "../../../../ui/Input";
 import { ListItem } from "../../../../ui/ListItem";
 import { SkeletonBlock } from "../../../../ui/SkeletonBlock";
 import { promoRequest, type Report } from "./api";
-import { useReportFilters } from "./filter-state";
+import { clearReportFilters, useReportFilters } from "./filter-state";
 
-export function PromoResults({
-  offer,
-  store,
-  account,
-  currency,
-  zone,
-  openOrder,
-}: {
+type Props = {
   offer: PromoOffer;
   store: string;
   account: string;
   currency: string;
   zone: string;
   openOrder: (number: number) => void;
-}) {
+};
+
+export function PromoResults(props: Props) {
+  const [denied, setDenied] = useState(false);
+  const closeReport = useCallback(() => setDenied(true), []);
+  if (denied) return <Card role="alert">Доступ к результатам ограничен</Card>;
+  return <PromoReport {...props} onDenied={closeReport} />;
+}
+
+function PromoReport({ offer, store, account, currency, zone, openOrder, onDenied }: Props & { onDenied: () => void }) {
   const { period, setPeriod, custom, setCustom, offset, setOffset, detail, setDetail } = useReportFilters(
     store,
     account,
@@ -42,7 +46,17 @@ export function PromoResults({
       offer.status !== "scheduled" &&
       (period !== "custom" || (!!custom.from && !!custom.through)),
     retry: false,
+    // Do not reuse a report from a different period or a previous visit without a new access check.
+    gcTime: 0,
+    refetchOnWindowFocus: "always",
   });
+  const denied = errorKind(query.error) === "access";
+  useEffect(() => {
+    if (!denied) return;
+    clearReportFilters(store, account, offer.id);
+    onDenied();
+  }, [denied, onDenied, store, account, offer.id]);
+  if (denied) return null;
   return (
     <Card className="space-y-3">
       <h2 className="text-title-3">Результаты</h2>
@@ -100,7 +114,8 @@ export function PromoResults({
               </Button>
             </p>
           )}
-          {query.data &&
+          {!query.isError &&
+            query.data &&
             (query.data.orderCount ? (
               <>
                 <ListItem title="Заказы с акцией" value={query.data.orderCount} onClick={() => setDetail(!detail)} />

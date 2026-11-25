@@ -1,5 +1,5 @@
 import { LoaderCircle } from "lucide-react";
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ComponentPropsWithRef, ReactNode } from "react";
 import { interactive } from "./interactive";
 
 const variants = {
@@ -14,7 +14,7 @@ const sizes = {
   lg: "min-h-(--control-lg) text-label",
   xl: "min-h-(--control-xl) text-title-3 font-bold",
 };
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends ComponentPropsWithRef<"button"> {
   variant?: keyof typeof variants;
   size?: keyof typeof sizes;
   full?: boolean;
