@@ -18,11 +18,16 @@ async function prepareOrder(page: Page, seller: Page, rememberOrder: (number: nu
   if (!process.env.E2E_BASE_URL) {
     await configure(seller.request, { delivery: anywhere, requiredDetails: [], minimumMinor: 120000 });
     await resume(seller.request);
-    await hours(seller.request, "after_order");
   }
-  const order = await placeOrder(page);
-  rememberOrder(order.number);
-  return transition(seller.request, order.number, { action: "accept" });
+  // The fixture does not select a pickup slot. Demo normally requires one.
+  await hours(seller.request, "after_order");
+  try {
+    const order = await placeOrder(page);
+    rememberOrder(order.number);
+    return await transition(seller.request, order.number, { action: "accept" });
+  } finally {
+    await hours(seller.request, "2");
+  }
 }
 
 test("Блок 11 · сценарий 10 повторяет потерянную оплату, но отдельно записывает новую на ту же сумму", {
