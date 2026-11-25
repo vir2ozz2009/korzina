@@ -81,7 +81,7 @@ export function promoConditions(terms: PromoTerms, currency: string, scope?: str
     .join(" · ");
 }
 
-export const promoTile = `${interactive} block w-full rounded-xl bg-card p-4 text-left`;
+const promoTile = `${interactive} block w-full rounded-xl bg-card p-4 text-left`;
 export function OfferTile({ offer, currency, onClick }: { offer: PromoOffer; currency: string; onClick: () => void }) {
   const { terms } = offer;
   const Icon = terms.kind === "code" ? Tag : Percent;
