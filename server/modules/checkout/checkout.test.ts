@@ -139,8 +139,8 @@ it("чек связывается один раз с исходной суммо
   );
   expect(response.status).toBe(201);
   const metrics: SqlMetrics = JSON.parse(response.headers.get("x-korzina-sql") ?? "null");
-  // The seller projection and revision are updated by the same INSERT as the new order.
-  assertSqlBudget(metrics, { sql: 15, rowsRead: 35, rowsWritten: 22 });
+  // The seller projection, revision and one partial-index entry for the unchecked receipt share the INSERT.
+  assertSqlBudget(metrics, { sql: 15, rowsRead: 35, rowsWritten: 23 });
   expect(await response.json()).toMatchObject({
     paymentStatus: "pending_review",
     totalMinor: 135000,

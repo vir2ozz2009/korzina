@@ -98,9 +98,13 @@ function transferOrdersAndReceipts(storage: DurableObjectStorage, from: string, 
     `UPDATE media SET owner=?,request_key='order:'||id WHERE owner=? AND id IN (
        SELECT proof_media_id FROM orders WHERE customer=?
        UNION ALL SELECT h.media_id FROM order_receipt_history h JOIN orders o ON o.number=h.order_number WHERE o.customer=?
+       UNION ALL SELECT json_extract(fulfillment_state,'$.topUp.proof') FROM orders WHERE customer=?
+       UNION ALL SELECT json_extract(fulfillment_state,'$.finance.refund.details.mediaId') FROM orders WHERE customer=?
      )`,
     to,
     from,
+    to,
+    to,
     to,
     to,
   );

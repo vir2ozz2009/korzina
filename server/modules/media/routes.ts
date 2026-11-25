@@ -65,6 +65,7 @@ export const mediaRoutes = new Hono<MediaRouterEnv>()
   })
   .get("/:id/link", async (c) => {
     const record = findMedia(c.env, c.req.param("id"));
+    if (record.purpose === "refund") throw new ApiError("NOT_FOUND", "Откройте файл из заказа");
     const actor = c.get("actor");
     assertRead(actor, record);
     const expires = Date.now() + 300_000;
@@ -77,6 +78,7 @@ export const mediaRoutes = new Hono<MediaRouterEnv>()
   })
   .get("/:id/file", async (c) => {
     const record = findMedia(c.env, c.req.param("id"));
+    if (record.purpose === "refund") throw new ApiError("NOT_FOUND", "Откройте файл из заказа");
     const actor = c.get("actor");
     assertRead(actor, record);
     await verifyMedia(
@@ -118,13 +120,17 @@ export const mediaRoutes = new Hono<MediaRouterEnv>()
         assertRead(actor, record);
         if (record.purpose === "chat" && (input.action === "attach" || record.status === "attached"))
           throw new ApiError("FORBIDDEN", "Фото привязывается к сообщению");
+        if (record.purpose === "refund" && (input.action === "attach" || record.status === "attached"))
+          throw new ApiError("FORBIDDEN", "QR привязывается к возврату");
         if (actor.id !== record.owner) throw new ApiError("FORBIDDEN", "Изменять файл может только его владелец");
         if (
           record.purpose === "receipt" &&
           record.status === "attached" &&
           c.env.storage.sql
             .exec(
-              "SELECT 1 FROM orders WHERE proof_media_id=? UNION ALL SELECT 1 FROM order_receipt_history WHERE media_id=? LIMIT 1",
+              `SELECT 1 FROM orders WHERE proof_media_id=? OR json_extract(fulfillment_state,'$.topUp.proof')=?
+               UNION ALL SELECT 1 FROM order_receipt_history WHERE media_id=? LIMIT 1`,
+              record.id,
               record.id,
               record.id,
             )

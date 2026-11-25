@@ -151,6 +151,7 @@ export function useSellerOrderCommand(store: string) {
         previous && previous.revision > order.revision ? previous : order,
       );
       void client.invalidateQueries(affected);
+      void client.invalidateQueries({ queryKey: ["seller-money", store] });
     },
     onError: (error, { number }) => {
       if (error instanceof HttpError && (error.status === 409 || error.status === 403))
@@ -159,8 +160,14 @@ export function useSellerOrderCommand(store: string) {
   });
 }
 
-export async function sellerReceiptFile(store: string, number: number, id: string, signal: AbortSignal) {
-  return (await request(store, `/${number}/receipts/${id}`, {}, { signal })).blob();
+export async function sellerReceiptFile(
+  store: string,
+  number: number,
+  id: string,
+  signal: AbortSignal,
+  kind = "receipts",
+) {
+  return (await request(store, `/${number}/${kind}/${id}`, {}, { signal })).blob();
 }
 
 export async function sellerOrdersSocket(store: string, signal: AbortSignal) {

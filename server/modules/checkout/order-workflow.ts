@@ -1,6 +1,7 @@
 import type { OrderStage, PaymentState } from "../../../src/shared/contracts/buyer-order";
 import type { OrderSnapshot } from "../../../src/shared/contracts/checkout";
 import type { CompositionChange, TimeChange } from "../../../src/shared/contracts/order-changes";
+import type { RefundDetails, TopUpConfirmation } from "../../../src/shared/contracts/order-refund";
 import type { RecordedPayment, SalesRefund } from "../../../src/shared/contracts/seller-order";
 import type { PaymentOption } from "../../../src/shared/contracts/seller-payments";
 import { addMinor, subtractMinor } from "../../../src/shared/money";
@@ -9,6 +10,7 @@ export type OrderWorkflow = {
   composition?: CompositionChange;
   timeChange?: TimeChange;
   topUpPayment?: PaymentOption;
+  topUp?: TopUpConfirmation;
   packed?: string[];
   handedOff?: boolean;
   readyForPickup?: boolean;
@@ -17,6 +19,7 @@ export type OrderWorkflow = {
     latestPayment?: RecordedPayment;
     returnedMinor: number;
     salesRefund?: SalesRefund;
+    refund?: { id: string; remainingMinor?: number; details?: RefundDetails; detailsAt?: number };
     waivedMinor: number;
     debtOpened: boolean;
     receiptReason?: string;
@@ -57,7 +60,7 @@ export function orderBalance(finance: NonNullable<OrderWorkflow["finance"]>, tot
     paidMinor: finance.paidMinor,
     outstandingMinor,
     debtMinor: finance.debtOpened ? outstandingMinor : 0,
-    refundMinor,
+    refundMinor: finance.refund?.remainingMinor ?? refundMinor,
     latestPayment: finance.latestPayment,
     receiptReason: finance.receiptReason,
   };
