@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import type { PromoOffer, PromoTerms } from "../src/shared/contracts/promo";
+import { exerciseVariantSave } from "./promo-variant-save";
 
 const draft: PromoOffer = {
   id: "weekend",
@@ -230,5 +231,11 @@ for (const width of [360, 390]) {
     await click("Как увидит покупатель");
     await expect(preview.getByText(/89\D000/).first()).toBeVisible();
     await expect(preview.getByText(/116\D000/).first()).toBeVisible();
+    if (width === 390) {
+      await preview.getByRole("button", { name: "Изменить" }).click();
+      await page.getByLabel("Цена по акции", { exact: true }).fill("88000");
+      await click("Как увидит покупатель");
+      await exerciseVariantSave(page, preview);
+    }
   });
 }

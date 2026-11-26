@@ -72,6 +72,8 @@ export async function openCart(page: Page, api: ReturnType<typeof captureApi>, r
     "GET /api/auth/contact",
     "GET /api/receiving",
     "GET /api/checkout/summary",
+    // Public offers load once for a settled cart, separately from the purchase summary.
+    "GET /api/cart/promotions",
     ...(review ? ["GET /api/checkout/summary"] : []),
     ...(localWorker(page) ? ["GET /api/auth/contact", "GET /api/receiving", "GET /api/checkout/summary"] : []),
   ]);

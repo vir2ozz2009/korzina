@@ -50,7 +50,7 @@ export function CartScreen() {
   const method = receiving.data ? activeReceiving(receiving.data) : undefined;
   const promotion = usePromoCart();
   const publicQuery = usePublicCartPromos(
-    query.data?.promo && available.length ? query.data.revision : undefined,
+    !opening && !cart?.review && query.data?.promo && available.length ? query.data.revision : undefined,
     !!contact.data?.telegramLinked,
   );
   return (

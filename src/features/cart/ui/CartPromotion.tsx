@@ -186,6 +186,8 @@ export function CartPromotion({
                     offer.id,
                   );
               }}
+              retry={publicOffers.failed ? publicOffers.refresh : undefined}
+              manual={() => setMode("edit")}
               pending={mutation.isPending}
             />
           )}

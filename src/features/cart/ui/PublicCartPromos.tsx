@@ -19,6 +19,8 @@ export function PublicCartPromos({
   open,
   apply,
   pending,
+  manual,
+  retry,
 }: {
   offers: PublicPromo[];
   selected?: string;
@@ -27,25 +29,41 @@ export function PublicCartPromos({
   open: (id: string) => void;
   apply: (offer: PublicPromo) => void;
   pending: boolean;
+  manual: () => void;
+  retry?: () => void;
 }) {
   const money = (value: number) => formatMinor(value, currency);
   const benefit = ({ discount }: PublicPromo) =>
     discount.type === "fixed" ? money(discount.value) : `${fromBasisPoints(discount.value)}%`;
   const offer = offers.find(({ id }) => id === selected);
-  if (selected && !offer) return <p role="status">Акция больше недоступна. Проверьте условия.</p>;
-  if (!offer) {
-    return offers.length > 0 ? (
-      offers.map((item) => (
-        <ListItem
-          key={item.id}
-          variant="compact"
-          title={item.name}
-          subtitle={`Скидка ${benefit(item)}`}
-          onClick={() => open(item.id)}
-        />
-      ))
-    ) : (
-      <p>Пока нет доступных акций</p>
+  if (selected && !offer && !retry) return <p role="status">Акция больше недоступна. Проверьте условия.</p>;
+  if (!offer || retry) {
+    return (
+      <>
+        {retry ? (
+          <>
+            <p role="status">Акции пока недоступны. Промокод можно ввести вручную.</p>
+            <Button full variant="secondary" onClick={retry}>
+              Повторить
+            </Button>
+          </>
+        ) : offers.length ? (
+          offers.map((item) => (
+            <ListItem
+              key={item.id}
+              variant="compact"
+              title={item.name}
+              subtitle={`Скидка ${benefit(item)}`}
+              onClick={() => open(item.id)}
+            />
+          ))
+        ) : (
+          <p>Пока нет доступных акций</p>
+        )}
+        <Button full variant="secondary" onClick={manual}>
+          Ввести промокод
+        </Button>
+      </>
     );
   }
   const { discount, scopeNames, minimumMinor, minimumQuantity, fromDate, throughDate, purchase } = offer;
