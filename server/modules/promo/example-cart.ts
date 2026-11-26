@@ -2,13 +2,15 @@ import type { z } from "zod";
 import { cartTotals } from "../../../src/shared/cart-totals";
 import type { promoExampleInput } from "../../../src/shared/contracts/promo";
 import { defaultShopTimeZone } from "../../../src/shared/datetime";
+import { ApiError } from "../../../src/shared/errors";
 import { addMinor, formatMinor } from "../../../src/shared/money";
 import type { ShopEnv } from "../../shop/env";
 import { toLine } from "../cart/quote";
 import { publicFulfillment, readFulfillment } from "../fulfillment/service";
-import { calculatePromo, promoLabel } from "./calculate";
+import { type Candidate, calculatePromo, promoLabel } from "./calculate";
 import { effectivePrice } from "./cart";
 import { datesFor, validateTerms } from "./offers";
+import { assessPublicCandidates, describePublicPromos } from "./public-cart";
 
 export function exampleCart(env: ShopEnv["Bindings"], input: z.infer<typeof promoExampleInput>, now = Date.now()) {
   const { terms, lines, completed, confirmed, enteredCode } = input;
@@ -41,10 +43,21 @@ export function exampleCart(env: ShopEnv["Bindings"], input: z.infer<typeof prom
     ...cartTotals(rows.map((row) => toLine({ ...row, photo: row.photo ? JSON.parse(row.photo) : null }, source))),
   };
   const status = end !== null && end <= now ? "ended" : start !== null && start > now ? "scheduled" : "active";
+  const candidate: Candidate = { id: "example", revision: 0, terms, used: 0, personalUsed: 0, status };
+  const buyer = { confirmed, completed, exactUsed: false };
+  const publicOffers = terms.publicInCart ? assessPublicCandidates([candidate], cart, buyer) : [];
+  if (
+    input.publicOfferId &&
+    !publicOffers.some(
+      ({ offer, result }) => offer.id === input.publicOfferId && offer.terms.code === enteredCode && !result.reason,
+    )
+  ) {
+    throw new ApiError("VALIDATION", "Акция больше недоступна. Проверьте условия.");
+  }
   const priced = calculatePromo(
     cart,
-    [{ id: "example", revision: 0, terms, used: 0, personalUsed: 0, status }],
-    { confirmed, completed, exactUsed: false },
+    [candidate],
+    buyer,
     (value) => promoLabel(value, (amount) => formatMinor(amount, currency)),
     enteredCode ?? undefined,
   );
@@ -64,6 +77,8 @@ export function exampleCart(env: ShopEnv["Bindings"], input: z.infer<typeof prom
   const deliveryMinor = method === "pickup" ? 0 : null;
   return {
     ...priced,
+    publicOffers: describePublicPromos(env.storage, publicOffers),
+    timeZone: env.timeZone ?? defaultShopTimeZone,
     fulfillment,
     method,
     deliveryMinor,

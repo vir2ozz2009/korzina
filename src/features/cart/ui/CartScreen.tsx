@@ -1,12 +1,10 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useToast } from "../../../app/shell/ToastProvider";
 import { useBack } from "../../../app/shell/useBack";
 import { telegramLaunch } from "../../../app/telegram/launch";
 import { shopTimeZone } from "../../../shared/shop-api";
 import { Button } from "../../../ui/Button";
-import { Card } from "../../../ui/Card";
 import { StickyFooter } from "../../../ui/StickyFooter";
 import { CartContinue, usePurchaseSummary } from "../../checkout";
 import { ContactSheet, useContact } from "../../contact";
@@ -14,6 +12,7 @@ import { activeReceiving, CartShipping, useReceiving } from "../../receiving";
 import { useConfirmCart, usePromoCart, usePublicCartPromos } from "../api";
 import { useCart } from "../CartProvider";
 import { cartSnapshot } from "../snapshot";
+import { CartSignIn } from "./CartSignIn";
 import { CartView } from "./CartView";
 import { usePromoRefresh } from "./usePromoRefresh";
 
@@ -86,18 +85,7 @@ export function CartScreen() {
               setOpen={setAddressOpen}
             />
             {!telegramLaunch && contact.data && !contact.data.phone && !contact.data.telegramLinked && (
-              <Card className="text-center">
-                <Button full icon={<Send size={16} />} onClick={() => setContactMode("telegram")}>
-                  Войти через Telegram
-                </Button>
-                <button
-                  type="button"
-                  className="min-h-8 text-caption text-muted-foreground underline"
-                  onClick={() => setContactMode("phone")}
-                >
-                  У меня нет Telegram
-                </button>
-              </Card>
+              <CartSignIn onTelegram={() => setContactMode("telegram")} onPhone={() => setContactMode("phone")} />
             )}
           </>
         )

@@ -1,6 +1,6 @@
 import type { Cart } from "../../../src/shared/contracts/cart";
 import type { PublicPromo } from "../../../src/shared/contracts/promo";
-import { assess } from "./calculate";
+import { assess, type Buyer, type Candidate } from "./calculate";
 import { promoContext } from "./cart";
 
 export function publicCartPromos(
@@ -19,6 +19,10 @@ export function publicCartPromos(
     true,
     id,
   );
+  return assessPublicCandidates(candidates, cart, buyer);
+}
+
+export function assessPublicCandidates(candidates: Candidate[], cart: Cart, buyer: Buyer) {
   const lines = cart.lines.filter((line) => line.available && line.quantity > 0);
   return candidates.flatMap((offer) => {
     const result = assess(offer, lines, buyer);
@@ -33,7 +37,13 @@ export function listPublicCartPromos(
   cart: Cart,
   now: number,
 ): PublicPromo[] {
-  const publicOffers = publicCartPromos(storage, customer, cart, now);
+  return describePublicPromos(storage, publicCartPromos(storage, customer, cart, now));
+}
+
+export function describePublicPromos(
+  storage: DurableObjectStorage,
+  publicOffers: ReturnType<typeof assessPublicCandidates>,
+): PublicPromo[] {
   const scopes = publicOffers.flatMap(
     ({
       offer: {

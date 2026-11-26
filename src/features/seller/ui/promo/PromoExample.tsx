@@ -5,7 +5,7 @@ import { formatMinor } from "../../../../shared/money";
 import { Button } from "../../../../ui/Button";
 import { Input } from "../../../../ui/Input";
 import { Switch } from "../../../../ui/Switch";
-import { CartView } from "../../../cart";
+import { CartSignIn, CartView } from "../../../cart";
 import { CartContinueButton } from "../../../checkout";
 import { CartShippingView } from "../../../receiving";
 import { example, type PromoCatalog } from "./api";
@@ -36,7 +36,7 @@ export function PromoExample({
   const [error, setError] = useState(false);
   const [retryNumber, retry] = useState(0);
   const request = useCallback(
-    (code: string | null, signal?: AbortSignal) =>
+    (code: string | null, signal?: AbortSignal, publicOfferId?: string) =>
       example(
         store,
         {
@@ -44,6 +44,7 @@ export function PromoExample({
           confirmed,
           completed,
           enteredCode: code,
+          publicOfferId,
           receiving,
           lines: Object.entries(lines).flatMap(([variantId, quantity]) => (quantity ? [{ variantId, quantity }] : [])),
         },
@@ -151,38 +152,43 @@ export function PromoExample({
         shipping={null}
         method={cart?.method}
         total={cart && { totalMinor: cart.payableMinor, deliveryMinor: cart.deliveryMinor }}
+        publicOffers={cart && { offers: cart.publicOffers, zone: cart.timeZone, failed: false, refresh: refetch }}
         before={
           cart && (
-            <CartShippingView
-              data={{
-                ...cart.fulfillment,
-                receiving: cart.method === "pickup" ? { mode: "pickup" } : null,
-                availability: null,
-              }}
-              blocked={blocked}
-              choose={setReceiving}
-            />
+            <>
+              <CartShippingView
+                data={{
+                  ...cart.fulfillment,
+                  receiving: cart.method === "pickup" ? { mode: "pickup" } : null,
+                  availability: null,
+                }}
+                blocked={blocked}
+                choose={setReceiving}
+              />
+              {!confirmed && <CartSignIn />}
+            </>
           )
         }
         footer={
-          cart &&
+          cart?.fulfillment.acceptingOrders &&
           currency && (
             <CartContinueButton
               disabled
               amount={formatMinor(cart.payableMinor, currency)}
-              subtitle={cart.method === "delivery" ? "Укажите адрес доставки" : undefined}
+              needsAddress={cart.method === "delivery"}
+              needsContact={!confirmed}
             />
           )
         }
         promotion={{
-          isPending: pending,
+          isPending: blocked,
           mutateAsync: async ({ input }) => {
             if (applying.current || checking) throw new Error("Проверяем корзину…");
             applying.current = true;
             setPending(true);
             try {
               const code = "code" in input ? input.code : input.promoAction === "remove" ? null : enteredCode.current;
-              const result = await request(code);
+              const result = await request(code, undefined, "publicOfferId" in input ? input.publicOfferId : undefined);
               const reason = result.promo?.reason;
               if (code && (reason === "unknown" || reason === "expired" || reason === "scheduled"))
                 throw new HttpError(400, "Промокод не применён", "VALIDATION", { promo: result.promo });

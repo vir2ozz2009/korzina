@@ -1,121 +1,12 @@
 import { expect, type Page, test } from "@playwright/test";
-import type { PromoOffer } from "../src/shared/contracts/promo";
+import { exampleFixture, storefrontFixture } from "./promo-cart-fixture";
 
-const offer: PromoOffer = {
-  id: "proba",
-  revision: 1,
-  status: "draft",
-  used: 0,
-  orders: 0,
-  savingsMinor: 0,
-  terms: {
-    name: "Скидка к выходным",
-    kind: "code",
-    code: "PROBA10",
-    discount: { type: "percent", value: 1000 },
-    scope: { type: "all" },
-    confirmed: false,
-    minimumMinor: 40_000,
-  },
-};
-const products = [
-  { id: "tomato", name: "500 г", productName: "Томаты розовые", priceMinor: 8000 },
-  { id: "berry", name: "250 г", productName: "Клубника", priceMinor: 28000 },
-  { id: "cucumber", name: "500 г", productName: "Огурцы", priceMinor: 6500 },
-];
-const pickup = { address: "Москва, ул. Садовая, 7", hours: "Ежедневно, 09:00–20:00" };
 const money = (value: number) => new RegExp(`${value.toLocaleString("ru-RU").replace(/\s/gu, "\\s")}\\s*₽`);
-
-async function exampleFixture(page: Page) {
-  const shop = { id: "test-shop", slug: "test2", name: "Korzina", promotions: true, permissions: ["catalog"] };
-  const writes: string[] = [];
-  await page.route(/\/api\/(cart|checkout|quote|receiving|orders)(\/|\?|$)/, (route) => {
-    writes.push(new URL(route.request().url()).pathname);
-    return route.fulfill({ status: 500 });
-  });
-  await page.route(/\/api\/seller\/cabinet(?:\?|$)/, (route) =>
-    route.fulfill({ json: { telegramId: "fixture", current: shop, shops: [shop] } }),
-  );
-  await page.route(/\/api\/seller\/promotions(?:\/[^?]+)?(?:\?|$)/, (route) => {
-    const pathname = new URL(route.request().url()).pathname;
-    if (pathname.endsWith("/proba")) return route.fulfill({ json: { ...offer, currency: "RUB" } });
-    if (pathname.endsWith("/catalog"))
-      return route.fulfill({
-        json: { variants: products.map((product) => ({ ...product, productId: product.id })), categories: [] },
-      });
-    if (pathname.endsWith("/report")) return route.fulfill({ status: 503 });
-    if (!pathname.endsWith("/example"))
-      return route.fulfill({
-        json: { offers: [offer], prices: [], currency: "RUB", nextOffset: null },
-      });
-    const { enteredCode, lines } = route.request().postDataJSON() as {
-      enteredCode: string | null;
-      lines: { variantId: string; quantity: number }[];
-    };
-    const base = lines.reduce(
-      (sum, line) => sum + (products.find(({ id }) => id === line.variantId)?.priceMinor ?? 0) * line.quantity,
-      0,
-    );
-    const applied = enteredCode === "PROBA10" && base >= 40_000;
-    const adjustments = applied
-      ? [
-          {
-            kind: "promotion",
-            sourceId: "example",
-            label: "По промокоду PROBA10",
-            amount: -base / 10,
-            allocations: lines.map(({ variantId, quantity }) => ({
-              variantId,
-              amount: ((products.find(({ id }) => id === variantId)?.priceMinor ?? 0) * quantity) / 10,
-            })),
-          },
-        ]
-      : [];
-    const totalMinor = base - (applied ? base / 10 : 0);
-    const result = lines.map(({ variantId, quantity }) => {
-      const product = products.find(({ id }) => id === variantId);
-      if (!product) throw new Error("Неизвестный тестовый товар");
-      return {
-        variantId,
-        productId: variantId,
-        name: product.productName,
-        unit: product.name,
-        quantity,
-        stock: 15,
-        available: true,
-        priceMinor: product.priceMinor,
-        totalMinor: product.priceMinor * quantity * (applied ? 0.9 : 1),
-      };
-    });
-    return route.fulfill({
-      json: {
-        lines: result,
-        itemsMinor: base,
-        totalMinor,
-        payableMinor: totalMinor,
-        adjustments,
-        revision: 0,
-        currency: "RUB",
-        promo: enteredCode
-          ? {
-              code: enteredCode,
-              reason: applied ? "applied" : enteredCode === "PROBA10" ? "minimum" : "unknown",
-              missingMinor: Math.max(0, 40_000 - base),
-            }
-          : {},
-        fulfillment: { pickup, delivery: { mode: "text", payee: "shop" }, acceptingOrders: true },
-        method: "pickup",
-        deliveryMinor: 0,
-      },
-    });
-  });
-  return writes;
-}
 
 for (const width of [360, 390]) {
   test(`§5.3 · штатная корзина и шторка из черновика на ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
-    const writes = await exampleFixture(page);
+    const writes = await exampleFixture(page, false);
     await page.goto("/seller/promotions/proba?store=test2");
     await page.getByRole("button", { name: "Открыть черновик" }).click();
     await page.getByRole("button", { name: "Посмотреть, как видит покупатель" }).click();
@@ -160,4 +51,97 @@ for (const width of [360, 390]) {
     await expect(page.getByLabel("Код", { exact: true })).toHaveValue("PROBA10");
     expect(writes).toEqual([]);
   });
+}
+
+async function openExample(page: Page, confirmed: boolean) {
+  await page.goto("/seller/promotions/proba?store=test2");
+  await page.getByRole("button", { name: "Открыть черновик" }).click();
+  await page.getByRole("button", { name: "Посмотреть, как видит покупатель" }).click();
+  const settings = page.locator("details").filter({ hasText: "Тестовые данные · не видны покупателю" });
+  for (const id of ["tomato", "berry"]) {
+    await settings.getByRole("combobox", { name: "Фасовка" }).selectOption(id);
+    await settings.getByRole("button", { name: "Добавить товар" }).click();
+  }
+  await settings.getByRole("spinbutton", { name: "Клубника · 250 г" }).fill("4");
+  if (!confirmed) await settings.getByText("Подтверждённый покупатель").click();
+  await settings.locator("summary").click();
+  await expect(page.getByRole("heading", { name: "Корзина", exact: true })).toBeVisible();
+}
+
+const totals = (page: Page) => page.getByText("Итого", { exact: true }).locator("..");
+const signIn = (page: Page) => page.getByRole("button", { name: "Войти через Telegram", exact: true });
+const publicRow = (page: Page) => page.getByRole("button", { name: "Доступные акции", exact: true });
+const promoSheet = (page: Page) => page.getByRole("dialog", { name: "Промокод" });
+
+for (const width of [360, 390]) {
+  for (const confirmed of [false, true]) {
+    for (const shown of [false, true]) {
+      const key = `${width}-${confirmed ? "confirmed" : "guest"}-${shown ? "public" : "hidden"}`;
+      test(`§5.3 · паритет настоящей корзины и примера ${key}`, async ({ browser, baseURL }) => {
+        const options = { baseURL, viewport: { width, height: 844 } };
+        const buyer = await browser.newPage(options);
+        const example = await browser.newPage(options);
+        try {
+          await storefrontFixture(buyer, confirmed, shown);
+          const requests = await exampleFixture(example, shown);
+          await Promise.all([buyer.goto("/cart?shop=test2"), openExample(example, confirmed)]);
+          const capture = (stage: string) =>
+            Promise.all(
+              [buyer, example].map((page, index) =>
+                page.screenshot({
+                  animations: "disabled",
+                  path: test.info().outputPath(`${key}-${stage}-${index === 0 ? "buyer" : "example"}.png`),
+                }),
+              ),
+            );
+          for (const page of [buyer, example]) {
+            await expect(signIn(page)).toHaveCount(confirmed ? 0 : 1);
+            await expect(page.getByRole("button", { name: "У меня нет Telegram" })).toHaveCount(confirmed ? 0 : 1);
+            await expect(publicRow(page)).toHaveCount(shown ? 1 : 0);
+            await expect(totals(page)).toContainText(money(1200));
+            const button = page.getByRole("button", { name: confirmed ? /^Продолжить/ : /^К времени и оплате/ });
+            await expect(button).toBeVisible();
+            if (confirmed) await expect(button).toHaveText(money(1200));
+            else await expect(button).toContainText("Войдите через Telegram или укажите номер");
+            if (page === example) await expect(button).toBeDisabled();
+            else await expect(button).toBeEnabled();
+          }
+          await capture("before");
+          if (shown) {
+            for (const page of [buyer, example]) {
+              await publicRow(page).click();
+              const dialog = page.getByRole("dialog");
+              await dialog.getByRole("button", { name: /Скидка к выходным/ }).click();
+              await expect(dialog.getByText("Промокод PROBA10")).toBeVisible();
+              await expect(dialog.getByText(money(400))).toBeVisible();
+            }
+          } else {
+            for (const page of [buyer, example]) {
+              await page.getByRole("button", { name: "Промокод", exact: true }).click();
+              await promoSheet(page).getByRole("textbox").fill("WRONG");
+              await promoSheet(page).getByRole("button", { name: "Применить" }).click();
+              await expect(promoSheet(page).getByText("Код не найден")).toBeVisible();
+              await expect(totals(page)).toContainText(money(1200));
+            }
+          }
+          await capture(shown ? "terms" : "error");
+          for (const page of [buyer, example]) {
+            if (!shown) await promoSheet(page).getByRole("textbox").fill("PROBA10");
+            await page.getByRole("dialog").getByRole("button", { name: "Применить" }).click();
+            await expect(totals(page)).toContainText(money(1080));
+          }
+          await capture("applied");
+          for (const page of [buyer, example]) {
+            await page.getByRole("button", { name: /^PROBA10/ }).click();
+            await promoSheet(page).getByRole("button", { name: "Убрать" }).click();
+            await expect(totals(page)).toContainText(money(1200));
+          }
+          await capture("removed");
+          expect(requests).toEqual([]);
+        } finally {
+          await Promise.all([buyer.close(), example.close()]);
+        }
+      });
+    }
+  }
 }

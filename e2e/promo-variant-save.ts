@@ -24,3 +24,34 @@ export async function exerciseVariantSave(page: Page, preview: Locator) {
     { id: "berry-1", priceMinor: 88_000 },
   ]);
 }
+
+export async function checkCartRowPrices(preview: Locator, regular: RegExp, discounted: RegExp) {
+  const phase = preview.getByRole("combobox", { name: "Когда смотрит покупатель" });
+  const row = preview.getByRole("heading", { name: "Строка корзины" }).locator("..");
+  for (const moment of ["before", "after", "during"]) {
+    await phase.selectOption(moment);
+    await expect(row.getByText(regular)).toHaveCount(1);
+    if (moment === "during") {
+      const old = row.locator("del");
+      const current = row.getByText(discounted);
+      await expect(old).toHaveCount(1);
+      await expect(old).toHaveText(regular);
+      await expect(current).toBeVisible();
+      await expect
+        .poll(() =>
+          old
+            .or(current)
+            .evaluateAll(
+              ([first, second]) =>
+                !!second &&
+                first.localName === "del" &&
+                first.getBoundingClientRect().y < second.getBoundingClientRect().y,
+            ),
+        )
+        .toBe(true);
+    } else {
+      await expect(row.locator("del")).toHaveCount(0);
+      await expect(row.getByText(discounted)).toHaveCount(0);
+    }
+  }
+}

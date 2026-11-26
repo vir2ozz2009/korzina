@@ -195,7 +195,11 @@ export function VariantPricePromo({
             <h3 className="text-title-3">Строка корзины</h3>
             <div inert>
               <ProductRow
-                {...listing}
+                name={name}
+                unit={unit}
+                image={product.image}
+                amountMinor={price.amountMinor}
+                currency={currency}
                 previous={price.oldMinor == null ? undefined : formatMinor(price.oldMinor, currency)}
                 variant="cart"
                 quantity={1}
