@@ -1,0 +1,121 @@
+{
+  "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+  "date": "2026-11-26",
+  "environment": {
+    "device": "physical iPhone through iPhone Mirroring",
+    "mirroringDeviceName": "iPhone 18 Pro Max",
+    "hardwareModel": "not read",
+    "iOS": "not read",
+    "browser": "Safari",
+    "imagePixels": [
+      708,
+      1562
+    ],
+    "cssViewport": "not measured; not equivalent to390 CSS",
+    "clockOffset": "phone display +4h versus Mac Moscow"
+  },
+  "checks": [
+    {
+      "id": "gift-2-3-4-6",
+      "status": "PASS",
+      "actual": "120000/120000/180000/240000; 1/2 gifts; paid/free details and return",
+      "screenshot": "safari-gift-total-six.png"
+    },
+    {
+      "id": "gift-limit-one-and-mixed-variants",
+      "status": "NOT_REPEATED",
+      "actual": "Desktop evidence retained; initial mixed-phone screenshot predates enabling gift and is not proof of active offer",
+      "screenshot": "safari-mixed-2plus1.png"
+    },
+    {
+      "id": "bundle-explicit-add-and-limit-card",
+      "status": "PASS",
+      "actual": "Card shows limit2 before explicit Add set; one pair220, add missing ->440, three pairs690",
+      "screenshot": "safari-combo-price-and-limit.png"
+    },
+    {
+      "id": "variant-mismatch",
+      "status": "PASS",
+      "actual": "250g+croissant=250; missing500 is not autoadded; explicit Add coffee restores220",
+      "screenshot": "safari-wrong-variant-no-auto-add.png"
+    },
+    {
+      "id": "bundle-code-matrix",
+      "status": "PASS",
+      "actual": "3+3 with code IPHONE122 entered once: limit1/2/none ->720/690/660;3+2 ->590",
+      "screenshot": "safari-code-three-plus-two-total.png"
+    },
+    {
+      "id": "bundle-auto-matrix",
+      "status": "PASS",
+      "actual": "Same amounts automatic; limit1=720,limit2=690,none=660;3+2=590",
+      "screenshot": "safari-auto-three-plus-two-590.png"
+    },
+    {
+      "id": "code-retained",
+      "status": "PASS",
+      "actual": "Code retained across quantity changes and reloads; changes of QA terms via seller API",
+      "screenshot": "safari-code-unlimited-total.png"
+    },
+    {
+      "id": "better-gifts",
+      "status": "PASS",
+      "actual": "3A150+3B100: automatic gifts500, code-only720; less favourable code not consumed (seller used0)",
+      "screenshot": "safari-gifts-beat-code-500.png"
+    },
+    {
+      "id": "public-code",
+      "status": "PASS",
+      "actual": "Remove manual code ->sheet closes; public Apply code opens conditions; explicit Apply ->sheet closes; quantity immediately works",
+      "screenshot": "safari-public-code-applied.png"
+    },
+    {
+      "id": "hardware-keyboard",
+      "status": "PASS",
+      "actual": "Physical Mac key events, English layout, code entered lower case; software keyboard not shown",
+      "screenshot": "safari-valid-code-entry.png"
+    },
+    {
+      "id": "software-keyboard",
+      "status": "NOT_VERIFIED",
+      "actual": "Full iOS software keyboard not exposed by Mirroring hardware input",
+      "screenshot": "safari-code-field-hardware-keyboard.png"
+    },
+    {
+      "id": "telegram",
+      "status": "BLOCKED",
+      "actual": "Safari login sheet returns Telegram магазина пока не подключён; demo D1 shops.bot_username=null for this QA shop; no bot/permissions changed",
+      "screenshot": "safari-telegram-not-connected.png"
+    },
+    {
+      "id": "seller-phone-and-full-390",
+      "status": "NOT_VERIFIED",
+      "actual": "Seller desktop results retained; no full seller path on physical phone or confirmed390 CSS repeated",
+      "screenshot": null
+    },
+    {
+      "id": "long-variant",
+      "status": "DEFECT_D4",
+      "actual": "Cart wraps; product variant extends beyond right edge;250g not visible; Mirroring horizontal scroll/drag did not reveal it; finger gesture unverified",
+      "screenshot": "safari-long-variant-card-overflow.png"
+    },
+    {
+      "id": "row-order",
+      "status": "DEFECT_D3",
+      "actual": "Quantity edit removes line from current position and appends at end; controls of another product replace it",
+      "screenshot": "safari-row-reorder-after-coffee-minus.png"
+    },
+    {
+      "id": "lower-actions",
+      "status": "PASS_WITH_PRECONDITIONS",
+      "actual": "Bottom area and code buttons reachable; checkout not submitted: no address and shop minimum120000. No new orders",
+      "screenshot": "safari-auto-three-plus-two-590.png"
+    },
+    {
+      "id": "cleanup",
+      "status": "PASS",
+      "actual": "Code removed, both QA lines removed through Safari; empty cart observed",
+      "screenshot": "safari-cleanup-empty-cart.png"
+    }
+  ]
+}

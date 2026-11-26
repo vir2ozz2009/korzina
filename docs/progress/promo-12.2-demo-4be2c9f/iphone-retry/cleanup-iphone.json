@@ -1,0 +1,41 @@
+{
+  "atMoscow": "2026-11-26T15:14:41.513235",
+  "newOrders": 0,
+  "phoneCart": "empty; code removed through Safari UI",
+  "products": [
+    {
+      "id": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+      "status": "hidden",
+      "variantNamesRestored": true
+    },
+    {
+      "id": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+      "status": "hidden",
+      "variantNamesRestored": true
+    },
+    {
+      "id": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+      "status": "hidden",
+      "variantNamesRestored": true
+    }
+  ],
+  "offers": [
+    {
+      "id": "1c8f70bc-6248-4728-8662-1445c8fdd415",
+      "status": "disabled",
+      "termsRestored": true,
+      "used": 1
+    },
+    {
+      "id": "422543ee-ff55-4ada-af43-5968805eb54e",
+      "status": "disabled",
+      "termsRestored": true,
+      "used": 0
+    }
+  ],
+  "telegramBotUsername": null,
+  "sellerLogout": {
+    "ok": true
+  },
+  "sessionRevokedVerified": true
+}
