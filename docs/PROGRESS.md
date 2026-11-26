@@ -39,7 +39,8 @@
 - [x] 25.11.2026 · [PR #282](https://github.com/vir2ozz2009/korzina/pull/282) проверен и выпущен на [demo `7cb98b1`, магазин `test2`](https://demo.korzina.app/?shop=test2). [Check и smoke превью](https://github.com/vir2ozz2009/korzina/actions/runs/45587873041) · [Demo smoke 4/4](https://github.com/vir2ozz2009/korzina/actions/runs/45588919428).
 - [x] 25.11.2026 · Исправления M4 и K4c по [локальному отчёту #291](https://github.com/vir2ozz2009/korzina/pull/291) защищены браузерными регрессиями. [Сценарии повторной проверки](progress/promo-discounts-local-check.md#перепроверка-m4-и-k4c).
 - [x] **12.1 · Пять правок до приёмки** по [карточке #301](tasks/promo-discounts-final-fixes.md). [Пары и чек-лист](progress/promo-discounts-final-fixes.md) для локального Codex через Work.
-- [ ] **СТОП на приёмке 12.1 Андреем.** После локального прогона #301. Публичные предложения до ввода кода — отдельное решение Work.
+- [x] Андрей принял согласованный объём 12.1 на demo `4730eee`. Локальная проверка #301 на физическом iPhone завершена.
+- [ ] Дополнение к 12.1 — [три карточки](tasks/promo-cart-preview-followup.md). СТОП на одобрении карточек в Work, затем дополнение к спецификации.
 
 ### Шаги блока 11 · Деньги и статистика продаж
 
