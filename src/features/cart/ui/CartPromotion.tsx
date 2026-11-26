@@ -1,13 +1,17 @@
-import { Tag } from "lucide-react";
+import { Ticket } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Cart } from "../../../shared/contracts/cart";
 import type { PromoReason } from "../../../shared/contracts/promo";
 import { HttpError } from "../../../shared/http-error";
-import { addMinor, formatMinor } from "../../../shared/money";
+import { formatMinor } from "../../../shared/money";
 import { Button } from "../../../ui/Button";
+import { Divider } from "../../../ui/Divider";
 import { Input } from "../../../ui/Input";
+import { ListItem } from "../../../ui/ListItem";
 import { Sheet } from "../../../ui/Sheet";
-import { usePromoCart } from "../api";
+import type { PromoCartInput } from "../api";
+import { ComparePromoCodes } from "./ComparePromoCodes";
+import { PublicCartPromos, type PublicOffers, PublicPromoTriggers } from "./PublicCartPromos";
 
 const descriptions: Partial<Record<PromoReason, string>> = {
   better_automatic: "Скидка магазина выгоднее",
@@ -38,13 +42,19 @@ export function CartPromotion({
   currency,
   disabled,
   deliveryMinor = 0,
+  mutation,
+  publicOffers,
 }: {
   cart: Cart;
   currency: string;
   disabled: boolean;
   deliveryMinor?: number;
+  mutation: { isPending: boolean; mutateAsync: (value: { input: PromoCartInput; key: string }) => Promise<Cart> };
+  publicOffers?: PublicOffers;
 }) {
-  const [mode, setMode] = useState<"actions" | "edit" | "compare">();
+  const [mode, setMode] = useState<"actions" | "edit" | "compare" | "public">();
+  const [selected, setSelected] = useState<string>();
+  const [comparedOffer, setComparedOffer] = useState<string>();
   const [input, setInput] = useState("");
   const [candidate, setCandidate] = useState<NonNullable<Cart["promo"]>["alternative"]>();
   const [error, setError] = useState("");
@@ -52,24 +62,36 @@ export function CartPromotion({
   const key = useRef<{ value: string; key: string }>(undefined);
   const trigger = useRef<HTMLButtonElement>(null);
   const field = useRef<HTMLFormElement>(null);
-  const mutation = usePromoCart();
   const { promo } = cart;
   const alternative = candidate ?? promo?.alternative;
   const canSubmit = !!input.trim() && input.trim().toUpperCase() !== rejectedCode && !mutation.isPending;
   const close = () => {
     setMode(undefined);
+    setSelected(undefined);
+    setComparedOffer(undefined);
     setCandidate(undefined);
     setError("");
     setRejectedCode("");
   };
-  const submit = async (action: "remove" | "keep" | "compare" | "apply", code = input, comparedTotal?: number) => {
+  function openOffers(id?: string) {
+    setSelected(id);
+    setError("");
+    setMode("public");
+    publicOffers?.refresh();
+  }
+  const submit = async (
+    action: "remove" | "keep" | "compare" | "apply",
+    code = input,
+    comparedTotal?: number,
+    publicOfferId?: string,
+  ) => {
     if (mutation.isPending) return;
     setError("");
     const expectedRevision = cart.revision;
     const request =
       action === "remove" || action === "keep"
         ? ({ promoAction: action, expectedRevision } as const)
-        : { promoAction: action, code, expectedRevision, comparedTotal };
+        : { promoAction: action, code, expectedRevision, comparedTotal, publicOfferId };
     const value = JSON.stringify(request);
     if (key.current?.value !== value) key.current = { value, key: crypto.randomUUID() };
     try {
@@ -84,9 +106,14 @@ export function CartPromotion({
           return;
         }
         setCandidate(compared);
+        setComparedOffer(publicOfferId);
         setMode("compare");
-      } else close();
+      } else {
+        setInput("");
+        close();
+      }
     } catch (failure) {
+      if (publicOfferId) publicOffers?.refresh();
       const details = failure instanceof HttpError ? failure.details : null;
       const promo =
         details && typeof details === "object" && "promo" in details ? (details.promo as Cart["promo"]) : undefined;
@@ -103,33 +130,33 @@ export function CartPromotion({
       field.current?.querySelector("input")?.focus();
     }
   };
+  const titles = {
+    actions: "Промокод",
+    edit: "Промокод",
+    compare: "Сравнить промокоды",
+    public: selected ? "Условия акции" : "Доступные акции",
+  };
   return (
     <>
-      <Button
+      <ListItem
         ref={trigger}
-        full
-        variant="secondary"
-        icon={<Tag size={18} />}
+        variant="compact"
+        title={promo?.code ?? "Промокод"}
+        icon={<Ticket size={20} />}
         disabled={disabled}
         onClick={() => {
-          setInput("");
           setError("");
           setCandidate(undefined);
           setMode(promo?.alternative ? "compare" : promo?.code ? "actions" : "edit");
         }}
-      >
-        {promo?.code ?? "Промокод"}
-      </Button>
+      />
       {promo?.alternative && <p className="text-caption">Выберите код для объединённой корзины</p>}
       {message(promo, currency) && <p className="text-caption text-muted-foreground">{message(promo, currency)}</p>}
       {promo?.telegramHint && (
         <p className="text-caption text-muted-foreground">Войдите через Telegram для скидки на первый заказ</p>
       )}
-      {promo?.hint && (
-        <p className="text-caption text-muted-foreground">
-          Ещё {formatMinor(promo.hint.missingMinor, currency)} до скидки · {promo.hint.label}
-        </p>
-      )}
+      <PublicPromoTriggers {...{ publicOffers, currency }} hint={promo?.hint} open={openOffers} />
+      <Divider />
       <Sheet
         open={!!mode}
         unmountOnClose
@@ -137,10 +164,33 @@ export function CartPromotion({
           if (!open && !mutation.isPending) close();
         }}
         returnFocus={trigger}
-        title={mode === "compare" ? "Сравнить промокоды" : "Промокод"}
+        title={titles[mode ?? "edit"]}
+        onBack={mode === "public" && selected ? () => openOffers() : undefined}
         form
       >
         <div className="space-y-3">
+          {mode === "public" && publicOffers && (
+            <PublicCartPromos
+              offers={publicOffers.offers}
+              selected={selected}
+              currency={currency}
+              zone={publicOffers.zone}
+              open={(id) => {
+                setSelected(id);
+                publicOffers.refresh();
+              }}
+              apply={(offer) => {
+                if (offer.code)
+                  void submit(
+                    promo?.code && promo.code !== offer.code ? "compare" : "apply",
+                    offer.code,
+                    undefined,
+                    offer.id,
+                  );
+              }}
+              pending={mutation.isPending}
+            />
+          )}
           {mode === "actions" && (
             <>
               <Button full onClick={() => setMode("edit")}>
@@ -177,34 +227,18 @@ export function CartPromotion({
             </form>
           )}
           {mode === "compare" && alternative && (
-            <>
-              <p>
-                {promo?.code} · {formatMinor(addMinor(cart.totalMinor, deliveryMinor), currency)}
-              </p>
-              <p>
-                {alternative.code} · {formatMinor(addMinor(alternative.totalMinor, deliveryMinor), currency)}
-              </p>
-              {message(alternative, currency) && <p>{message(alternative, currency)}</p>}
-              <Button
-                full
-                disabled={alternative.reason === "unknown"}
-                loading={mutation.isPending}
-                onClick={() => void submit("apply", alternative.code, alternative.totalMinor)}
-              >
-                Заменить код
-              </Button>
-              <Button
-                full
-                variant="secondary"
-                disabled={mutation.isPending}
-                onClick={() => {
-                  if (promo?.alternative) void submit("keep");
-                  else close();
-                }}
-              >
-                Оставить прежний
-              </Button>
-            </>
+            <ComparePromoCodes
+              code={promo?.code}
+              totalMinor={cart.totalMinor}
+              {...{ alternative, deliveryMinor, currency }}
+              note={message(alternative, currency)}
+              pending={mutation.isPending}
+              replace={() => void submit("apply", alternative.code, alternative.totalMinor, comparedOffer)}
+              keep={() => {
+                if (promo?.alternative) void submit("keep");
+                else close();
+              }}
+            />
           )}
           {error && mode !== "edit" && <p role="alert">{error}</p>}
         </div>

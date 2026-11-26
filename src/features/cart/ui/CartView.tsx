@@ -1,0 +1,200 @@
+import { X } from "lucide-react";
+import type { ComponentProps, ReactNode } from "react";
+import { Screen } from "../../../app/shell/Screen";
+import type { Cart, CartLine } from "../../../shared/contracts/cart";
+import type { ReceivingAvailability } from "../../../shared/contracts/receiving";
+import { formatMinor, multiplyMinor } from "../../../shared/money";
+import { Card } from "../../../ui/Card";
+import { Divider } from "../../../ui/Divider";
+import { Header } from "../../../ui/Header";
+import { IconButton } from "../../../ui/IconButton";
+import { ProductRow } from "../../../ui/ProductRow";
+import { deliveryLabel } from "../../receiving";
+import { CartNotice } from "./CartNotice";
+import { CartPromotion } from "./CartPromotion";
+import type { PublicOffers } from "./PublicCartPromos";
+
+type Props = {
+  cart?: Cart;
+  query: NonNullable<ComponentProps<typeof Screen>["state"]>["query"];
+  retry: () => void;
+  checking: boolean;
+  confirmed?: boolean;
+  pendingProducts?: ReadonlyMap<string, string>;
+  change: (line: CartLine, quantity: number, currency: string, remove?: boolean) => void;
+  openLine?: (line: CartLine) => void;
+  back: () => void;
+  onEmpty?: () => void;
+  shipping: ReceivingAvailability | null;
+  method?: "pickup" | "delivery" | null;
+  total?: { deliveryMinor: number | null; totalMinor: number };
+  promotion: ComponentProps<typeof CartPromotion>["mutation"];
+  publicOffers?: PublicOffers;
+  before?: ReactNode;
+  after?: ReactNode;
+  footer?: ReactNode;
+};
+export function CartView({
+  cart,
+  query,
+  retry,
+  checking,
+  confirmed = false,
+  pendingProducts,
+  change,
+  openLine,
+  back,
+  onEmpty,
+  shipping,
+  method,
+  total,
+  promotion,
+  publicOffers,
+  before,
+  after,
+  footer,
+}: Props) {
+  const currency = cart?.currency;
+  const available = cart?.lines.filter((line) => line.available) ?? [];
+  const courier =
+    shipping?.mode === "delivery" && shipping.available && shipping.payee === "courier" && shipping.tariff !== "free";
+  const late = method === "delivery" && total?.deliveryMinor === null;
+  const unavailable = cart?.lines.filter((line) => !line.available) ?? [];
+  const issues = new Map(cart?.review?.changes.map((issue) => [issue.variantId, issue]));
+
+  function row(line: CartLine, currency: string) {
+    const issue = issues.get(line.variantId);
+    const pending = pendingProducts?.has(line.productId) ?? false;
+    const previous = issue?.oldPriceMinor ?? line.oldPriceMinor;
+    const amount = multiplyMinor(line.priceMinor, line.quantity);
+    const savings =
+      cart?.adjustments
+        .flatMap((item) => item.allocations ?? [])
+        .filter((part) => part.variantId === line.variantId)
+        .reduce((sum, part) => sum + part.amount, 0) ?? 0;
+    return (
+      <li key={line.variantId}>
+        <ProductRow
+          variant="cart"
+          name={line.name}
+          unit={line.unit}
+          image={line.image ?? undefined}
+          quantity={line.quantity}
+          max={line.stock ?? 999}
+          currency={currency}
+          amountMinor={line.available ? (line.totalMinor ?? amount) : amount}
+          previous={
+            previous != null
+              ? formatMinor(multiplyMinor(previous, line.quantity), currency)
+              : savings
+                ? formatMinor(amount, currency)
+                : undefined
+          }
+          note={
+            !line.available
+              ? "Не учитывается"
+              : issue?.remaining === undefined
+                ? undefined
+                : `Осталось ${issue.remaining}`
+          }
+          unavailable={!line.available}
+          disabled={checking || pending || query.isError || !!cart?.review}
+          removeDisabled={checking || pending}
+          onChange={(quantity) => change(line, quantity, currency)}
+          onRemove={() => change(line, 0, currency, true)}
+          onOpen={openLine ? () => openLine(line) : undefined}
+        />
+      </li>
+    );
+  }
+
+  return (
+    <Screen
+      template="checkout"
+      header={
+        <div className="bg-background px-3 pt-3 [&_header]:rounded-xl">
+          <Header
+            title="Корзина"
+            headingLevel={1}
+            onBack={back}
+            actions={
+              <IconButton aria-label="Закрыть корзину" className="text-muted-foreground" onClick={back}>
+                <X size={22} />
+              </IconButton>
+            }
+          />
+        </div>
+      }
+      state={{
+        query: { ...query, data: cart ?? (query.isError ? [] : undefined), isError: false },
+        empty: !!cart && cart.lines.length === 0 && !query.isError,
+        emptyTitle: "Корзина пуста",
+        emptyDescription: "",
+        onEmpty,
+      }}
+      after={after}
+    >
+      <CartNotice cart={cart} checking={checking} error={query.isError} confirmed={confirmed} retry={retry} />
+      {cart && currency && cart.lines.length > 0 && (
+        <>
+          {before}
+          <Card size="lg">
+            <h2 className="text-title-2">Ваш заказ</h2>
+            {available.length > 0 && (
+              <>
+                <ul className="space-y-4">{available.map((line) => row(line, currency))}</ul>
+                <Divider />
+              </>
+            )}
+            {cart.promo && (
+              <CartPromotion
+                cart={cart}
+                currency={currency}
+                disabled={checking || query.isError || !!pendingProducts?.size}
+                mutation={promotion}
+                publicOffers={publicOffers}
+                deliveryMinor={total?.deliveryMinor ?? undefined}
+              />
+            )}
+            <div className="flex items-baseline justify-between gap-2">
+              <span>Товары</span>
+              <strong>{formatMinor(cart.itemsMinor ?? cart.totalMinor, currency)}</strong>
+            </div>
+            {cart.adjustments.map((item) => (
+              <div key={item.sourceId} className="flex justify-between gap-2">
+                <span className="min-w-0 wrap-anywhere">{item.label}</span>
+                <strong>−{formatMinor(-item.amount, currency)}</strong>
+              </div>
+            ))}
+            {method && (
+              <div className="flex justify-between gap-3">
+                <span>{method === "pickup" ? "Самовывоз" : "Доставка"}</span>
+                <span className="text-right">
+                  {method === "pickup" ? "Бесплатно" : deliveryLabel(shipping, currency)}
+                </span>
+              </div>
+            )}
+            {total && (
+              <>
+                <Divider />
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-label">
+                    {courier ? "К оплате магазину" : late ? "Итого за товары" : "Итого"}
+                  </span>
+                  <strong className="text-title-3">{formatMinor(total.totalMinor, currency)}</strong>
+                </div>
+              </>
+            )}
+          </Card>
+          {unavailable.length > 0 && (
+            <Card size="lg">
+              <h2 className="text-title-3">Сейчас нет в наличии</h2>
+              <ul className="space-y-4">{unavailable.map((line) => row(line, currency))}</ul>
+            </Card>
+          )}
+        </>
+      )}
+      {available.length > 0 && cart && !cart.review && !checking && footer}
+    </Screen>
+  );
+}

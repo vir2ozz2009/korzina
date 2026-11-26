@@ -204,7 +204,7 @@ for (const width of [360, 390]) {
     await click("Как увидит покупатель");
     const preview = page.getByRole("dialog", { name: "Как увидит покупатель" });
     const photo = preview.locator("img");
-    await expect(photo).toHaveCount(2);
+    await expect(photo).toHaveCount(3);
     await expect
       .poll(() =>
         photo.evaluateAll((items: HTMLImageElement[]) => items.every((item) => item.complete && item.naturalWidth > 0)),

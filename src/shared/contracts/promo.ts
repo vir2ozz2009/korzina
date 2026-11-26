@@ -27,6 +27,7 @@ export const promoTerms = z.object({
   ]),
   minimumMinor: minor.optional(),
   minimumQuantity: count.optional(),
+  publicInCart: z.boolean().optional(),
   confirmed: z.boolean(),
   purchase: z.object({ mode: z.enum(["exact", "from"]), number: count }).optional(),
   totalLimit: count.optional(),
@@ -46,6 +47,8 @@ export const promoListInput = z.object({
 });
 export const promoExampleInput = z.object({
   terms: promoTerms,
+  enteredCode: promoCode.nullable().optional(),
+  receiving: z.enum(["pickup", "delivery"]).optional(),
   lines: z.array(z.object({ variantId: id, quantity: count.max(999) })).max(50),
   confirmed: z.boolean(),
   completed: z.number().int().min(0).max(1_000_000),
@@ -92,4 +95,25 @@ export type PromoPrice = {
   fromDate?: string;
   throughDate?: string;
   image: CatalogImage | null;
+};
+
+export type PublicPromo = Pick<
+  PromoTerms,
+  | "name"
+  | "kind"
+  | "code"
+  | "discount"
+  | "minimumMinor"
+  | "minimumQuantity"
+  | "confirmed"
+  | "purchase"
+  | "personalLimit"
+  | "fromDate"
+  | "throughDate"
+> & {
+  id: string;
+  scopeNames: string[];
+  applicable: boolean;
+  missingMinor?: number;
+  missingQuantity?: number;
 };

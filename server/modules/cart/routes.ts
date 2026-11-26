@@ -6,6 +6,8 @@ import { authBodyLimit, validationFailure } from "../../auth/request";
 import { idempotency } from "../../middleware/idempotency";
 import { acceptsCheckout, type ShopEnv } from "../../shop/env";
 import { readCustomer } from "../auth/service";
+import { listPublicCartPromos } from "../promo/public-cart";
+import { readCartState } from "./cart-state";
 import { changeCart, readCart } from "./service";
 
 export const cartRoutes = new Hono<ShopEnv>()
@@ -18,6 +20,20 @@ export const cartRoutes = new Hono<ShopEnv>()
         promotions: c.env.features.promotions,
       }),
     );
+  })
+  .get("/promotions", async (c) => {
+    c.header("Cache-Control", "private, no-store");
+    if (!c.env.features.promotions) throw new ApiError("FORBIDDEN", "Акции недоступны");
+    const session = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);
+    const customer = session?.subject ?? "";
+    const now = Date.now();
+    const { cart } = readCartState(c.env.storage, customer, {
+      id: c.env.shop.id,
+      mediaOrigin: c.env.media.MEDIA_PUBLIC_URL,
+      promotions: true,
+      now,
+    });
+    return c.json(listPublicCartPromos(c.env.storage, customer, cart, now));
   })
   .post("/", authBodyLimit, idempotency, zValidator("json", cartCommandInput, validationFailure), async (c) => {
     const session = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);

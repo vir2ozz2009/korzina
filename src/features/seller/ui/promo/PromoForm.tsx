@@ -3,6 +3,7 @@ import type { PromoTerms } from "../../../../shared/contracts/promo";
 import { currencyUnit, fromBasisPoints, minorInput, parseMinorInput, toBasisPoints } from "../../../../shared/money";
 import { Card } from "../../../../ui/Card";
 import { Input } from "../../../../ui/Input";
+import { Switch } from "../../../../ui/Switch";
 import type { PromoCatalog } from "./api";
 
 type Scope = PromoTerms["scope"]["type"];
@@ -133,6 +134,16 @@ export function PromoForm({
         )}
       </Card>
       <PromoConditions {...{ terms, patch, currency }} />
+      <Card>
+        <Switch
+          label="Показывать в корзине покупателя"
+          checked={!!terms.publicInCart}
+          onChange={(event) => patch({ publicInCart: event.target.checked })}
+        />
+        <p className="text-caption text-muted-foreground">
+          Покупатели увидят условия предложения и смогут применить публичный промокод прямо из корзины.
+        </p>
+      </Card>
       <Card>
         <PromoSelect
           label="Срок"

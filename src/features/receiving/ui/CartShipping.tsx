@@ -9,7 +9,7 @@ import { type ReceivingState, useReceiving, useSaveReceiving } from "../api";
 import { canReuseAddress } from "../reuse-address";
 import { AddressSheet } from "./AddressSheet";
 
-export function activeReceiving(data: ReceivingState) {
+export function activeReceiving(data: Pick<ReceivingState, "receiving" | "delivery" | "pickup" | "unavailable">) {
   if (data.receiving && data[data.receiving.mode] && !data.unavailable?.[data.receiving.mode])
     return data.receiving.mode;
   if (data.delivery && !data.unavailable?.delivery) return "delivery";
@@ -56,6 +56,66 @@ export function CartShipping({
       <ListItem title="Не удалось проверить доставку" value="Повторить" onClick={() => void query.refetch()} />
     ) : null;
   }
+  const address = data.receiving?.mode === "delivery" ? data.receiving : undefined;
+  const blocked = disabled || save.isPending;
+  const update = (receiving: Receiving) =>
+    save.mutateAsync({ receiving, expectedRevision: Math.max(revision, data.revision) });
+  async function choose(next: "delivery" | "pickup") {
+    try {
+      if (next === "pickup") {
+        await update({ mode: "pickup" });
+        setOpen(false);
+      } else if (data?.deliveryDraft && canReuseAddress(data.deliveryDraft, data)) {
+        await update(data.deliveryDraft);
+      } else {
+        setOpen(true);
+      }
+    } catch (error) {
+      if (next === "delivery" && error instanceof HttpError && error.code === "OUT_OF_ZONE") setOpen(true);
+      else toast(error instanceof Error ? error.message : "Не удалось сохранить способ получения");
+    }
+  }
+  return (
+    <>
+      <CartShippingView
+        data={data}
+        blocked={blocked}
+        choose={(mode) => void choose(mode)}
+        editAddress={() => setOpen(true)}
+      />
+      {open && data.delivery && (
+        <AddressSheet
+          current={address ?? data.deliveryDraft}
+          editCurrent={!!address}
+          data={data}
+          currency={currency}
+          pending={save.isPending}
+          close={() => setOpen(false)}
+          save={async (selected) => {
+            await update(selected);
+            setOpen(false);
+          }}
+          pickup={data.pickup && !data.unavailable?.pickup ? () => void choose("pickup") : undefined}
+        />
+      )}
+    </>
+  );
+}
+
+export function CartShippingView({
+  data,
+  blocked,
+  choose,
+  editAddress,
+}: {
+  data: Pick<
+    ReceivingState,
+    "delivery" | "pickup" | "receiving" | "unavailable" | "acceptingOrders" | "closedMessage" | "availability"
+  >;
+  blocked?: boolean;
+  choose?: (mode: "pickup" | "delivery") => void;
+  editAddress?: () => void;
+}) {
   const method = activeReceiving(data);
   const address = data.receiving?.mode === "delivery" ? data.receiving : undefined;
   const addressStatus = data.availability?.available
@@ -63,9 +123,6 @@ export function CartShipping({
       ? "Условия доставки уточняются"
       : "Адрес доставки"
     : "Нужно проверить адрес";
-  const blocked = disabled || save.isPending;
-  const update = (receiving: Receiving) =>
-    save.mutateAsync({ receiving, expectedRevision: Math.max(revision, data.revision) });
   const methods = [
     {
       enabled: !!data.delivery,
@@ -82,21 +139,6 @@ export function CartShipping({
       Icon: Store,
     },
   ].filter(({ enabled }) => enabled);
-  async function choose(next: "delivery" | "pickup") {
-    try {
-      if (next === "pickup") {
-        await update({ mode: "pickup" });
-        setOpen(false);
-      } else if (data?.deliveryDraft && canReuseAddress(data.deliveryDraft, data)) {
-        await update(data.deliveryDraft);
-      } else {
-        setOpen(true);
-      }
-    } catch (error) {
-      if (next === "delivery" && error instanceof HttpError && error.code === "OUT_OF_ZONE") setOpen(true);
-      else toast(error instanceof Error ? error.message : "Не удалось сохранить способ получения");
-    }
-  }
   return (
     <>
       {!data.acceptingOrders && (
@@ -116,7 +158,7 @@ export function CartShipping({
                 className="absolute inset-0 size-full cursor-pointer opacity-0"
                 checked={method === mode}
                 disabled={!!data.unavailable?.[mode]}
-                onChange={() => void choose(mode)}
+                onChange={() => choose?.(mode)}
               />
               <Icon size={24} aria-hidden />
               <span className="mt-2 block text-label">{title}</span>
@@ -147,25 +189,10 @@ export function CartShipping({
               : undefined
           }
           icon={<MapPin size={22} />}
-          onClick={blocked ? undefined : () => setOpen(true)}
+          onClick={blocked ? undefined : editAddress}
         />
       )}
       {method === "pickup" && data.pickup && <ListItem title={data.pickup.address} subtitle={data.pickup.hours} />}
-      {open && data.delivery && (
-        <AddressSheet
-          current={address ?? data.deliveryDraft}
-          editCurrent={!!address}
-          data={data}
-          currency={currency}
-          pending={save.isPending}
-          close={() => setOpen(false)}
-          save={async (selected) => {
-            await update(selected);
-            setOpen(false);
-          }}
-          pickup={data.pickup && !data.unavailable?.pickup ? () => void choose("pickup") : undefined}
-        />
-      )}
     </>
   );
 }

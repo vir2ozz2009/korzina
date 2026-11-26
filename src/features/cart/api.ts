@@ -98,7 +98,7 @@ export function useConfirmCart(notify: (message: string) => void) {
   });
 }
 
-type PromoCartInput = Extract<CartCommandInput, { promoAction: string }>;
+export type PromoCartInput = Extract<CartCommandInput, { promoAction: string }>;
 export function usePromoCart() {
   const client = useQueryClient();
   return useMutation({
@@ -120,6 +120,21 @@ export function usePromoCart() {
       const details = error instanceof HttpError ? error.details : undefined;
       if (details && typeof details === "object" && "cart" in details)
         client.setQueryData<Cart>(cartKey, details.cart as Cart);
+    },
+  });
+}
+
+export function usePublicCartPromos(revision: number | undefined, confirmed: boolean) {
+  return useQuery({
+    queryKey: [...cartKey, "public-promotions", confirmed, revision],
+    enabled: revision !== undefined,
+    retry: false,
+    refetchOnWindowFocus: "always",
+    refetchInterval: 15_000,
+    queryFn: async ({ signal }) => {
+      const response = await shopApi.api.cart.promotions.$get({}, { init: { signal } });
+      await checkResponse(response);
+      return response.json();
     },
   });
 }

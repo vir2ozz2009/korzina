@@ -50,6 +50,7 @@ export function ProductEditor({
     categories,
     brands,
     save,
+    saveMessage,
     remove,
     toast,
     busy,
@@ -61,9 +62,7 @@ export function ProductEditor({
     confirmStock,
     copyProduct,
   } = editor;
-  const promotion = promoZone
-    ? { currency, zone: promoZone, product: { name: text.name, image: photos.items[0]?.src } }
-    : undefined;
+  const promotion = promoZone ? editor.pricePreview(promoZone) : undefined;
   return (
     <CatalogEditorFrame
       frame={frame}
@@ -149,7 +148,7 @@ export function ProductEditor({
       )}
       {!partial && (error || save.error || remove.error) && (
         <p role="alert" className="text-status-danger-foreground">
-          {error || save.error?.message || remove.error?.message}
+          {error || saveMessage || remove.error?.message}
         </p>
       )}
       {(modal === "categories" || modal === "brands") && (

@@ -3,7 +3,6 @@ import { shopDateTime } from "../../../../shared/datetime";
 import { Button } from "../../../../ui/Button";
 import { Sheet } from "../../../../ui/Sheet";
 import type { PromoCatalog } from "./api";
-import { PromoExample } from "./PromoExample";
 import { PromoForm } from "./PromoForm";
 import { Summary } from "./PromoSummary";
 export type Panel = "form" | "summary" | "example" | "disable" | "enable" | "discard";
@@ -18,7 +17,6 @@ export function PromoPanel({
   currency,
   zone,
   catalog,
-  store,
   busy,
   save,
   review,
@@ -34,7 +32,6 @@ export function PromoPanel({
   currency: string;
   zone: string;
   catalog?: PromoCatalog;
-  store: string;
   busy: boolean;
   save: (action: Action) => void;
   review: (next: "summary" | "example", candidate?: PromoTerms) => void;
@@ -50,19 +47,17 @@ export function PromoPanel({
   };
   return (
     <Sheet
-      open={!!panel}
+      open={!!panel && panel !== "example"}
       title={
         panel === "form"
           ? "Условия акции"
-          : panel === "example"
-            ? "Пример корзины"
-            : panel === "enable"
-              ? "Включить акцию?"
-              : panel === "disable"
-                ? "Отключить акцию?"
-                : panel === "discard"
-                  ? "Сохранить изменения?"
-                  : "Сводка акции"
+          : panel === "enable"
+            ? "Включить акцию?"
+            : panel === "disable"
+              ? "Отключить акцию?"
+              : panel === "discard"
+                ? "Сохранить изменения?"
+                : "Сводка акции"
       }
       form
       screen={panel === "form"}
@@ -92,7 +87,7 @@ export function PromoPanel({
               variant={current && current.status !== "draft" ? "secondary" : "primary"}
               onClick={() => review("example")}
             >
-              Проверить на примере
+              Посмотреть, как видит покупатель
             </Button>
             {(!current || current.status === "draft") && (
               <Button full size="lg" variant="secondary" loading={busy} onClick={() => save("draft")}>
@@ -101,11 +96,9 @@ export function PromoPanel({
             )}
           </>
         )}
-        {(panel === "summary" || panel === "enable" || panel === "example") && offerTerms && (
+        {(panel === "summary" || panel === "enable") && offerTerms && (
           <>
-            {panel === "example" && (
-              <PromoExample terms={offerTerms} currency={currency} catalog={catalog} store={store} />
-            )}
+            {panel === "summary" && <h2 className="text-title-3">Перед запуском</h2>}
             {current && current.status !== "draft" && panel !== "enable" && (
               <>
                 <h3>Было</h3>
@@ -136,9 +129,27 @@ export function PromoPanel({
               </Button>
             )}
             {panel === "summary" && (
-              <Button full variant="secondary" onClick={() => review("example", offerTerms)}>
-                Посмотреть пример
-              </Button>
+              <>
+                <Button
+                  full
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={() => {
+                    setTerms(offerTerms);
+                    setPanel("form");
+                  }}
+                >
+                  Изменить условия
+                </Button>
+                {(!current || current.status === "draft") && (
+                  <Button full variant="secondary" loading={busy} onClick={() => save("draft")}>
+                    Сохранить черновик
+                  </Button>
+                )}
+                <Button full variant="secondary" disabled={busy} onClick={() => review("example", offerTerms)}>
+                  Посмотреть, как видит покупатель
+                </Button>
+              </>
             )}
           </>
         )}

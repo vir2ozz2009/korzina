@@ -59,6 +59,10 @@ export function Summary({
           {terms.kind === "code" ? `Промокод ${terms.code ?? ""}` : "Автоматически"} · {names}
         </dd>
       </div>
+      <div>
+        <dt className="sr-only">Показ в корзине</dt>
+        <dd>{terms.publicInCart ? "Видна в корзине покупателя" : "Не показывается в корзине покупателя"}</dd>
+      </div>
       {terms.purchase && (
         <div>
           <dt className="sr-only">Условие покупки</dt>

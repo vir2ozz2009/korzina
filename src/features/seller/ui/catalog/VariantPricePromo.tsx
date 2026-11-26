@@ -1,18 +1,26 @@
 import type { ReactNode } from "react";
 import { useId, useState } from "react";
 import { calendarDate, shopDateTime } from "../../../../shared/datetime";
-import { currencyUnit, parseMinorInput } from "../../../../shared/money";
+import { currencyUnit, formatMinor, parseMinorInput } from "../../../../shared/money";
 import { Button } from "../../../../ui/Button";
 import { Card } from "../../../../ui/Card";
 import { Input } from "../../../../ui/Input";
 import { Price } from "../../../../ui/Price";
+import { ProductImage } from "../../../../ui/ProductImage";
 import { ProductRow } from "../../../../ui/ProductRow";
 import { ProductTile } from "../../../../ui/ProductTile";
 import { SelectField } from "../../../../ui/SelectField";
 import { Sheet } from "../../../../ui/Sheet";
 import type { VariantDraft } from "./VariantFields";
 
-export type PricePromoContext = { currency: string; zone: string; product: { name: string; image?: string } };
+export type PricePromoContext = {
+  currency: string;
+  zone: string;
+  product: { name: string; image?: string };
+  save: () => void;
+  busy: boolean;
+  error?: string;
+};
 
 export function VariantPricePromo({
   row,
@@ -22,6 +30,9 @@ export function VariantPricePromo({
   product,
   disabled,
   heading,
+  save,
+  busy,
+  error,
 }: {
   row: VariantDraft;
   patch: (draft: Partial<VariantDraft>) => void;
@@ -36,7 +47,7 @@ export function VariantPricePromo({
   const regular = parseMinorInput(row.oldPrice, currency);
   const discounted = parseMinorInput(row.price, currency);
   const valid = regular !== undefined && discounted !== undefined && discounted < regular;
-  const promo = moment === "during" || !timed;
+  const promo = moment === "during";
   const price = { amountMinor: (promo ? discounted : regular) ?? 0, oldMinor: promo ? regular : undefined, currency };
   const from =
     row.promoDates === undefined && row.promoStartsAt
@@ -125,7 +136,7 @@ export function VariantPricePromo({
         full
         size={heading ? "lg" : "md"}
         variant={heading ? "primary" : "secondary"}
-        disabled={!valid}
+        disabled={!valid || disabled}
         onClick={() => {
           setMoment("during");
           setOpen(true);
@@ -133,9 +144,19 @@ export function VariantPricePromo({
       >
         Как увидит покупатель
       </Button>
-      <Sheet open={open} title="Как увидит покупатель" onOpenChange={setOpen} onBack={() => setOpen(false)} screen>
+      <Sheet
+        open={open}
+        title="Как увидит покупатель"
+        onOpenChange={(value) => {
+          if (!busy) setOpen(value);
+        }}
+        onBack={() => {
+          if (!busy) setOpen(false);
+        }}
+        screen
+      >
         <div className="space-y-3">
-          {timed && (
+          {
             <div className="grid grid-cols-3 gap-2">
               {[
                 ["before", "До акции"],
@@ -151,7 +172,7 @@ export function VariantPricePromo({
                 </Button>
               ))}
             </div>
-          )}
+          }
           <Card>
             <h3 className="text-title-3">Плитка товара</h3>
             <div inert className="max-w-44">
@@ -160,6 +181,7 @@ export function VariantPricePromo({
           </Card>
           <Card>
             <h3 className="text-title-3">Карточка товара</h3>
+            <ProductImage src={product.image} alt="" className="w-24" />
             <p className="text-title-2 wrap-anywhere">{name}</p>
             {unit && <p className="text-caption text-muted-foreground">{unit}</p>}
             <Price {...price} size="display" />
@@ -167,10 +189,41 @@ export function VariantPricePromo({
           <Card>
             <h3 className="text-title-3">Строка корзины</h3>
             <div inert>
-              <ProductRow {...listing} variant="cart" quantity={1} />
+              <ProductRow
+                {...listing}
+                previous={price.oldMinor == null ? undefined : formatMinor(price.oldMinor, currency)}
+                variant="cart"
+                quantity={1}
+              />
             </div>
           </Card>
-          <Button full variant="secondary" onClick={() => setOpen(false)}>
+          <Card>
+            <h3 className="text-title-3">Перед сохранением</h3>
+            <p className="text-label wrap-anywhere">{name}</p>
+            <p className="text-caption wrap-anywhere">{unit}</p>
+            <div className="flex justify-between gap-2">
+              <span>Обычная цена</span>
+              <strong>{formatMinor(regular ?? 0, currency)}</strong>
+            </div>
+            <div className="flex justify-between gap-2">
+              <span>Цена по акции</span>
+              <strong>{formatMinor(discounted ?? 0, currency)}</strong>
+            </div>
+            <p className="text-caption">
+              {from || through
+                ? [from && `с ${from}`, through && `по ${through} включительно`, zone].filter(Boolean).join(" · ")
+                : "Без срока"}
+            </p>
+          </Card>
+          {error && (
+            <p role="alert" className="text-status-danger-foreground">
+              {error}
+            </p>
+          )}
+          <Button full size="lg" loading={busy} disabled={disabled} onClick={save}>
+            Сохранить
+          </Button>
+          <Button full variant="secondary" disabled={busy} onClick={() => setOpen(false)}>
             Изменить
           </Button>
         </div>
