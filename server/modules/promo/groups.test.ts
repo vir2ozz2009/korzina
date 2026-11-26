@@ -160,3 +160,50 @@ it("12.2 · закрытый код не виден в каталоге и пр�
   const publicOffers = await getAuth("/api/cart/promotions?shop=lavka", { Cookie });
   expect(await publicOffers.json()).toEqual([]);
 });
+
+it("12.2 · D3: два уменьшения каждого товара сохраняют порядок строк при пересчёте набора", async () => {
+  await catalogSql(`UPDATE variants SET visible=1,stock=10,old_price_minor=NULL,
+    price_minor=CASE id WHEN 'sku-01' THEN 15000 ELSE 10000 END WHERE id IN ('sku-01','sku-02')`);
+  const { headers } = await sellerFixture(shop);
+  const terms: PromoTerms = {
+    ...common,
+    group: {
+      type: "bundle",
+      priceMinor: 22000,
+      limit: 3,
+      components: [
+        { variantId: "sku-01", quantity: 1 },
+        { variantId: "sku-02", quantity: 1 },
+      ],
+    },
+  };
+  expect((await seller(headers, { action: "publish", revision: 0, terms })).status).toBe(200);
+  const Cookie = await customer("sku-01");
+  let revision = (await readCart(Cookie)).revision;
+  const set = async (variantId: string, quantity: number) => {
+    const response = await buy("cart", { variantId, quantity, expectedRevision: revision }, Cookie);
+    expect(response.status).toBe(200);
+    const cart = await response.json<Cart>();
+    revision = cart.revision;
+    return cart;
+  };
+  await set("sku-01", 3);
+  await set("sku-02", 3);
+  for (const [variantId, quantity, first, second, totalMinor, groups] of [
+    ["sku-01", 2, 2, 3, 54000, 2],
+    ["sku-01", 1, 1, 3, 42000, 1],
+    ["sku-02", 2, 1, 2, 32000, 1],
+    ["sku-02", 1, 1, 1, 22000, 1],
+  ] as const) {
+    const cart = await set(variantId, quantity);
+    expect(cart).toMatchObject({
+      lines: [
+        { variantId: "sku-01", quantity: first },
+        { variantId: "sku-02", quantity: second },
+      ],
+      totalMinor,
+      adjustments: [{ groups: { count: groups } }],
+    });
+    expect((await readCart(Cookie)).lines).toEqual(cart.lines);
+  }
+});
