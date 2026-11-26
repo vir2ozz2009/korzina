@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import type { PromoOffer, PromoTerms } from "../src/shared/contracts/promo";
-import { exerciseVariantSave } from "./promo-variant-save";
+import { checkCartRowPrices, exerciseVariantSave } from "./promo-variant-save";
 
 const draft: PromoOffer = {
   id: "weekend",
@@ -221,6 +221,7 @@ for (const width of [360, 390]) {
     await expect(preview.getByText(/49\D000/)).toHaveCount(1);
     await preview.getByRole("combobox", { name: "Когда смотрит покупатель" }).selectOption("during");
     await expect(price).toBeVisible();
+    await checkCartRowPrices(preview, /61\D250/, /49\D000/);
     await capture(page, preview, "preview-top", width);
     await capture(page, preview, "preview-bottom", width, true);
     await preview.getByRole("button", { name: "Изменить" }).click();
@@ -231,6 +232,7 @@ for (const width of [360, 390]) {
     await click("Как увидит покупатель");
     await expect(preview.getByText(/89\D000/).first()).toBeVisible();
     await expect(preview.getByText(/116\D000/).first()).toBeVisible();
+    await checkCartRowPrices(preview, /116\D000/, /89\D000/);
     if (width === 390) {
       await preview.getByRole("button", { name: "Изменить" }).click();
       await page.getByLabel("Цена по акции", { exact: true }).fill("88000");

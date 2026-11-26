@@ -48,6 +48,7 @@ export const promoListInput = z.object({
 export const promoExampleInput = z.object({
   terms: promoTerms,
   enteredCode: promoCode.nullable().optional(),
+  publicOfferId: id.optional(),
   receiving: z.enum(["pickup", "delivery"]).optional(),
   lines: z.array(z.object({ variantId: id, quantity: count.max(999) })).max(50),
   confirmed: z.boolean(),

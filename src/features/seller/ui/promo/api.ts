@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import type { Cart } from "../../../../shared/contracts/cart";
-import type { PromoOffer, PromoPrice, promoExampleInput } from "../../../../shared/contracts/promo";
+import type { PromoOffer, PromoPrice, PublicPromo, promoExampleInput } from "../../../../shared/contracts/promo";
 import { checkResponse } from "../../../../shared/http-error";
 import { commandHeaders } from "../../../../shared/shop-api";
 import type { ReceivingState } from "../../../receiving";
@@ -61,6 +61,8 @@ export async function promoRequest<T>(
   return response.json() as Promise<T>;
 }
 type ExampleQuote = Cart & {
+  publicOffers: PublicPromo[];
+  timeZone: string;
   fulfillment: Pick<ReceivingState, "delivery" | "pickup" | "unavailable" | "acceptingOrders" | "closedMessage">;
   method: "pickup" | "delivery" | null;
   deliveryMinor: number | null;

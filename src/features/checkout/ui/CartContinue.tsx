@@ -80,13 +80,7 @@ export function CartContinue({
         <CartContinueButton
           disabled={disabled || !method || !buyer.data || receiving.isFetching}
           loading={save.isPending}
-          subtitle={
-            needsAddress
-              ? "Укажите адрес доставки"
-              : needsContact
-                ? "Войдите через Telegram или укажите номер"
-                : undefined
-          }
+          {...{ needsAddress, needsContact }}
           amount={formatMinor(data.totalMinor, currency)}
           onClick={() => void next()}
         />
