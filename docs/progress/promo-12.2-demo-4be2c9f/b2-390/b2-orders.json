@@ -1,0 +1,110 @@
+{
+  "checks": [
+    {
+      "id": "b2-live-report-combo",
+      "result": "PASS",
+      "actual": {
+        "orders": 1,
+        "groups": 1,
+        "gifts": 0,
+        "savingsMinor": 103000,
+        "order": 16
+      },
+      "screenshot": "b2-live-report-combo.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "route": "/seller/promotions/649faf16-6ac7-4aff-bc7b-4e45f8c6fb6c",
+      "png": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "b2-live-order-combo",
+      "result": "PASS",
+      "actual": {
+        "order": 16,
+        "fromReport": true
+      },
+      "screenshot": "b2-live-order-combo.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "route": "/seller/orders/16",
+      "png": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "b2-live-report-gift",
+      "result": "PASS",
+      "actual": {
+        "orders": 1,
+        "groups": 1,
+        "gifts": 1,
+        "savingsMinor": 25000,
+        "order": 17
+      },
+      "screenshot": "b2-live-report-gift.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "route": "/seller/promotions/65cc71c2-22c9-459b-8612-7eab04421484",
+      "png": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "b2-live-order-gift",
+      "result": "PASS",
+      "actual": {
+        "order": 17,
+        "fromReport": true
+      },
+      "screenshot": "b2-live-order-gift.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "route": "/seller/orders/17",
+      "png": [
+        390,
+        844
+      ]
+    }
+  ],
+  "cleanup": [
+    {
+      "key": "combo",
+      "order": 16,
+      "orderStatus": "cancelled",
+      "offer": "disabled",
+      "buyerSession": "logged out"
+    },
+    {
+      "key": "gift",
+      "order": 17,
+      "orderStatus": "cancelled",
+      "offer": "disabled",
+      "buyerSession": "logged out"
+    }
+  ]
+}
