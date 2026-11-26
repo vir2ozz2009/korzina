@@ -1,0 +1,21 @@
+- button "Назад":
+- heading "Заказ №15" [level=2]
+- button "Сообщения":
+- link "На главную":
+  - /url: https://demo.korzina.app/?shop=promo-qa-121
+  - img "Учебный магазин · Акции":
+    - generic: У
+- main:
+  - navigation "Кабинет продавца":
+    - button "Главная":
+      - text: Главная
+    - button "Заказы":
+      - text: Заказы
+    - button "Товары":
+      - text: Товары
+    - button "Деньги":
+      - text: Деньги
+    - button "Акции":
+      - text: Акции
+    - button "Ещё":
+      - text: Ещё

@@ -1,0 +1,76 @@
+- button "Назад":
+- heading "Заказ №14" [level=2]
+- button "Сообщения":
+- link "На главную":
+  - /url: https://demo.korzina.app/?shop=promo-qa-121
+  - img "Учебный магазин · Акции":
+    - generic: У
+- main:
+  - heading "Изменения" [level=2]
+  - paragraph: Печенье · контроль долей 12.2
+  - paragraph: Нет в наличии — убрали
+  - generic: −80 000 ₫
+  - generic: Время получения
+  - generic: Сб, 28 ноября · 09:00–20:00
+  - paragraph: Часовой пояс магазина · Asia/Ho_Chi_Minh
+  - button "Изменить время":
+    - generic: Изменить время
+  - button "Чат по заказу":
+    - generic: Чат по заказу
+  - paragraph: Клиент видит №14
+  - text: Собирается
+  - generic: Не оплачен
+  - generic "Собирается":
+    - generic "Новый":
+    - generic "Собирается":
+    - generic "Ждёт выдачи":
+    - generic "Выдан":
+  - heading "Покупатель" [level=2]
+  - paragraph: Имя не указано
+  - link "+84999001223":
+    - /url: tel:+84999001223
+    - text: "+84999001223"
+  - heading "Состав заказа" [level=2]
+  - paragraph: Собрано 0 из 1
+  - button "Чай · контроль долей 12.2":
+    - 'img ": без фото"':
+  - button "Чай · контроль долей 12.2"
+  - paragraph: 200 г · 1 шт.
+  - generic: 160 000 ₫
+  - button "Изменить Чай · контроль долей 12.2":
+  - checkbox "Собрано · Чай · контроль долей 12.2"
+  - generic: Собрано · Чай · контроль долей 12.2
+  - button "Отметить все собранными":
+    - generic: Отметить все собранными
+  - heading "Получение" [level=2]
+  - paragraph: Самовывоз
+  - heading "Оплата · Наличными" [level=2]
+  - term: Товары
+  - definition: 160 000 ₫
+  - term: Доставка
+  - definition: 0 ₫
+  - term: Итого магазину
+  - definition: 160 000 ₫
+  - paragraph: Наличными · Получено 0 ₫
+  - button "Записать оплату":
+    - generic: Записать оплату
+  - generic "История заказа"
+  - paragraph: "Итог: 240 000 ₫ → 160 000 ₫"
+  - button "Сборка завершена":
+    - generic: Сборка завершена
+  - button "Ещё":
+    - generic: Ещё
+  - navigation "Кабинет продавца":
+    - button "Главная":
+      - text: Главная
+    - button "1 Заказы":
+      - generic: "1"
+      - text: Заказы
+    - button "Товары":
+      - text: Товары
+    - button "Деньги":
+      - text: Деньги
+    - button "Акции":
+      - text: Акции
+    - button "Ещё":
+      - text: Ещё

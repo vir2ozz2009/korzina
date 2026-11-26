@@ -1,0 +1,58 @@
+- button "Назад":
+- heading "Корзина" [level=1]
+- button "Закрыть корзину":
+- main:
+  - group "Способ получения":
+    - radio "Доставка" [checked]
+    - generic: Доставка
+    - generic: Привезём по адресу
+    - radio "Самовывоз"
+    - generic: Самовывоз
+    - generic: Заберёте сами · 45 Le Loi, Ho Chi Minh City
+  - button "Укажите адрес доставки":
+    - generic: Укажите адрес доставки
+  - button "Войти через Telegram":
+    - generic: Войти через Telegram
+  - button "У меня нет Telegram"
+  - heading "Ваш заказ" [level=2]
+  - list:
+    - button "Круассан · проверка 12.2":
+      - 'img ": без фото"':
+    - button "Круассан · проверка 12.2"
+    - button "Удалить Круассан · проверка 12.2":
+    - paragraph: 80 г
+    - button "Уменьшить количество":
+    - status "Количество": "3"
+    - button "Увеличить количество":
+    - deletion: 300 ₫
+    - generic: 288 ₫
+    - button "Кофе · проверка 12.2":
+      - 'img ": без фото"':
+    - button "Кофе · проверка 12.2"
+    - button "Удалить Кофе · проверка 12.2":
+    - paragraph: 500 г · Зерновой кофе средней обжарки для фильтра и эспрессо, свежая обжарка
+    - button "Уменьшить количество" [disabled]:
+    - status "Количество": "1"
+    - button "Увеличить количество":
+    - deletion: 150 ₫
+    - generic: 132 ₫
+  - separator
+  - button "Допрогон · Комбо по коду · 1 набор по акции · экономия 30 ₫"
+  - button "DOPWIN122":
+    - generic: DOPWIN122
+    - generic: Промокод применён
+  - separator
+  - generic: Товары
+  - strong: 450 ₫
+  - generic: Допрогон · Комбо по коду
+  - strong: −30 ₫
+  - generic: Доставка
+  - generic: Рассчитаем по адресу
+  - separator
+  - generic: Итого
+  - strong: 420 ₫
+  - status:
+    - paragraph: Добавьте товаров ещё на 119 550 ₫
+    - paragraph: Минимальная сумма товаров — 120 000 ₫
+    - button "К товарам":
+      - generic: К товарам

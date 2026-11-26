@@ -1,0 +1,42 @@
+- button "Назад":
+- heading "Корзина" [level=1]
+- button "Закрыть корзину":
+- main:
+  - status:
+    - paragraph: Проверяем корзину…
+    - paragraph: Уточняем цены и наличие товаров.
+  - heading "Ваш заказ" [level=2]
+  - list:
+    - button "Кофе · проверка 12.2":
+      - 'img ": без фото"':
+    - button "Кофе · проверка 12.2"
+    - button "Удалить Кофе · проверка 12.2" [disabled]:
+    - paragraph: 500 г · Зерновой кофе средней обжарки для фильтра и эспрессо, свежая обжарка
+    - button "Уменьшить количество" [disabled]:
+    - status "Количество": "3"
+    - button "Увеличить количество" [disabled]:
+    - deletion: 450 ₫
+    - generic: 300 ₫
+    - button "1 в подарок":
+      - text: 1 в подарок
+    - button "Круассан · проверка 12.2":
+      - 'img ": без фото"':
+    - button "Круассан · проверка 12.2"
+    - button "Удалить Круассан · проверка 12.2" [disabled]:
+    - paragraph: 80 г
+    - button "Уменьшить количество" [disabled]:
+    - status "Количество": "3"
+    - button "Увеличить количество" [disabled]:
+    - deletion: 300 ₫
+    - generic: 200 ₫
+    - button "1 в подарок":
+      - text: 1 в подарок
+  - separator
+  - button "DOPWIN122" [disabled]:
+    - generic: DOPWIN122
+  - paragraph: Скидка магазина выгоднее
+  - separator
+  - generic: Товары
+  - strong: 750 ₫
+  - generic: Количество в подарок
+  - strong: −250 ₫

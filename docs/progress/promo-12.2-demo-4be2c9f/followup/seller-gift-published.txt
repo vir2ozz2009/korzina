@@ -1,0 +1,17 @@
+- button "Назад":
+- heading "Акция" [level=1]
+- main:
+  - heading "Допрогон 12.2 · Подарки" [level=2]
+  - generic: Действует
+  - generic: Выгода
+  - generic: 3 по цене 2
+  - paragraph: Автоматически · Любой заказ · Голубика · проверка 12.2 · 125 г
+  - generic: Срок
+  - generic: Без срока
+  - heading "Результаты" [level=2]
+  - button "За всё время":
+    - generic: За всё время
+  - button "Изменить":
+    - generic: Изменить
+  - button "Отключить":
+    - generic: Отключить
