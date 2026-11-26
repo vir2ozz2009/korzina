@@ -139,6 +139,7 @@ async function capture(page: Page, dialog: Locator, name: string, width: number,
 
 for (const width of [360, 390]) {
   test(`12.1 · сверка создания, черновика и предпросмотра, ${width} px`, async ({ page }) => {
+    if (width === 390) test.setTimeout(50_000); // Also verifies save after a network failure.
     const state = await fixtures(page);
     await page.setViewportSize({ width, height: 737 });
     const click = (name: string) => page.getByRole("button", { name, exact: true }).click();
