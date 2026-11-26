@@ -34,6 +34,7 @@ function message(
 ) {
   if (promo?.reason === "minimum" && promo.missingMinor)
     return `Добавьте подходящих товаров ещё на ${formatMinor(promo.missingMinor, currency)}`;
+  if (promo?.reason === "quantity" && !promo.missingQuantity) return "Проверьте состав набора и условия акции";
   if (promo?.reason === "quantity") return `Добавьте подходящие товары · ещё ${promo.missingQuantity} шт.`;
   return promo?.reason && descriptions[promo.reason];
 }
@@ -153,7 +154,12 @@ export function CartPromotion({
       {promo?.telegramHint && (
         <p className="text-caption text-muted-foreground">Войдите через Telegram для скидки на первый заказ</p>
       )}
-      <PublicPromoTriggers {...{ publicOffers, currency }} hint={promo?.hint} open={openOffers} />
+      <PublicPromoTriggers
+        {...{ publicOffers, currency }}
+        hint={promo?.hint}
+        currentCode={promo?.code}
+        open={openOffers}
+      />
       <Divider />
       <Sheet
         open={!!mode}

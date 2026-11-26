@@ -32,6 +32,14 @@ export function PromoReportMetrics({
 }) {
   return (
     <>
+      {report.groups && (
+        <Metric
+          prominent
+          title={report.groups.type === "gift" ? `Групп ${report.groups.label ?? "с подарком"}` : "Наборов продано"}
+          value={report.groups.count}
+        />
+      )}
+      {report.groups?.type === "gift" && <Metric title="Единиц в подарок" value={report.groups.gifts} />}
       <button
         type="button"
         aria-expanded={detail}

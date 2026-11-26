@@ -9,7 +9,7 @@ import { StickyFooter } from "../../../ui/StickyFooter";
 import { CartContinue, usePurchaseSummary } from "../../checkout";
 import { ContactSheet, useContact } from "../../contact";
 import { activeReceiving, CartShipping, useReceiving } from "../../receiving";
-import { useConfirmCart, usePromoCart, usePublicCartPromos } from "../api";
+import { useAddPromoItems, useConfirmCart, usePromoCart, usePublicCartPromos } from "../api";
 import { useCart } from "../CartProvider";
 import { cartSnapshot } from "../snapshot";
 import { CartSignIn } from "./CartSignIn";
@@ -36,10 +36,12 @@ export function CartScreen() {
 
   const navigate = useNavigate();
   const back = useBack();
-  const confirm = useConfirmCart(useToast());
+  const toast = useToast();
+  const confirm = useConfirmCart(toast);
+  const addPromoItems = useAddPromoItems(toast);
   const cart = query.data ?? saved;
   usePromoRefresh(cart?.promo, refetch);
-  const checking = opening || query.isFetching;
+  const checking = opening || query.isFetching || addPromoItems.isPending;
   const currency = cart?.currency;
   const available = cart?.lines.filter((line) => line.available) ?? [];
   const summary = usePurchaseSummary(available.length > 0 ? cart?.revision : undefined);
@@ -62,6 +64,16 @@ export function CartScreen() {
         }
       }
       retry={() => void refetch()}
+      addPromoItems={(items) => {
+        if (cart && !addPromoItems.isPending)
+          addPromoItems.mutate({
+            input: {
+              addItems: items.map(({ variantId, quantity }) => ({ variantId, quantity })),
+              expectedRevision: cart.revision,
+            },
+            key: crypto.randomUUID(),
+          });
+      }}
       confirmed={confirm.isSuccess}
       publicOffers={{
         offers: publicQuery.isError ? [] : (publicQuery.data ?? []),

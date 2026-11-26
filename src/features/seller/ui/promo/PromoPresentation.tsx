@@ -47,6 +47,8 @@ export function personalLimit(terms: PromoTerms) {
 }
 
 export function promoBenefit(terms: PromoTerms, currency: string) {
+  if (terms.group?.type === "gift") return `${terms.group.buy + terms.group.gift} по цене ${terms.group.buy}`;
+  if (terms.group?.type === "bundle") return formatMinor(terms.group.priceMinor, currency);
   const discount = terms.discount;
   return discount.type === "fixed"
     ? formatMinor(discount.value, currency)
@@ -67,12 +69,14 @@ export function promoConditions(terms: PromoTerms, currency: string, scope?: str
     method,
     purchase,
     scope ??
-      {
-        all: "Все товары",
-        products: "Выбранные товары",
-        variants: "Выбранные фасовки",
-        categories: "Выбранные категории",
-      }[terms.scope.type],
+      (terms.group?.type === "bundle"
+        ? "Комбо-набор"
+        : {
+            all: "Все товары",
+            products: "Выбранные товары",
+            variants: "Выбранные фасовки",
+            categories: "Выбранные категории",
+          }[terms.scope.type]),
     terms.minimumMinor && `От ${formatMinor(terms.minimumMinor, currency)}`,
     terms.minimumQuantity && `От ${terms.minimumQuantity} ед.`,
     (terms.confirmed || (terms.personalLimit && terms.purchase?.mode !== "exact")) && "Подтверждённый покупатель",

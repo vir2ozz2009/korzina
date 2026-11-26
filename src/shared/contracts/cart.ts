@@ -10,6 +10,14 @@ const cartChangeInput = z.object({
 });
 export const cartCommandInput = z.union([
   cartChangeInput,
+  z.object({
+    addItems: z
+      .array(z.object({ variantId: z.string().min(1).max(120), quantity: z.number().int().min(1).max(999) }))
+      .min(1)
+      .max(50)
+      .refine((items) => new Set(items.map(({ variantId }) => variantId)).size === items.length),
+    expectedRevision,
+  }),
   z.object({ confirm: z.literal(true), expectedRevision }),
   z.object({ promoAction: z.enum(["remove", "keep"]), expectedRevision }),
   z.object({
@@ -52,7 +60,24 @@ const cartAdjustment = z.object({
   code: z.string().optional(),
   minimumMinor: money.optional(),
   purchase: z.object({ mode: z.enum(["exact", "from"]), number: z.number() }).optional(),
-  allocations: z.array(z.object({ variantId: z.string(), amount: money })).optional(),
+  groups: z
+    .object({
+      type: z.enum(["gift", "bundle"]),
+      count: z.number().int().positive(),
+      possible: z.number().int().positive(),
+      limit: z.number().int().positive().optional(),
+    })
+    .optional(),
+  allocations: z
+    .array(
+      z.object({
+        variantId: z.string(),
+        amount: money,
+        units: z.array(z.object({ quantity: z.number().int().positive(), paidMinor: money })).optional(),
+        gifts: z.number().int().positive().optional(),
+      }),
+    )
+    .optional(),
 });
 const promoResult = z.object({
   code: z.string().optional(),
@@ -60,6 +85,28 @@ const promoResult = z.object({
   missingMinor: money.optional(),
   missingQuantity: z.number().optional(),
   hint: z.object({ missingMinor: money, label: z.string(), publicOfferId: z.string().optional() }).optional(),
+  groupHints: z
+    .array(
+      z.object({
+        id: z.string(),
+        type: z.enum(["gift", "bundle"]),
+        name: z.string(),
+        missing: z.array(
+          z.object({
+            variantId: z.string(),
+            quantity: z.number().int().positive(),
+            name: z.string(),
+            unit: z.string(),
+          }),
+        ),
+        unavailable: z.boolean().optional(),
+        remainingSets: z.number().int().positive().optional(),
+        priceMinor: money.optional(),
+        savingsMinor: money.optional(),
+        code: z.string().optional(),
+      }),
+    )
+    .optional(),
   telegramHint: z.boolean().optional(),
   alternative: z
     .object({

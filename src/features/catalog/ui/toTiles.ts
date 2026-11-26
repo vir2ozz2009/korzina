@@ -26,7 +26,13 @@ export function toTiles({
     const value = manual ? (lines.find((line) => line.variantId === manual.id)?.quantity ?? 0) : offer.quantity;
     const multiple = !manual && offer.multiple;
     const available = selectOffer(product.variants, [], product.id);
+    const group =
+      variant.groupPromos?.[0] ?? product.variants.find((item) => item.groupPromos?.length)?.groupPromos?.[0];
     return {
+      ...(group && {
+        promotion:
+          group.type === "gift" ? `${group.buy + group.gift} по цене ${group.buy}` : `В наборе «${group.name}»`,
+      }),
       id: product.id,
       action: createElement(FavoriteButton, { id: product.id }),
       name: product.name,

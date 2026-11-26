@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { check, index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import type { PromoTerms } from "../../../src/shared/contracts/promo";
 import { orders } from "../checkout/schema";
 
@@ -28,7 +28,6 @@ export const promoUses = sqliteTable(
   "promo_uses",
   {
     orderNumber: integer("order_number")
-      .primaryKey()
       .notNull()
       .references(() => orders.number, { onDelete: "cascade" }),
     offerId: text("offer_id")
@@ -40,6 +39,7 @@ export const promoUses = sqliteTable(
     releasedAt: integer("released_at"),
   },
   (t) => [
+    primaryKey({ columns: [t.orderNumber, t.offerId] }),
     index("promo_offer_uses_idx").on(t.offerId, t.customer).where(sql`${t.releasedAt} IS NULL`),
     index("promo_reporting_idx").on(t.offerId, t.orderNumber),
     uniqueIndex("promo_purchase_right_idx")

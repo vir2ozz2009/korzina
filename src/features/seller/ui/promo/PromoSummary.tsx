@@ -2,8 +2,16 @@ import type { PromoTerms } from "../../../../shared/contracts/promo";
 import { formatMinor, fromBasisPoints, multiplyMinor } from "../../../../shared/money";
 import type { PromoCatalog } from "./api";
 import { promoLabels } from "./labels";
+import { promoBenefit } from "./PromoPresentation";
 
 export function promoScope(terms: PromoTerms, catalog?: PromoCatalog) {
+  if (terms.group?.type === "bundle")
+    return terms.group.components
+      .map(({ variantId, quantity }) => {
+        const item = catalog?.variants.find(({ id }) => id === variantId);
+        return `${item ? [item.productName, item.name].filter(Boolean).join(" · ") : "Недоступная фасовка"} × ${quantity}`;
+      })
+      .join(", ");
   const scope = terms.scope;
   const names =
     scope.type === "all"
@@ -44,8 +52,14 @@ export function Summary({
       <div>
         <dt className="text-label">{terms.name || "Без названия"}</dt>
         <dd>
-          {discount.type === "fixed" ? promoLabels.fixed : promoLabels.percent} ·{" "}
-          {discount.type === "fixed" ? money(discount.value) : `${fromBasisPoints(discount.value)} %`}
+          {terms.group ? (
+            promoBenefit(terms, currency)
+          ) : (
+            <>
+              {discount.type === "fixed" ? promoLabels.fixed : promoLabels.percent} ·{" "}
+              {discount.type === "fixed" ? money(discount.value) : `${fromBasisPoints(discount.value)} %`}
+            </>
+          )}
         </dd>
         {discount.type === "percent" && !!discount.capMinor && (
           <dd>

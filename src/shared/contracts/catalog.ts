@@ -37,12 +37,27 @@ const tile = z.object({
 });
 export type CatalogTile = z.infer<typeof tile>;
 
+const groupPromo = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("gift"), id, buy: z.number().int(), gift: z.number().int() }),
+  z.object({
+    type: z.literal("bundle"),
+    id,
+    name: z.string(),
+    priceMinor: z.number().int(),
+    limit: z.number().int().optional(),
+    code: z.string().optional(),
+    components: z.array(z.object({ variantId: id, name: z.string(), unit: z.string(), quantity: z.number().int() })),
+  }),
+]);
+export type CatalogGroupPromo = z.infer<typeof groupPromo>;
+
 const offer = z.object({
   id,
   productId: id.nullable(),
   priceMinor: z.number().int().nullable(),
   oldPriceMinor: z.number().int().nullable(),
   stock: z.number().int().nullable(),
+  groupPromos: z.array(groupPromo).optional(),
   visible: z.boolean(),
   available: z.boolean(),
 });
@@ -101,6 +116,7 @@ export const catalogProductContract = tile.omit({ image: true, variants: true })
       oldPriceMinor: z.number().int().nullable(),
       stock: z.number().int().nullable(),
       available: z.boolean(),
+      groupPromos: z.array(groupPromo).optional(),
     }),
   ),
   images: z.array(catalogImageContract.extend({ id })),

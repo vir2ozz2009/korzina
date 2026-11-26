@@ -9,6 +9,7 @@ import type {
 import { calendarDate, defaultShopTimeZone, shopDayStart } from "../../../src/shared/datetime";
 import { ApiError } from "../../../src/shared/errors";
 
+import { validateGroup } from "./group-terms";
 import { netSavings } from "./result-sql";
 
 type StoredOffer = {
@@ -90,9 +91,10 @@ export function listOffers(storage: DurableObjectStorage, input: z.infer<typeof 
 }
 
 export function validateTerms(storage: DurableObjectStorage, terms: PromoTerms, publishing: boolean) {
-  if (publishing && (!terms.name || !terms.discount.value || (terms.kind === "code" && !terms.code)))
+  if (publishing && (!terms.name || (!terms.group && !terms.discount.value) || (terms.kind === "code" && !terms.code)))
     throw new ApiError("VALIDATION", "Укажите название, размер скидки и код, если он нужен");
-  if (terms.scope.type === "all") return;
+  validateGroup(storage, terms, publishing);
+  if (terms.group?.type === "bundle" || terms.scope.type === "all") return;
   const scope = terms.scope;
   if (publishing && !scope.ids.length) throw new ApiError("VALIDATION", "Выберите подходящие товары");
   const live =

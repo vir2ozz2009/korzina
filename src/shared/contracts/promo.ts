@@ -21,6 +21,17 @@ export const promoTerms = z.object({
     z.object({ type: z.literal("percent"), value: z.number().int().min(0).max(10_000), capMinor: minor.optional() }),
     z.object({ type: z.literal("fixed"), value: minor.or(z.literal(0)) }),
   ]),
+  group: z
+    .discriminatedUnion("type", [
+      z.object({ type: z.literal("gift"), buy: count, gift: count, limit: count.optional() }),
+      z.object({
+        type: z.literal("bundle"),
+        components: z.array(z.object({ variantId: id, quantity: count.max(999) })).max(50),
+        priceMinor: minor.or(z.literal(0)),
+        limit: count.nullable().optional(),
+      }),
+    ])
+    .optional(),
   scope: z.discriminatedUnion("type", [
     z.object({ type: z.literal("all") }),
     z.object({ type: z.enum(["variants", "products", "categories"]), ids: z.array(id).max(50) }),
@@ -104,6 +115,7 @@ export type PublicPromo = Pick<
   | "kind"
   | "code"
   | "discount"
+  | "group"
   | "minimumMinor"
   | "minimumQuantity"
   | "confirmed"

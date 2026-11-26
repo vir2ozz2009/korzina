@@ -71,7 +71,13 @@ export function changeCart(
   identity: CommandIdentity,
 ): Cart {
   const result = storage.transactionSync(() => {
-    const current = readCartState(storage, customer, source, "variantId" in input ? [input.variantId] : [], identity);
+    const requested =
+      "addItems" in input
+        ? input.addItems.map(({ variantId }) => variantId)
+        : "variantId" in input
+          ? [input.variantId]
+          : [];
+    const current = readCartState(storage, customer, source, requested, identity);
     if (current.previous) {
       if (current.fingerprint !== identity.fingerprint)
         throw new ApiError("IDEMPOTENCY_CONFLICT", "Ключ уже использован с другим запросом");
@@ -155,6 +161,19 @@ export function changeCart(
       next = { ...cart, revision: cart.revision + 1 };
       persistCart(storage, customer, next);
       storage.sql.exec("UPDATE carts SET promo_code=?,promo_alternative=NULL WHERE customer=?", codes.code, customer);
+    } else if ("addItems" in input) {
+      if (!source.promotions) throw new ApiError("FORBIDDEN", "Акции недоступны");
+      if (cart.review) return new ApiError("QUOTE_CHANGED", "Подтвердите изменения в корзине", { cart: reprice(cart) });
+      const lines = new Map(cart.lines.map((line) => [line.variantId, line]));
+      for (const part of input.addItems) {
+        const offered = current.offered.find(({ variantId }) => variantId === part.variantId);
+        const quantity = (lines.get(part.variantId)?.quantity ?? 0) + part.quantity;
+        if (!offered?.available || quantity > Math.min(999, offered.stock ?? 999))
+          return new ApiError("STOCK_CHANGED", "Не хватает товара для акции", { cart: reprice(cart) });
+        lines.set(part.variantId, { ...offered, quantity });
+      }
+      if (lines.size > 50) throw new ApiError("VALIDATION", "В корзине может быть до 50 разных фасовок");
+      next = { ...cart, revision: cart.revision + 1, ...cartTotals([...lines.values()]) };
     } else if ("confirm" in input) {
       if (cart.review) next = { ...cart, revision: cart.revision + 1, review: undefined };
     } else {

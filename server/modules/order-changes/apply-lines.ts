@@ -4,6 +4,7 @@ import { addMinor } from "../../../src/shared/money";
 import { releaseOrderReservation } from "../checkout/order-reservation";
 import { orderFinance } from "../checkout/order-workflow";
 import { releasePromotion } from "../promo/cart";
+import { updateOrderPromos } from "./promo-lines";
 import type { ChangeState } from "./state";
 
 export function applyLines(
@@ -43,9 +44,15 @@ export function applyLines(
     releasePromotion(storage, row.number);
     snapshot.seatReserved = false;
   }
+  const grouped = snapshot.adjustments?.some(({ allocations }) => allocations?.some(({ units }) => units));
+  if (grouped) updateOrderPromos(storage, snapshot, lines, row.number);
   snapshot.lines = lines;
   const promotion = snapshot.adjustments?.find((item) => item.kind === "promotion");
-  if (promotion) {
+  if (grouped)
+    snapshot.itemsBeforeDiscountMinor = addMinor(
+      ...lines.map((line) => addMinor(line.totalMinor, line.promoSavingsMinor ?? 0)),
+    );
+  if (promotion && !grouped) {
     const savings = addMinor(...lines.map((line) => line.promoSavingsMinor ?? 0));
     snapshot.itemsBeforeDiscountMinor = addMinor(
       ...lines.map((line) => addMinor(line.totalMinor, line.promoSavingsMinor ?? 0)),
