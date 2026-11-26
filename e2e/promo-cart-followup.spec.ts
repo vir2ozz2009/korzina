@@ -24,7 +24,7 @@ const products = [
   { id: "cucumber", name: "500 г", productName: "Огурцы", priceMinor: 6500 },
 ];
 const pickup = { address: "Москва, ул. Садовая, 7", hours: "Ежедневно, 09:00–20:00" };
-const money = (value: number) => new RegExp(value.toLocaleString("ru-RU").replace(/\s/gu, "\\s") + "\\s*₽");
+const money = (value: number) => new RegExp(`${value.toLocaleString("ru-RU").replace(/\s/gu, "\\s")}\\s*₽`);
 
 async function exampleFixture(page: Page) {
   const shop = { id: "test-shop", slug: "test2", name: "Korzina", promotions: true, permissions: ["catalog"] };
@@ -58,7 +58,18 @@ async function exampleFixture(page: Page) {
     );
     const applied = enteredCode === "PROBA10" && base >= 40_000;
     const adjustments = applied
-      ? [{ kind: "promotion", sourceId: "example", label: "По промокоду PROBA10", amount: -base / 10 }]
+      ? [
+          {
+            kind: "promotion",
+            sourceId: "example",
+            label: "По промокоду PROBA10",
+            amount: -base / 10,
+            allocations: lines.map(({ variantId, quantity }) => ({
+              variantId,
+              amount: ((products.find(({ id }) => id === variantId)?.priceMinor ?? 0) * quantity) / 10,
+            })),
+          },
+        ]
       : [];
     const totalMinor = base - (applied ? base / 10 : 0);
     const result = lines.map(({ variantId, quantity }) => {
@@ -92,7 +103,7 @@ async function exampleFixture(page: Page) {
               missingMinor: Math.max(0, 40_000 - base),
             }
           : {},
-        fulfillment: { pickup, acceptingOrders: true },
+        fulfillment: { pickup, delivery: { mode: "text", payee: "shop" }, acceptingOrders: true },
         method: "pickup",
         deliveryMinor: 0,
       },
@@ -108,24 +119,24 @@ for (const width of [360, 390]) {
     await page.goto("/seller/promotions/proba?store=test2");
     await page.getByRole("button", { name: "Открыть черновик" }).click();
     await page.getByRole("button", { name: "Посмотреть, как видит покупатель" }).click();
-    await expect(page.getByRole("heading", { name: "Корзина" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Корзина", exact: true })).toBeVisible();
     const settings = page.locator("details").filter({ hasText: "Тестовые данные · не видны покупателю" });
     await expect(page.getByText("Корзина пуста")).toBeVisible();
     for (const id of ["tomato", "berry"]) {
-      await settings.getByLabel("Фасовка", { exact: true }).selectOption(id);
+      await settings.getByRole("combobox", { name: "Фасовка" }).selectOption(id);
       await settings.getByRole("button", { name: "Добавить товар" }).click();
     }
-    await settings.getByLabel("Клубника · 250 г").fill("4");
+    await settings.getByRole("spinbutton", { name: "Клубника · 250 г" }).fill("4");
     if (await settings.evaluate((node: HTMLDetailsElement) => node.open)) await settings.locator("summary").click();
     const checkout = page.getByRole("button", { name: /^Продолжить/ });
     await expect(checkout).toHaveText(money(1200));
     await expect(checkout).toBeDisabled();
-    await page.screenshot({ path: test.info().outputPath(`preview-before-${width}.png`) });
+    await page.screenshot({ animations: "disabled", path: test.info().outputPath(`preview-before-${width}.png`) });
     await page.getByRole("button", { name: "Промокод", exact: true }).click();
     const sheet = page.getByRole("dialog", { name: "Промокод" });
     const input = sheet.getByRole("textbox", { name: "Промокод" });
     await expect(input).toHaveValue("");
-    await page.screenshot({ path: test.info().outputPath(`preview-sheet-${width}.png`) });
+    await page.screenshot({ animations: "disabled", path: test.info().outputPath(`preview-sheet-${width}.png`) });
     await input.fill("WRONG");
     await sheet.getByRole("button", { name: "Применить" }).click();
     await expect(sheet.getByText("Код не найден")).toBeVisible();
@@ -133,13 +144,13 @@ for (const width of [360, 390]) {
     await sheet.getByRole("button", { name: "Применить" }).click();
     await expect(checkout).toHaveText(money(1080));
     await expect(page.getByText(money(72), { exact: false }).first()).toBeVisible();
-    await page.screenshot({ path: test.info().outputPath(`preview-applied-${width}.png`) });
+    await page.screenshot({ animations: "disabled", path: test.info().outputPath(`preview-applied-${width}.png`) });
     const berry = page.getByRole("listitem").filter({ hasText: "Клубника" });
     for (let i = 0; i < 3; i++) await berry.getByRole("button", { name: "Уменьшить количество" }).click();
     await expect(checkout).toHaveText(money(360));
     for (let i = 0; i < 3; i++) await berry.getByRole("button", { name: "Увеличить количество" }).click();
     await expect(checkout).toHaveText(money(1080));
-    await page.getByRole("button", { name: "PROBA10", exact: true }).click();
+    await page.getByRole("button", { name: /^PROBA10/ }).click();
     await sheet.getByRole("button", { name: "Убрать" }).click();
     await expect(checkout).toHaveText(money(1200));
     await expect(checkout).toBeDisabled();

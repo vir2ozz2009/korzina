@@ -81,7 +81,7 @@ export function PromoExample({
   const currency = cart?.currency;
   return (
     <>
-      <details className="mx-3 my-3 space-y-3 rounded-xl bg-card p-3" open={!Object.keys(lines).length || undefined}>
+      <details className="mx-3 my-3 space-y-3 rounded-xl bg-card p-3" open>
         <summary className="min-h-8 cursor-pointer text-label">Тестовые данные · не видны покупателю</summary>
         <label className="block">
           Фасовка

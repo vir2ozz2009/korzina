@@ -4,6 +4,7 @@ export interface ListItemProps {
   title: string;
   ref?: Ref<HTMLButtonElement>;
   disabled?: boolean;
+  ariaLabel?: string;
   subtitle?: string;
   icon?: ReactNode;
   value?: ReactNode;
@@ -15,6 +16,7 @@ export function ListItem({
   title,
   ref,
   disabled,
+  ariaLabel,
   subtitle,
   icon,
   value,
@@ -43,7 +45,14 @@ export function ListItem({
     );
   if (onClick)
     return (
-      <button ref={ref} type="button" disabled={disabled} onClick={onClick} className={className}>
+      <button
+        ref={ref}
+        type="button"
+        aria-label={ariaLabel}
+        disabled={disabled}
+        onClick={onClick}
+        className={className}
+      >
         {content}
       </button>
     );

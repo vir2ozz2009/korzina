@@ -130,18 +130,16 @@ export function CartPromotion({
       field.current?.querySelector("input")?.focus();
     }
   };
-  const titles = {
-    actions: "Промокод",
-    edit: "Промокод",
-    compare: "Сравнить промокоды",
-    public: selected ? "Условия акции" : "Доступные акции",
-  };
+  const publicTitle = selected ? "Условия акции" : "Доступные акции";
+  const title = mode === "public" ? publicTitle : mode === "compare" ? "Сравнить промокоды" : "Промокод";
   return (
     <>
       <ListItem
         ref={trigger}
         variant="compact"
         title={promo?.code ?? "Промокод"}
+        ariaLabel={promo?.code}
+        subtitle={promo?.reason === "applied" ? "Промокод применён" : undefined}
         icon={<Ticket size={20} />}
         disabled={disabled}
         onClick={() => {
@@ -164,7 +162,7 @@ export function CartPromotion({
           if (!open && !mutation.isPending) close();
         }}
         returnFocus={trigger}
-        title={titles[mode ?? "edit"]}
+        title={title}
         onBack={mode === "public" && selected ? () => openOffers() : undefined}
         form
       >
@@ -213,6 +211,7 @@ export function CartPromotion({
               <Input
                 label="Промокод"
                 autoComplete="off"
+                placeholder="Введите код"
                 maxLength={40}
                 value={input}
                 error={error}

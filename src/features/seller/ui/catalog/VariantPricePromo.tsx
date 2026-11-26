@@ -11,6 +11,7 @@ import { ProductRow } from "../../../../ui/ProductRow";
 import { ProductTile } from "../../../../ui/ProductTile";
 import { SelectField } from "../../../../ui/SelectField";
 import { Sheet } from "../../../../ui/Sheet";
+import { PromoSelect } from "../promo/PromoSelect";
 import type { VariantDraft } from "./VariantFields";
 
 export type PricePromoContext = {
@@ -156,23 +157,27 @@ export function VariantPricePromo({
         screen
       >
         <div className="space-y-3">
-          {
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                ["before", "До акции"],
-                ["during", "Во время"],
-                ["after", "После акции"],
-              ].map(([value, label]) => (
-                <Button
-                  key={value}
-                  variant={moment === value ? "primary" : "secondary"}
-                  onClick={() => setMoment(value)}
-                >
-                  {label}
-                </Button>
-              ))}
-            </div>
-          }
+          <Card>
+            <PromoSelect
+              label="Когда смотрит покупатель"
+              value={moment}
+              onChange={(event) => setMoment(event.target.value)}
+            >
+              <option value="before">До</option>
+              <option value="during">Во время</option>
+              <option value="after">После</option>
+            </PromoSelect>
+            {timed && (from || through) && (
+              <p className="text-caption text-muted-foreground">
+                {moment === "before" && from
+                  ? `До 00:00 ${from}`
+                  : moment === "after" && through
+                    ? `С 00:00 ${calendarDate(through, 1)}`
+                    : [from && `С ${from}`, through && `по ${through} включительно`].filter(Boolean).join(" ")}{" "}
+                · {zone}
+              </p>
+            )}
+          </Card>
           <Card>
             <h3 className="text-title-3">Плитка товара</h3>
             <div inert className="max-w-44">

@@ -58,7 +58,10 @@ export function CartView({
   const available = cart?.lines.filter((line) => line.available) ?? [];
   const courier =
     shipping?.mode === "delivery" && shipping.available && shipping.payee === "courier" && shipping.tariff !== "free";
-  const late = method === "delivery" && total?.deliveryMinor === null;
+  const late =
+    method === "delivery" &&
+    (total?.deliveryMinor === null ||
+      (shipping?.mode === "delivery" && shipping.available && shipping.feeMinor === null));
   const unavailable = cart?.lines.filter((line) => !line.available) ?? [];
   const issues = new Map(cart?.review?.changes.map((issue) => [issue.variantId, issue]));
 
@@ -163,7 +166,7 @@ export function CartView({
             {cart.adjustments.map((item) => (
               <div key={item.sourceId} className="flex justify-between gap-2">
                 <span className="min-w-0 wrap-anywhere">{item.label}</span>
-                <strong>−{formatMinor(-item.amount, currency)}</strong>
+                <strong className="text-status-success-foreground">−{formatMinor(-item.amount, currency)}</strong>
               </div>
             ))}
             {method && (

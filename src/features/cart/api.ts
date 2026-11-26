@@ -13,11 +13,11 @@ import { type CartCommand, cartMutationOptions, optimisticCart } from "./command
 import { saveCartSnapshot } from "./snapshot";
 
 const cartKey = ["shop", shopKey, "cart"] as const;
-function cartQuery() {
+function cartQuery(enabled: boolean) {
   return queryOptions({
     queryKey: cartKey,
     ...queryPolicy.cart,
-    enabled: buyerStorefrontOpen,
+    enabled: enabled && buyerStorefrontOpen,
     queryFn: async ({ signal }) => {
       const response = await shopApi.api.cart.$get({}, { init: { signal } });
       await checkResponse(response);
@@ -26,9 +26,9 @@ function cartQuery() {
   });
 }
 
-export function useCartData(notify: ReturnType<typeof useToast>) {
+export function useCartData(notify: ReturnType<typeof useToast>, enabled: boolean) {
   const client = useQueryClient();
-  const query = useQuery(cartQuery());
+  const query = useQuery(cartQuery(enabled));
   const mutation = useMutation(
     cartMutationOptions(
       client,

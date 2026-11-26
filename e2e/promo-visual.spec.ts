@@ -210,15 +210,15 @@ for (const width of [360, 390]) {
         photo.evaluateAll((items: HTMLImageElement[]) => items.every((item) => item.complete && item.naturalWidth > 0)),
       )
       .toBe(true);
-    await expect(preview.getByText(product.name, { exact: true })).toHaveCount(3);
-    await expect(preview.getByText("125 г", { exact: true })).toHaveCount(3);
+    await expect(preview.getByText(product.name, { exact: true })).toHaveCount(4);
+    await expect(preview.getByText("125 г", { exact: true })).toHaveCount(4);
     const price = preview.getByText(/49\D000/).first();
     await expect(price).toBeVisible();
-    await preview.getByRole("button", { name: "До акции" }).click();
-    await expect(price).toHaveCount(0);
-    await preview.getByRole("button", { name: "После акции" }).click();
-    await expect(price).toHaveCount(0);
-    await preview.getByRole("button", { name: "Во время" }).click();
+    await preview.getByRole("combobox", { name: "Когда смотрит покупатель" }).selectOption("before");
+    await expect(preview.getByText(/49\D000/)).toHaveCount(1);
+    await preview.getByRole("combobox", { name: "Когда смотрит покупатель" }).selectOption("after");
+    await expect(preview.getByText(/49\D000/)).toHaveCount(1);
+    await preview.getByRole("combobox", { name: "Когда смотрит покупатель" }).selectOption("during");
     await expect(price).toBeVisible();
     await capture(page, preview, "preview-top", width);
     await capture(page, preview, "preview-bottom", width, true);
