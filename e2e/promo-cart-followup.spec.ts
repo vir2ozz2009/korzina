@@ -115,12 +115,6 @@ for (const width of [360, 390]) {
               await expect(dialog.getByText("Промокод PROBA10")).toBeVisible();
               await expect(dialog.getByText(money(400))).toBeVisible();
             }
-            await capture("terms");
-            for (const page of [buyer, example]) {
-              await page.getByRole("dialog").getByRole("button", { name: "Применить" }).click();
-              await expect(totals(page)).toContainText(money(1080));
-            }
-            await capture("applied");
           } else {
             for (const page of [buyer, example]) {
               await page.getByRole("button", { name: "Промокод", exact: true }).click();
@@ -129,14 +123,14 @@ for (const width of [360, 390]) {
               await expect(promoSheet(page).getByText("Код не найден")).toBeVisible();
               await expect(totals(page)).toContainText(money(1200));
             }
-            await capture("error");
-            for (const page of [buyer, example]) {
-              await promoSheet(page).getByRole("textbox").fill("PROBA10");
-              await promoSheet(page).getByRole("button", { name: "Применить" }).click();
-              await expect(totals(page)).toContainText(money(1080));
-            }
-            await capture("applied");
           }
+          await capture(shown ? "terms" : "error");
+          for (const page of [buyer, example]) {
+            if (!shown) await promoSheet(page).getByRole("textbox").fill("PROBA10");
+            await page.getByRole("dialog").getByRole("button", { name: "Применить" }).click();
+            await expect(totals(page)).toContainText(money(1080));
+          }
+          await capture("applied");
           for (const page of [buyer, example]) {
             await page.getByRole("button", { name: /^PROBA10/ }).click();
             await promoSheet(page).getByRole("button", { name: "Убрать" }).click();

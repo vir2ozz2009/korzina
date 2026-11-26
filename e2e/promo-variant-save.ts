@@ -37,9 +37,18 @@ export async function checkCartRowPrices(preview: Locator, regular: RegExp, disc
       await expect(old).toHaveCount(1);
       await expect(old).toHaveText(regular);
       await expect(current).toBeVisible();
-      const oldBox = await old.boundingBox();
-      const currentBox = await current.boundingBox();
-      expect(oldBox?.y).toBeLessThan(currentBox?.y ?? 0);
+      await expect
+        .poll(() =>
+          old
+            .or(current)
+            .evaluateAll(
+              ([first, second]) =>
+                !!second &&
+                first.localName === "del" &&
+                first.getBoundingClientRect().y < second.getBoundingClientRect().y,
+            ),
+        )
+        .toBe(true);
     } else {
       await expect(row.locator("del")).toHaveCount(0);
       await expect(row.getByText(discounted)).toHaveCount(0);
