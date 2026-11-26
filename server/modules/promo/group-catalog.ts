@@ -2,7 +2,7 @@ import type { CatalogGroupPromo } from "../../../src/shared/contracts/catalog";
 import type { PromoTerms } from "../../../src/shared/contracts/promo";
 import { addMinor, multiplyMinor } from "../../../src/shared/money";
 
-export const liveGroupOffer = (now: number) => `p.state='published'
+const liveGroupOffer = (now: number) => `p.state='published'
   AND (p.starts_at IS NULL OR p.starts_at<=${Math.trunc(now)})
   AND (p.ends_at IS NULL OR p.ends_at>${Math.trunc(now)})
   AND json_type(p.terms,'$.group')='object'

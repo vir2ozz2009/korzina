@@ -86,13 +86,13 @@ export function reportOffer(
       COALESCE(SUM(${netItems}),0) itemsMinor,COALESCE(SUM(${netSavings}),0) savingsMinor,
       COALESCE(SUM(MAX(0,COALESCE(json_extract(o.snapshot,'$.deliveryMinor'),0)-
         COALESCE(json_extract(o.fulfillment_state,'$.finance.salesRefund.deliveryMinor'),0))),0) deliveryMinor,
-      COALESCE(SUM(CASE WHEN ${netItems}>0 THEN COALESCE(${adjustment("$.groups.count")},0) ELSE 0 END),0) groupCount,
-      COALESCE(SUM(CASE WHEN ${netItems}>0 THEN COALESCE((
+      COALESCE(SUM(${adjustment("$.groups.count")}),0) groupCount,
+      COALESCE(SUM((
         SELECT SUM(COALESCE(json_extract(part.value,'$.gifts'),0))
         FROM json_each(json_extract(o.snapshot,'$.adjustments')) offer,
           json_each(json_extract(offer.value,'$.allocations')) part
         WHERE json_extract(offer.value,'$.sourceId')=u.offer_id
-      ),0) ELSE 0 END),0) giftCount,
+      )),0) giftCount,
       COUNT(${adjustment("$.minimumMinor")}) thresholdCount,
       CAST(ROUND(AVG(CASE WHEN ${adjustment("$.minimumMinor")} IS NOT NULL THEN ${netItems} END)) AS INTEGER) thresholdAverage
       ${filter}`,

@@ -95,6 +95,19 @@ it("12.2 · одна команда добавляет комплект, два 
     savingsMinor: 6000,
     orders: [{ number: order.number, savingMinor: 6000 }],
   });
+  for (const itemsMinor of [10_000, order.itemsMinor]) {
+    await catalogSql(
+      "UPDATE orders SET fulfillment_state=? WHERE number=?",
+      JSON.stringify({ finance: { salesRefund: { itemsMinor, deliveryMinor: 0 } } }),
+      order.number,
+    );
+    const refunded = await getAuth(`/api/seller/promotions/${combo.id}/report?store=lavka`, headers);
+    expect(await refunded.json()).toMatchObject({
+      itemsMinor: order.itemsMinor - itemsMinor,
+      savingsMinor: itemsMinor === order.itemsMinor ? 0 : 6000,
+      groups: { type: "bundle", count: 2 },
+    });
+  }
 });
 
 it("12.2 · закрытый код не виден в каталоге и примере другого покупателя, нулевой остаток не даёт подарка", async () => {
