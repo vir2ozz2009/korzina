@@ -33,7 +33,40 @@ export function listPublicCartPromos(
   cart: Cart,
   now: number,
 ): PublicPromo[] {
-  return publicCartPromos(storage, customer, cart, now).map(({ offer, result }) => {
+  const publicOffers = publicCartPromos(storage, customer, cart, now);
+  const scopes = publicOffers.flatMap(
+    ({
+      offer: {
+        id,
+        terms: { scope },
+      },
+    }) => (scope.type === "all" ? [] : scope.ids.map((item) => [id, scope.type, item])),
+  );
+  const names = new Map<string, string[]>();
+  if (scopes.length) {
+    const rows = storage.sql
+      .exec<{ offer: string; name: string }>(
+        `WITH scope AS (
+        SELECT json_extract(value,'$[0]') offer,json_extract(value,'$[1]') kind,json_extract(value,'$[2]') id
+        FROM json_each(?)
+      )
+      SELECT s.offer,c.name FROM scope s JOIN categories c ON s.kind='categories' AND c.id=s.id WHERE c.visible
+      UNION ALL SELECT s.offer,p.name FROM scope s JOIN products p ON s.kind='products' AND p.id=s.id
+        WHERE p.published AND p.visible
+      UNION ALL SELECT s.offer,p.name || CASE WHEN v.name='' THEN '' ELSE ' · ' || v.name END
+        FROM scope s JOIN variants v ON s.kind='variants' AND v.id=s.id JOIN products p ON p.id=v.product_id
+        WHERE v.visible AND v.product_available
+      ORDER BY 2`,
+        JSON.stringify(scopes),
+      )
+      .toArray();
+    for (const { offer, name } of rows) {
+      const known = names.get(offer);
+      if (known) known.push(name);
+      else names.set(offer, [name]);
+    }
+  }
+  return publicOffers.map(({ offer, result }) => {
     const {
       name,
       kind,
@@ -48,21 +81,7 @@ export function listPublicCartPromos(
       fromDate,
       throughDate,
     } = offer.terms;
-    const scopeNames =
-      scope.type === "all"
-        ? ["Все товары"]
-        : storage.sql
-            .exec<{ name: string }>(
-              scope.type === "variants"
-                ? `SELECT p.name || CASE WHEN v.name='' THEN '' ELSE ' · ' || v.name END AS name
-            FROM variants v JOIN products p ON p.id=v.product_id WHERE v.visible AND v.product_available
-            AND v.id IN (SELECT value FROM json_each(?)) ORDER BY name`
-                : `SELECT name FROM ${scope.type} WHERE ${scope.type === "products" ? "published AND visible" : "visible"}
-            AND id IN (SELECT value FROM json_each(?)) ORDER BY name`,
-              JSON.stringify(scope.ids),
-            )
-            .toArray()
-            .map(({ name }) => name);
+    const scopeNames = scope.type === "all" ? ["Все товары"] : (names.get(offer.id) ?? []);
     return {
       id: offer.id,
       name,

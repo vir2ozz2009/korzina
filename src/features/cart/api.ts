@@ -130,7 +130,7 @@ export function usePublicCartPromos(revision: number | undefined, confirmed: boo
     enabled: revision !== undefined,
     retry: false,
     refetchOnWindowFocus: "always",
-    refetchInterval: 15_000,
+    refetchInterval: ({ state }) => (state.data?.length ? 15_000 : false),
     queryFn: async ({ signal }) => {
       const response = await shopApi.api.cart.promotions.$get({}, { init: { signal } });
       await checkResponse(response);

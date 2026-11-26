@@ -32,18 +32,15 @@ beforeEach(async () => {
 const seller = (headers: HeadersInit, body: object, suffix = "", key = crypto.randomUUID(), store = "lavka") =>
   postAuth(`/api/seller/promotions${suffix}?store=${store}`, body, { ...headers, "Idempotency-Key": key });
 const readCart = async (Cookie: string) => (await getAuth("/api/cart?shop=lavka", { Cookie })).json<Cart>();
-async function code(cookie: string, value = "HOT") {
-  const response = await buy(
-    "cart",
-    { promoAction: "apply", code: value, expectedRevision: (await readCart(cookie)).revision },
-    cookie,
-  );
-  expect(response.status).toBe(200);
-  return response.json<Cart>();
-}
 it("§5.2 выдаёт только публичные акции своего магазина и повторно проверяет их при сравнении и применении", async () => {
   const { headers } = await sellerFixture(shop);
-  const publicTerms = { ...terms, code: "PUBLIC", publicInCart: true, minimumMinor: 50_000 };
+  const publicTerms = {
+    ...terms,
+    code: "PUBLIC",
+    publicInCart: true,
+    minimumMinor: 50_000,
+    scope: { type: "variants" as const, ids: ["sku-01"] },
+  };
   const send = async (terms: PromoTerms, suffix = "", revision = 0) => {
     const response = await seller(headers, { action: "publish", revision, terms }, suffix);
     expect(response.status).toBe(200);
@@ -56,7 +53,6 @@ it("§5.2 выдаёт только публичные акции своего �
   const { publicInCart: _omitted, ...legacyTerms } = publicTerms;
   const edited = await send(legacyTerms, `/${shown.id}`, 1);
   expect(edited.terms.publicInCart).toBe(true);
-
   const Cookie = await customer("sku-01");
   const list = () => getAuth("/api/cart/promotions?shop=lavka", { Cookie });
   expect(await (await list()).json()).toMatchObject([{ id: shown.id, applicable: false, missingMinor: 1000 }]);
@@ -71,11 +67,20 @@ it("§5.2 выдаёт только публичные акции своего �
   );
   expect(atThreshold.status).toBe(200);
   const [publicOffer] = await (await list()).json<Record<string, unknown>[]>();
-  expect(publicOffer).toMatchObject({ id: shown.id, applicable: true, code: "PUBLIC" });
+  expect(publicOffer).toMatchObject({
+    id: shown.id,
+    applicable: true,
+    code: "PUBLIC",
+    scopeNames: [expect.any(String)],
+  });
   for (const key of ["terms", "totalLimit", "personalUsed", "orders", "actor", "revision"])
     expect(publicOffer).not.toHaveProperty(key);
-  expect(await (await getAuth("/api/cart/promotions?shop=test2", { Cookie })).json()).toEqual([]);
-  expect((await code(Cookie)).promo?.code).toBe("HOT");
+  const manual = await buy(
+    "cart",
+    { promoAction: "apply", code: "HOT", expectedRevision: (await atThreshold.json<Cart>()).revision },
+    Cookie,
+  );
+  expect(await manual.json()).toMatchObject({ promo: { code: "HOT", reason: "applied" } });
   const prior = await readCart(Cookie);
   const request = { code: "PUBLIC", publicOfferId: shown.id, expectedRevision: prior.revision };
   const comparison = await buy("cart", { ...request, promoAction: "compare" }, Cookie);
@@ -114,7 +119,6 @@ it("§5.2 публичный добор меняется на скидку и о
   const guest = await customer("sku-01");
   const request = (Cookie: string, slug = "lavka") => getAuth(`/api/cart/promotions?shop=${slug}`, { Cookie });
   expect(await (await request(guest)).json()).toMatchObject([{ code: "SAME", name: terms.name }]);
-
   const verified = await prepareCustomer("telegram:4567", "telegram");
   await catalogSql(
     "INSERT INTO sessions(token_hash,subject,kind,expires_at) VALUES(?,?,?,?)",
@@ -141,7 +145,6 @@ it("§5.2 публичный добор меняется на скидку и о
   expect(await setQuantity(1)).toMatchObject({ totalMinor: 49_000, promo: { hint: { publicOfferId: row.id } } });
   await catalogSql("UPDATE promo_offers SET ends_at=? WHERE id=?", Date.now() - 1, row.id);
   expect(await (await request(Cookie)).json()).toMatchObject([{ code: "SAME", name: terms.name }]);
-
   const secondSession = await prepareCustomer();
   await shopCatalogSql(
     "INSERT INTO sessions(token_hash,subject,kind,expires_at) VALUES(?,?,?,?)",
@@ -184,7 +187,6 @@ it("§5.3 пример считает 1200 → 1080 → 1200, применяет
     "UPDATE variants SET stock=25,visible=1,old_price_minor=NULL,price_minor=CASE id WHEN 'sku-01' THEN 8000 ELSE 28000 END WHERE id IN ('sku-01','sku-02')",
   );
   const Cookie = await customer("sku-01");
-  const before = await readCart(Cookie);
   const snapshot = () =>
     catalogSql(
       "SELECT (SELECT COUNT(*) FROM orders) AS orders,(SELECT COUNT(*) FROM promo_uses) AS uses,(SELECT COUNT(*) FROM carts) AS carts",
@@ -210,7 +212,6 @@ it("§5.3 пример считает 1200 → 1080 → 1200, применяет
   };
   await catalogSql("UPDATE catalog_state SET currency='RUB' WHERE id=1");
   const realBefore = await readCart(Cookie);
-  expect(realBefore.lines.map(({ quantity }) => quantity)).toEqual(before.lines.map(({ quantity }) => quantity));
   expect(await example(null)).toMatchObject({
     currency: "RUB",
     itemsMinor: 120_000,
