@@ -1,0 +1,62 @@
+- button "Назад":
+- heading "Корзина" [level=1]
+- button "Закрыть корзину":
+- main:
+  - group "Способ получения":
+    - radio "Доставка" [checked]
+    - generic: Доставка
+    - generic: Привезём по адресу
+    - radio "Самовывоз"
+    - generic: Самовывоз
+    - generic: Заберёте сами · 45 Le Loi, Ho Chi Minh City
+  - button "Укажите адрес доставки":
+    - generic: Укажите адрес доставки
+  - button "Войти через Telegram":
+    - generic: Войти через Telegram
+  - button "У меня нет Telegram"
+  - heading "Ваш заказ" [level=2]
+  - list:
+    - button "Круассан · проверка 12.2":
+      - 'img ": без фото"':
+    - button "Круассан · проверка 12.2"
+    - button "Удалить Круассан · проверка 12.2":
+    - paragraph: 80 г
+    - button "Уменьшить количество":
+    - status "Количество": "3"
+    - button "Увеличить количество":
+    - deletion: 300 ₫
+    - generic: 200 ₫
+    - button "1 в подарок":
+      - text: 1 в подарок
+    - button "Кофе · проверка 12.2":
+      - 'img ": без фото"':
+    - button "Кофе · проверка 12.2"
+    - button "Удалить Кофе · проверка 12.2":
+    - paragraph: 250 г
+    - button "Уменьшить количество":
+    - status "Количество": "3"
+    - button "Увеличить количество":
+    - generic: 450 ₫
+  - separator
+  - paragraph: "Для набора не хватает: Кофе · проверка 12.2 · 500 г · Зерновой кофе средней обжарки для фильтра и эспрессо, свежая обжарка"
+  - paragraph: Набор будет стоить 220 ₫ вместо 250 ₫. Экономия 30 ₫.
+  - button "Добавить Кофе · проверка 12.2":
+    - generic: Добавить Кофе · проверка 12.2
+  - button "DOPWIN122":
+    - generic: DOPWIN122
+  - paragraph: Проверьте состав набора и условия акции
+  - separator
+  - generic: Товары
+  - strong: 750 ₫
+  - generic: Количество в подарок
+  - strong: −100 ₫
+  - generic: Доставка
+  - generic: Рассчитаем по адресу
+  - separator
+  - generic: Итого
+  - strong: 650 ₫
+  - status:
+    - paragraph: Добавьте товаров ещё на 119 250 ₫
+    - paragraph: Минимальная сумма товаров — 120 000 ₫
+    - button "К товарам":
+      - generic: К товарам

@@ -1,0 +1,90 @@
+{
+  "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+  "windowMoscow": "2026-11-26 16:09–16:29",
+  "environment": {
+    "os": "macOS 26.6.2 (25G83), arm64",
+    "device": "physical iPhone via iPhone Mirroring",
+    "deviceName": "iPhone 18 Pro Max",
+    "hardwareModel": "not verified",
+    "iOS": "not read",
+    "browser": "Safari",
+    "screenshot": [
+      708,
+      1562
+    ],
+    "cssViewport": "not measured",
+    "phoneClock": "Moscow +4h"
+  },
+  "scope": "B1 and remaining iPhone only; B2 and confirmed Safari matrices not rerun",
+  "checks": [
+    {
+      "id": "7.1",
+      "status": "PASS",
+      "actual": "Active gift2+1, limit1: 2×125g +1×250g no gift; third125g line120000; six125g line300000, one gift; +250g100000 ->total400000",
+      "evidence": [
+        "gift-mixed-two125-one250-no-gift.png",
+        "gift-mixed-three125-one250-one-gift.png",
+        "gift-six-limit-one-total400000.png"
+      ]
+    },
+    {
+      "id": "7.2",
+      "status": "PASS",
+      "actual": "Two SKU125/250 with temporary prices200/100 VND, 3each ->600; global limit1 ->700, expensive gift200 selected; 1+2,3A ->200. Original permutation evidence retained.",
+      "evidence": [
+        "gift-200-100-three-each-600.png",
+        "gift-200-100-limit-one-total700.png",
+        "gift-one-plus-two-total200.png"
+      ]
+    },
+    {
+      "id": "iphone-checkout",
+      "status": "PASS",
+      "actual": "Guest pickup, cash, order19;180000-60000=120000; Done screen. No real payment.",
+      "evidence": [
+        "checkout-guest-pickup-ready.png",
+        "checkout-payment-gift120000.png",
+        "checkout-done-order19.png"
+      ]
+    },
+    {
+      "id": "B1-telegram",
+      "status": "BLOCKED",
+      "actual": "QA bot_username=null; actual iPhone login says Telegram магазина пока не подключён. Mini App and confirmed buyer not verified.",
+      "evidence": [
+        "telegram-qa-not-connected.png"
+      ]
+    },
+    {
+      "id": "B1-software-keyboard",
+      "status": "BLOCKED",
+      "actual": "Tapping code input exposes hardware accessory bar only; no full iOS keyboard; not counted as software keyboard coverage.",
+      "evidence": [
+        "ios-code-keyboard-not-exposed.png"
+      ]
+    },
+    {
+      "id": "7.7-9",
+      "status": "BLOCKED",
+      "actual": "Exact QA seller URL requires seller login. Existing iPhone cookie belongs to demo lavka, not QA. Physical QA composition, both creation entrances/reports, variant/draft reopen not completed.",
+      "evidence": [
+        "qa-seller-session-unavailable.png"
+      ]
+    },
+    {
+      "id": "D4-native-gesture",
+      "status": "NOT_VERIFIED",
+      "actual": "Requires direct finger interaction on physical iPhone; Mirroring input is not native finger evidence. Confirmed Safari route not repeated."
+    }
+  ],
+  "defects": "No new confirmed product defects; D1–D4 unchanged",
+  "incidentalDraft": {
+    "shop": "demo lavka (not production)",
+    "id": "a458501e-c560-4e0b-b98d-3fc83824ba3a",
+    "status": "draft",
+    "published": false,
+    "reason": "Ошибка ввода store: + вместо =; disable черновика отклонён API; оставлен явно помеченный неопубликованный черновик"
+  },
+  "changes": "Evidence/docs only, no product fixes",
+  "stop": "Work block12.2; no acceptance"
+}

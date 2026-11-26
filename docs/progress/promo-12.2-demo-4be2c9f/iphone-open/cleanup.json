@@ -1,0 +1,35 @@
+{
+  "order19": {
+    "stage": "cancelled",
+    "totalMinor": 120000,
+    "returnStock": true
+  },
+  "1c8f70bc-6248-4728-8662-1445c8fdd415": {
+    "status": "disabled",
+    "termsRestored": true
+  },
+  "320fe3de-c904-4b04-89e5-5d1b72b82579": {
+    "status": "hidden",
+    "variantsRestored": true
+  },
+  "1452d2c6-6312-40ff-8fe6-0dffd2e1899f": {
+    "status": "hidden",
+    "variantsRestored": true
+  },
+  "dc9eca46-6cfa-442d-97a3-7a3aa2902afd": {
+    "status": "hidden",
+    "variantsRestored": false,
+    "mutableFieldsRestored": true,
+    "note": "stockRevision 4→6 и purchased 12→15 сохраняют историю заказа и отмены; цены, имена, stock и visibility восстановлены"
+  },
+  "incidentalDraft": {
+    "shop": "demo lavka (not production)",
+    "id": "a458501e-c560-4e0b-b98d-3fc83824ba3a",
+    "status": "draft",
+    "published": false,
+    "reason": "Ошибка ввода store: + вместо =; disable черновика отклонён API; оставлен явно помеченный неопубликованный черновик"
+  },
+  "atUtc": "2026-11-26T13:28:41.844231+00:00",
+  "temporarySellerSessionsRemaining": 0,
+  "buyerSession": "logged out through iPhone UI"
+}

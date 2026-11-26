@@ -1,0 +1,144 @@
+[
+  {
+    "order": 10,
+    "cancelled": true
+  },
+  {
+    "order": 11,
+    "cancelled": true
+  },
+  {
+    "order": 12,
+    "cancelled": true
+  },
+  {
+    "order": 13,
+    "cancelled": true
+  },
+  {
+    "order": 14,
+    "cancelled": true
+  },
+  {
+    "order": 15,
+    "cancelled": true
+  },
+  {
+    "offer": "65f7136f-8519-4eb1-a489-4a7dc1ea161e",
+    "status": "disabled"
+  },
+  {
+    "offer": "069abb8e-5d5e-472f-b82f-4155abab40b9",
+    "status": "disabled"
+  },
+  {
+    "offer": "ebee619c-79d2-435c-bbe1-068d450a27b9",
+    "status": "disabled"
+  },
+  {
+    "offer": "528d2cb6-3b16-41f7-baad-d1123764adb7",
+    "status": "disabled"
+  },
+  {
+    "offer": "49412fe7-8382-4688-ba77-249949fc2580",
+    "status": "disabled"
+  },
+  {
+    "offer": "ffb4f00c-b79b-41fb-a06f-50a1445adfb0",
+    "status": "disabled"
+  },
+  {
+    "offer": "53947ea2-b1fc-4c70-88e9-d7188099c944",
+    "status": "disabled"
+  },
+  {
+    "offer": "925910e2-76b8-4020-b555-e6a461a52124",
+    "status": "disabled"
+  },
+  {
+    "offer": "253d83e7-3ddd-4457-a345-de2347f7c97a",
+    "status": "disabled"
+  },
+  {
+    "offer": "ec88ee2f-aac7-4fbb-992d-3060aa76eae7",
+    "status": "disabled"
+  },
+  {
+    "offer": "159b68f2-8218-474a-918f-49f4665c4c88",
+    "status": "disabled"
+  },
+  {
+    "offer": "9042f9d2-e312-4bda-9902-54b50321aacf",
+    "status": "disabled"
+  },
+  {
+    "offer": "0c8a81a6-a301-4e00-bb97-a3607caa7287",
+    "status": "disabled"
+  },
+  {
+    "offer": "f9619beb-d030-4d32-b71e-8b34afee63c6",
+    "status": "disabled"
+  },
+  {
+    "offer": "01e8d3b3-cd1c-4c0c-8427-b78edf18b03d",
+    "status": "disabled"
+  },
+  {
+    "offer": "422543ee-ff55-4ada-af43-5968805eb54e",
+    "status": "disabled"
+  },
+  {
+    "offer": "1c8f70bc-6248-4728-8662-1445c8fdd415",
+    "status": "disabled"
+  },
+  {
+    "offer": "ce3ec123-2106-4ff1-ad7d-a0b607f518a2",
+    "status": "disabled"
+  },
+  {
+    "product": "6287415b-d531-45db-b9b1-b2a408d7e710",
+    "status": "hidden"
+  },
+  {
+    "product": "e8d70354-b104-4760-9884-dcb48da79f83",
+    "status": "hidden"
+  },
+  {
+    "product": "19fb825b-f44c-4dcb-9ce3-b1b9d7c8b5b9",
+    "status": "hidden"
+  },
+  {
+    "product": "8a3415ca-428c-4999-b221-4e20d2da98be",
+    "status": "hidden"
+  },
+  {
+    "product": "dbc95b24-4ac7-4f40-a57c-6445505b1982",
+    "status": "hidden"
+  },
+  {
+    "product": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+    "status": "hidden"
+  },
+  {
+    "product": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+    "status": "hidden"
+  },
+  {
+    "product": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+    "status": "hidden"
+  },
+  {
+    "product": "b0cb28c4-43cb-4318-bfc3-beb9a4c7b90f",
+    "status": "hidden"
+  },
+  {
+    "product": "4e8681d1-7fd9-4206-8d5d-6e2e31606d38",
+    "status": "hidden"
+  },
+  {
+    "temporarySellerSession": "revoked"
+  },
+  {
+    "browserQaCartCount": 0
+  }
+]

@@ -1,0 +1,74 @@
+[
+  {
+    "action": "openRefund",
+    "stage": "completed",
+    "revision": 5
+  },
+  {
+    "report": {
+      "orders": [
+        {
+          "number": 6,
+          "completedAt": 1795689371941,
+          "name": "Гость",
+          "itemsMinor": 240000,
+          "savingMinor": 120000
+        }
+      ],
+      "customers": 0,
+      "guestOrders": 1,
+      "itemsMinor": 240000,
+      "savingsMinor": 120000,
+      "deliveryMinor": 0,
+      "groupCount": 2,
+      "giftCount": 2,
+      "thresholdCount": 0,
+      "thresholdAverage": null,
+      "orderCount": 1,
+      "groups": {
+        "type": "gift",
+        "count": 2,
+        "gifts": 2,
+        "label": "2+1"
+      },
+      "nextOffset": null,
+      "purchaseStats": []
+    }
+  },
+  {
+    "action": "markRefundReturned",
+    "stage": "completed",
+    "revision": 6
+  },
+  {
+    "afterRefund": {
+      "orders": [
+        {
+          "number": 6,
+          "completedAt": 1795689371941,
+          "name": "Гость",
+          "itemsMinor": 180000,
+          "savingMinor": 90000
+        }
+      ],
+      "customers": 0,
+      "guestOrders": 1,
+      "itemsMinor": 180000,
+      "savingsMinor": 90000,
+      "deliveryMinor": 0,
+      "groupCount": 2,
+      "giftCount": 2,
+      "thresholdCount": 0,
+      "thresholdAverage": null,
+      "orderCount": 1,
+      "groups": {
+        "type": "gift",
+        "count": 2,
+        "gifts": 2,
+        "label": "2+1"
+      },
+      "nextOffset": null,
+      "purchaseStats": []
+    }
+  }
+]

@@ -1,0 +1,58 @@
+{
+  "checks": [
+    {
+      "id": "b2-composition-preview",
+      "result": "PASS",
+      "actual": {
+        "order": 18,
+        "beforeMinor": 100000,
+        "expectedRemainingMinor": 87685
+      },
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "route": "/seller/orders/18",
+      "png": [
+        390,
+        844
+      ],
+      "evidence": "The raw viewport includes a QA contact field and is not published. Applied-state screenshot retained."
+    },
+    {
+      "id": "b2-composition-applied",
+      "result": "PASS",
+      "actual": {
+        "order": 18,
+        "beforeMinor": 100000,
+        "removedMinor": 12315,
+        "remainingMinor": 87685
+      },
+      "screenshot": "b2-composition-applied.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "route": "/seller/orders/18",
+      "png": [
+        390,
+        844
+      ]
+    }
+  ],
+  "cleanup": [
+    {
+      "key": "combo",
+      "order": 18,
+      "orderStatus": "cancelled",
+      "offer": "disabled",
+      "buyerSession": "logged out"
+    }
+  ]
+}

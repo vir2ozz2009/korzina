@@ -1,0 +1,453 @@
+{
+  "run": "QA312-8053867",
+  "executedUtc": "2026-11-26T13:00:53.867Z",
+  "checks": [
+    {
+      "id": "b2-01-seller-list",
+      "result": "PASS",
+      "actual": "Кабинет с сессией учебного владельца",
+      "screenshot": "b2-01-seller-list.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+      "route": "/seller/promotions",
+      "png": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "b2-02-goal-combo",
+      "result": "PASS",
+      "actual": "Вход по цели открывает комбо",
+      "screenshot": "b2-02-goal-combo.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+      "route": "/seller/promotions",
+      "png": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "b2-03-all-gift",
+      "result": "PASS",
+      "actual": "Прямой вход открывает 2+1",
+      "screenshot": "b2-03-all-gift.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+      "route": "/seller/promotions",
+      "png": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "b2-04-gift-form",
+      "result": "PASS",
+      "actual": "2+1, одна подходящая фасовка, лимит 1",
+      "screenshot": "b2-04-gift-form.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+      "route": "/seller/promotions",
+      "png": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "b2-05-gift-example",
+      "result": "PASS",
+      "actual": "На шести единицах при лимите 1 показан один подарок",
+      "screenshot": "b2-05-gift-example.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+      "route": "/seller/promotions",
+      "png": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "b2-06-gift-review",
+      "result": "PASS",
+      "actual": "Назад из примера, параметры восстановились; публикация отдельной кнопкой",
+      "screenshot": "b2-06-gift-review.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+      "route": "/seller/promotions",
+      "png": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "b2-07-gift-published",
+      "result": "PASS",
+      "actual": "Новая акция опубликована и имеет статус active",
+      "screenshot": "b2-07-gift-published.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+      "route": "/seller/promotions/65cc71c2-22c9-459b-8612-7eab04421484",
+      "png": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "b2-08-combo-form",
+      "result": "PASS",
+      "actual": "Фасовки ограничены товаром; смена на 250 г сохраняет ×2; отдельная строка круассана; режим по коду",
+      "screenshot": "b2-08-combo-form.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+      "route": "/seller/promotions",
+      "png": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "b2-09-combo-draft",
+      "result": "PASS",
+      "actual": "Черновик перечитан с demo после reload: 250 г ×2, код и второй компонент сохранены",
+      "screenshot": "b2-09-combo-draft.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+      "route": "/seller/promotions/649faf16-6ac7-4aff-bc7b-4e45f8c6fb6c",
+      "png": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "b2-10-combo-example",
+      "result": "PASS",
+      "actual": "Пример с фактическим составом 250 г ×2 и круассан ×1",
+      "screenshot": "b2-10-combo-example.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+      "route": "/seller/promotions/649faf16-6ac7-4aff-bc7b-4e45f8c6fb6c",
+      "png": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "b2-11-combo-published",
+      "result": "PASS",
+      "actual": "Комбо опубликовано и имеет статус active",
+      "screenshot": "b2-11-combo-published.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+      "route": "/seller/promotions/649faf16-6ac7-4aff-bc7b-4e45f8c6fb6c",
+      "png": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "b2-report-gift",
+      "result": "PASS",
+      "actual": [
+        "Допрогон 12.2 · Подарки",
+        "Автоматически · Любой заказ · Фасовка",
+        "Результаты",
+        "Заказы с акцией",
+        "Здесь появятся результаты после первого выполненного заказа со скидкой"
+      ],
+      "screenshot": "b2-report-gift.png",
+      "innerWidth": 390,
+      "innerHeight": 844,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "visualWidth": 390,
+      "scale": 1,
+      "dpr": 1,
+      "build": "4be2c9f7cd79e30a5c690bb12aa10120807937c9",
+      "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+      "route": "/seller/promotions/1c8f70bc-6248-4728-8662-1445c8fdd415",
+      "png": [
+        390,
+        844
+      ]
+    },
+    {
+      "id": "b2-order-gift",
+      "result": "INCOMPLETE",
+      "actual": "В очищенном архивном результате переход к заказу недоступен"
+    }
+  ],
+  "cleanup": [
+    {
+      "status": "active",
+      "id": "649faf16-6ac7-4aff-bc7b-4e45f8c6fb6c",
+      "name": "QA312-8053867 Комбо",
+      "cleanupStatus": "disabled"
+    },
+    {
+      "status": "active",
+      "id": "65cc71c2-22c9-459b-8612-7eab04421484",
+      "name": "QA312-8053867 Подарок",
+      "cleanupStatus": "disabled"
+    }
+  ],
+  "api": [
+    [
+      "GET",
+      "/api/seller/promotions",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions/catalog",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions/catalog",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions/catalog",
+      200
+    ],
+    [
+      "POST",
+      "/api/seller/promotions/example",
+      200
+    ],
+    [
+      "POST",
+      "/api/seller/promotions",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions/65cc71c2-22c9-459b-8612-7eab04421484/report",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions/65cc71c2-22c9-459b-8612-7eab04421484",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions/catalog",
+      200
+    ],
+    [
+      "POST",
+      "/api/seller/promotions",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions/649faf16-6ac7-4aff-bc7b-4e45f8c6fb6c",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions/catalog",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions/649faf16-6ac7-4aff-bc7b-4e45f8c6fb6c",
+      200
+    ],
+    [
+      "POST",
+      "/api/seller/promotions/example",
+      200
+    ],
+    [
+      "POST",
+      "/api/seller/promotions/649faf16-6ac7-4aff-bc7b-4e45f8c6fb6c",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions/649faf16-6ac7-4aff-bc7b-4e45f8c6fb6c/report",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions/649faf16-6ac7-4aff-bc7b-4e45f8c6fb6c",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions/catalog",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions/1c8f70bc-6248-4728-8662-1445c8fdd415",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions/1c8f70bc-6248-4728-8662-1445c8fdd415/report",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions",
+      200
+    ],
+    [
+      "POST",
+      "/api/seller/promotions/649faf16-6ac7-4aff-bc7b-4e45f8c6fb6c",
+      200
+    ],
+    [
+      "POST",
+      "/api/seller/promotions/65cc71c2-22c9-459b-8612-7eab04421484",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions",
+      200
+    ],
+    [
+      "GET",
+      "/api/seller/promotions",
+      200
+    ]
+  ]
+}

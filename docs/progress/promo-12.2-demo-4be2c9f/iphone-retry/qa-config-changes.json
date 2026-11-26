@@ -1,0 +1,204 @@
+[
+  {
+    "atUtc": "2026-11-26T12:03:08.833088",
+    "change": "1",
+    "status": "active",
+    "terms": {
+      "name": "Допрогон 12.2 · Завтрак",
+      "kind": "code",
+      "code": "IPHONE122",
+      "discount": {
+        "type": "percent",
+        "value": 0
+      },
+      "group": {
+        "type": "bundle",
+        "components": [
+          {
+            "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+            "quantity": 1
+          },
+          {
+            "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+            "quantity": 1
+          }
+        ],
+        "priceMinor": 220,
+        "limit": 1
+      },
+      "scope": {
+        "type": "all"
+      },
+      "publicInCart": false,
+      "confirmed": false
+    }
+  },
+  {
+    "atUtc": "2026-11-26T12:03:41.033291",
+    "change": "none",
+    "status": "active",
+    "terms": {
+      "name": "Допрогон 12.2 · Завтрак",
+      "kind": "code",
+      "code": "IPHONE122",
+      "discount": {
+        "type": "percent",
+        "value": 0
+      },
+      "group": {
+        "type": "bundle",
+        "components": [
+          {
+            "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+            "quantity": 1
+          },
+          {
+            "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+            "quantity": 1
+          }
+        ],
+        "priceMinor": 220,
+        "limit": null
+      },
+      "scope": {
+        "type": "all"
+      },
+      "publicInCart": false,
+      "confirmed": false
+    }
+  },
+  {
+    "atUtc": "2026-11-26T12:07:05.992626",
+    "change": "public",
+    "status": "active",
+    "terms": {
+      "name": "Допрогон 12.2 · Завтрак",
+      "kind": "code",
+      "code": "IPHONE122",
+      "discount": {
+        "type": "percent",
+        "value": 0
+      },
+      "group": {
+        "type": "bundle",
+        "components": [
+          {
+            "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+            "quantity": 1
+          },
+          {
+            "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+            "quantity": 1
+          }
+        ],
+        "priceMinor": 220,
+        "limit": null
+      },
+      "scope": {
+        "type": "all"
+      },
+      "publicInCart": true,
+      "confirmed": false
+    }
+  },
+  {
+    "atUtc": "2026-11-26T12:08:21.358723",
+    "change": "1",
+    "status": "active",
+    "terms": {
+      "name": "Допрогон 12.2 · Завтрак",
+      "kind": "code",
+      "code": "IPHONE122",
+      "discount": {
+        "type": "percent",
+        "value": 0
+      },
+      "group": {
+        "type": "bundle",
+        "components": [
+          {
+            "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+            "quantity": 1
+          },
+          {
+            "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+            "quantity": 1
+          }
+        ],
+        "priceMinor": 220,
+        "limit": 1
+      },
+      "scope": {
+        "type": "all"
+      },
+      "publicInCart": true,
+      "confirmed": false
+    }
+  },
+  {
+    "atUtc": "2026-11-26T12:10:20.757422",
+    "change": "automatic",
+    "status": "active",
+    "terms": {
+      "name": "Допрогон 12.2 · Завтрак",
+      "kind": "automatic",
+      "discount": {
+        "type": "percent",
+        "value": 0
+      },
+      "group": {
+        "type": "bundle",
+        "components": [
+          {
+            "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+            "quantity": 1
+          },
+          {
+            "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+            "quantity": 1
+          }
+        ],
+        "priceMinor": 220,
+        "limit": 1
+      },
+      "scope": {
+        "type": "all"
+      },
+      "publicInCart": false,
+      "confirmed": false
+    }
+  },
+  {
+    "atUtc": "2026-11-26T12:12:08.173678",
+    "change": "none",
+    "status": "active",
+    "terms": {
+      "name": "Допрогон 12.2 · Завтрак",
+      "kind": "automatic",
+      "discount": {
+        "type": "percent",
+        "value": 0
+      },
+      "group": {
+        "type": "bundle",
+        "components": [
+          {
+            "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+            "quantity": 1
+          },
+          {
+            "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+            "quantity": 1
+          }
+        ],
+        "priceMinor": 220,
+        "limit": null
+      },
+      "scope": {
+        "type": "all"
+      },
+      "publicInCart": false,
+      "confirmed": false
+    }
+  }
+]

@@ -1,0 +1,1026 @@
+[
+  {
+    "scenario": "1 mixed",
+    "expected": 220000,
+    "actual": 220000,
+    "response": {
+      "revision": 1,
+      "currency": "VND",
+      "lines": [
+        {
+          "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+          "productId": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+          "name": "Голубика · проверка 12.2",
+          "unit": "125 г",
+          "quantity": 2,
+          "priceMinor": 60000,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 120000
+        },
+        {
+          "variantId": "defada3c-526e-4db3-b1ef-630598ebf5c0",
+          "productId": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+          "name": "Голубика · проверка 12.2",
+          "unit": "250 г",
+          "quantity": 1,
+          "priceMinor": 100000,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 100000
+        }
+      ],
+      "adjustments": [],
+      "count": 3,
+      "totalMinor": 220000,
+      "itemsMinor": 220000,
+      "promo": {
+        "groupHints": [
+          {
+            "id": "dd365658-c764-4866-8b6e-42b0ed72cb93",
+            "type": "gift",
+            "name": "3 по цене 2",
+            "missing": [
+              {
+                "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+                "quantity": 1,
+                "name": "Голубика · проверка 12.2",
+                "unit": "125 г"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "scenario": "1 full",
+    "expected": 220000,
+    "actual": 220000,
+    "response": {
+      "revision": 2,
+      "currency": "VND",
+      "lines": [
+        {
+          "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+          "productId": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+          "name": "Голубика · проверка 12.2",
+          "unit": "125 г",
+          "quantity": 3,
+          "priceMinor": 60000,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 120000
+        },
+        {
+          "variantId": "defada3c-526e-4db3-b1ef-630598ebf5c0",
+          "productId": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+          "name": "Голубика · проверка 12.2",
+          "unit": "250 г",
+          "quantity": 1,
+          "priceMinor": 100000,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 100000
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "dd365658-c764-4866-8b6e-42b0ed72cb93",
+          "sourceRevision": 1,
+          "label": "3 по цене 2",
+          "amount": -60000,
+          "allocations": [
+            {
+              "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+              "amount": 60000,
+              "gifts": 1,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 0
+                },
+                {
+                  "quantity": 2,
+                  "paidMinor": 60000
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "gift",
+            "count": 1,
+            "possible": 1
+          }
+        }
+      ],
+      "count": 4,
+      "totalMinor": 220000,
+      "itemsMinor": 280000,
+      "promo": {}
+    }
+  },
+  {
+    "scenario": "1 remove",
+    "expected": 220000,
+    "actual": 220000,
+    "response": {
+      "revision": 3,
+      "currency": "VND",
+      "lines": [
+        {
+          "variantId": "defada3c-526e-4db3-b1ef-630598ebf5c0",
+          "productId": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+          "name": "Голубика · проверка 12.2",
+          "unit": "250 г",
+          "quantity": 1,
+          "priceMinor": 100000,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 100000
+        },
+        {
+          "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+          "productId": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+          "name": "Голубика · проверка 12.2",
+          "unit": "125 г",
+          "quantity": 2,
+          "priceMinor": 60000,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 120000
+        }
+      ],
+      "adjustments": [],
+      "count": 3,
+      "totalMinor": 220000,
+      "itemsMinor": 220000,
+      "promo": {
+        "groupHints": [
+          {
+            "id": "dd365658-c764-4866-8b6e-42b0ed72cb93",
+            "type": "gift",
+            "name": "3 по цене 2",
+            "missing": [
+              {
+                "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+                "quantity": 1,
+                "name": "Голубика · проверка 12.2",
+                "unit": "125 г"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "scenario": "11 one pair",
+    "expected": 220,
+    "actual": 220,
+    "response": {
+      "revision": 6,
+      "currency": "VND",
+      "lines": [
+        {
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "quantity": 1,
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 132
+        },
+        {
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "quantity": 1,
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 88
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "5adf3f78-8d73-4114-9cac-76f1a212906b",
+          "sourceRevision": 1,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -30,
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 12,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 18,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 1,
+            "possible": 1,
+            "limit": 2
+          }
+        }
+      ],
+      "count": 2,
+      "totalMinor": 220,
+      "itemsMinor": 250,
+      "promo": {
+        "groupHints": [
+          {
+            "id": "5adf3f78-8d73-4114-9cac-76f1a212906b",
+            "type": "bundle",
+            "name": "Завтрак · проверка 12.2",
+            "missing": [
+              {
+                "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+                "quantity": 1,
+                "name": "Кофе · проверка 12.2",
+                "unit": "500 г"
+              },
+              {
+                "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+                "quantity": 1,
+                "name": "Круассан · проверка 12.2",
+                "unit": "80 г"
+              }
+            ],
+            "priceMinor": 220,
+            "savingsMinor": 30,
+            "remainingSets": 1
+          }
+        ]
+      }
+    }
+  },
+  {
+    "scenario": "11 two pairs",
+    "expected": 440,
+    "actual": 440,
+    "response": {
+      "revision": 7,
+      "currency": "VND",
+      "lines": [
+        {
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "quantity": 2,
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 264
+        },
+        {
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "quantity": 2,
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 176
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "5adf3f78-8d73-4114-9cac-76f1a212906b",
+          "sourceRevision": 1,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -60,
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 24,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 36,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 2,
+            "possible": 2,
+            "limit": 2
+          }
+        }
+      ],
+      "count": 4,
+      "totalMinor": 440,
+      "itemsMinor": 500,
+      "promo": {}
+    }
+  },
+  {
+    "scenario": "11 three pairs",
+    "expected": 690,
+    "actual": 690,
+    "response": {
+      "revision": 8,
+      "currency": "VND",
+      "lines": [
+        {
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "quantity": 3,
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 414
+        },
+        {
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "quantity": 3,
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 276
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "5adf3f78-8d73-4114-9cac-76f1a212906b",
+          "sourceRevision": 1,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -60,
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 24,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 36,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 2,
+            "possible": 3,
+            "limit": 2
+          }
+        }
+      ],
+      "count": 6,
+      "totalMinor": 690,
+      "itemsMinor": 750,
+      "promo": {}
+    }
+  },
+  {
+    "scenario": "6 idempotent cart command",
+    "pass": true
+  },
+  {
+    "scenario": "10 live 1 automatic",
+    "expected": 720,
+    "actual": 720,
+    "response": {
+      "revision": 12,
+      "currency": "VND",
+      "lines": [
+        {
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "quantity": 3,
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 432
+        },
+        {
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "quantity": 3,
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 288
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "5adf3f78-8d73-4114-9cac-76f1a212906b",
+          "sourceRevision": 2,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -30,
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 12,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 18,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 1,
+            "possible": 3,
+            "limit": 1
+          }
+        }
+      ],
+      "count": 6,
+      "totalMinor": 720,
+      "itemsMinor": 750,
+      "promo": {}
+    }
+  },
+  {
+    "scenario": "10 live 2 automatic",
+    "expected": 690,
+    "actual": 690,
+    "response": {
+      "revision": 15,
+      "currency": "VND",
+      "lines": [
+        {
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "quantity": 3,
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 414
+        },
+        {
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "quantity": 3,
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 276
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "5adf3f78-8d73-4114-9cac-76f1a212906b",
+          "sourceRevision": 3,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -60,
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 24,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 36,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 2,
+            "possible": 3,
+            "limit": 2
+          }
+        }
+      ],
+      "count": 6,
+      "totalMinor": 690,
+      "itemsMinor": 750,
+      "promo": {}
+    }
+  },
+  {
+    "scenario": "10 live None automatic",
+    "expected": 660,
+    "actual": 660,
+    "response": {
+      "revision": 18,
+      "currency": "VND",
+      "lines": [
+        {
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "quantity": 3,
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 396
+        },
+        {
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "quantity": 3,
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 264
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "5adf3f78-8d73-4114-9cac-76f1a212906b",
+          "sourceRevision": 4,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -90,
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 36,
+              "units": [
+                {
+                  "quantity": 3,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 54,
+              "units": [
+                {
+                  "quantity": 3,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 3,
+            "possible": 3
+          }
+        }
+      ],
+      "count": 6,
+      "totalMinor": 660,
+      "itemsMinor": 750,
+      "promo": {
+        "groupHints": [
+          {
+            "id": "5adf3f78-8d73-4114-9cac-76f1a212906b",
+            "type": "bundle",
+            "name": "Завтрак · проверка 12.2",
+            "missing": [
+              {
+                "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+                "quantity": 1,
+                "name": "Кофе · проверка 12.2",
+                "unit": "500 г"
+              },
+              {
+                "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+                "quantity": 1,
+                "name": "Круассан · проверка 12.2",
+                "unit": "80 г"
+              }
+            ],
+            "priceMinor": 220,
+            "savingsMinor": 30
+          }
+        ]
+      }
+    }
+  },
+  {
+    "scenario": "10 live 1 code",
+    "expected": 720,
+    "actual": 720,
+    "response": {
+      "revision": 22,
+      "currency": "VND",
+      "lines": [
+        {
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "quantity": 3,
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 432
+        },
+        {
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "quantity": 3,
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 288
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "5adf3f78-8d73-4114-9cac-76f1a212906b",
+          "sourceRevision": 5,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -30,
+          "code": "QA122",
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 12,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 18,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 1,
+            "possible": 3,
+            "limit": 1
+          }
+        }
+      ],
+      "count": 6,
+      "totalMinor": 720,
+      "itemsMinor": 750,
+      "promo": {
+        "code": "QA122",
+        "reason": "applied"
+      }
+    }
+  },
+  {
+    "scenario": "10 live 2 code",
+    "expected": 690,
+    "actual": 690,
+    "response": {
+      "revision": 27,
+      "currency": "VND",
+      "lines": [
+        {
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "quantity": 3,
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 414
+        },
+        {
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "quantity": 3,
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 276
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "5adf3f78-8d73-4114-9cac-76f1a212906b",
+          "sourceRevision": 6,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -60,
+          "code": "QA122",
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 24,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 36,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 2,
+            "possible": 3,
+            "limit": 2
+          }
+        }
+      ],
+      "count": 6,
+      "totalMinor": 690,
+      "itemsMinor": 750,
+      "promo": {
+        "code": "QA122",
+        "reason": "applied"
+      }
+    }
+  },
+  {
+    "scenario": "10 live None code",
+    "expected": 660,
+    "actual": 660,
+    "response": {
+      "revision": 32,
+      "currency": "VND",
+      "lines": [
+        {
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "quantity": 3,
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 396
+        },
+        {
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "quantity": 3,
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "categoryId": "__uncategorized__",
+          "nextPriceAt": null,
+          "stock": 30,
+          "available": true,
+          "image": null,
+          "totalMinor": 264
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "5adf3f78-8d73-4114-9cac-76f1a212906b",
+          "sourceRevision": 7,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -90,
+          "code": "QA122",
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 36,
+              "units": [
+                {
+                  "quantity": 3,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 54,
+              "units": [
+                {
+                  "quantity": 3,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 3,
+            "possible": 3
+          }
+        }
+      ],
+      "count": 6,
+      "totalMinor": 660,
+      "itemsMinor": 750,
+      "promo": {
+        "code": "QA122",
+        "reason": "applied",
+        "groupHints": [
+          {
+            "id": "5adf3f78-8d73-4114-9cac-76f1a212906b",
+            "type": "bundle",
+            "name": "Завтрак · проверка 12.2",
+            "missing": [
+              {
+                "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+                "quantity": 1,
+                "name": "Кофе · проверка 12.2",
+                "unit": "500 г"
+              },
+              {
+                "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+                "quantity": 1,
+                "name": "Круассан · проверка 12.2",
+                "unit": "80 г"
+              }
+            ],
+            "priceMinor": 220,
+            "savingsMinor": 30
+          }
+        ]
+      }
+    }
+  }
+]

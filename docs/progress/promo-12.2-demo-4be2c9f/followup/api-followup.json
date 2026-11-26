@@ -1,0 +1,375 @@
+[
+  {
+    "scenario": "§11 exact100 rounding",
+    "actual": [
+      33,
+      33,
+      34
+    ],
+    "expected": [
+      33,
+      33,
+      34
+    ],
+    "pass": true
+  },
+  {
+    "scenario": "§11 permutation",
+    "actual": {
+      "b25d86a5-7aa1-4789-94dd-87ce7427c8e6": 33,
+      "92c7357e-8dd4-4692-b479-9386fdb3b9bb": 33,
+      "342471fa-2583-4dac-b624-be27a45a961b": 34
+    },
+    "expected": {
+      "342471fa-2583-4dac-b624-be27a45a961b": 34,
+      "92c7357e-8dd4-4692-b479-9386fdb3b9bb": 33,
+      "b25d86a5-7aa1-4789-94dd-87ce7427c8e6": 33
+    },
+    "pass": true
+  },
+  {
+    "scenario": "§11 three separate monetary refunds",
+    "actual": 100,
+    "expected": 100,
+    "pass": true
+  },
+  {
+    "scenario": "§7.5 gift paid units",
+    "actual": [
+      {
+        "quantity": 1,
+        "paidMinor": 0
+      },
+      {
+        "quantity": 2,
+        "paidMinor": 100
+      }
+    ],
+    "expected": null,
+    "pass": true
+  },
+  {
+    "scenario": "§7.5 zero money command outcome",
+    "actual": "400 {\"error\":{\"code\":\"VALIDATION\",\"message\":\"Некорректные данные\"}}",
+    "expected": null,
+    "pass": true
+  },
+  {
+    "scenario": "§11 stock A1 incomplete",
+    "actual": 0,
+    "expected": 0,
+    "pass": true
+  },
+  {
+    "scenario": "§11 stock A2 one bundle",
+    "actual": 1,
+    "expected": 1,
+    "pass": true
+  },
+  {
+    "scenario": "§7.10 real 3+2 automatic",
+    "actual": 590,
+    "expected": 590,
+    "pass": true
+  },
+  {
+    "scenario": "§11 disabled at open cart automatic",
+    "actual": 650,
+    "expected": 650,
+    "pass": true
+  },
+  {
+    "scenario": "§7.10 real 3+2 code",
+    "actual": 590,
+    "expected": 590,
+    "pass": true
+  },
+  {
+    "scenario": "§11 disabled at open cart code",
+    "actual": 650,
+    "expected": 650,
+    "pass": true
+  },
+  {
+    "scenario": "§7.6 concurrent group one winner",
+    "actual": 1,
+    "expected": 1,
+    "pass": true
+  },
+  {
+    "scenario": "§7.6 checkout repeat",
+    "actual": 12,
+    "expected": 12,
+    "pass": true
+  },
+  {
+    "scenario": "§7.6 losing response",
+    "actual": [
+      {
+        "ok": false,
+        "error": "checkout 409 {\"error\":{\"code\":\"QUOTE_CHANGED\",\"message\":\"Подтвердите изменения в корзине\",\"details\":{\"cart\":{\"revision\":5,\"currency\":\"VND\",\"lines\":[{\"variantId\":\"1ca64f22-5abb-4e62-a3c6-f3874f792c84\",\"productId\":\"6287415b-d531-45db-b9b1-b2a408d7e710\",\"name\":\"Допрогон A\",\"unit\":\"1 шт.\",\"quantity\":3,\"priceMinor\":200,\"oldPriceMinor\":null,\"categoryId\":\"__uncategorized__\",\"nextPriceAt\":null,\"stock\":0,\"available\":false,\"image\":null,\"totalMinor\":0},{\"variantId\":\"5cebe416-1e86-4e53-9cd9-ed9c52b99c43\",\"productId\":\"8a3415ca-428c-4999-b221-4e20d2da98be\",\"name\":\"Допрогон вне комбо\",\"unit\":\"1 шт.\",\"quantity\":1,\"priceMinor\":200000,\"oldPriceMinor\":null,\"categoryId\":\"__uncategorized__\",\"nextPriceAt\":null,\"stock\":27,\"available\":true,\"image\":null,\"totalMinor\":200000}],\"adjustments\":[],\"count\":4,\"totalMinor\":200000,\"review\":{\"beforeMinor\":200600,\"changes\":[{\"variantId\":\"1ca64f22-5abb-4e62-a3c6-f3874f792c84\",\"unavailable\":true}]},\"itemsMinor\":200000,\"promo\":{}}}}}"
+      }
+    ],
+    "expected": null,
+    "pass": true
+  },
+  {
+    "scenario": "§7.6 used count",
+    "actual": 1,
+    "expected": 1,
+    "pass": true
+  },
+  {
+    "scenario": "§7.8 gift report UI fixture",
+    "actual": {
+      "number": 13,
+      "promo": "1c8f70bc-6248-4728-8662-1445c8fdd415"
+    },
+    "expected": null,
+    "pass": true
+  },
+  {
+    "scenario": "§7.8 report 2 groups2gifts",
+    "actual": {
+      "type": "gift",
+      "count": 2,
+      "gifts": 2,
+      "label": "2+1"
+    },
+    "expected": null,
+    "pass": true
+  },
+  {
+    "scenario": "§7.7 manual composition fixture",
+    "actual": 14,
+    "expected": null,
+    "pass": true
+  },
+  {
+    "scenario": "§11 tie automatic wins",
+    "actual": {
+      "total": 400,
+      "reason": "better_automatic"
+    },
+    "expected": {
+      "total": 400,
+      "reason": "better_automatic"
+    },
+    "pass": true
+  },
+  {
+    "scenario": "§11 losing code used",
+    "actual": 0,
+    "expected": 0,
+    "pass": true
+  },
+  {
+    "scenario": "§11 regular price below fixed",
+    "actual": {
+      "total": 250,
+      "adjustments": []
+    },
+    "expected": {
+      "total": 250,
+      "adjustments": []
+    },
+    "pass": true
+  },
+  {
+    "scenario": "§10 live UI benefit fixtures",
+    "actual": {
+      "gift": "159b68f2-8218-474a-918f-49f4665c4c88",
+      "code": "9042f9d2-e312-4bda-9902-54b50321aacf",
+      "coffeeProduct": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+      "croissantProduct": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f"
+    },
+    "expected": null,
+    "pass": true
+  },
+  {
+    "scenario": "§7.4 manual limit1 alone",
+    "actual": 720,
+    "expected": 720,
+    "pass": true
+  },
+  {
+    "scenario": "§7.4 losing code unused",
+    "actual": 0,
+    "expected": 0,
+    "pass": true
+  },
+  {
+    "scenario": "§7.8 two pairs winningcode limit1",
+    "actual": 1,
+    "expected": 1,
+    "pass": true
+  },
+  {
+    "scenario": "§11 intersecting automatic groups",
+    "actual": {
+      "total": 320,
+      "groups": 1
+    },
+    "expected": {
+      "total": 320,
+      "groups": 1
+    },
+    "pass": true
+  },
+  {
+    "scenario": "§11 unlimited stock bundle",
+    "actual": 1,
+    "expected": 1,
+    "pass": true
+  },
+  {
+    "scenario": "§11 zero stock no bundle",
+    "actual": 0,
+    "expected": 0,
+    "pass": true
+  },
+  {
+    "scenario": "§11 example stock isolation",
+    "actual": {
+      "id": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+      "name": "Голубика · проверка 12.2",
+      "description": "Учебная проверка 12.2",
+      "ingredients": "",
+      "storageNotes": "",
+      "categoryId": null,
+      "brandId": null,
+      "recommendations": "off",
+      "recommendationIds": [],
+      "revision": 3,
+      "salePause": null,
+      "status": "selling",
+      "variants": [
+        {
+          "id": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+          "name": "125 г",
+          "priceMinor": 60000,
+          "oldPriceMinor": null,
+          "visible": true,
+          "stock": 24,
+          "stockRevision": 3,
+          "purchased": 12,
+          "salePause": null
+        },
+        {
+          "id": "defada3c-526e-4db3-b1ef-630598ebf5c0",
+          "name": "250 г",
+          "priceMinor": 100000,
+          "oldPriceMinor": null,
+          "visible": true,
+          "stock": 30,
+          "stockRevision": 0,
+          "purchased": 0,
+          "salePause": null
+        }
+      ],
+      "photos": []
+    },
+    "expected": {
+      "id": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+      "name": "Голубика · проверка 12.2",
+      "description": "Учебная проверка 12.2",
+      "ingredients": "",
+      "storageNotes": "",
+      "categoryId": null,
+      "brandId": null,
+      "recommendations": "off",
+      "recommendationIds": [],
+      "revision": 3,
+      "salePause": null,
+      "status": "selling",
+      "variants": [
+        {
+          "id": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+          "name": "125 г",
+          "priceMinor": 60000,
+          "oldPriceMinor": null,
+          "visible": true,
+          "stock": 24,
+          "stockRevision": 3,
+          "purchased": 12,
+          "salePause": null
+        },
+        {
+          "id": "defada3c-526e-4db3-b1ef-630598ebf5c0",
+          "name": "250 г",
+          "priceMinor": 100000,
+          "oldPriceMinor": null,
+          "visible": true,
+          "stock": 30,
+          "stockRevision": 0,
+          "purchased": 0,
+          "salePause": null
+        }
+      ],
+      "photos": []
+    },
+    "pass": true
+  },
+  {
+    "scenario": "§11 example report isolation",
+    "actual": {
+      "orders": [
+        {
+          "number": 13,
+          "completedAt": 1795691437683,
+          "name": "Гость",
+          "itemsMinor": 240000,
+          "savingMinor": 120000
+        }
+      ],
+      "customers": 0,
+      "guestOrders": 1,
+      "itemsMinor": 240000,
+      "savingsMinor": 120000,
+      "deliveryMinor": 0,
+      "groupCount": 2,
+      "giftCount": 2,
+      "thresholdCount": 0,
+      "thresholdAverage": null,
+      "orderCount": 1,
+      "groups": {
+        "type": "gift",
+        "count": 2,
+        "gifts": 2,
+        "label": "2+1"
+      },
+      "nextOffset": null,
+      "purchaseStats": []
+    },
+    "expected": {
+      "orders": [
+        {
+          "number": 13,
+          "completedAt": 1795691437683,
+          "name": "Гость",
+          "itemsMinor": 240000,
+          "savingMinor": 120000
+        }
+      ],
+      "customers": 0,
+      "guestOrders": 1,
+      "itemsMinor": 240000,
+      "savingsMinor": 120000,
+      "deliveryMinor": 0,
+      "groupCount": 2,
+      "giftCount": 2,
+      "thresholdCount": 0,
+      "thresholdAverage": null,
+      "orderCount": 1,
+      "groups": {
+        "type": "gift",
+        "count": 2,
+        "gifts": 2,
+        "label": "2+1"
+      },
+      "nextOffset": null,
+      "purchaseStats": []
+    },
+    "pass": true
+  }
+]
