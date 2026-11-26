@@ -1,19 +1,16 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import { cartTotals } from "../../../src/shared/cart-totals";
 import { promoCommand, promoExampleInput, promoListInput } from "../../../src/shared/contracts/promo";
 import { ApiError } from "../../../src/shared/errors";
-import { formatMinor } from "../../../src/shared/money";
 import { authCommand, validationFailure } from "../../auth/request";
 import { readSeller } from "../../auth/roles";
 import { requireFeature } from "../../middleware/feature";
 import { executeCommand } from "../../shop/commands";
 import type { ShopEnv } from "../../shop/env";
 import { catalogImage } from "../catalog/images";
-import { calculatePromo, promoLabel } from "./calculate";
-import { effectivePrice } from "./cart";
-import { datesFor, listOffers, readOffer, validateTerms, writeOffer } from "./offers";
+import { exampleCart } from "./example-cart";
+import { listOffers, readOffer, writeOffer } from "./offers";
 import { listPromoPrices } from "./prices";
 import { reportInput, reportOffer } from "./report";
 
@@ -68,52 +65,7 @@ export const sellerPromoRoutes = new Hono<PromoEnv>()
     return c.json(reportOffer(c.env.storage, offer, c.req.valid("query"), c.env.timeZone));
   })
   .post("/example", zValidator("json", promoExampleInput, validationFailure), (c) => {
-    const { terms, lines, completed, confirmed } = c.req.valid("json");
-    validateTerms(c.env.storage, terms, true);
-    datesFor(terms, c.env.timeZone);
-    const { currency } = c.env.storage.sql
-      .exec<{ currency: string }>("SELECT currency FROM catalog_state WHERE id=1")
-      .one();
-    const effective = effectivePrice("v.", true, Date.now());
-    const rows = c.env.storage.sql
-      .exec<{
-        variantId: string;
-        productId: string;
-        categoryId: string;
-        name: string;
-        unit: string;
-        priceMinor: number;
-        oldPriceMinor: number | null;
-        stock: number | null;
-      }>(
-        `SELECT v.id AS variantId,p.id AS productId,p.category_id AS categoryId,p.name,v.name AS unit,
-      ${effective.price} AS priceMinor,${effective.old} AS oldPriceMinor,v.stock FROM variants v JOIN products p ON p.id=v.product_id
-      WHERE v.id IN (SELECT value FROM json_each(?)) AND v.visible AND v.product_available AND NOT v.product_paused
-      AND v.sale_pause IS NULL AND (v.stock IS NULL OR v.stock>0)`,
-        JSON.stringify(lines.map((line) => line.variantId)),
-      )
-      .toArray();
-    const cart = {
-      revision: 0,
-      currency,
-      ...cartTotals(
-        rows.map((row) => ({
-          ...row,
-          available: true,
-          quantity: Math.min(row.stock ?? 999, lines.find((line) => line.variantId === row.variantId)?.quantity ?? 0),
-        })),
-      ),
-    };
-    const offer = { id: "example", revision: 0, terms, used: 0, personalUsed: 0, status: "active" as const };
-    return c.json(
-      calculatePromo(
-        cart,
-        [offer],
-        { confirmed, completed, exactUsed: false },
-        (value) => promoLabel(value, (amount) => formatMinor(amount, currency)),
-        terms.code,
-      ),
-    );
+    return c.json(exampleCart(c.env, c.req.valid("json")));
   })
   .post("/", authCommand, zValidator("json", promoCommand, validationFailure), (c) => {
     const { storage, db, timeZone } = c.env;

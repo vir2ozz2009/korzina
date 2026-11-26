@@ -55,7 +55,7 @@ function eligible(terms: PromoTerms, line: CartLine) {
   return !!id && scope.ids.includes(id);
 }
 
-function assess(candidate: Candidate, lines: CartLine[], buyer: Buyer) {
+export function assess(candidate: Candidate, lines: CartLine[], buyer: Buyer) {
   const { terms, status, used, personalUsed } = candidate;
   if (status !== "active")
     return { reason: status === "ended" ? "expired" : status === "scheduled" ? "scheduled" : "disabled" } as const;
@@ -95,7 +95,7 @@ export function calculatePromo(
   const itemsMinor = cartTotals(cart.lines).totalMinor;
   const promo: NonNullable<Cart["promo"]> = code ? { code, reason: "unknown" } : {};
   const ranked: { offer: Candidate; lines: CartLine[]; amount: number }[] = [];
-  const hints: { missingMinor: number; label: string; amount: number; id: string }[] = [];
+  const hints: { missingMinor: number; label: string; amount: number; id: string; publicInCart?: boolean }[] = [];
   for (const offer of candidates) {
     const manual = offer.terms.kind === "code";
     if (manual && (!code || code !== offer.terms.code)) continue;
@@ -111,7 +111,14 @@ export function calculatePromo(
     if (!manual && reason === "telegram" && offer.terms.purchase) promo.telegramHint = true;
     if (!manual && reason === "minimum" && result.missingMinor) {
       const amount = discountAmount(offer.terms, offer.terms.minimumMinor ?? 0, currency);
-      if (amount) hints.push({ missingMinor: result.missingMinor, label: label(offer.terms), amount, id: offer.id });
+      if (amount)
+        hints.push({
+          missingMinor: result.missingMinor,
+          label: label(offer.terms),
+          amount,
+          id: offer.id,
+          publicInCart: offer.terms.publicInCart,
+        });
     }
   }
   const winner = ranked.sort(
@@ -134,7 +141,12 @@ export function calculatePromo(
         ),
     )
     .sort((a, b) => a.missingMinor - b.missingMinor || b.amount - a.amount || a.id.localeCompare(b.id))[0];
-  if (hint) promo.hint = { missingMinor: hint.missingMinor, label: hint.label };
+  if (hint)
+    promo.hint = {
+      missingMinor: hint.missingMinor,
+      label: hint.label,
+      publicOfferId: hint.publicInCart ? hint.id : undefined,
+    };
   const adjustments: CartAdjustment[] = [];
   if (winner) {
     const { offer, amount } = winner;
@@ -153,5 +165,16 @@ export function calculatePromo(
       allocations: lines.map((line, index) => ({ variantId: line.variantId, amount: amounts[index] })),
     });
   }
-  return { ...cart, ...cartTotals(cart.lines, adjustments), itemsMinor, promo };
+  const totals = cartTotals(cart.lines, adjustments);
+  const savings = new Map(adjustments[0]?.allocations?.map(({ variantId, amount }) => [variantId, amount]));
+  return {
+    ...cart,
+    ...totals,
+    itemsMinor,
+    promo,
+    lines: totals.lines.map((line) => ({
+      ...line,
+      totalMinor: line.totalMinor - (savings.get(line.variantId) ?? 0),
+    })),
+  };
 }

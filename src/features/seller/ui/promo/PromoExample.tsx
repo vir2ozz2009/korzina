@@ -1,125 +1,219 @@
-import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { PromoTerms } from "../../../../shared/contracts/promo";
+import { HttpError } from "../../../../shared/http-error";
 import { formatMinor } from "../../../../shared/money";
 import { Button } from "../../../../ui/Button";
 import { Input } from "../../../../ui/Input";
 import { Switch } from "../../../../ui/Switch";
+import { CartView } from "../../../cart";
+import { CartContinueButton } from "../../../checkout";
+import { CartShippingView } from "../../../receiving";
 import { example, type PromoCatalog } from "./api";
 
 export function PromoExample({
   terms,
-  currency,
   catalog,
   store,
+  back,
+  revoke,
 }: {
   terms: PromoTerms;
-  currency: string;
   catalog?: PromoCatalog;
   store: string;
+  back: () => void;
+  revoke: () => void;
 }) {
   const [lines, setLines] = useState<Record<string, number>>({});
   const [confirmed, setConfirmed] = useState(true);
   const [completed, setCompleted] = useState(0);
   const [variant, setVariant] = useState("");
-  const mutation = useMutation({
-    mutationFn: () =>
+  const [receiving, setReceiving] = useState<"pickup" | "delivery">();
+  const enteredCode = useRef<string | null>(null);
+  const [cart, setCart] = useState<Awaited<ReturnType<typeof example>>>();
+  const [checking, setChecking] = useState(true);
+  const [pending, setPending] = useState(false);
+  const applying = useRef(false);
+  const [error, setError] = useState(false);
+  const [retryNumber, retry] = useState(0);
+  const request = useCallback(
+    (code: string | null, signal?: AbortSignal) =>
       example(
         store,
-        terms,
-        Object.entries(lines)
-          .filter(([, quantity]) => quantity > 0)
-          .map(([variantId, quantity]) => ({ variantId, quantity })),
-        confirmed,
-        completed,
+        {
+          terms,
+          confirmed,
+          completed,
+          enteredCode: code,
+          receiving,
+          lines: Object.entries(lines).flatMap(([variantId, quantity]) => (quantity ? [{ variantId, quantity }] : [])),
+        },
+        signal,
       ),
-    networkMode: "always",
-  });
-  const reset = () => mutation.reset();
+    [store, terms, confirmed, completed, receiving, lines],
+  );
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a retry repeats the same quote without changing any input.
+  useEffect(() => {
+    const controller = new AbortController();
+    setChecking(true);
+    setError(false);
+    void request(enteredCode.current, controller.signal)
+      .then((result) => {
+        if (!controller.signal.aborted) setCart(result);
+      })
+      .catch((failure) => {
+        if (controller.signal.aborted) return;
+        if (failure instanceof HttpError && [401, 403].includes(failure.status)) revoke();
+        else setError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setChecking(false);
+      });
+    return () => controller.abort();
+  }, [request, retryNumber, revoke]);
+
+  const setQuantity = (id: string, quantity: number) =>
+    setLines((previous) => ({
+      ...previous,
+      [id]: Math.min(999, Math.max(0, Math.trunc(quantity) || 0)),
+    }));
+  const blocked = checking || pending;
+  const refetch = () => retry((value) => value + 1);
+  const currency = cart?.currency;
   return (
-    <div className="space-y-3">
-      <label className="block">
-        Фасовка
-        <select
-          className="min-h-12 w-full rounded-lg border border-border bg-card px-3"
-          value={variant}
-          onChange={(event) => setVariant(event.target.value)}
+    <>
+      <details className="mx-3 my-3 space-y-3 rounded-xl bg-card p-3" open>
+        <summary className="min-h-8 cursor-pointer text-label">Тестовые данные · не видны покупателю</summary>
+        <label className="block">
+          Фасовка
+          <select
+            className="min-h-12 w-full rounded-lg border border-border bg-card px-3"
+            value={variant}
+            disabled={pending}
+            onChange={(event) => setVariant(event.target.value)}
+          >
+            <option value="">Выберите товар</option>
+            {catalog?.variants.map((item) => (
+              <option value={item.id} key={item.id}>
+                {item.productName} · {item.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <Button
+          variant="secondary"
+          disabled={
+            !variant || pending || (!lines[variant] && Object.keys(lines).filter((id) => lines[id]).length >= 50)
+          }
+          onClick={() => setQuantity(variant, (lines[variant] ?? 0) + 1)}
         >
-          <option value="">Выберите товар</option>
-          {catalog?.variants.map((item) => (
-            <option value={item.id} key={item.id}>
-              {item.productName} · {item.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <Button
-        variant="secondary"
-        disabled={!variant}
-        onClick={() => {
-          setLines({ ...lines, [variant]: (lines[variant] ?? 0) + 1 });
-          reset();
-        }}
-      >
-        Добавить товар
-      </Button>
-      {Object.entries(lines).map(([id, quantity]) => {
-        const item = catalog?.variants.find((row) => row.id === id);
-        return (
-          <Input
-            key={id}
-            label={item ? [item.productName, item.name].join(" · ") : id}
-            type="number"
-            min={0}
-            max={999}
-            value={quantity}
-            onChange={(event) => {
-              setLines({ ...lines, [id]: Number(event.target.value) });
-              reset();
-            }}
-          />
-        );
-      })}
-      <Switch
-        label="Подтверждённый покупатель"
-        checked={confirmed}
-        onChange={(event) => {
-          setConfirmed(event.target.checked);
-          reset();
+          Добавить товар
+        </Button>
+        {Object.entries(lines).map(([id, quantity]) => {
+          const item = catalog?.variants.find((row) => row.id === id);
+          return (
+            <Input
+              key={id}
+              label={item ? `${item.productName} · ${item.name}` : id}
+              type="number"
+              min={0}
+              max={999}
+              value={quantity}
+              disabled={pending}
+              onChange={(event) => setQuantity(id, Number(event.target.value))}
+            />
+          );
+        })}
+        <Switch
+          label="Подтверждённый покупатель"
+          checked={confirmed}
+          disabled={pending}
+          onChange={(event) => setConfirmed(event.target.checked)}
+        />
+        <Input
+          label="Выполнено заказов"
+          type="number"
+          min={0}
+          max={1_000_000}
+          value={completed}
+          disabled={pending}
+          onChange={(event) =>
+            setCompleted(Math.max(0, Math.min(1_000_000, Math.trunc(Number(event.target.value)) || 0)))
+          }
+        />
+      </details>
+      <CartView
+        cart={cart}
+        checking={checking}
+        query={{ data: cart, isPending: checking, isError: error, refetch }}
+        retry={refetch}
+        change={(line, quantity) => setQuantity(line.variantId, quantity)}
+        back={back}
+        shipping={null}
+        method={cart?.method}
+        total={cart && { totalMinor: cart.payableMinor, deliveryMinor: cart.deliveryMinor }}
+        before={
+          cart && (
+            <CartShippingView
+              data={{
+                ...cart.fulfillment,
+                receiving: cart.method === "pickup" ? { mode: "pickup" } : null,
+                availability: null,
+              }}
+              blocked={blocked}
+              choose={setReceiving}
+            />
+          )
+        }
+        footer={
+          cart &&
+          currency && (
+            <CartContinueButton
+              disabled
+              amount={formatMinor(cart.payableMinor, currency)}
+              subtitle={cart.method === "delivery" ? "Укажите адрес доставки" : undefined}
+            />
+          )
+        }
+        promotion={{
+          isPending: pending,
+          mutateAsync: async ({ input }) => {
+            if (applying.current || checking) throw new Error("Проверяем корзину…");
+            applying.current = true;
+            setPending(true);
+            try {
+              const code = "code" in input ? input.code : input.promoAction === "remove" ? null : enteredCode.current;
+              const result = await request(code);
+              const reason = result.promo?.reason;
+              if (code && (reason === "unknown" || reason === "expired" || reason === "scheduled"))
+                throw new HttpError(400, "Промокод не применён", "VALIDATION", { promo: result.promo });
+              if (input.promoAction === "compare" && code) {
+                return {
+                  ...result,
+                  promo: {
+                    ...result.promo,
+                    alternative: {
+                      code,
+                      totalMinor: result.totalMinor,
+                      reason,
+                      missingMinor: result.promo?.missingMinor,
+                      missingQuantity: result.promo?.missingQuantity,
+                    },
+                  },
+                };
+              }
+              setCart(result);
+              enteredCode.current = code;
+              return result;
+            } catch (failure) {
+              if (failure instanceof HttpError && [401, 403].includes(failure.status)) revoke();
+              throw failure;
+            } finally {
+              applying.current = false;
+              setPending(false);
+            }
+          },
         }}
       />
-      <Input
-        label="Уже выполнено заказов"
-        type="number"
-        min={0}
-        value={completed}
-        onChange={(event) => {
-          setCompleted(Number(event.target.value));
-          reset();
-        }}
-      />
-      <p className="text-caption">Только для этого примера</p>
-      <Button full variant="secondary" loading={mutation.isPending} onClick={() => mutation.mutate()}>
-        Пересчитать пример
-      </Button>
-      {mutation.isError && <p role="alert">{mutation.error.message}</p>}
-      {mutation.data && (
-        <div aria-live="polite" className="space-y-1">
-          {mutation.data.lines.map((line) => (
-            <p key={line.variantId}>
-              {line.name} · {line.quantity} · {formatMinor(line.totalMinor ?? 0, currency)}
-            </p>
-          ))}
-          <p>Товары · {formatMinor(mutation.data.itemsMinor ?? mutation.data.totalMinor, currency)}</p>
-          {mutation.data.adjustments.map((item) => (
-            <p key={item.sourceId}>
-              {item.label} · −{formatMinor(-item.amount, currency)}
-            </p>
-          ))}
-          {!mutation.data.adjustments.length && <p>На этом примере скидка не применяется</p>}
-          <p>Итого за товары {formatMinor(mutation.data.totalMinor, currency)}</p>
-        </div>
-      )}
-    </div>
+    </>
   );
 }

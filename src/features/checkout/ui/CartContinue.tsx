@@ -4,10 +4,10 @@ import { telegramLaunch } from "../../../app/telegram/launch";
 import { formatMinor } from "../../../shared/money";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
-import { StickyFooter } from "../../../ui/StickyFooter";
 import { useContact } from "../../contact";
 import { activeReceiving, useReceiving, useSaveReceiving } from "../../receiving";
 import type { usePurchaseSummary } from "../api";
+import { CartContinueButton } from "./CartContinueButton";
 
 export function CartContinue({
   revision,
@@ -77,27 +77,19 @@ export function CartContinue({
           </Button>
         </Card>
       ) : (
-        <StickyFooter floating>
-          <Button
-            full
-            size="xl"
-            className="shadow-float"
-            loading={save.isPending}
-            disabled={disabled || !method || !buyer.data || receiving.isFetching}
-            subtitle={
-              needsAddress
-                ? "Укажите адрес доставки"
-                : needsContact
-                  ? "Войдите через Telegram или укажите номер"
-                  : undefined
-            }
-            onClick={() => void next()}
-          >
-            {needsAddress || needsContact
-              ? "К времени и оплате"
-              : `Продолжить · ${formatMinor(data.totalMinor, currency)}`}
-          </Button>
-        </StickyFooter>
+        <CartContinueButton
+          disabled={disabled || !method || !buyer.data || receiving.isFetching}
+          loading={save.isPending}
+          subtitle={
+            needsAddress
+              ? "Укажите адрес доставки"
+              : needsContact
+                ? "Войдите через Telegram или укажите номер"
+                : undefined
+          }
+          amount={formatMinor(data.totalMinor, currency)}
+          onClick={() => void next()}
+        />
       )}
       {error && <Card role="alert">{error}</Card>}
       {buyer.isError && (

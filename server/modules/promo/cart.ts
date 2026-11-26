@@ -8,12 +8,14 @@ export type PromoSelection = { code: string | null; alternative: string | null }
 export const automaticPromoWhere = (now: number | string) =>
   `p.state='published' AND p.kind='automatic' AND (p.ends_at IS NULL OR p.ends_at>${now})`;
 
-function context(
+export function promoContext(
   storage: DurableObjectStorage,
   subject: string,
   confirmed: boolean,
   codes: PromoSelection,
   now: number,
+  publicOnly = false,
+  offerId: string | null = null,
 ) {
   let buyer: Buyer = { confirmed, completed: 0, exactUsed: false };
   if (confirmed) {
@@ -32,15 +34,19 @@ function context(
     .exec<OfferRow>(
       `SELECT p.*, COUNT(u.order_number) AS used, COUNT(CASE WHEN u.customer=? THEN 1 END) AS personal_used
      FROM promo_offers p LEFT JOIN promo_uses u ON u.offer_id=p.id AND u.released_at IS NULL
-     WHERE (p.kind='automatic' AND p.state='published' AND (p.ends_at IS NULL OR p.ends_at>?))
-        OR (p.kind='code' AND p.code IN (?,?) AND p.state<>'draft')
+     WHERE ${
+       publicOnly
+         ? `p.state='published' AND json_extract(p.terms,'$.publicInCart')=1
+       AND (p.starts_at IS NULL OR p.starts_at<=?) AND (p.ends_at IS NULL OR p.ends_at>?)
+       AND (? IS NULL OR p.id=?)`
+         : `(p.kind='automatic' AND p.state='published' AND (p.ends_at IS NULL OR p.ends_at>?))
+        OR (p.kind='code' AND p.code IN (?,?) AND p.state<>'draft')`
+     }
      GROUP BY p.id
      ORDER BY (p.state='published' AND COALESCE(p.starts_at,0)<=? AND COALESCE(p.ends_at,9007199254740991)>?) DESC,
       p.updated_at DESC,p.id`,
       confirmed ? subject : null,
-      now,
-      codes.code,
-      codes.alternative,
+      ...(publicOnly ? [now, now, offerId, offerId] : [now, codes.code, codes.alternative]),
       now,
       now,
     )
@@ -66,7 +72,7 @@ export function pricePromoCart(
   // The cart state already checked this shop's indexed automatic offers. Keep the no-offer hot path in budget.
   const { buyer, candidates, nextChangeAt } =
     hasAutomatic || codes.code || codes.alternative
-      ? context(storage, subject, confirmed, codes, now)
+      ? promoContext(storage, subject, confirmed, codes, now)
       : { buyer: { confirmed, completed: 0, exactUsed: false }, candidates: [], nextChangeAt: undefined };
   const label = (terms: Candidate["terms"]) => promoLabel(terms, (value) => formatMinor(value, cart.currency ?? "RUB"));
   const priced = calculatePromo(cart, candidates, buyer, label, codes.code ?? undefined);

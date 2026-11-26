@@ -82,7 +82,7 @@ export function AppShell() {
   return (
     <FeatureProvider shop={bootstrap}>
       <ToastProvider>
-        <CartProvider>
+        <CartProvider enabled={!seller}>
           <FavoritesProvider>
             <ShopNavigation>
               <TelegramBridge />

@@ -1,7 +1,10 @@
 import { ChevronRight } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 export interface ListItemProps {
   title: string;
+  ref?: Ref<HTMLButtonElement>;
+  disabled?: boolean;
+  ariaLabel?: string;
   subtitle?: string;
   icon?: ReactNode;
   value?: ReactNode;
@@ -9,12 +12,23 @@ export interface ListItemProps {
   onClick?: () => void;
   variant?: "card" | "compact";
 }
-export function ListItem({ title, subtitle, icon, value, href, onClick, variant = "card" }: ListItemProps) {
+export function ListItem({
+  title,
+  ref,
+  disabled,
+  ariaLabel,
+  subtitle,
+  icon,
+  value,
+  href,
+  onClick,
+  variant = "card",
+}: ListItemProps) {
   const content = (
     <>
       {icon && <span className="shrink-0">{icon}</span>}
       <span className="min-w-0 flex-1">
-        <span className="block text-label">{title}</span>
+        <span className="block text-label wrap-anywhere">{title}</span>
         {subtitle && <span className="block text-small text-muted-foreground">{subtitle}</span>}
       </span>
       <span className={variant === "compact" ? "text-caption text-primary-strong" : "text-caption"}>
@@ -31,7 +45,14 @@ export function ListItem({ title, subtitle, icon, value, href, onClick, variant 
     );
   if (onClick)
     return (
-      <button type="button" onClick={onClick} className={className}>
+      <button
+        ref={ref}
+        type="button"
+        aria-label={ariaLabel}
+        disabled={disabled}
+        onClick={onClick}
+        className={className}
+      >
         {content}
       </button>
     );

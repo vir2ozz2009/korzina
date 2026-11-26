@@ -1,7 +1,9 @@
+import type { z } from "zod";
 import type { Cart } from "../../../../shared/contracts/cart";
-import type { PromoOffer, PromoPrice, PromoTerms } from "../../../../shared/contracts/promo";
+import type { PromoOffer, PromoPrice, promoExampleInput } from "../../../../shared/contracts/promo";
 import { checkResponse } from "../../../../shared/http-error";
 import { commandHeaders } from "../../../../shared/shop-api";
+import type { ReceivingState } from "../../../receiving";
 import { sellerSessionHeaders } from "../../api";
 
 export type PromoCatalog = {
@@ -42,10 +44,12 @@ export async function promoRequest<T>(
   options?: {
     body: unknown;
     key?: string;
+    signal?: AbortSignal;
   },
 ): Promise<T> {
   const query = new URLSearchParams({ store, ...params });
   const response = await fetch(`/api/seller/promotions${path}?${query}`, {
+    signal: options?.signal,
     method: options ? "POST" : "GET",
     headers: {
       ...sellerSessionHeaders(),
@@ -56,12 +60,12 @@ export async function promoRequest<T>(
   await checkResponse(response);
   return response.json() as Promise<T>;
 }
-export function example(
-  store: string,
-  terms: PromoTerms,
-  lines: { variantId: string; quantity: number }[],
-  confirmed: boolean,
-  completed: number,
-) {
-  return promoRequest<Cart>(store, "/example", {}, { body: { terms, lines, confirmed, completed } });
+type ExampleQuote = Cart & {
+  fulfillment: Pick<ReceivingState, "delivery" | "pickup" | "unavailable" | "acceptingOrders" | "closedMessage">;
+  method: "pickup" | "delivery" | null;
+  deliveryMinor: number | null;
+  payableMinor: number;
+};
+export function example(store: string, body: z.input<typeof promoExampleInput>, signal?: AbortSignal) {
+  return promoRequest<ExampleQuote>(store, "/example", {}, { body, signal });
 }

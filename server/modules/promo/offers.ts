@@ -132,6 +132,7 @@ export function writeOffer(
   const editing = action === "draft" || action === "publish";
   const terms = editing ? input.terms : previous?.terms;
   if (!terms) throw new ApiError("VALIDATION", "Укажите условия");
+  if (editing) terms.publicInCart = terms.publicInCart ?? previous?.terms.publicInCart ?? false;
   if (terms.kind === "automatic") delete terms.code;
   if (action === "repeat") {
     delete terms.fromDate;

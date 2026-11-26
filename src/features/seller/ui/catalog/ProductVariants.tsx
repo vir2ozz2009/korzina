@@ -57,12 +57,13 @@ export function ProductVariantEditor({
         <Button
           disabled={disabled}
           onClick={() => {
+            if (promotion) return editor.confirmVariant();
             if (editing.index < variants.length) patchVariant(editing.index, editing.value);
             else setVariants([...variants, editing.value]);
             setEditing(undefined);
           }}
         >
-          Готово
+          {promotion && editor.baseline ? "Сохранить" : "Готово"}
         </Button>
       </div>
       {canWrite && variants.length > 1 && editing.index < variants.length && (

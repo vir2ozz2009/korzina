@@ -4,6 +4,7 @@ import { buyerStorefrontOpen } from "../../app/bootstrap";
 import { queryPolicy } from "../../app/query-defaults";
 import type { useToast } from "../../app/shell/ToastProvider";
 import type { Cart, CartCommandInput } from "../../shared/contracts/cart";
+import type { PublicPromo } from "../../shared/contracts/promo";
 import { checkResponse, errorKind, HttpError } from "../../shared/http-error";
 import { commandHeaders, shopApi, shopKey } from "../../shared/shop-api";
 import { ensureShopSession } from "../../shared/shop-session";
@@ -13,11 +14,11 @@ import { type CartCommand, cartMutationOptions, optimisticCart } from "./command
 import { saveCartSnapshot } from "./snapshot";
 
 const cartKey = ["shop", shopKey, "cart"] as const;
-function cartQuery() {
+function cartQuery(enabled: boolean) {
   return queryOptions({
     queryKey: cartKey,
     ...queryPolicy.cart,
-    enabled: buyerStorefrontOpen,
+    enabled: enabled && buyerStorefrontOpen,
     queryFn: async ({ signal }) => {
       const response = await shopApi.api.cart.$get({}, { init: { signal } });
       await checkResponse(response);
@@ -26,9 +27,9 @@ function cartQuery() {
   });
 }
 
-export function useCartData(notify: ReturnType<typeof useToast>) {
+export function useCartData(notify: ReturnType<typeof useToast>, enabled: boolean) {
   const client = useQueryClient();
-  const query = useQuery(cartQuery());
+  const query = useQuery(cartQuery(enabled));
   const mutation = useMutation(
     cartMutationOptions(
       client,
@@ -98,7 +99,7 @@ export function useConfirmCart(notify: (message: string) => void) {
   });
 }
 
-type PromoCartInput = Extract<CartCommandInput, { promoAction: string }>;
+export type PromoCartInput = Extract<CartCommandInput, { promoAction: string }>;
 export function usePromoCart() {
   const client = useQueryClient();
   return useMutation({
@@ -120,6 +121,21 @@ export function usePromoCart() {
       const details = error instanceof HttpError ? error.details : undefined;
       if (details && typeof details === "object" && "cart" in details)
         client.setQueryData<Cart>(cartKey, details.cart as Cart);
+    },
+  });
+}
+
+export function usePublicCartPromos(revision: number | undefined, confirmed: boolean) {
+  return useQuery<PublicPromo[]>({
+    queryKey: [...cartKey, "public-promotions", confirmed, revision],
+    enabled: revision !== undefined,
+    retry: false,
+    refetchOnWindowFocus: "always",
+    refetchInterval: ({ state }) => (state.data?.length ? 15_000 : false),
+    queryFn: async ({ signal }) => {
+      const response = await shopApi.api.cart.promotions.$get({}, { init: { signal } });
+      await checkResponse(response);
+      return response.json();
     },
   });
 }

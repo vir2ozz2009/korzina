@@ -5,6 +5,7 @@ import { addMinor, multiplyMinor } from "../../../src/shared/money";
 import type { CommandIdentity } from "../../middleware/idempotency";
 import { parseSelection, rememberOrderedAddress } from "../fulfillment/service";
 import { pricePromoCart } from "../promo/cart";
+import { publicCartPromos } from "../promo/public-cart";
 import { readCartState } from "./cart-state";
 import { type CartSource, savedQuote } from "./quote";
 
@@ -104,6 +105,17 @@ export function changeCart(
       if (!source.promotions) throw new ApiError("FORBIDDEN", "Акции недоступны");
       const prior = reprice(cart);
       if ("code" in input) {
+        if (input.publicOfferId) {
+          const publicOffer = publicCartPromos(
+            storage,
+            customer,
+            cart,
+            source.now ?? Date.now(),
+            input.publicOfferId,
+          )[0];
+          if (publicOffer?.offer.terms.code !== input.code || publicOffer.result.reason)
+            throw new ApiError("VALIDATION", "Акция больше недоступна. Проверьте условия.", { cart: prior });
+        }
         const candidate = pricePromoCart(
           storage,
           customer,

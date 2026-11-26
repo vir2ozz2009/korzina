@@ -12,10 +12,16 @@ export const cartCommandInput = z.union([
   cartChangeInput,
   z.object({ confirm: z.literal(true), expectedRevision }),
   z.object({ promoAction: z.enum(["remove", "keep"]), expectedRevision }),
-  z.object({ promoAction: z.literal("compare"), code: promoCode, expectedRevision }),
+  z.object({
+    promoAction: z.literal("compare"),
+    code: promoCode,
+    publicOfferId: z.string().max(120).optional(),
+    expectedRevision,
+  }),
   z.object({
     promoAction: z.literal("apply"),
     code: promoCode,
+    publicOfferId: z.string().max(120).optional(),
     comparedTotal: z.number().int().nonnegative().optional(),
     expectedRevision,
   }),
@@ -53,7 +59,7 @@ const promoResult = z.object({
   reason: z.enum(promoReasons).optional(),
   missingMinor: money.optional(),
   missingQuantity: z.number().optional(),
-  hint: z.object({ missingMinor: money, label: z.string() }).optional(),
+  hint: z.object({ missingMinor: money, label: z.string(), publicOfferId: z.string().optional() }).optional(),
   telegramHint: z.boolean().optional(),
   alternative: z
     .object({

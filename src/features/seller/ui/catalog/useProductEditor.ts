@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useToast } from "../../../../app/shell/ToastProvider";
 import type { SellerProduct, SellerProductInput, SellerStockInput } from "../../../../shared/contracts/seller-catalog";
 import { HttpError } from "../../../../shared/http-error";
@@ -11,6 +11,7 @@ import { type VariantDraft, variantDraft, variantInput } from "./VariantFields";
 type Modal = "categories" | "brands" | "recommendations" | "delete" | "pause" | "quantity";
 
 export function useProductEditor(store: string, currency: string, canWrite: boolean, initial?: SellerProduct) {
+  const saving = useRef(false);
   const nav = useCatalogNav(store);
   const [baseline, setBaseline] = useState(initial);
   const [text, setText] = useState(() =>
@@ -53,10 +54,10 @@ export function useProductEditor(store: string, currency: string, canWrite: bool
     setVariants((current) => current.map((row, i) => (i === index ? { ...row, ...update } : row)));
     setError("");
   }
-  function showVariantNameError(index: number, message: string) {
+  function showVariantNameError(index: number, message: string, rows = variants) {
     setError("");
     save.reset();
-    setEditing({ index, value: variants[index], nameError: message });
+    setEditing({ index, value: rows[index], nameError: message });
   }
   function pickStatus(status: typeof text.status) {
     if (status === text.status) return;
@@ -82,19 +83,33 @@ export function useProductEditor(store: string, currency: string, canWrite: bool
     }
   }
   function saveProduct() {
+    saveRows(variants);
+  }
+  function confirmVariant() {
+    if (disabled || saving.current || !editing) return;
+    const rows = [...variants];
+    rows[editing.index] = editing.value;
+    setVariants(rows);
+    if (baseline) saveRows(rows);
+    else setEditing(undefined);
+  }
+  function saveRows(rows: VariantDraft[]) {
+    if (disabled || saving.current) return;
+
     if (photos.pending) {
       setError("Дождитесь завершения загрузки фото");
       return;
     }
     try {
       if (!text.name.trim()) throw new Error("Введите название");
-      const unnamed = variants.length > 1 ? variants.findIndex((row) => !row.name.trim()) : -1;
+      const unnamed = rows.length > 1 ? rows.findIndex((row) => !row.name.trim()) : -1;
       if (unnamed !== -1) {
-        showVariantNameError(unnamed, "Укажите название фасовки");
+        showVariantNameError(unnamed, "Укажите название фасовки", rows);
         return;
       }
-      const pack = variants.map((row) => variantInput(row, currency));
+      const pack = rows.map((row) => variantInput(row, currency));
       setError("");
+      saving.current = true;
       save.mutate(
         {
           path,
@@ -108,17 +123,21 @@ export function useProductEditor(store: string, currency: string, canWrite: bool
           },
         },
         {
+          onSettled: () => {
+            saving.current = false;
+          },
           onError: (error) => {
             if (!(error instanceof HttpError)) return;
             const { details } = error;
             if (!details || typeof details !== "object" || !("index" in details)) return;
             const { index } = details;
-            if (typeof index !== "number" || !variants[index]) return;
+            if (typeof index !== "number" || !rows[index]) return;
             if (error.code === "DUPLICATE_VARIANT_NAME" || ("field" in details && details.field === "variantName"))
-              showVariantNameError(index, error.message);
+              showVariantNameError(index, error.message, rows);
           },
           onSuccess: (result) => {
             if (result.conflicts.length) {
+              setEditing(undefined);
               setBaseline(result.product);
               setPartial({
                 result,
@@ -161,6 +180,20 @@ export function useProductEditor(store: string, currency: string, canWrite: bool
       },
     );
   }
+  const saveMessage =
+    save.error instanceof HttpError && save.error.code === "VERSION_CONFLICT"
+      ? "Данные товара изменились. Сверьте актуальную версию перед сохранением."
+      : save.error instanceof TypeError
+        ? "Нет связи. Повторите."
+        : save.error?.message;
+  const pricePreview = (zone: string) => ({
+    currency,
+    zone,
+    product: { name: text.name, image: photos.items[0]?.src },
+    save: editing ? confirmVariant : saveProduct,
+    error: error || saveMessage,
+    busy,
+  });
   return {
     nav,
     baseline,
@@ -179,6 +212,8 @@ export function useProductEditor(store: string, currency: string, canWrite: bool
     categories,
     brands,
     save,
+    saveMessage,
+    pricePreview,
     remove,
     toast,
     busy,
@@ -188,6 +223,7 @@ export function useProductEditor(store: string, currency: string, canWrite: bool
     patchVariant,
     pickStatus,
     saveProduct,
+    confirmVariant,
     confirmStock,
     copyProduct,
   };

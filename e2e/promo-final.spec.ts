@@ -4,7 +4,6 @@ const cartApi = /\/api\/cart(?:\?|$)/;
 const pickup = { address: "Учебный самовывоз", hours: "09:00–20:00" };
 const availability = { available: true, mode: "pickup", pickup };
 const codeButton = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
-
 async function buyer(page: Page, initial: string) {
   let code = initial;
   let revision = 1;
@@ -75,7 +74,6 @@ async function buyer(page: Page, initial: string) {
   });
   return { commands };
 }
-
 test("12.1 · неизвестный код нельзя подтвердить, после ошибки доступны отказ и замена", async ({ page }) => {
   const { commands } = await buyer(page, "WELL15");
   await page.goto("/cart?shop=test2");
@@ -105,7 +103,6 @@ test("12.1 · неизвестный код нельзя подтвердить,
   await expect(codeButton(page, "SECOND")).toBeVisible();
   expect(commands).toEqual(["compare:UNKNOWN", "compare:SECOND", "compare:SECOND", "apply:SECOND"]);
 });
-
 test("12.1 · неизвестный первый код не меняет корзину", async ({ page }) => {
   const { commands } = await buyer(page, "");
   await page.goto("/cart?shop=test2");
@@ -120,7 +117,6 @@ test("12.1 · неизвестный первый код не меняет ко�
   await expect(codeButton(page, "Промокод")).toBeVisible();
   expect(commands).toEqual(["apply:UNKNOWN"]);
 });
-
 for (const source of ["Telegram", "экран"] as const) {
   test(`12.1 · стрелка «${source}» возвращает из «Получения» в ту же корзину`, async ({ page }) => {
     await buyer(page, "WELL15");
@@ -197,5 +193,55 @@ for (const source of ["Telegram", "экран"] as const) {
       await expect(page.getByText("Учебный самовывоз", { exact: false }).first()).toBeVisible();
       await expect(page.getByRole("button", { name: "Уменьшить количество" }).locator("..")).toContainText("2");
     }
+  });
+}
+for (const width of [360, 390]) {
+  test(`§5.2 · публичные условия, сравнение и отказ на ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    const { commands } = await buyer(page, "WELL15");
+    const title = "Публичное предложение с длинным названием для покупателей";
+    let available = true;
+    await page.route(/\/api\/cart\/promotions(?:\?|$)/, (route) =>
+      route.fulfill({
+        json: available
+          ? [
+              {
+                id: "offer-second",
+                name: title,
+                kind: "code",
+                code: "SECOND",
+                applicable: true,
+                discount: { type: "percent", value: 2000, capMinor: 25000 },
+                scopeNames: ["Все товары"],
+                minimumMinor: 50_000,
+                fromDate: "2026-11-26",
+                throughDate: "2026-11-30",
+              },
+            ]
+          : [],
+      }),
+    );
+    await page.goto("/cart?shop=test2");
+    const dialog = page.getByRole("dialog");
+    const conditions = async () => {
+      await page.getByRole("button", { name: "Доступные акции" }).click();
+      await dialog.getByRole("button", { name: new RegExp(title) }).click();
+      await expect(dialog.getByRole("heading", { name: "Условия акции" })).toBeVisible();
+    };
+    await conditions();
+    await page.screenshot({ animations: "disabled", path: test.info().outputPath(`preview-public-${width}.png`) });
+    await dialog.getByRole("button", { name: "Применить" }).click();
+    await expect(dialog.getByText(/SECOND · 80\D000/)).toBeVisible();
+    await dialog.getByRole("button", { name: "Оставить прежний" }).click();
+    await expect(codeButton(page, "WELL15")).toBeVisible();
+    await conditions();
+    await dialog.getByRole("button", { name: "Применить" }).click();
+    await dialog.getByRole("button", { name: "Заменить код" }).click();
+    await expect(codeButton(page, "SECOND")).toBeVisible();
+    expect(commands).toEqual(["compare:SECOND", "compare:SECOND", "apply:SECOND"]);
+    available = false;
+    await page.reload();
+    await expect(codeButton(page, "SECOND")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Доступные акции" })).toHaveCount(0);
   });
 }
