@@ -102,18 +102,16 @@ const unresolved = (lines: CartLine[], consumed: Map<string, number>) =>
     return quantity > 0 ? [{ ...line, quantity }] : [];
   });
 
-export function priceGroups(
+function resolveGroups(
   cart: Cart,
-  candidates: Candidate[],
+  standardOffers: Candidate[],
+  groups: Candidate[],
   buyer: Buyer,
   label: Parameters<typeof calculatePromo>[3],
   code: string | undefined,
   standard: typeof calculatePromo,
   assessOffer: typeof assess,
-  components?: ReadonlyMap<string, BundleComponent>,
-): Cart {
-  const standardOffers = candidates.filter(({ terms }) => !terms.group);
-  const groups = candidates.filter(({ terms }) => terms.group);
+) {
   const source = cart.lines
     .filter((line) => line.available && line.quantity > 0)
     .map((line) => ({ ...line, quantity: Math.min(line.quantity, line.stock ?? line.quantity) }))
@@ -173,7 +171,24 @@ export function priceGroups(
     }
   }
   if (active.length) search(source, active, [], 0);
+  return { source, initial, best };
+}
 
+export function priceGroups(
+  cart: Cart,
+  candidates: Candidate[],
+  buyer: Buyer,
+  label: Parameters<typeof calculatePromo>[3],
+  code: string | undefined,
+  standard: typeof calculatePromo,
+  assessOffer: typeof assess,
+  components?: ReadonlyMap<string, BundleComponent>,
+): Cart {
+  const standardOffers = candidates.filter(({ terms }) => !terms.group);
+  const groups = candidates.filter(({ terms }) => terms.group);
+  const resolve = (lines: CartLine[], availableGroups = groups) =>
+    resolveGroups({ ...cart, lines }, standardOffers, availableGroups, buyer, label, code, standard, assessOffer);
+  const { source, initial, best } = resolve(cart.lines);
   const promo = { ...initial.promo };
   const entered = code && groups.find((offer) => manual(offer) && offer.terms.code === code);
   if (entered) {
@@ -187,6 +202,8 @@ export function priceGroups(
   } else if (promo.reason === "applied") {
     promo.reason = "better_automatic";
   }
+  // Price each distinct top-up once, without generating more hints or reading the catalog again.
+  const topUps = new Map<string, Map<number, CartAdjustment[]>>();
   const hints = groupHints(
     groups,
     source,
@@ -195,15 +212,19 @@ export function priceGroups(
     code,
     components,
     (lines, excludedId) =>
-      priceGroups(
-        { ...cart, ...cartTotals(lines) },
-        candidates.filter(({ id }) => id !== excludedId),
-        buyer,
-        label,
-        code,
-        standard,
-        assessOffer,
-      ).totalMinor,
+      resolve(
+        lines,
+        groups.filter(({ id }) => id !== excludedId),
+      ).best.total,
+    (variantId, quantity) => {
+      const byQuantity = topUps.get(variantId) ?? new Map<number, CartAdjustment[]>();
+      topUps.set(variantId, byQuantity);
+      const cached = byQuantity.get(quantity);
+      if (cached) return cached;
+      const { best } = resolve(cart.lines.map((line) => (line.variantId === variantId ? { ...line, quantity } : line)));
+      byQuantity.set(quantity, best.adjustments);
+      return best.adjustments;
+    },
   );
   if (hints.length) promo.groupHints = hints;
   const totals = cartTotals(cart.lines, best.adjustments);
