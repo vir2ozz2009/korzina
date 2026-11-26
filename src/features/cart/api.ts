@@ -4,6 +4,7 @@ import { buyerStorefrontOpen } from "../../app/bootstrap";
 import { queryPolicy } from "../../app/query-defaults";
 import type { useToast } from "../../app/shell/ToastProvider";
 import type { Cart, CartCommandInput } from "../../shared/contracts/cart";
+import type { PublicPromo } from "../../shared/contracts/promo";
 import { checkResponse, errorKind, HttpError } from "../../shared/http-error";
 import { commandHeaders, shopApi, shopKey } from "../../shared/shop-api";
 import { ensureShopSession } from "../../shared/shop-session";
@@ -125,7 +126,7 @@ export function usePromoCart() {
 }
 
 export function usePublicCartPromos(revision: number | undefined, confirmed: boolean) {
-  return useQuery({
+  return useQuery<PublicPromo[]>({
     queryKey: [...cartKey, "public-promotions", confirmed, revision],
     enabled: revision !== undefined,
     retry: false,
