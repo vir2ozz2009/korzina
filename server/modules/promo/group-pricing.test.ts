@@ -119,6 +119,43 @@ it("§7.3–4 и §7.10 использует фасовки и лимит, ко�
   expect(calc([line("a", 120, 1), line("b", 90, 1)], [combo()]).totalMinor).toBe(210);
 });
 
+it("#315 · предлагает только выигравшую, доступную следующую группу той же фасовки", () => {
+  const discount = (value: number) => offer("discount", undefined, { discount: { type: "percent", value } });
+  const source = [line("a", 150, 2), line("b", 100, 1, { stock: 2 })];
+  const hint = [{ giftQuantity: 1, missing: [{ variantId: "a", quantity: 1 }] }];
+  expect(calc(source, [gift(), combo()]).promo?.groupHints).toMatchObject(hint);
+  expect(calc(source, [gift(), discount(5000)]).promo?.groupHints).toBeUndefined();
+  expect(
+    calc(source, [
+      gift(),
+      {
+        ...combo(),
+        terms: {
+          ...combo().terms,
+          group: {
+            type: "bundle",
+            priceMinor: 1,
+            components: [
+              { variantId: "a", quantity: 2 },
+              { variantId: "b", quantity: 1 },
+            ],
+          },
+        },
+      },
+    ]).promo?.groupHints,
+  ).toBeUndefined();
+  expect(calc(source, [{ ...gift(), terms: { ...gift().terms, confirmed: true } }]).promo?.groupHints).toBeUndefined();
+  expect(calc(source, [{ ...gift(), terms: { ...gift().terms, minimumQuantity: 4 } }]).promo?.groupHints).toMatchObject(
+    hint,
+  );
+  expect(
+    calc(source, [{ ...gift(), terms: { ...gift().terms, minimumQuantity: 5 } }]).promo?.groupHints,
+  ).toBeUndefined();
+  expect(calc([line("a", 150, 2)], [offer("1+2", { type: "gift", buy: 1, gift: 2 })]).promo?.groupHints).toMatchObject([
+    { giftQuantity: 2, missing: [{ variantId: "a", quantity: 1 }] },
+  ]);
+});
+
 it("§7.5 сохраняет участникам пропорциональные оплаченные доли и складывает совместимые акции на остатке", () => {
   const bundle = offer("combo", {
     type: "bundle",

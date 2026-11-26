@@ -10,7 +10,7 @@ import { Header } from "../../../ui/Header";
 import { IconButton } from "../../../ui/IconButton";
 import { ProductRow } from "../../../ui/ProductRow";
 import { deliveryLabel } from "../../receiving";
-import { CartGroupDetails, CartGroupPromos } from "./CartGroupPromos";
+import { CartGiftHints, CartGroupDetails, CartGroupPromos } from "./CartGroupPromos";
 import { CartNotice } from "./CartNotice";
 import { CartPromotion } from "./CartPromotion";
 import type { PublicOffers } from "./PublicCartPromos";
@@ -69,6 +69,7 @@ export function CartView({
       (shipping?.mode === "delivery" && shipping.available && shipping.feeMinor === null));
   const unavailable = cart?.lines.filter((line) => !line.available) ?? [];
   const issues = new Map(cart?.review?.changes.map((issue) => [issue.variantId, issue]));
+  const promoBlocked = checking || !!cart?.review || query.isError || !!pendingProducts?.size;
 
   function row(line: CartLine, currency: string) {
     const issue = issues.get(line.variantId);
@@ -129,6 +130,12 @@ export function CartView({
             {giftCount} в подарок <ChevronRight size={14} aria-hidden />
           </button>
         )}
+        <CartGiftHints
+          hints={line.available && !pending ? cart?.promo?.groupHints : undefined}
+          variantId={line.variantId}
+          blocked={promoBlocked}
+          add={addPromoItems}
+        />
       </li>
     );
   }
@@ -174,7 +181,7 @@ export function CartView({
             <CartGroupPromos
               cart={cart}
               currency={currency}
-              blocked={checking || !!cart.review || query.isError || !!pendingProducts?.size}
+              blocked={promoBlocked}
               add={addPromoItems}
               open={(item) => setDetail({ sourceId: item.sourceId })}
             />

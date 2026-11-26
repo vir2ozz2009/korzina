@@ -14,6 +14,7 @@ export function groupHints(
   code: string | undefined,
   components: ReadonlyMap<string, BundleComponent> | undefined,
   withoutOffer: (lines: CartLine[], excludedId: string) => number,
+  afterTopUp: (variantId: string, quantity: number) => CartAdjustment[],
 ): Hint[] {
   return groups.flatMap((offer): Hint[] => {
     const { terms } = offer;
@@ -22,20 +23,27 @@ export function groupHints(
     if (terms.kind === "code" && !terms.publicInCart && terms.code !== code) return [];
     const scoped = source.filter((line) => inScope(terms, line));
     if (!scoped.length) return [];
-    const won = adjustments.find(({ sourceId }) => sourceId === offer.id)?.groups;
+    const applied = adjustments.find(({ sourceId }) => sourceId === offer.id);
+    const won = applied?.groups;
     if (won?.limit && won.count >= won.limit) return [];
     if (group.type === "gift") {
-      if (adjustments.some((item) => !item.groups || item.groups.type === "bundle")) return [];
+      if (terms.kind === "code" && terms.code !== code) return [];
       return scoped.flatMap((line) => {
         const size = group.buy + group.gift;
         const quantity = size - (line.quantity % size);
-        if (quantity === size || (line.stock ?? 999) < line.quantity + quantity) return [];
-        if (won?.type === "gift" && won.count < Math.floor(line.quantity / size)) return [];
+        const target = line.quantity + quantity;
+        if (quantity === size || target > Math.min(999, line.stock ?? 999)) return [];
+        const giftCount = (item: CartAdjustment | undefined) =>
+          item?.allocations?.find(({ variantId }) => variantId === line.variantId)?.gifts ?? 0;
+        const next = afterTopUp(line.variantId, target).find(({ sourceId }) => sourceId === offer.id);
+        const giftQuantity = giftCount(next) - giftCount(applied);
+        if (giftQuantity <= 0 || (next?.groups?.count ?? 0) <= (won?.count ?? 0)) return [];
         return [
           {
             id: offer.id,
             type: group.type,
             name: label(terms),
+            giftQuantity,
             missing: [{ variantId: line.variantId, quantity, name: line.name, unit: line.unit }],
           },
         ];

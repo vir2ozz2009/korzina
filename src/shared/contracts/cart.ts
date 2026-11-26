@@ -100,6 +100,7 @@ const promoResult = z.object({
           }),
         ),
         unavailable: z.boolean().optional(),
+        giftQuantity: z.number().int().positive().optional(),
         remainingSets: z.number().int().positive().optional(),
         priceMinor: money.optional(),
         savingsMinor: money.optional(),

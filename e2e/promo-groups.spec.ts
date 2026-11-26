@@ -54,16 +54,23 @@ const fulfillment = {
   requiredDetails: [],
 };
 
-async function buyerFixture(page: Page, group: boolean) {
-  let quantity = item.quantity;
+async function buyerFixture(page: Page, group: boolean, initialQuantity = item.quantity, discount = false) {
+  let quantity = initialQuantity;
   let revision = 1;
   let receiving: Receiving = { mode: "pickup" };
   let code: string | undefined;
   const buyer = { confirmed: true, completed: 0, exactUsed: false };
+  const offers = group ? [automatic, manual] : [manual];
+  if (discount)
+    offers.push({
+      ...manual,
+      id: "store-discount",
+      terms: { ...manual.terms, kind: "automatic", code: undefined },
+    });
   const cart = () =>
     calculatePromo(
       { revision, currency: "VND", ...cartTotals([{ ...item, quantity }]) },
-      group ? [automatic, manual] : [manual],
+      offers,
       buyer,
       (terms) => promoLabel(terms, String),
       code,
@@ -87,8 +94,9 @@ async function buyerFixture(page: Page, group: boolean) {
             quantity?: number;
             promoAction?: string;
             code?: string;
-            addItems?: { quantity: number }[];
+            addItems?: { variantId: string; quantity: number }[];
           };
+          if (input.addItems) expect(input.addItems.map(({ variantId }) => variantId)).toEqual([item.variantId]);
           quantity = input.quantity ?? quantity + (input.addItems?.[0]?.quantity ?? 0);
           if (input.promoAction) code = input.code;
           revision++;
@@ -120,6 +128,43 @@ async function buyerFixture(page: Page, group: boolean) {
         return route.fallback();
     }
   });
+}
+
+for (const width of [360, 390]) {
+  for (const discount of [false, true]) {
+    test(`#315 · 1 → 2 → 3 → 2 · ${width}px · скидка ${discount ? "10%" : "нет"}`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 844 });
+      await buyerFixture(page, true, 1, discount);
+      await page.goto("/cart?shop=test2");
+      const row = page.getByRole("listitem").filter({ hasText: "Голубика" });
+      const add = (count: number) => row.getByRole("button", { name: `Добавить ${count}`, exact: true });
+      const gift = row.getByRole("button", { name: "1 в подарок", exact: true });
+      const regular = discount ? 54_000 : 60_000;
+      async function expectTopUp(count: number, numberOfUnits: number, shot: string) {
+        await expect(gift).toHaveCount(0);
+        await expect(add(count)).toBeEnabled();
+        await expect(total(page)).toContainText(money(regular * numberOfUnits));
+        await screenshot(page, shot);
+      }
+      await expectTopUp(2, 1, "01-one");
+      await row.getByRole("button", { name: "Увеличить количество" }).click();
+      await expectTopUp(1, 2, "02-two");
+      await add(1).click();
+      await expect(gift).toHaveCount(1);
+      await expect(gift).toBeVisible();
+      await expect(add(1)).toHaveCount(0);
+      await expect(total(page)).toContainText(money(120_000));
+      await screenshot(page, "03-three");
+      await row.getByRole("button", { name: "Уменьшить количество" }).click();
+      await expectTopUp(1, 2, "04-back-to-two");
+      await page.reload();
+      await expect(add(1)).toBeEnabled();
+      await row.getByRole("button", { name: "Уменьшить количество" }).click();
+      await add(2).click();
+      await expect(gift).toBeVisible();
+      await expect(total(page)).toContainText(money(120_000));
+    });
+  }
 }
 
 async function screenshot(page: Page, name: string) {

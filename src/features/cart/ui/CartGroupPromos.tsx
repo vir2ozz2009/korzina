@@ -8,6 +8,35 @@ import { Sheet } from "../../../ui/Sheet";
 type Hint = NonNullable<NonNullable<Cart["promo"]>["groupHints"]>[number];
 type Allocation = NonNullable<CartAdjustment["allocations"]>[number];
 
+export function CartGiftHints({
+  hints,
+  variantId,
+  blocked,
+  add,
+}: {
+  hints?: Hint[];
+  variantId: string;
+  blocked: boolean;
+  add?: (items: Hint["missing"]) => void;
+}) {
+  return hints?.map((hint) => {
+    const item = hint.missing[0];
+    if (hint.type !== "gift" || item?.variantId !== variantId || !hint.giftQuantity) return null;
+    return (
+      <div className="mt-2 space-y-1" key={hint.id}>
+        <p className="text-caption">
+          Добавьте ещё {item.quantity} ({item.unit}) — {hint.giftQuantity} в подарок
+        </p>
+        {add && (
+          <Button variant="secondary" disabled={blocked} onClick={() => add(hint.missing)}>
+            Добавить {item.quantity}
+          </Button>
+        )}
+      </div>
+    );
+  });
+}
+
 export function CartGroupPromos({
   cart,
   currency,
@@ -22,7 +51,7 @@ export function CartGroupPromos({
   open: (adjustment: CartAdjustment) => void;
 }) {
   const bundles = cart.adjustments.filter(({ groups }) => groups?.type === "bundle");
-  const hints = cart.promo?.groupHints;
+  const hints = cart.promo?.groupHints?.filter((hint) => hint.type === "bundle");
   if (!bundles.length && !hints?.length) return null;
   const money = (value: number) => formatMinor(value, currency);
   return (
@@ -51,19 +80,16 @@ export function CartGroupPromos({
         const list = hint.missing
           .map(({ quantity, name, unit }) => [name, unit, quantity > 1 && `× ${quantity}`].filter(Boolean).join(" · "))
           .join(", ");
-        const qty = hint.missing[0]?.quantity;
         return (
           <div className="space-y-1" key={`${hint.id}-${hint.missing.map(({ variantId }) => variantId).join(",")}`}>
             <p className="text-caption">
-              {hint.type === "gift"
-                ? `Добавьте ещё ${qty} · ${hint.name}`
-                : hint.unavailable
-                  ? "Набор недоступен: одной из фасовок нет в наличии"
-                  : hint.remainingSets
-                    ? `Можно собрать ещё ${hint.remainingSets} ${ruPlural(hint.remainingSets, "набор", "набора", "наборов")} по ${money(hint.priceMinor ?? 0)}`
-                    : `Для набора не хватает: ${list}`}
+              {hint.unavailable
+                ? "Набор недоступен: одной из фасовок нет в наличии"
+                : hint.remainingSets
+                  ? `Можно собрать ещё ${hint.remainingSets} ${ruPlural(hint.remainingSets, "набор", "набора", "наборов")} по ${money(hint.priceMinor ?? 0)}`
+                  : `Для набора не хватает: ${list}`}
             </p>
-            {hint.type === "bundle" && !!hint.savingsMinor && hint.priceMinor !== undefined && (
+            {!!hint.savingsMinor && hint.priceMinor !== undefined && (
               <p className="text-caption">
                 Набор будет стоить {money(hint.priceMinor)} вместо {money(hint.priceMinor + hint.savingsMinor)}.
                 Экономия {money(hint.savingsMinor)}.{hint.code && ` По промокоду ${hint.code}.`}
@@ -71,11 +97,7 @@ export function CartGroupPromos({
             )}
             {add && hint.missing.length > 0 && (
               <Button variant="secondary" disabled={blocked} onClick={() => add(hint.missing)}>
-                {hint.type === "gift"
-                  ? `Добавить ${qty}`
-                  : hint.missing.length === 1
-                    ? `Добавить ${hint.missing[0].name}`
-                    : "Добавить недостающее"}
+                {hint.missing.length === 1 ? `Добавить ${hint.missing[0].name}` : "Добавить недостающее"}
               </Button>
             )}
           </div>
