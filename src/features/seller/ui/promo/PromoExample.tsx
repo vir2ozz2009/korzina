@@ -147,6 +147,14 @@ export function PromoExample({
         checking={checking}
         query={{ data: cart, isPending: checking, isError: error, refetch }}
         retry={refetch}
+        addPromoItems={(items) =>
+          setLines((previous) => {
+            const next = { ...previous };
+            for (const { variantId, quantity } of items)
+              next[variantId] = Math.min(999, (next[variantId] ?? 0) + quantity);
+            return next;
+          })
+        }
         change={(line, quantity) => setQuantity(line.variantId, quantity)}
         back={back}
         shipping={null}

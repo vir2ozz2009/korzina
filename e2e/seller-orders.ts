@@ -177,7 +177,7 @@ export async function verifySellerOrders(browser: Browser, baseURL: string) {
     await page.getByRole("button", { name: /Доплатите/ }).click();
     await expect(page).toHaveURL(new RegExp(`/orders/${debt.number}\\?shop=test2$`));
     await expect(page.getByRole("heading", { name: "Выдан", exact: true })).toBeVisible();
-    await expect(page.getByText(/Доплатите/)).toBeVisible();
+    await expect(page.getByText(/^Нужно доплатить /)).toBeVisible();
     const cabinetPath = "/seller?store=test2";
     const storefront = new URL("/?shop=test2", baseURL).href;
     await test.step("Блок 5 §13.3 · единый публичный адрес витрины", async () => {

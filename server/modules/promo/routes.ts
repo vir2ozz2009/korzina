@@ -44,8 +44,8 @@ export const sellerPromoRoutes = new Hono<PromoEnv>()
     const sql = c.env.storage.sql;
     return c.json({
       variants: sql
-        .exec<{ id: string; name: string; productId: string; productName: string }>(
-          `SELECT v.id,v.name,v.product_id AS productId,p.name AS productName FROM variants v JOIN products p ON p.id=v.product_id
+        .exec<{ id: string; name: string; productId: string; productName: string; priceMinor: number }>(
+          `SELECT v.id,v.name,v.product_id AS productId,p.name AS productName,v.price_minor AS priceMinor FROM variants v JOIN products p ON p.id=v.product_id
         WHERE v.visible AND v.product_available ORDER BY p.name,v.position,v.id LIMIT 250`,
         )
         .toArray(),

@@ -15,9 +15,10 @@ import { Gallery } from "../../../ui/Gallery";
 import { IconButton } from "../../../ui/IconButton";
 import { Price } from "../../../ui/Price";
 import { ProductTile } from "../../../ui/ProductTile";
-import { useCart } from "../../cart";
+import { useAddPromoItems, useCart } from "../../cart";
 import { FavoriteButton } from "../../favorites";
 import { useProduct } from "../product-api";
+import { ProductGroupOffers } from "./ProductGroupOffers";
 import { toTiles } from "./toTiles";
 import { VariantsSheet } from "./VariantsSheet";
 
@@ -27,6 +28,7 @@ export function ProductScreen() {
   const cart = useCart();
   const navigate = useNavigate();
   const toast = useToast();
+  const addPromoItems = useAddPromoItems(toast);
   const { variant: preferred } = useSearch({ from: "/p/$id" });
   const [selected, setSelected] = useState<string>();
   const [variantSheet, setVariantSheet] = useState<string>();
@@ -160,6 +162,23 @@ export function ProductScreen() {
                   <p className="text-small text-muted-foreground">Всего доступно {variant.stock} шт.</p>
                 )}
               </>
+            )}
+            {data && variant?.groupPromos && (
+              <ProductGroupOffers
+                offers={variant.groupPromos}
+                currency={data.currency}
+                blocked={!cart.query.data || addPromoItems.isPending || cart.pendingProducts.size > 0}
+                add={(parts) => {
+                  if (cart.query.data && !addPromoItems.isPending)
+                    addPromoItems.mutate(
+                      {
+                        input: { addItems: parts, expectedRevision: cart.query.data.revision },
+                        key: crypto.randomUUID(),
+                      },
+                      { onSuccess: () => toast("Набор добавлен в корзину") },
+                    );
+                }}
+              />
             )}
             {hasDetails && (
               <>

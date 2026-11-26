@@ -9,6 +9,7 @@ import { toLine } from "../cart/quote";
 import { publicFulfillment, readFulfillment } from "../fulfillment/service";
 import { type Candidate, calculatePromo, promoLabel } from "./calculate";
 import { effectivePrice } from "./cart";
+import { bundleComponents } from "./group-catalog";
 import { datesFor, validateTerms } from "./offers";
 import { assessPublicCandidates, describePublicPromos } from "./public-cart";
 
@@ -60,6 +61,7 @@ export function exampleCart(env: ShopEnv["Bindings"], input: z.infer<typeof prom
     buyer,
     (value) => promoLabel(value, (amount) => formatMinor(amount, currency)),
     enteredCode ?? undefined,
+    bundleComponents(env.storage, [candidate], now),
   );
   const fulfillment = publicFulfillment(
     readFulfillment(env.storage, env.features.maps),

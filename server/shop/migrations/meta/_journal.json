@@ -253,6 +253,13 @@
       "when": 1795435200005,
       "tag": "0035_promo_discounts",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1795690000000,
+      "tag": "0036_promo_group_uses",
+      "breakpoints": true
     }
   ]
 }

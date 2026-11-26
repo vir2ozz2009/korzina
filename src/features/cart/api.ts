@@ -78,6 +78,29 @@ async function sendCart(input: CartCommandInput, key: string): Promise<Cart> {
   return (await import("../../shared/contracts/cart")).cartContract.parse(await response.json());
 }
 
+export function useAddPromoItems(notify: (value: string) => void) {
+  const client = useQueryClient();
+  return useMutation({
+    scope: { id: JSON.stringify(cartKey) },
+    retry: (count, error) => count < 1 && errorKind(error) === "retry",
+    mutationFn: async ({ input, key }: { input: Extract<CartCommandInput, { addItems: unknown }>; key: string }) => {
+      await ensureShopSession();
+      return sendCart(input, key);
+    },
+    onMutate: () => client.cancelQueries({ queryKey: cartKey }),
+    onSuccess: (cart) =>
+      client.setQueryData<Cart>(cartKey, (previous) =>
+        previous && previous.revision > cart.revision ? previous : cart,
+      ),
+    onError: (error) => {
+      const details = error instanceof HttpError ? error.details : undefined;
+      if (details && typeof details === "object" && "cart" in details)
+        client.setQueryData<Cart>(cartKey, details.cart as Cart);
+      notify(error.message);
+    },
+  });
+}
+
 export function useConfirmCart(notify: (message: string) => void) {
   const client = useQueryClient();
   return useMutation({

@@ -33,8 +33,12 @@ export function PublicCartPromos({
   retry?: () => void;
 }) {
   const money = (value: number) => formatMinor(value, currency);
-  const benefit = ({ discount }: PublicPromo) =>
-    discount.type === "fixed" ? money(discount.value) : `${fromBasisPoints(discount.value)}%`;
+  const benefit = ({ discount, group }: PublicPromo) =>
+    group?.type === "bundle"
+      ? money(group.priceMinor)
+      : discount.type === "fixed"
+        ? money(discount.value)
+        : `${fromBasisPoints(discount.value)}%`;
   const offer = offers.find(({ id }) => id === selected);
   if (selected && !offer && !retry) return <p role="status">Акция больше недоступна. Проверьте условия.</p>;
   if (!offer || retry) {
@@ -53,7 +57,7 @@ export function PublicCartPromos({
               key={item.id}
               variant="compact"
               title={item.name}
-              subtitle={`Скидка ${benefit(item)}`}
+              subtitle={item.group?.type === "bundle" ? `Комбо-набор · ${benefit(item)}` : `Скидка ${benefit(item)}`}
               onClick={() => open(item.id)}
             />
           ))
@@ -75,7 +79,7 @@ export function PublicCartPromos({
         <dd>{offer.kind === "code" ? `Промокод ${offer.code}` : "Автоматически"}</dd>
         <dt>Товары</dt>
         <dd>{scopeNames.join(", ") || "Выбранные товары"}</dd>
-        <dt>Скидка</dt>
+        <dt>{offer.group?.type === "bundle" ? "Цена набора" : "Скидка"}</dt>
         <dd>{benefit(offer)}</dd>
         {discount.type === "percent" && discount.capMinor && (
           <>
@@ -136,11 +140,13 @@ export function PublicPromoTriggers({
   hint,
   currency,
   open,
+  currentCode,
 }: {
   publicOffers?: PublicOffers;
   hint?: NonNullable<Cart["promo"]>["hint"];
   currency: string;
   open: (id?: string) => void;
+  currentCode?: string;
 }) {
   return (
     <>
@@ -153,6 +159,17 @@ export function PublicPromoTriggers({
           }}
         />
       )}
+      {publicOffers?.offers
+        .filter((item) => item.group?.type === "bundle" && item.applicable && item.code && item.code !== currentCode)
+        .map((item) => (
+          <ListItem
+            key={item.id}
+            variant="compact"
+            title="Применить код"
+            subtitle={item.name}
+            onClick={() => open(item.id)}
+          />
+        ))}
       {publicOffers?.failed && (
         <p role="status" className="text-small text-muted-foreground">
           Акции пока недоступны. Промокод можно ввести вручную.{" "}

@@ -1,5 +1,6 @@
 import type { CatalogOffer, CatalogPageInput, CatalogTile } from "../../../src/shared/contracts/catalog";
 import { ApiError } from "../../../src/shared/errors";
+import { catalogGroupPromos, groupOfferJson } from "../promo/group-catalog";
 import { catalogImage, documentImage } from "./images";
 import { readNavigation } from "./navigation";
 import {
@@ -29,8 +30,8 @@ type Variant = {
   stock: number | null;
   photoId: string | null;
 };
-type LiveRow = Row &
-  Omit<CatalogOffer, "available" | "visible"> & {
+
+type LiveRow = Row & { categoryId?: string } & Omit<CatalogOffer, "available" | "visible"> & {
     productId: string;
     priceMinor: number;
     visible: number;
@@ -94,13 +95,17 @@ export function readDocument(
 }
 
 export function readLive(storage: DurableObjectStorage, ids: string[], includeSoldOut = false, promotions = false) {
-  const query = liveQuery(ids, promotions);
-  const rows = ids.length ? storage.sql.exec<LiveRow>(query.sql, ...query.params).toArray() : [];
+  const now = Date.now();
   const state = storage.sql
-    .exec<{ currency: string; hideOutOfStock: number; catalogVersion: number }>(
-      "SELECT currency,hide_out_of_stock AS hideOutOfStock,version AS catalogVersion FROM catalog_state WHERE id=1",
+    .exec<{ currency: string; hideOutOfStock: number; catalogVersion: number; groupOffers?: string }>(
+      `SELECT currency,hide_out_of_stock AS hideOutOfStock,version AS catalogVersion
+      ${promotions ? `, ${groupOfferJson(now)}` : ""} FROM catalog_state WHERE id=1`,
     )
     .one();
+  const groupPromos =
+    state.groupOffers && state.groupOffers !== "[]" ? catalogGroupPromos(storage, state.groupOffers, now) : undefined;
+  const query = liveQuery(ids, promotions, now, state.groupOffers?.includes('"type":"categories"'));
+  const rows = ids.length ? storage.sql.exec<LiveRow>(query.sql, ...query.params).toArray() : [];
   const offers = new Map(rows.map((row) => [row.id, row]));
   return {
     catalogVersion: state.catalogVersion,
@@ -129,6 +134,7 @@ export function readLive(storage: DurableObjectStorage, ids: string[], includeSo
         oldPriceMinor: row.oldPriceMinor,
         stock: row.stock,
         available,
+        ...(groupPromos && { groupPromos: groupPromos({ ...row, available }, row.productId ?? "", row.categoryId) }),
         visible: Boolean(row.visible && row.productAvailable && (includeSoldOut || !state.hideOutOfStock || available)),
       };
     }),
@@ -142,6 +148,7 @@ export function readProduct(
   origin: string,
   promotions = false,
 ) {
+  const now = Date.now();
   const row = storage.sql
     .exec<
       Row & {
@@ -160,14 +167,21 @@ export function readProduct(
         currency: string;
         hideOutOfStock: number;
         variants: string;
+        groupOffers?: string;
       }
-    >(productQuery(promotions), id)
+    >(productQuery(promotions, now), id)
     .toArray()[0];
   if (!row) throw new ApiError("NOT_FOUND", "Товар больше недоступен");
-  const variants = (JSON.parse(row.variants) as (Variant & { paused: number })[]).map(({ paused, ...v }) => ({
-    ...v,
-    available: row.salePause === null && !paused && (v.stock === null || v.stock > 0),
-  }));
+  const groupPromos =
+    row.groupOffers && row.groupOffers !== "[]" ? catalogGroupPromos(storage, row.groupOffers, now) : undefined;
+  const variants = (JSON.parse(row.variants) as (Variant & { paused: number })[]).map(({ paused, ...v }) => {
+    const available = row.salePause === null && !paused && (v.stock === null || v.stock > 0);
+    return {
+      ...v,
+      available,
+      ...(groupPromos && { groupPromos: groupPromos({ ...v, available }, row.id, row.categoryId) }),
+    };
+  });
   if (!variants.length || (row.hideOutOfStock && variants.every((v) => !v.available)))
     throw new ApiError("NOT_FOUND", "Товар больше недоступен");
   const photos = storage.sql

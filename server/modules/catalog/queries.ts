@@ -1,13 +1,15 @@
 import type { CatalogPageInput } from "../../../src/shared/contracts/catalog";
 
 import { effectivePrice } from "../promo/cart";
+import { groupOfferJson } from "../promo/group-catalog";
 
 // IS uses indexed OR seeks without the temporary IN btree (which adds N billed reads).
-export function liveQuery(ids: string[], promotions = false, now = Date.now()) {
+export function liveQuery(ids: string[], promotions = false, now = Date.now(), categoryScope = false) {
   const price = effectivePrice("v.", promotions, now);
   return {
     sql: `SELECT v.id, v.product_id AS productId, ${price.price} AS priceMinor,
   ${price.old} AS oldPriceMinor, v.stock, v.visible, v.product_available AS productAvailable, (v.product_paused OR v.sale_pause IS NOT NULL) AS paused
+  ${categoryScope ? " ,(SELECT category_id FROM products WHERE id=v.product_id) AS categoryId" : ""}
   FROM variants v
   WHERE ${ids.length <= 80 ? ids.map(() => "v.id IS ?").join(" OR ") : "v.id IN (SELECT value FROM json_each(?))"}`,
     params: ids.length <= 80 ? ids : [JSON.stringify(ids)],
@@ -84,6 +86,7 @@ export const productQuery = (promotions = false, now = Date.now()) => {
     'oldPriceMinor',${price.old},'stock',stock,'photoId',photo_id,'paused',sale_pause IS NOT NULL))
     FROM (SELECT id,name,price_minor,old_price_minor,promo_starts_at,promo_ends_at,stock,photo_id,sale_pause FROM variants
       WHERE product_id=p.id AND visible=1 ORDER BY position,id)) AS variants
+  ${promotions ? `, ${groupOfferJson(now)}` : ""}
   FROM products p CROSS JOIN catalog_state s
   WHERE p.id=? AND p.published=1 AND p.visible=1 AND s.id=1`;
 };

@@ -1,5 +1,5 @@
-import { X } from "lucide-react";
-import type { ComponentProps, ReactNode } from "react";
+import { ChevronRight, X } from "lucide-react";
+import { type ComponentProps, type ReactNode, useState } from "react";
 import { Screen } from "../../../app/shell/Screen";
 import type { Cart, CartLine } from "../../../shared/contracts/cart";
 import type { ReceivingAvailability } from "../../../shared/contracts/receiving";
@@ -10,6 +10,7 @@ import { Header } from "../../../ui/Header";
 import { IconButton } from "../../../ui/IconButton";
 import { ProductRow } from "../../../ui/ProductRow";
 import { deliveryLabel } from "../../receiving";
+import { CartGroupDetails, CartGroupPromos } from "./CartGroupPromos";
 import { CartNotice } from "./CartNotice";
 import { CartPromotion } from "./CartPromotion";
 import type { PublicOffers } from "./PublicCartPromos";
@@ -18,6 +19,7 @@ type Props = {
   cart?: Cart;
   query: NonNullable<ComponentProps<typeof Screen>["state"]>["query"];
   retry: () => void;
+  addPromoItems?: ComponentProps<typeof CartGroupPromos>["add"];
   checking: boolean;
   confirmed?: boolean;
   pendingProducts?: ReadonlyMap<string, string>;
@@ -38,6 +40,7 @@ export function CartView({
   cart,
   query,
   retry,
+  addPromoItems,
   checking,
   confirmed = false,
   pendingProducts,
@@ -54,6 +57,8 @@ export function CartView({
   after,
   footer,
 }: Props) {
+  const [detail, setDetail] = useState<{ sourceId: string; variantId?: string }>();
+  const detailAdjustment = cart?.adjustments.find(({ sourceId }) => sourceId === detail?.sourceId);
   const currency = cart?.currency;
   const available = cart?.lines.filter((line) => line.available) ?? [];
   const courier =
@@ -75,6 +80,14 @@ export function CartView({
         .flatMap((item) => item.allocations ?? [])
         .filter((part) => part.variantId === line.variantId)
         .reduce((sum, part) => sum + part.amount, 0) ?? 0;
+    const gift = line.available
+      ? cart?.adjustments.flatMap((item) =>
+          (item.allocations ?? [])
+            .filter((part) => part.variantId === line.variantId && part.gifts)
+            .map((part) => ({ item, count: part.gifts ?? 0 })),
+        )
+      : undefined;
+    const giftCount = gift?.reduce((sum, part) => sum + part.count, 0) ?? 0;
     return (
       <li key={line.variantId}>
         <ProductRow
@@ -107,6 +120,15 @@ export function CartView({
           onRemove={() => change(line, 0, currency, true)}
           onOpen={openLine ? () => openLine(line) : undefined}
         />
+        {giftCount > 0 && gift?.[0] && (
+          <button
+            type="button"
+            className="mt-2 inline-flex min-h-11 items-center gap-1 rounded-pill bg-status-success px-3 text-small font-semibold text-status-success-foreground"
+            onClick={() => setDetail({ sourceId: gift[0].item.sourceId, variantId: line.variantId })}
+          >
+            {giftCount} в подарок <ChevronRight size={14} aria-hidden />
+          </button>
+        )}
       </li>
     );
   }
@@ -149,6 +171,13 @@ export function CartView({
                 <Divider />
               </>
             )}
+            <CartGroupPromos
+              cart={cart}
+              currency={currency}
+              blocked={checking || !!cart.review || query.isError || !!pendingProducts?.size}
+              add={addPromoItems}
+              open={(item) => setDetail({ sourceId: item.sourceId })}
+            />
             {cart.promo && (
               <CartPromotion
                 cart={cart}
@@ -165,7 +194,9 @@ export function CartView({
             </div>
             {cart.adjustments.map((item) => (
               <div key={item.sourceId} className="flex justify-between gap-2">
-                <span className="min-w-0 wrap-anywhere">{item.label}</span>
+                <span className="min-w-0 wrap-anywhere">
+                  {item.groups?.type === "gift" ? "Количество в подарок" : item.label}
+                </span>
                 <strong className="text-status-success-foreground">−{formatMinor(-item.amount, currency)}</strong>
               </div>
             ))}
@@ -196,6 +227,14 @@ export function CartView({
             </Card>
           )}
         </>
+      )}
+      {detail && (
+        <CartGroupDetails
+          adjustment={detailAdjustment}
+          part={detailAdjustment?.allocations?.find(({ variantId }) => variantId === detail.variantId)}
+          {...{ cart, currency }}
+          close={() => setDetail(undefined)}
+        />
       )}
       {available.length > 0 && cart && !cart.review && !checking && footer}
     </Screen>

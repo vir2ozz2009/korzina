@@ -82,6 +82,30 @@ export function PromoPicker({
               }
             />
           )}
+          {(step === "all" || step === "larger") && (
+            <>
+              <ListItem
+                title={step === "all" ? "Количество в подарок" : "2+1"}
+                subtitle="Предложите взять несколько товаров, один из них — в подарок"
+                icon={<Gift size={20} />}
+                onClick={() =>
+                  create("automatic", {
+                    name: "2+1",
+                    group: { type: "gift", buy: 2, gift: 1 },
+                    scope: { type: "variants", ids: [] },
+                  })
+                }
+              />
+              <ListItem
+                title="Комбо-набор"
+                subtitle="Предложите товары, которые удобно купить вместе"
+                icon={<Package size={20} />}
+                onClick={() =>
+                  create("automatic", { group: { type: "bundle", components: [], priceMinor: 0, limit: 1 } })
+                }
+              />
+            </>
+          )}
           {step === "all" && (
             <ListItem title="Цена по акции на товар" icon={<Package size={20} />} onClick={() => setStep("price")} />
           )}

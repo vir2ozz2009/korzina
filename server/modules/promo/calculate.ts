@@ -10,6 +10,10 @@ import {
   roundMinor,
 } from "../../../src/shared/money";
 
+import type { BundleComponent } from "./group-catalog";
+import { priceGroups } from "./group-pricing";
+import { inScope } from "./group-terms";
+
 export type Candidate = {
   id: string;
   revision: number;
@@ -32,6 +36,8 @@ function discountAmount(terms: PromoTerms, base: number, currency: string) {
 }
 
 export function promoLabel(terms: PromoTerms, money: (amount: number) => string) {
+  if (terms.group?.type === "gift") return `${terms.group.buy + terms.group.gift} по цене ${terms.group.buy}`;
+  if (terms.group?.type === "bundle") return terms.name;
   if (terms.kind === "code") return `По промокоду ${terms.code}`;
   const purchase = terms.purchase;
   const label =
@@ -48,20 +54,13 @@ export function promoLabel(terms: PromoTerms, money: (amount: number) => string)
     : `${label} · ${discount.value / 100}%${discount.capMinor ? `, до ${money(discount.capMinor)}` : ""}`;
 }
 
-function eligible(terms: PromoTerms, line: CartLine) {
-  const { scope } = terms;
-  if (scope.type === "all") return true;
-  const id = scope.type === "products" ? line.productId : scope.type === "variants" ? line.variantId : line.categoryId;
-  return !!id && scope.ids.includes(id);
-}
-
 export function assess(candidate: Candidate, lines: CartLine[], buyer: Buyer) {
   const { terms, status, used, personalUsed } = candidate;
   if (status !== "active")
     return { reason: status === "ended" ? "expired" : status === "scheduled" ? "scheduled" : "disabled" } as const;
   if (terms.totalLimit && used >= terms.totalLimit) return { reason: "limit" } as const;
-  const scoped = lines.filter((line) => eligible(terms, line));
-  const eligibleLines = scoped.filter((line) => terms.kind !== "code" || !line.oldPriceMinor);
+  const scoped = lines.filter((line) => inScope(terms, line));
+  const eligibleLines = scoped.filter((line) => terms.group || terms.kind !== "code" || !line.oldPriceMinor);
   if (!eligibleLines.length) return { reason: scoped.length ? "regular_price" : "scope" } as const;
   if (!buyer.confirmed && (terms.confirmed || terms.purchase || terms.personalLimit))
     return { reason: "telegram" } as const;
@@ -83,6 +82,19 @@ export function assess(candidate: Candidate, lines: CartLine[], buyer: Buyer) {
 }
 
 export function calculatePromo(
+  cart: Cart,
+  candidates: Candidate[],
+  buyer: Buyer,
+  label: (terms: PromoTerms) => string,
+  code?: string,
+  components?: ReadonlyMap<string, BundleComponent>,
+): Cart {
+  if (!cart.currency || !candidates.some(({ terms }) => terms.group))
+    return calculateStandard(cart, candidates, buyer, label, code);
+  return priceGroups(cart, candidates, buyer, label, code, calculateStandard, assess, components);
+}
+
+function calculateStandard(
   cart: Cart,
   candidates: Candidate[],
   buyer: Buyer,

@@ -13,6 +13,7 @@ export interface ProductTileProps extends PriceProps {
   cart: AddToCartProps;
   stock?: number | null;
   action?: ReactNode;
+  promotion?: string;
   photoShape?: "square" | "tile";
   variants?: { label: string; open: () => void };
 }
@@ -25,6 +26,7 @@ export function ProductTile({
   cart,
   stock,
   action,
+  promotion,
   photoShape = "square",
   variants,
   ...price
@@ -45,7 +47,12 @@ export function ProductTile({
           sizes="(max-width: 480px) calc((100vw - 32px) / 2), 224px"
           className="w-full"
         />
-        <span className="absolute top-2 left-2">
+        <span className="absolute top-2 left-2 flex flex-col items-start gap-1">
+          {promotion && (
+            <span className="inline-block max-w-28 rounded-pill bg-primary px-2 py-1 text-micro text-primary-foreground">
+              {promotion}
+            </span>
+          )}
           <DiscountBadge {...price} />
         </span>
       </a>

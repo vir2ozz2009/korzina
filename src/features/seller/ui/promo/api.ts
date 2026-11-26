@@ -7,7 +7,7 @@ import type { ReceivingState } from "../../../receiving";
 import { sellerSessionHeaders } from "../../api";
 
 export type PromoCatalog = {
-  variants: { id: string; name: string; productId: string; productName: string }[];
+  variants: { id: string; name: string; productId: string; productName: string; priceMinor?: number }[];
   categories: { id: string; name: string }[];
 };
 export type PromoList = {
@@ -19,6 +19,7 @@ export type PromoList = {
 };
 export type Report = {
   orderCount: number;
+  groups?: { type: "gift" | "bundle"; count: number; gifts: number; label?: string };
   customers: number;
   guestOrders: number;
   deliveryMinor: number;

@@ -3,6 +3,7 @@ import { orderLineKey } from "../../../src/shared/contracts/order-changes";
 import { ApiError } from "../../../src/shared/errors";
 import { addMinor, allocateMinor, multiplyMinor } from "../../../src/shared/money";
 import type { ShopEnv } from "../../shop/env";
+import { retainedPromos } from "./promo-lines";
 import { type ChangeState, compositionTotals, hasPendingOrderChange, requireChangeable } from "./state";
 import { replacementLine, replacementOffers } from "./stock";
 
@@ -36,10 +37,14 @@ export function planComposition(env: ShopEnv["Bindings"], state: ChangeState, in
     if (edit.kind === "unavailable" && before) {
       if (edit.quantity >= before.quantity) throw new ApiError("VALIDATION", "Укажите меньшее количество");
       if (!edit.quantity) immediateLines -= 1;
-      const [promoSavingsMinor] = allocateMinor(before.promoSavingsMinor ?? 0, [
+      const [proportional] = allocateMinor(before.promoSavingsMinor ?? 0, [
         edit.quantity,
         before.quantity - edit.quantity,
       ]);
+      const hasGroup = snapshot.adjustments?.some(({ allocations }) => allocations?.some(({ units }) => units));
+      const promoSavingsMinor = hasGroup
+        ? addMinor(...[...retainedPromos(snapshot, before, edit.quantity).values()].map(({ amount }) => amount))
+        : proportional;
       const after = edit.quantity
         ? {
             ...before,

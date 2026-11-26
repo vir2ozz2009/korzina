@@ -25,7 +25,17 @@ export function publicCartPromos(
 export function assessPublicCandidates(candidates: Candidate[], cart: Cart, buyer: Buyer) {
   const lines = cart.lines.filter((line) => line.available && line.quantity > 0);
   return candidates.flatMap((offer) => {
-    const result = assess(offer, lines, buyer);
+    const group = offer.terms.group;
+    const base = assess(offer, lines, buyer);
+    const missingQuantity =
+      group?.type === "bundle"
+        ? group.components.reduce(
+            (sum, { variantId, quantity }) =>
+              sum + Math.max(0, quantity - (lines.find((line) => line.variantId === variantId)?.quantity ?? 0)),
+            0,
+          )
+        : 0;
+    const result = !base.reason && missingQuantity ? { reason: "quantity" as const, missingQuantity } : base;
     if (result.reason && result.reason !== "minimum" && result.reason !== "quantity") return [];
     return [{ offer, result }];
   });
@@ -48,9 +58,14 @@ export function describePublicPromos(
     ({
       offer: {
         id,
-        terms: { scope },
+        terms: { scope, group },
       },
-    }) => (scope.type === "all" ? [] : scope.ids.map((item) => [id, scope.type, item])),
+    }) =>
+      group?.type === "bundle"
+        ? group.components.map(({ variantId }) => [id, "variants", variantId])
+        : scope.type === "all"
+          ? []
+          : scope.ids.map((item) => [id, scope.type, item]),
   );
   const names = new Map<string, string[]>();
   if (scopes.length) {
@@ -82,6 +97,7 @@ export function describePublicPromos(
       kind,
       code,
       scope,
+      group,
       discount,
       minimumMinor,
       minimumQuantity,
@@ -91,7 +107,7 @@ export function describePublicPromos(
       fromDate,
       throughDate,
     } = offer.terms;
-    const scopeNames = scope.type === "all" ? ["Все товары"] : (names.get(offer.id) ?? []);
+    const scopeNames = scope.type === "all" && group?.type !== "bundle" ? ["Все товары"] : (names.get(offer.id) ?? []);
     return {
       id: offer.id,
       name,
@@ -99,6 +115,7 @@ export function describePublicPromos(
       code,
       scopeNames,
       discount,
+      group,
       minimumMinor,
       minimumQuantity,
       confirmed,

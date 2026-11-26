@@ -79,11 +79,20 @@ export function reportOffer(
       deliveryMinor: number;
       thresholdCount: number;
       thresholdAverage: number | null;
+      groupCount: number;
+      giftCount: number;
     }>(
       `SELECT COUNT(*) orders,COUNT(DISTINCT u.customer) customers,COUNT(CASE WHEN u.customer IS NULL THEN 1 END) guestOrders,
       COALESCE(SUM(${netItems}),0) itemsMinor,COALESCE(SUM(${netSavings}),0) savingsMinor,
       COALESCE(SUM(MAX(0,COALESCE(json_extract(o.snapshot,'$.deliveryMinor'),0)-
         COALESCE(json_extract(o.fulfillment_state,'$.finance.salesRefund.deliveryMinor'),0))),0) deliveryMinor,
+      COALESCE(SUM(${adjustment("$.groups.count")}),0) groupCount,
+      COALESCE(SUM((
+        SELECT SUM(COALESCE(json_extract(part.value,'$.gifts'),0))
+        FROM json_each(json_extract(o.snapshot,'$.adjustments')) offer,
+          json_each(json_extract(offer.value,'$.allocations')) part
+        WHERE json_extract(offer.value,'$.sourceId')=u.offer_id
+      )),0) giftCount,
       COUNT(${adjustment("$.minimumMinor")}) thresholdCount,
       CAST(ROUND(AVG(CASE WHEN ${adjustment("$.minimumMinor")} IS NOT NULL THEN ${netItems} END)) AS INTEGER) thresholdAverage
       ${filter}`,
@@ -102,6 +111,14 @@ export function reportOffer(
     ...summary,
     orders: orders.slice(0, 30),
     orderCount: summary.orders,
+    ...(offer.terms.group && {
+      groups: {
+        type: offer.terms.group.type,
+        count: summary.groupCount,
+        gifts: summary.giftCount,
+        ...(offer.terms.group.type === "gift" && { label: `${offer.terms.group.buy}+${offer.terms.group.gift}` }),
+      },
+    }),
     nextOffset: orders.length > 30 ? input.offset + 30 : null,
     purchaseStats: summary.orders ? purchaseStats(storage, params, now) : [],
   };

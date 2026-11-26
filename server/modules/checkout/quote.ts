@@ -104,9 +104,9 @@ export function purchaseDraft(env: Shop, subject: string, kind: "guest" | "teleg
       throw new ApiError("SLOT_TAKEN", time ? timeChangedMessage : "Выберите доступное время получения");
   }
   if (!context.phone && kind !== "telegram") throw new ApiError("VALIDATION", "Войдите или укажите номер телефона");
-  const savings = new Map(
-    cart.adjustments.flatMap((item) => item.allocations ?? []).map((item) => [item.variantId, item.amount]),
-  );
+  const savings = new Map<string, number>();
+  for (const part of cart.adjustments.flatMap((item) => item.allocations ?? []))
+    savings.set(part.variantId, addMinor(savings.get(part.variantId) ?? 0, part.amount));
   const lines = cart.lines
     .filter((line) => line.available && line.quantity > 0)
     .map(({ variantId, productId, name, unit, quantity, priceMinor, image }) => {

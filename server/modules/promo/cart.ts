@@ -1,12 +1,15 @@
 import type { Cart, CartAdjustment } from "../../../src/shared/contracts/cart";
 import { formatMinor } from "../../../src/shared/money";
 import { type Buyer, type Candidate, calculatePromo, promoLabel } from "./calculate";
+import { bundleComponents } from "./group-catalog";
 import { type OfferRow, offerOf } from "./offers";
 
 export type PromoSelection = { code: string | null; alternative: string | null };
 
 export const automaticPromoWhere = (now: number | string) =>
-  `p.state='published' AND p.kind='automatic' AND (p.ends_at IS NULL OR p.ends_at>${now})`;
+  `p.state='published' AND (p.kind='automatic' OR
+    (p.kind='code' AND json_extract(p.terms,'$.publicInCart')=1 AND json_extract(p.terms,'$.group.type')='bundle'))
+    AND (p.ends_at IS NULL OR p.ends_at>${now})`;
 
 export function promoContext(
   storage: DurableObjectStorage,
@@ -39,7 +42,7 @@ export function promoContext(
          ? `p.state='published' AND json_extract(p.terms,'$.publicInCart')=1
        AND (p.starts_at IS NULL OR p.starts_at<=?) AND (p.ends_at IS NULL OR p.ends_at>?)
        AND (? IS NULL OR p.id=?)`
-         : `(p.kind='automatic' AND p.state='published' AND (p.ends_at IS NULL OR p.ends_at>?))
+         : `(${automaticPromoWhere("?")})
         OR (p.kind='code' AND p.code IN (?,?) AND p.state<>'draft')`
      }
      GROUP BY p.id
@@ -75,7 +78,21 @@ export function pricePromoCart(
       ? promoContext(storage, subject, confirmed, codes, now)
       : { buyer: { confirmed, completed: 0, exactUsed: false }, candidates: [], nextChangeAt: undefined };
   const label = (terms: Candidate["terms"]) => promoLabel(terms, (value) => formatMinor(value, cart.currency ?? "RUB"));
-  const priced = calculatePromo(cart, candidates, buyer, label, codes.code ?? undefined);
+  const parts = cart.lines.length
+    ? bundleComponents(
+        storage,
+        candidates.filter(
+          ({ terms, status }) =>
+            status === "active" &&
+            (terms.kind === "automatic" ||
+              terms.publicInCart ||
+              terms.code === codes.code ||
+              terms.code === codes.alternative),
+        ),
+        now,
+      )
+    : undefined;
+  const priced = calculatePromo(cart, candidates, buyer, label, codes.code ?? undefined, parts);
   if (priced.promo) {
     const nextPriceAt = Math.min(
       ...cart.lines.flatMap((line) => (line.nextPriceAt ? [line.nextPriceAt] : [])),
@@ -83,7 +100,7 @@ export function pricePromoCart(
     );
     if (Number.isFinite(nextPriceAt)) priced.promo.nextChangeAt = nextPriceAt;
     if (codes.alternative) {
-      const alternate = calculatePromo(cart, candidates, buyer, label, codes.alternative);
+      const alternate = calculatePromo(cart, candidates, buyer, label, codes.alternative, parts);
       priced.promo.alternative = {
         code: codes.alternative,
         totalMinor: alternate.totalMinor,
@@ -102,16 +119,16 @@ export function consumePromotion(
   adjustments: CartAdjustment[] | undefined,
   customer: string | null,
 ) {
-  const winner = adjustments?.find((item) => item.kind === "promotion");
-  if (!winner) return;
-  storage.sql.exec(
-    "INSERT INTO promo_uses(order_number,offer_id,customer,purchase_number,amount_minor) VALUES(?,?,?,?,?)",
-    number,
-    winner.sourceId,
-    customer,
-    winner.purchase?.mode === "exact" ? winner.purchase.number : null,
-    -winner.amount,
-  );
+  for (const winner of adjustments?.filter((item) => item.kind === "promotion") ?? []) {
+    storage.sql.exec(
+      "INSERT INTO promo_uses(order_number,offer_id,customer,purchase_number,amount_minor) VALUES(?,?,?,?,?)",
+      number,
+      winner.sourceId,
+      customer,
+      winner.purchase?.mode === "exact" ? winner.purchase.number : null,
+      -winner.amount,
+    );
+  }
 }
 export function releasePromotion(storage: DurableObjectStorage, number: number, now = Date.now()) {
   storage.sql.exec("UPDATE promo_uses SET released_at=? WHERE order_number=? AND released_at IS NULL", now, number);
