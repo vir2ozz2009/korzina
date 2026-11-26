@@ -141,16 +141,13 @@ export function ProductScreen() {
                   size="display"
                 />
                 {data.variants.length > 1 && (
-                  <fieldset aria-label="Фасовка" className="flex gap-2 overflow-x-auto">
+                  <fieldset aria-label="Фасовка" className="flex min-w-0 flex-wrap gap-2">
                     {data.variants.map((item) => (
                       <Chip
                         key={item.id}
                         selected={item.id === variant.id}
-                        className="whitespace-nowrap"
-                        onClick={(event) => {
-                          setSelected(item.id);
-                          event.currentTarget.scrollIntoView({ block: "nearest", inline: "nearest" });
-                        }}
+                        className="max-w-full whitespace-normal wrap-anywhere py-2 text-left"
+                        onClick={() => setSelected(item.id)}
                       >
                         {item.name}
                       </Chip>

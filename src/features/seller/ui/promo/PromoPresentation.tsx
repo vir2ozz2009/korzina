@@ -2,6 +2,7 @@ import { ImageOff, Percent, Tag } from "lucide-react";
 import type { ComponentProps } from "react";
 import type { PromoOffer, PromoPrice, PromoStatus, PromoTerms } from "../../../../shared/contracts/promo";
 import { formatMinor, fromBasisPoints } from "../../../../shared/money";
+import { ruPlural } from "../../../../shared/ru-plural";
 import { interactive } from "../../../../ui/interactive";
 import { ProductImage } from "../../../../ui/ProductImage";
 
@@ -111,7 +112,8 @@ export function OfferTile({ offer, currency, onClick }: { offer: PromoOffer; cur
       )}
       {!!offer.orders && (
         <span className="mt-2 block text-small font-semibold">
-          {offer.orders} заказов · скидок на {formatMinor(offer.savingsMinor, currency)}
+          {offer.orders} {ruPlural(offer.orders, "заказ", "заказа", "заказов")} · скидок на{" "}
+          {formatMinor(offer.savingsMinor, currency)}
         </span>
       )}
     </button>

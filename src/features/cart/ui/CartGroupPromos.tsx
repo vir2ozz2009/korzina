@@ -1,6 +1,7 @@
 import { Gift, Package } from "lucide-react";
 import type { Cart, CartAdjustment } from "../../../shared/contracts/cart";
 import { formatMinor } from "../../../shared/money";
+import { ruPlural } from "../../../shared/ru-plural";
 import { Button } from "../../../ui/Button";
 import { Sheet } from "../../../ui/Sheet";
 
@@ -29,6 +30,12 @@ export function CartGroupPromos({
       {bundles.map((item) => {
         if (!item.groups) return null;
         const { count, possible, limit } = item.groups;
+        const capped = limit && possible > count;
+        const sets = capped
+          ? `${count} из ${possible} наборов по акции. Лимит — ${limit} на заказ`
+          : limit === count && count > 1
+            ? `${count} из ${limit} наборов по акции`
+            : `${count} ${ruPlural(count, "набор", "набора", "наборов")} по акции`;
         return (
           <button
             key={item.sourceId}
@@ -36,11 +43,7 @@ export function CartGroupPromos({
             className="block min-h-11 text-left text-caption text-primary-text underline"
             onClick={() => open(item)}
           >
-            {item.label} ·{" "}
-            {limit && possible > count
-              ? `${count} из ${possible} наборов по акции. Лимит — ${limit} на заказ`
-              : `${count}${limit === count && count > 1 ? ` из ${limit}` : ""} ${count === 1 ? "набор" : count < 5 ? "набора" : "наборов"} по акции`}{" "}
-            · экономия {money(-item.amount)}
+            {item.label} · {sets} · экономия {money(-item.amount)}
           </button>
         );
       })}
@@ -57,7 +60,7 @@ export function CartGroupPromos({
                 : hint.unavailable
                   ? "Набор недоступен: одной из фасовок нет в наличии"
                   : hint.remainingSets
-                    ? `Можно собрать ещё ${hint.remainingSets} ${hint.remainingSets === 1 ? "набор" : "набора"} по ${money(hint.priceMinor ?? 0)}`
+                    ? `Можно собрать ещё ${hint.remainingSets} ${ruPlural(hint.remainingSets, "набор", "набора", "наборов")} по ${money(hint.priceMinor ?? 0)}`
                     : `Для набора не хватает: ${list}`}
             </p>
             {hint.type === "bundle" && !!hint.savingsMinor && hint.priceMinor !== undefined && (

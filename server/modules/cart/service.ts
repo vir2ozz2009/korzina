@@ -180,10 +180,14 @@ export function changeCart(
       if (input.quantity > 0 && !offered?.available)
         return new ApiError("STOCK_CHANGED", "Товар больше недоступен", { cart: reprice(cart) });
       const quantity = Math.min(input.quantity, offered?.stock ?? 999);
-      const previous = cart.lines.find((line) => line.variantId === input.variantId);
-      if ((previous?.quantity ?? 0) !== quantity || input.quantity > quantity) {
-        const lines = cart.lines.filter((line) => line.variantId !== input.variantId);
-        if (quantity && offered) lines.push({ ...offered, quantity });
+      const index = cart.lines.findIndex((line) => line.variantId === input.variantId);
+      if ((cart.lines[index]?.quantity ?? 0) !== quantity || input.quantity > quantity) {
+        const lines = [...cart.lines];
+        if (quantity && offered) {
+          const updated = { ...offered, quantity };
+          if (index === -1) lines.push(updated);
+          else lines[index] = updated;
+        } else if (index !== -1) lines.splice(index, 1);
         if (lines.length > 50) throw new ApiError("VALIDATION", "В корзине может быть до 50 разных фасовок");
         const totals = cartTotals(lines);
         let review = lines.length ? cart.review : undefined;
