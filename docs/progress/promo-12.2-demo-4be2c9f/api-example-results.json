@@ -1,0 +1,2105 @@
+[
+  {
+    "scenario": "1 mixed no gift",
+    "expected": 220000,
+    "actual": 220000,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+          "productId": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+          "categoryId": "__uncategorized__",
+          "name": "Голубика · проверка 12.2",
+          "unit": "125 г",
+          "priceMinor": 60000,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 2,
+          "available": true,
+          "image": null,
+          "totalMinor": 120000
+        },
+        {
+          "key": 1,
+          "variantId": "defada3c-526e-4db3-b1ef-630598ebf5c0",
+          "productId": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+          "categoryId": "__uncategorized__",
+          "name": "Голубика · проверка 12.2",
+          "unit": "250 г",
+          "priceMinor": 100000,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 1,
+          "available": true,
+          "image": null,
+          "totalMinor": 100000
+        }
+      ],
+      "adjustments": [],
+      "count": 3,
+      "totalMinor": 220000,
+      "itemsMinor": 220000,
+      "promo": {
+        "groupHints": [
+          {
+            "id": "example",
+            "type": "gift",
+            "name": "3 по цене 2",
+            "missing": [
+              {
+                "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+                "quantity": 1,
+                "name": "Голубика · проверка 12.2",
+                "unit": "125 г"
+              }
+            ]
+          }
+        ]
+      },
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 220000
+    }
+  },
+  {
+    "scenario": "1 complete",
+    "expected": 220000,
+    "actual": 220000,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+          "productId": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+          "categoryId": "__uncategorized__",
+          "name": "Голубика · проверка 12.2",
+          "unit": "125 г",
+          "priceMinor": 60000,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 3,
+          "available": true,
+          "image": null,
+          "totalMinor": 120000
+        },
+        {
+          "key": 1,
+          "variantId": "defada3c-526e-4db3-b1ef-630598ebf5c0",
+          "productId": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+          "categoryId": "__uncategorized__",
+          "name": "Голубика · проверка 12.2",
+          "unit": "250 г",
+          "priceMinor": 100000,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 1,
+          "available": true,
+          "image": null,
+          "totalMinor": 100000
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "3 по цене 2",
+          "amount": -60000,
+          "allocations": [
+            {
+              "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+              "amount": 60000,
+              "gifts": 1,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 0
+                },
+                {
+                  "quantity": 2,
+                  "paidMinor": 60000
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "gift",
+            "count": 1,
+            "possible": 1
+          }
+        }
+      ],
+      "count": 4,
+      "totalMinor": 220000,
+      "itemsMinor": 280000,
+      "promo": {},
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 220000
+    }
+  },
+  {
+    "scenario": "1 decrease",
+    "expected": 220000,
+    "actual": 220000,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+          "productId": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+          "categoryId": "__uncategorized__",
+          "name": "Голубика · проверка 12.2",
+          "unit": "125 г",
+          "priceMinor": 60000,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 2,
+          "available": true,
+          "image": null,
+          "totalMinor": 120000
+        },
+        {
+          "key": 1,
+          "variantId": "defada3c-526e-4db3-b1ef-630598ebf5c0",
+          "productId": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+          "categoryId": "__uncategorized__",
+          "name": "Голубика · проверка 12.2",
+          "unit": "250 г",
+          "priceMinor": 100000,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 1,
+          "available": true,
+          "image": null,
+          "totalMinor": 100000
+        }
+      ],
+      "adjustments": [],
+      "count": 3,
+      "totalMinor": 220000,
+      "itemsMinor": 220000,
+      "promo": {
+        "groupHints": [
+          {
+            "id": "example",
+            "type": "gift",
+            "name": "3 по цене 2",
+            "missing": [
+              {
+                "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+                "quantity": 1,
+                "name": "Голубика · проверка 12.2",
+                "unit": "125 г"
+              }
+            ]
+          }
+        ]
+      },
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 220000
+    }
+  },
+  {
+    "scenario": "11 gift 2",
+    "expected": 120000,
+    "actual": 120000,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+          "productId": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+          "categoryId": "__uncategorized__",
+          "name": "Голубика · проверка 12.2",
+          "unit": "125 г",
+          "priceMinor": 60000,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 2,
+          "available": true,
+          "image": null,
+          "totalMinor": 120000
+        }
+      ],
+      "adjustments": [],
+      "count": 2,
+      "totalMinor": 120000,
+      "itemsMinor": 120000,
+      "promo": {
+        "groupHints": [
+          {
+            "id": "example",
+            "type": "gift",
+            "name": "3 по цене 2",
+            "missing": [
+              {
+                "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+                "quantity": 1,
+                "name": "Голубика · проверка 12.2",
+                "unit": "125 г"
+              }
+            ]
+          }
+        ]
+      },
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 120000
+    }
+  },
+  {
+    "scenario": "11 gift 3",
+    "expected": 120000,
+    "actual": 120000,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+          "productId": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+          "categoryId": "__uncategorized__",
+          "name": "Голубика · проверка 12.2",
+          "unit": "125 г",
+          "priceMinor": 60000,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 3,
+          "available": true,
+          "image": null,
+          "totalMinor": 120000
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "3 по цене 2",
+          "amount": -60000,
+          "allocations": [
+            {
+              "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+              "amount": 60000,
+              "gifts": 1,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 0
+                },
+                {
+                  "quantity": 2,
+                  "paidMinor": 60000
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "gift",
+            "count": 1,
+            "possible": 1
+          }
+        }
+      ],
+      "count": 3,
+      "totalMinor": 120000,
+      "itemsMinor": 180000,
+      "promo": {},
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 120000
+    }
+  },
+  {
+    "scenario": "11 gift 4",
+    "expected": 180000,
+    "actual": 180000,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+          "productId": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+          "categoryId": "__uncategorized__",
+          "name": "Голубика · проверка 12.2",
+          "unit": "125 г",
+          "priceMinor": 60000,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 4,
+          "available": true,
+          "image": null,
+          "totalMinor": 180000
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "3 по цене 2",
+          "amount": -60000,
+          "allocations": [
+            {
+              "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+              "amount": 60000,
+              "gifts": 1,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 0
+                },
+                {
+                  "quantity": 2,
+                  "paidMinor": 60000
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "gift",
+            "count": 1,
+            "possible": 1
+          }
+        }
+      ],
+      "count": 4,
+      "totalMinor": 180000,
+      "itemsMinor": 240000,
+      "promo": {
+        "groupHints": [
+          {
+            "id": "example",
+            "type": "gift",
+            "name": "3 по цене 2",
+            "missing": [
+              {
+                "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+                "quantity": 2,
+                "name": "Голубика · проверка 12.2",
+                "unit": "125 г"
+              }
+            ]
+          }
+        ]
+      },
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 180000
+    }
+  },
+  {
+    "scenario": "11 gift 6",
+    "expected": 240000,
+    "actual": 240000,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+          "productId": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+          "categoryId": "__uncategorized__",
+          "name": "Голубика · проверка 12.2",
+          "unit": "125 г",
+          "priceMinor": 60000,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 6,
+          "available": true,
+          "image": null,
+          "totalMinor": 240000
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "3 по цене 2",
+          "amount": -120000,
+          "allocations": [
+            {
+              "variantId": "b1d65fbd-8eae-4824-aa81-09c7ffab9e2a",
+              "amount": 120000,
+              "gifts": 2,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 0
+                },
+                {
+                  "quantity": 4,
+                  "paidMinor": 60000
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "gift",
+            "count": 2,
+            "possible": 2
+          }
+        }
+      ],
+      "count": 6,
+      "totalMinor": 240000,
+      "itemsMinor": 360000,
+      "promo": {},
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 240000
+    }
+  },
+  {
+    "scenario": "3 wrong variant",
+    "expected": 250,
+    "actual": 250,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "f62fc525-0829-4f38-a56d-e684c2b38a9d",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "categoryId": "__uncategorized__",
+          "name": "Кофе · проверка 12.2",
+          "unit": "250 г",
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 1,
+          "available": true,
+          "image": null,
+          "totalMinor": 150
+        },
+        {
+          "key": 1,
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "categoryId": "__uncategorized__",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 1,
+          "available": true,
+          "image": null,
+          "totalMinor": 100
+        }
+      ],
+      "adjustments": [],
+      "count": 2,
+      "totalMinor": 250,
+      "itemsMinor": 250,
+      "promo": {
+        "groupHints": [
+          {
+            "id": "example",
+            "type": "bundle",
+            "name": "Завтрак · проверка 12.2",
+            "missing": [
+              {
+                "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+                "quantity": 1,
+                "name": "Кофе · проверка 12.2",
+                "unit": "500 г"
+              }
+            ],
+            "priceMinor": 220,
+            "savingsMinor": 30
+          }
+        ]
+      },
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 250
+    }
+  },
+  {
+    "scenario": "3 restored",
+    "expected": 220,
+    "actual": 220,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "categoryId": "__uncategorized__",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 1,
+          "available": true,
+          "image": null,
+          "totalMinor": 132
+        },
+        {
+          "key": 1,
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "categoryId": "__uncategorized__",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 1,
+          "available": true,
+          "image": null,
+          "totalMinor": 88
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -30,
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 12,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 18,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 1,
+            "possible": 1,
+            "limit": 2
+          }
+        }
+      ],
+      "count": 2,
+      "totalMinor": 220,
+      "itemsMinor": 250,
+      "promo": {
+        "groupHints": [
+          {
+            "id": "example",
+            "type": "bundle",
+            "name": "Завтрак · проверка 12.2",
+            "missing": [
+              {
+                "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+                "quantity": 1,
+                "name": "Кофе · проверка 12.2",
+                "unit": "500 г"
+              },
+              {
+                "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+                "quantity": 1,
+                "name": "Круассан · проверка 12.2",
+                "unit": "80 г"
+              }
+            ],
+            "priceMinor": 220,
+            "savingsMinor": 30,
+            "remainingSets": 1
+          }
+        ]
+      },
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 220
+    }
+  },
+  {
+    "scenario": "10 1 automatic",
+    "expected": 720,
+    "actual": 720,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "categoryId": "__uncategorized__",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 3,
+          "available": true,
+          "image": null,
+          "totalMinor": 432
+        },
+        {
+          "key": 1,
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "categoryId": "__uncategorized__",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 3,
+          "available": true,
+          "image": null,
+          "totalMinor": 288
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -30,
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 12,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 18,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 1,
+            "possible": 3,
+            "limit": 1
+          }
+        }
+      ],
+      "count": 6,
+      "totalMinor": 720,
+      "itemsMinor": 750,
+      "promo": {},
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 720
+    }
+  },
+  {
+    "scenario": "10 1 code",
+    "expected": 720,
+    "actual": 720,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "categoryId": "__uncategorized__",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 3,
+          "available": true,
+          "image": null,
+          "totalMinor": 432
+        },
+        {
+          "key": 1,
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "categoryId": "__uncategorized__",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 3,
+          "available": true,
+          "image": null,
+          "totalMinor": 288
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -30,
+          "code": "QA122",
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 12,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 18,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 1,
+            "possible": 3,
+            "limit": 1
+          }
+        }
+      ],
+      "count": 6,
+      "totalMinor": 720,
+      "itemsMinor": 750,
+      "promo": {
+        "code": "QA122",
+        "reason": "applied"
+      },
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 720
+    }
+  },
+  {
+    "scenario": "10 2 automatic",
+    "expected": 690,
+    "actual": 690,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "categoryId": "__uncategorized__",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 3,
+          "available": true,
+          "image": null,
+          "totalMinor": 414
+        },
+        {
+          "key": 1,
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "categoryId": "__uncategorized__",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 3,
+          "available": true,
+          "image": null,
+          "totalMinor": 276
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -60,
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 24,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 36,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 2,
+            "possible": 3,
+            "limit": 2
+          }
+        }
+      ],
+      "count": 6,
+      "totalMinor": 690,
+      "itemsMinor": 750,
+      "promo": {},
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 690
+    }
+  },
+  {
+    "scenario": "10 2 code",
+    "expected": 690,
+    "actual": 690,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "categoryId": "__uncategorized__",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 3,
+          "available": true,
+          "image": null,
+          "totalMinor": 414
+        },
+        {
+          "key": 1,
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "categoryId": "__uncategorized__",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 3,
+          "available": true,
+          "image": null,
+          "totalMinor": 276
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -60,
+          "code": "QA122",
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 24,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 36,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 2,
+            "possible": 3,
+            "limit": 2
+          }
+        }
+      ],
+      "count": 6,
+      "totalMinor": 690,
+      "itemsMinor": 750,
+      "promo": {
+        "code": "QA122",
+        "reason": "applied"
+      },
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 690
+    }
+  },
+  {
+    "scenario": "10 None automatic",
+    "expected": 660,
+    "actual": 660,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "categoryId": "__uncategorized__",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 3,
+          "available": true,
+          "image": null,
+          "totalMinor": 396
+        },
+        {
+          "key": 1,
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "categoryId": "__uncategorized__",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 3,
+          "available": true,
+          "image": null,
+          "totalMinor": 264
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -90,
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 36,
+              "units": [
+                {
+                  "quantity": 3,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 54,
+              "units": [
+                {
+                  "quantity": 3,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 3,
+            "possible": 3
+          }
+        }
+      ],
+      "count": 6,
+      "totalMinor": 660,
+      "itemsMinor": 750,
+      "promo": {
+        "groupHints": [
+          {
+            "id": "example",
+            "type": "bundle",
+            "name": "Завтрак · проверка 12.2",
+            "missing": [
+              {
+                "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+                "quantity": 1,
+                "name": "Кофе · проверка 12.2",
+                "unit": "500 г"
+              },
+              {
+                "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+                "quantity": 1,
+                "name": "Круассан · проверка 12.2",
+                "unit": "80 г"
+              }
+            ],
+            "priceMinor": 220,
+            "savingsMinor": 30
+          }
+        ]
+      },
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 660
+    }
+  },
+  {
+    "scenario": "10 None code",
+    "expected": 660,
+    "actual": 660,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "categoryId": "__uncategorized__",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 3,
+          "available": true,
+          "image": null,
+          "totalMinor": 396
+        },
+        {
+          "key": 1,
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "categoryId": "__uncategorized__",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 3,
+          "available": true,
+          "image": null,
+          "totalMinor": 264
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -90,
+          "code": "QA122",
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 36,
+              "units": [
+                {
+                  "quantity": 3,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 54,
+              "units": [
+                {
+                  "quantity": 3,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 3,
+            "possible": 3
+          }
+        }
+      ],
+      "count": 6,
+      "totalMinor": 660,
+      "itemsMinor": 750,
+      "promo": {
+        "code": "QA122",
+        "reason": "applied",
+        "groupHints": [
+          {
+            "id": "example",
+            "type": "bundle",
+            "name": "Завтрак · проверка 12.2",
+            "missing": [
+              {
+                "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+                "quantity": 1,
+                "name": "Кофе · проверка 12.2",
+                "unit": "500 г"
+              },
+              {
+                "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+                "quantity": 1,
+                "name": "Круассан · проверка 12.2",
+                "unit": "80 г"
+              }
+            ],
+            "priceMinor": 220,
+            "savingsMinor": 30
+          }
+        ]
+      },
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 660
+    }
+  },
+  {
+    "scenario": "10 incomplete 3+2",
+    "expected": 590,
+    "actual": 590,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "categoryId": "__uncategorized__",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 3,
+          "available": true,
+          "image": null,
+          "totalMinor": 414
+        },
+        {
+          "key": 1,
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "categoryId": "__uncategorized__",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 2,
+          "available": true,
+          "image": null,
+          "totalMinor": 176
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -60,
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 24,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 36,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 2,
+            "possible": 2
+          }
+        }
+      ],
+      "count": 5,
+      "totalMinor": 590,
+      "itemsMinor": 650,
+      "promo": {
+        "groupHints": [
+          {
+            "id": "example",
+            "type": "bundle",
+            "name": "Завтрак · проверка 12.2",
+            "missing": [
+              {
+                "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+                "quantity": 1,
+                "name": "Круассан · проверка 12.2",
+                "unit": "80 г"
+              }
+            ],
+            "priceMinor": 220,
+            "savingsMinor": 30
+          }
+        ]
+      },
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 590
+    }
+  },
+  {
+    "scenario": "11 pairs 1",
+    "expected": 220,
+    "actual": 220,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "categoryId": "__uncategorized__",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 1,
+          "available": true,
+          "image": null,
+          "totalMinor": 132
+        },
+        {
+          "key": 1,
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "categoryId": "__uncategorized__",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 1,
+          "available": true,
+          "image": null,
+          "totalMinor": 88
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -30,
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 12,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 18,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 1,
+            "possible": 1,
+            "limit": 2
+          }
+        }
+      ],
+      "count": 2,
+      "totalMinor": 220,
+      "itemsMinor": 250,
+      "promo": {
+        "groupHints": [
+          {
+            "id": "example",
+            "type": "bundle",
+            "name": "Завтрак · проверка 12.2",
+            "missing": [
+              {
+                "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+                "quantity": 1,
+                "name": "Кофе · проверка 12.2",
+                "unit": "500 г"
+              },
+              {
+                "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+                "quantity": 1,
+                "name": "Круассан · проверка 12.2",
+                "unit": "80 г"
+              }
+            ],
+            "priceMinor": 220,
+            "savingsMinor": 30,
+            "remainingSets": 1
+          }
+        ]
+      },
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 220
+    }
+  },
+  {
+    "scenario": "11 pairs 2",
+    "expected": 440,
+    "actual": 440,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "categoryId": "__uncategorized__",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 2,
+          "available": true,
+          "image": null,
+          "totalMinor": 264
+        },
+        {
+          "key": 1,
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "categoryId": "__uncategorized__",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 2,
+          "available": true,
+          "image": null,
+          "totalMinor": 176
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -60,
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 24,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 36,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 2,
+            "possible": 2,
+            "limit": 2
+          }
+        }
+      ],
+      "count": 4,
+      "totalMinor": 440,
+      "itemsMinor": 500,
+      "promo": {},
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 440
+    }
+  },
+  {
+    "scenario": "11 pairs 3",
+    "expected": 690,
+    "actual": 690,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "categoryId": "__uncategorized__",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 3,
+          "available": true,
+          "image": null,
+          "totalMinor": 414
+        },
+        {
+          "key": 1,
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "categoryId": "__uncategorized__",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 3,
+          "available": true,
+          "image": null,
+          "totalMinor": 276
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -60,
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 24,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 36,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 2,
+            "possible": 3,
+            "limit": 2
+          }
+        }
+      ],
+      "count": 6,
+      "totalMinor": 690,
+      "itemsMinor": 750,
+      "promo": {},
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 690
+    }
+  },
+  {
+    "scenario": "11 pairs 1",
+    "expected": 220,
+    "actual": 220,
+    "response": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+          "productId": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+          "categoryId": "__uncategorized__",
+          "name": "Кофе · проверка 12.2",
+          "unit": "500 г",
+          "priceMinor": 150,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 1,
+          "available": true,
+          "image": null,
+          "totalMinor": 132
+        },
+        {
+          "key": 1,
+          "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+          "productId": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+          "categoryId": "__uncategorized__",
+          "name": "Круассан · проверка 12.2",
+          "unit": "80 г",
+          "priceMinor": 100,
+          "oldPriceMinor": null,
+          "stock": 30,
+          "quantity": 1,
+          "available": true,
+          "image": null,
+          "totalMinor": 88
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "Завтрак · проверка 12.2",
+          "amount": -30,
+          "allocations": [
+            {
+              "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+              "amount": 12,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 88
+                }
+              ]
+            },
+            {
+              "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+              "amount": 18,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 132
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 1,
+            "possible": 1,
+            "limit": 2
+          }
+        }
+      ],
+      "count": 2,
+      "totalMinor": 220,
+      "itemsMinor": 250,
+      "promo": {
+        "groupHints": [
+          {
+            "id": "example",
+            "type": "bundle",
+            "name": "Завтрак · проверка 12.2",
+            "missing": [
+              {
+                "variantId": "8c66011c-687b-4467-8f01-d7dbfd46a311",
+                "quantity": 1,
+                "name": "Кофе · проверка 12.2",
+                "unit": "500 г"
+              },
+              {
+                "variantId": "2fca2e2f-a440-4115-bc7d-9ba0ec88706e",
+                "quantity": 1,
+                "name": "Круассан · проверка 12.2",
+                "unit": "80 г"
+              }
+            ],
+            "priceMinor": 220,
+            "savingsMinor": 30,
+            "remainingSets": 1
+          }
+        ]
+      },
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "map",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [
+          "apartment"
+        ],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 220
+    }
+  }
+]

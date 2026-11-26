@@ -1,0 +1,37 @@
+[
+  {
+    "offer": "dd365658-c764-4866-8b6e-42b0ed72cb93",
+    "status": "disabled"
+  },
+  {
+    "offer": "5adf3f78-8d73-4114-9cac-76f1a212906b",
+    "status": "disabled"
+  },
+  {
+    "offer": "ce3ec123-2106-4ff1-ad7d-a0b607f518a2",
+    "status": "disabled"
+  },
+  {
+    "product": "320fe3de-c904-4b04-89e5-5d1b72b82579",
+    "status": "hidden"
+  },
+  {
+    "product": "1452d2c6-6312-40ff-8fe6-0dffd2e1899f",
+    "status": "hidden"
+  },
+  {
+    "product": "dc9eca46-6cfa-442d-97a3-7a3aa2902afd",
+    "status": "hidden"
+  },
+  {
+    "product": "b0cb28c4-43cb-4318-bfc3-beb9a4c7b90f",
+    "status": "hidden"
+  },
+  {
+    "product": "4e8681d1-7fd9-4206-8d5d-6e2e31606d38",
+    "status": "hidden"
+  },
+  {
+    "sellerSession": "revoked"
+  }
+]

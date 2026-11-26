@@ -1,0 +1,49 @@
+[
+  {
+    "scenario": "5 proportional snapshot",
+    "number": 7,
+    "paid": [
+      160000,
+      80000
+    ]
+  },
+  {
+    "scenario": "5 partial refund keeps code consumed",
+    "used": 1
+  },
+  {
+    "scenario": "8 two complete sets limit1",
+    "report": {
+      "orders": [
+        {
+          "number": 8,
+          "completedAt": 1795689518549,
+          "name": "Гость",
+          "itemsMinor": 540000,
+          "savingMinor": 60000
+        }
+      ],
+      "customers": 0,
+      "guestOrders": 1,
+      "itemsMinor": 540000,
+      "savingsMinor": 60000,
+      "deliveryMinor": 0,
+      "groupCount": 1,
+      "giftCount": 0,
+      "thresholdCount": 0,
+      "thresholdAverage": null,
+      "orderCount": 1,
+      "groups": {
+        "type": "bundle",
+        "count": 1,
+        "gifts": 0
+      },
+      "nextOffset": null,
+      "purchaseStats": []
+    }
+  },
+  {
+    "scenario": "7 remove paid 80 leaves160",
+    "totalMinor": 160000
+  }
+]
