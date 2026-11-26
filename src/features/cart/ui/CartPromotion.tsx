@@ -1,9 +1,7 @@
 import { Ticket } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Cart } from "../../../shared/contracts/cart";
-import type { PromoReason } from "../../../shared/contracts/promo";
 import { HttpError } from "../../../shared/http-error";
-import { formatMinor } from "../../../shared/money";
 import { Button } from "../../../ui/Button";
 import { Divider } from "../../../ui/Divider";
 import { Input } from "../../../ui/Input";
@@ -12,32 +10,8 @@ import { Sheet } from "../../../ui/Sheet";
 import type { PromoCartInput } from "../api";
 import { ComparePromoCodes } from "./ComparePromoCodes";
 import { PublicCartPromos, type PublicOffers, PublicPromoTriggers } from "./PublicCartPromos";
+import { promoMessage } from "./promo-message";
 
-const descriptions: Partial<Record<PromoReason, string>> = {
-  better_automatic: "Скидка магазина выгоднее",
-  unknown: "Код не найден",
-  expired: "Срок действия закончился",
-  disabled: "Код больше не действует",
-  scheduled: "Срок действия ещё не начался",
-  limit: "Лимит исчерпан",
-  personal_limit: "Вы уже использовали этот промокод",
-  telegram: "Подключите Telegram, чтобы проверить условия",
-  purchase_early: "Скидка станет доступна после выполненных покупок",
-  purchase_passed: "Скидка действует на другой номер заказа",
-  purchase_used: "Скидка на эту покупку уже использована",
-  scope: "Добавьте подходящие товары",
-  regular_price: "Промокод действует на товары без скидки",
-};
-function message(
-  promo: Pick<NonNullable<Cart["promo"]>, "reason" | "missingMinor" | "missingQuantity"> | undefined,
-  currency: string,
-) {
-  if (promo?.reason === "minimum" && promo.missingMinor)
-    return `Добавьте подходящих товаров ещё на ${formatMinor(promo.missingMinor, currency)}`;
-  if (promo?.reason === "quantity" && !promo.missingQuantity) return "Проверьте состав набора и условия акции";
-  if (promo?.reason === "quantity") return `Добавьте подходящие товары · ещё ${promo.missingQuantity} шт.`;
-  return promo?.reason && descriptions[promo.reason];
-}
 export function CartPromotion({
   cart,
   currency,
@@ -102,7 +76,7 @@ export function CartPromotion({
         const compared = result.promo?.alternative;
         if (!compared || compared.reason === "unknown") {
           setRejectedCode(code.trim().toUpperCase());
-          setError(descriptions.unknown ?? "");
+          setError(promoMessage({ reason: "unknown" }, currency) ?? "");
           field.current?.querySelector("input")?.focus();
           return;
         }
@@ -125,7 +99,7 @@ export function CartPromotion({
         setInput(code);
       }
       setError(
-        message(promo, currency) ??
+        promoMessage(promo, currency) ??
           (failure instanceof TypeError ? "Нет связи. Повторите." : (failure as Error).message),
       );
       field.current?.querySelector("input")?.focus();
@@ -150,7 +124,9 @@ export function CartPromotion({
         }}
       />
       {promo?.alternative && <p className="text-caption">Выберите код для объединённой корзины</p>}
-      {message(promo, currency) && <p className="text-caption text-muted-foreground">{message(promo, currency)}</p>}
+      {promoMessage(promo, currency) && (
+        <p className="text-caption text-muted-foreground">{promoMessage(promo, currency)}</p>
+      )}
       {promo?.telegramHint && (
         <p className="text-caption text-muted-foreground">Войдите через Telegram для скидки на первый заказ</p>
       )}
@@ -238,7 +214,7 @@ export function CartPromotion({
               code={promo?.code}
               totalMinor={cart.totalMinor}
               {...{ alternative, deliveryMinor, currency }}
-              note={message(alternative, currency)}
+              note={promoMessage(alternative, currency)}
               pending={mutation.isPending}
               replace={() => void submit("apply", alternative.code, alternative.totalMinor, comparedOffer)}
               keep={() => {
