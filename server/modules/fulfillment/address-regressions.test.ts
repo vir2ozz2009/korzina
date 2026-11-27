@@ -114,8 +114,16 @@ it("CART-CLARITY П5–П8/Q1–Q4: явный выбор текущего за�
       receiving: null,
     });
     const next = readReceiving(storage, to);
+    expect(next.revision).toBe(cart.revision + 1);
     saveReceiving(storage, to, { expectedRevision: next.revision, mode: "delivery" });
-    expect(readReceiving(storage, to)).toMatchObject({ explicitMode: "delivery", receiving: null });
+    expect(readReceiving(storage, to)).toMatchObject({
+      explicitMode: "delivery",
+      receiving: null,
+      revision: next.revision + 1,
+    });
+    expect(
+      saveReceiving(storage, to, { expectedRevision: next.revision + 1, receiving: { mode: "pickup" } }).revision,
+    ).toBe(next.revision + 2);
     expect(currentSelection(legacy, { ...settings, delivery: undefined }).effectiveMode).toBe("pickup");
     expect(currentSelection(legacy, { ...settings, delivery: undefined, pickup: undefined }).effectiveMode).toBeNull();
   });
