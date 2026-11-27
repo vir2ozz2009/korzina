@@ -2,8 +2,10 @@ import { expect, type Page, test } from "@playwright/test";
 import { type Candidate, calculatePromo } from "../server/modules/promo/calculate";
 import { cartTotals } from "../src/shared/cart-totals";
 import type { CartLine } from "../src/shared/contracts/cart";
+import { checkCartFooterRefresh } from "./cart-footer-refresh";
 
 export async function checkCartClarity(page: Page, shop = "test2") {
+  await page.clock.install();
   const lines: CartLine[] = [
     {
       variantId: "berry",
@@ -120,6 +122,7 @@ export async function checkCartClarity(page: Page, shop = "test2") {
   const money = (amount: number) =>
     new Intl.NumberFormat("ru-RU", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(amount);
   for (const width of [360, 390]) {
+    combo.status = "active";
     code = undefined;
     mode = "delivery";
     lines[0].quantity = lines[1].quantity = 1;
@@ -155,7 +158,16 @@ export async function checkCartClarity(page: Page, shop = "test2") {
     await expect(dialog).toContainText(`Стоимость наборов — ${money(120000)}`);
     await expect(dialog).toContainText("По акции 2 из 3 наборов");
     await page.screenshot({ path: test.info().outputPath(`clarity-limit-${width}.png`), fullPage: true });
-    await page.keyboard.press("Escape");
+    await checkCartFooterRefresh(
+      page,
+      width,
+      () => {
+        combo.status = "disabled";
+      },
+      (priceMinor) => {
+        if (combo.terms.group?.type === "bundle") combo.terms.group.priceMinor = priceMinor;
+      },
+    );
   }
 }
 
