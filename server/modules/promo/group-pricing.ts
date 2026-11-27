@@ -6,6 +6,8 @@ import { groupHints } from "./group-hints";
 import { priceOffer, priceOptions } from "./group-offer";
 import { inScope } from "./group-terms";
 
+export type PriceScorer = (cart: Cart) => { total: number; usesCode: boolean };
+
 const manual = (offer: Candidate) => offer.terms.kind === "code";
 const unresolved = (lines: CartLine[], consumed: Map<string, number>) =>
   lines.flatMap((line) => {
@@ -22,6 +24,7 @@ function resolveGroups(
   code: string | undefined,
   standard: typeof calculatePromo,
   assessOffer: typeof assess,
+  score?: PriceScorer,
 ) {
   const source = cart.lines
     .filter((line) => line.available && line.quantity > 0)
@@ -33,11 +36,21 @@ function resolveGroups(
     .filter((offer) => !manual(offer) || offer.terms.code === code)
     .filter((offer) => !assessOffer(offer, source, buyer).reason)
     .sort((a, b) => Number(manual(a)) - Number(manual(b)) || a.id.localeCompare(b.id));
-  let best = { total: initial.totalMinor, adjustments: initial.adjustments };
+  const initialScore = score?.(initial) ?? {
+    total: initial.totalMinor,
+    usesCode: initial.adjustments.some((item) => !!item.code),
+  };
+  let best = {
+    total: initial.totalMinor,
+    adjustments: initial.adjustments,
+    paid: initialScore.total,
+    usesCode: initialScore.usesCode,
+  };
   const signatures = new Map<string, number>();
   function search(lines: CartLine[], offers: Candidate[], applied: CartAdjustment[], savings: number) {
     const signature = JSON.stringify([
       offers.map(({ id }) => id),
+      score ? savings : null,
       applied.some((item) => item.code),
       lines.map(({ variantId, quantity }) => [variantId, quantity]),
     ]);
@@ -50,11 +63,12 @@ function resolveGroups(
     if (applied.length) {
       const adjustments = [...applied, ...(legacy?.adjustments ?? [])];
       const total = (initial.itemsMinor ?? 0) + adjustments.reduce((sum, { amount }) => sum + amount, 0);
-      if (
-        total < best.total ||
-        (total === best.total && best.adjustments.some((item) => item.code) && !adjustments.some((item) => item.code))
-      )
-        best = { total, adjustments };
+      const ranked = score?.({ ...cart, itemsMinor: initial.itemsMinor, totalMinor: total, adjustments }) ?? {
+        total,
+        usesCode: adjustments.some((item) => !!item.code),
+      };
+      if (ranked.total < best.paid || (ranked.total === best.paid && best.usesCode && !ranked.usesCode))
+        best = { total, adjustments, paid: ranked.total, usesCode: ranked.usesCode };
     }
     const choices = offers
       .flatMap((offer) => {
@@ -85,15 +99,11 @@ function resolveGroups(
     );
     const upper =
       savings + groupUpper - (legacy ?? initial).adjustments.reduce((sum, adjustment) => sum + adjustment.amount, 0);
-    if (
-      subtotal - upper > best.total ||
-      (subtotal - upper === best.total && !best.adjustments.some((item) => item.code))
-    )
-      return;
+    if (subtotal - upper > best.paid || (subtotal - upper === best.paid && !best.usesCode)) return;
     for (const { offer } of choices) {
       const assessment = assessOffer(offer, lines, buyer);
       for (const priced of priceOptions(offer, assessment.lines ?? [], label)) {
-        if (subtotal - upper === best.total && !best.adjustments.some((item) => item.code)) return;
+        if (subtotal - upper === best.paid && !best.usesCode) return;
         search(
           unresolved(lines, priced.consumed),
           offers.filter((other) => other !== offer),
@@ -116,6 +126,7 @@ export function priceGroups(
   standard: typeof calculatePromo,
   assessOffer: typeof assess,
   components?: ReadonlyMap<string, BundleComponent>,
+  score?: PriceScorer,
 ): Cart {
   const standardOffers = candidates.filter(({ terms }) => !terms.group);
   const groups = candidates.filter(({ terms }) => terms.group);
@@ -134,6 +145,7 @@ export function priceGroups(
         code,
         standard,
         assessOffer,
+        score,
       );
       resolved.set(key, result);
     }

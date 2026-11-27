@@ -1,6 +1,6 @@
 import type { Cart } from "../../../src/shared/contracts/cart";
 import type { ReceivingAvailability } from "../../../src/shared/contracts/receiving";
-import { addMinor } from "../../../src/shared/money";
+import { addMinor, subtractMinor } from "../../../src/shared/money";
 import type { assess as assessOffer, Buyer, Candidate } from "./calculate";
 
 export type DeliveryContext = { feeMinor: number | null; applicable: boolean };
@@ -10,63 +10,68 @@ export function deliveryContextFor(availability: ReceivingAvailability | null, p
     : { feeMinor: 0, applicable: false };
 }
 
+// Groups change the price of positions; an order-wide discount does not change this threshold.
+export function deliveryBase(cart: Cart) {
+  return subtractMinor(
+    cart.itemsMinor ?? cart.totalMinor,
+    addMinor(...cart.adjustments.filter((item) => item.groups).map((item) => -item.amount)),
+  );
+}
+
 export function priceDelivery(
   cart: Cart,
   candidates: Candidate[],
   buyer: Buyer,
   code: string | undefined,
-  delivery: { feeMinor: number | null; applicable: boolean } | undefined,
-  price: (code?: string) => Cart,
+  delivery: DeliveryContext | undefined,
   assess: typeof assessOffer,
 ): Cart {
   const entered = code ? candidates.find(({ terms }) => terms.kind === "code" && terms.code === code) : undefined;
-  const priced = price(code);
   if (!delivery?.applicable) {
-    if (entered?.terms.delivery) priced.promo = { ...priced.promo, code, reason: "delivery", offerType: "delivery" };
-    return priced;
+    return entered?.terms.delivery
+      ? { ...cart, promo: { ...cart.promo, code, reason: "delivery", offerType: "delivery" } }
+      : cart;
   }
   const source = cart.lines.filter((line) => line.available && line.quantity > 0);
-  const automaticGoods = () => price();
+  const base = deliveryBase(cart);
   const eligible = candidates.filter(
     ({ terms }) => terms.delivery && (terms.kind === "automatic" || (code && terms.code === code)),
   );
-  const ranked: { offer?: Candidate; goods: Cart; fee: number | null }[] = [{ goods: priced, fee: delivery.feeMinor }];
+  const applicable: Candidate[] = [];
   const missing: number[] = [];
   let manualReason: ReturnType<typeof assess> | undefined;
   for (const offer of eligible) {
-    const result = assess(offer, source, buyer);
+    const result = assess(offer, source, buyer, base);
     if (offer.terms.kind === "code") manualReason = result;
     if ("base" in result) {
-      if (delivery.feeMinor !== 0)
-        ranked.push({ offer, goods: offer.terms.kind === "code" ? automaticGoods() : priced, fee: 0 });
-    } else if (offer.terms.kind === "automatic" && result.reason === "minimum" && result.missingMinor) {
+      if (delivery.feeMinor !== 0) applicable.push(offer);
+    } else if (offer.terms.kind === "automatic" && result.reason === "minimum" && result.missingMinor)
       missing.push(result.missingMinor);
-    }
   }
-  const total = (value: (typeof ranked)[number]) => addMinor(value.goods.totalMinor, value.fee ?? 0);
-  const winner = ranked.sort(
-    (a, b) =>
-      total(a) - total(b) ||
-      Number(!a.offer) - Number(!b.offer) ||
-      Number(a.offer?.terms.kind === "code") - Number(b.offer?.terms.kind === "code") ||
-      (a.offer?.id ?? "").localeCompare(b.offer?.id ?? ""),
+  const winner = applicable.sort(
+    (a, b) => Number(a.terms.kind === "code") - Number(b.terms.kind === "code") || a.id.localeCompare(b.id),
   )[0];
-  const result = winner.goods;
-  result.delivery = { baseMinor: delivery.feeMinor, feeMinor: winner.fee };
-  if (winner.offer)
-    result.delivery.benefit = {
-      offerId: winner.offer.id,
-      revision: winner.offer.revision,
-      name: winner.offer.terms.name,
-      code: winner.offer.terms.code,
-      baseMinor: delivery.feeMinor,
-      quotedBaseMinor: delivery.feeMinor,
-      terms: winner.offer.terms,
-      amountMinor: delivery.feeMinor ?? 0,
-      state: delivery.feeMinor === null ? "reserved" : "applied",
+  const result: Cart = {
+    ...cart,
+    delivery: { baseMinor: delivery.feeMinor, feeMinor: winner ? 0 : delivery.feeMinor },
+  };
+  if (winner)
+    result.delivery = {
+      ...result.delivery!,
+      benefit: {
+        offerId: winner.id,
+        revision: winner.revision,
+        name: winner.terms.name,
+        code: winner.terms.code,
+        baseMinor: delivery.feeMinor,
+        quotedBaseMinor: delivery.feeMinor,
+        terms: winner.terms,
+        amountMinor: delivery.feeMinor ?? 0,
+        state: delivery.feeMinor === null ? "reserved" : "applied",
+      },
     };
-  else if (missing.length && delivery.feeMinor !== 0) result.delivery.missingMinor = Math.min(...missing);
-  if (entered?.terms.delivery) {
+  else if (missing.length && delivery.feeMinor !== 0) result.delivery!.missingMinor = Math.min(...missing);
+  if (entered?.terms.delivery)
     result.promo = {
       ...result.promo,
       code,
@@ -74,11 +79,10 @@ export function priceDelivery(
       reason:
         manualReason && "reason" in manualReason
           ? manualReason.reason
-          : winner.offer?.id === entered.id
+          : winner?.id === entered.id
             ? "applied"
             : "better_automatic",
       missingMinor: manualReason && "missingMinor" in manualReason ? manualReason.missingMinor : undefined,
     };
-  } else if (code && winner.offer?.terms.kind === "code") result.promo = { ...result.promo, code, reason: "applied" };
   return result;
 }

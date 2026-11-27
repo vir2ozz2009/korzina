@@ -163,3 +163,24 @@ it("A6 §6.1–3 §9.3 · оптимум с тарифом, позиционны
     }),
   ).toMatchObject({ delivery: { feeMinor: 12000 }, promo: { reason: "expired" } });
 });
+
+it("A6 §7.5 · итог 500 с подарком и доставкой выгоднее комбо 470 плюс тариф 120", () => {
+  const source = cart([line("a", 17500, { quantity: 3 }), line("b", 15000)]);
+  const gift = offer("gift", { group: { type: "gift", buy: 2, gift: 1 }, scope: { type: "variants", ids: ["a"] } });
+  const bundle = offer("bundle", {
+    kind: "code",
+    code: "SET",
+    group: { type: "bundle", components: [{ variantId: "a", quantity: 3 }], priceMinor: 32000, limit: 1 },
+  });
+  const shipping = offer("auto-delivery", { delivery: true, minimumMinor: 50000 });
+  const result = calculatePromo(source, [gift, bundle, shipping], buyer, ({ name }) => name, "SET", undefined, {
+    applicable: true,
+    feeMinor: 12000,
+  });
+  expect(result).toMatchObject({
+    totalMinor: 50000,
+    adjustments: [{ sourceId: "gift" }],
+    delivery: { feeMinor: 0, benefit: { offerId: "auto-delivery" } },
+    promo: { code: "SET", reason: "better_automatic" },
+  });
+});
