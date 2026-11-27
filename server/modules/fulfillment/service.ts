@@ -94,7 +94,6 @@ const missingDetail: Record<DetailField, string> = {
   floor: "Укажите этаж.",
   intercom: "Укажите домофон.",
 };
-
 export function requireFulfillment(settings: FulfillmentSettings, receiving: Receiving, complete: boolean) {
   const result = checkFulfillment(settings, receiving);
   if (!result.available) {
@@ -114,7 +113,6 @@ export function requireFulfillment(settings: FulfillmentSettings, receiving: Rec
   }
   return result;
 }
-
 type Selection = {
   selectionVersion?: 1;
   receiving: Receiving | null;
@@ -133,7 +131,6 @@ export const emptySelection = (): Selection => ({
   time: null,
   receivingUpdatedAt: 0,
 });
-
 export function parseSelection(value: string | null | undefined): Selection {
   if (!value) return emptySelection();
   const parsed = JSON.parse(value);
