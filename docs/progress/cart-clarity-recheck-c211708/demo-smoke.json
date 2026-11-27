@@ -1,0 +1,16 @@
+{
+  "sha": "c211708e9b51c2f7fa00a393a61ef2dc86c34f58",
+  "run": 45962893358,
+  "catalog": "success",
+  "telegram": "success",
+  "purchase": "success",
+  "storefrontJob": "cancelled",
+  "storefrontTests": {
+    "passed": 33,
+    "skipped": 2
+  },
+  "purchaseTests": {
+    "passed": 1
+  },
+  "allGreen": false
+}

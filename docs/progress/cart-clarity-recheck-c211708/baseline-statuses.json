@@ -1,0 +1,217 @@
+{
+  "sha": "c211708e9b51c2f7fa00a393a61ef2dc86c34f58",
+  "baselineRows": 42,
+  "baselineSha256": "3a6888bda8561f7fdb23522e575408b48762b34c4547a777e6530ab2b8e13b31",
+  "rows": [
+    {
+      "id": "1а",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "1б",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "1в",
+      "Safari": "✅ закрытие; ⏸ фокус",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "1г",
+      "Safari": "❌ D1",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "2а",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "2б",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "2в",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "2г",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "2д",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "2е",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "3а",
+      "Safari": "✅ пересчёт; ⏸ изменение при открытой шторке",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "3б",
+      "Safari": "⏸",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "3в",
+      "Safari": "⏸ N1",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "4а",
+      "Safari": "⏸; API ✅ суммы",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "4б",
+      "Safari": "⏸; API ✅ расчёт",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "5а",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "5б",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "5в",
+      "Safari": "⏸",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "5г",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "5д",
+      "Safari": "✅ замена; ⏸ удаление",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "6а",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "6б",
+      "Safari": "✅ сохранение; ⏸ восстановление",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "6в",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "6г",
+      "Safari": "✅ код/тариф; ⏸ перезапуск/назад",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "6д",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "7а",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "7б",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "7в",
+      "Safari": "⏸",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "7г",
+      "Safari": "⏸ N1",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "7д",
+      "Safari": "⏸",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "8а",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "8б",
+      "Safari": "✅ новый заказ; ⏸ повтор при уже явном текущем выборе",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "8в",
+      "Safari": "⏸ T1",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "8г",
+      "Safari": "⏸ L1",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "8д",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "8е",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "8ж",
+      "Safari": "✅",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "8з",
+      "Safari": "✅ обе методные паузы; ⏸ adminPaused",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "9а",
+      "Safari": "✅ обычные данные; ⏸ длинные/полный узкий viewport",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "9б",
+      "Safari": "⏸ K1",
+      "Telegram": "⏸ T1/K1"
+    },
+    {
+      "id": "9в",
+      "Safari": "✅ пусто/загрузка; ❌ D1; ⏸ остальное",
+      "Telegram": "⏸ T1"
+    },
+    {
+      "id": "10",
+      "Safari": "✅ API + физический покупатель; ⏸ UI продавца",
+      "Telegram": "⏸ T1"
+    }
+  ]
+}

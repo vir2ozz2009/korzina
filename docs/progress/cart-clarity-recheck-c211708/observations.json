@@ -1,0 +1,397 @@
+{
+  "target": "c211708e9b51c2f7fa00a393a61ef2dc86c34f58",
+  "result": "partial; no acceptance; stopped after report; CTX-1 not performed here",
+  "shaBoundary": {
+    "htmlStart": "c211708e9b51c2f7fa00a393a61ef2dc86c34f58",
+    "htmlEnd": "3d2d333c3dc3878a916e87ce9714a73d7c3201ff",
+    "checkedEndMsk": "2026-11-27T12:46:51+03:00",
+    "runtimeDiff": "git diff c211708 origin/main -- src server empty; all changed paths markdown",
+    "physicalDomSha": "not measured"
+  },
+  "environment": {
+    "model": "iPhone 18 Pro Max",
+    "ios": "27.2.1",
+    "method": "iPhone Mirroring",
+    "safari": "Private",
+    "telegram": "native Mini App @korzinaapp_demo_bot; version not measured",
+    "clockOffsetToMskHours": 4
+  },
+  "D1": {
+    "observed": "Safari Back and Telegram BackButton dismissed details in cart; next normal Back to origin; Telegram drag dismissed",
+    "open": [
+      "DOM focus",
+      "numerical history",
+      "Safari full gesture cycle",
+      "seller example details Back"
+    ]
+  },
+  "D2": {
+    "client": "physical Telegram",
+    "atDisableMsk": "2026-11-27T11:54:11+03:00",
+    "fixture": [
+      "cc-d1-berry x3",
+      "cc-d1-milk x3",
+      "cc-d1-extra x1"
+    ],
+    "pre": {
+      "total": 291000,
+      "bundle": 120000,
+      "saving": 22000
+    },
+    "post": {
+      "total": 313000,
+      "footer": 291000,
+      "modal": "closed",
+      "code": "Код больше не действует",
+      "duration": "more than 30 seconds"
+    },
+    "serverAction": "seller API disable own combo revision2; restore revision3",
+    "orderCreatedInDefectiveState": false,
+    "evidence": [
+      "telegram-13-combo-disabled-open.png",
+      "telegram-14-disabled-footer-check.png",
+      "telegram-15-total313-footer291.png"
+    ]
+  },
+  "financial": {
+    "number": 14,
+    "createdBy": "physical buyer UI",
+    "acceptedBy": "physical seller UI",
+    "paymentRecordedBy": "physical seller UI; demo cash only",
+    "oldBundlePrice": 60000,
+    "oldSourceRevision": 3,
+    "priceChangedTo": 50000,
+    "priceChangedBy": "seller API revision4",
+    "before": {
+      "berryQuantity": 3,
+      "milkQuantity": 3,
+      "berryPaid": 107606,
+      "milkPaid": 83394,
+      "total": 191000
+    },
+    "after": {
+      "berryQuantity": 3,
+      "milkQuantity": 2,
+      "berryPaid": 107606,
+      "milkPaid": 57197,
+      "total": 164803,
+      "refund": 26197
+    },
+    "quantityChange": "physical seller UI Нет в наличии → есть2 → Сообщить покупателю",
+    "refundRecorded": "physical seller UI; no real money moved; freeform input unreliable and audit comment contains one entered letter",
+    "frozenSnapshotVerified": "orders.snapshot adjustments retain sourceRevision3 and bundle.priceMinor60000 after revision4 price50000",
+    "cleanup": "cancelled via seller API, remaining refund164803 recorded via API, final refundMinor0"
+  },
+  "notCounted": {
+    "D3": "Example failed because own milk was paused by order adjustment. After resume loaded normally. Not confirmed product defect.",
+    "telegram16": "Empty code field, no proof of unknown code rejection.",
+    "safariRestart": "Server cleanup occurred before unlocked client observation. Not counted.",
+    "unlimited": "API group.limit omitted means default1; explicit null yielded3. Final screenshot35 is explicit null. Seller UI limit edit remains open."
+  },
+  "rows": {
+    "10": [
+      "Прежний комбинированный ✅ сохранён; ⏸ UI продавца Safari, B2.",
+      "✅ Заказ/принятие/оплата/уменьшение3→2/возврат26197 — UI, старый снимок60000 сохранён: 28–32; цена50000 — API. ⏸ изменение цены UI (M2)."
+    ],
+    "1а": [
+      "Сохранён прежний ✅.",
+      "✅ Имя/состав/фасовки, 60000/11000: 01."
+    ],
+    "1б": [
+      "Сохранён прежний ✅.",
+      "✅ Посторонние товары не входят в проекцию: 01."
+    ],
+    "1в": [
+      "✅ Повторное открытие/крестик; жест не подтверждён. ⏸ B1 фокус.",
+      "✅ Крестик/жест, видимая позиция: 02/03; ⏸ B1 фокус."
+    ],
+    "1г": [
+      "✅ Safari Back закрыл в той же корзине; следующий Back сразу в категорию: S03/S05. ⏸ полный D1.",
+      "✅ BackButton и следующий обычный Back: 02/04. ⏸ B1/пример продавца."
+    ],
+    "2а": [
+      "Сохранён прежний ✅.",
+      "✅ 2 набора, 120000/22000: 10."
+    ],
+    "2б": [
+      "Сохранён прежний ✅.",
+      "✅ 3 возможных, лимит2: 120000/22000, «2 из 3»: 12."
+    ],
+    "2в": [
+      "Сохранён прежний ✅.",
+      "✅ Проекция 180000/33000: 35; limit=null подготовлен API. ⏸ изменение лимита UI (M2)."
+    ],
+    "2г": [
+      "Сохранён прежний ✅.",
+      "✅ Лишняя berry вне цены двух наборов: 11."
+    ],
+    "2д": [
+      "Сохранён прежний ✅.",
+      "⏸ B2: собственный треугольник до смены SHA не подготовлен."
+    ],
+    "2е": [
+      "Сохранён прежний ✅ 450.",
+      "⏸ B2: треугольник/450 не повторён."
+    ],
+    "3а": [
+      "⏸ Изменение при открытой шторке: B1/B2.",
+      "✅ Пересчёт закрытой 1→2→3: 10–12; ⏸ открытая шторка, B1/B2."
+    ],
+    "3б": [
+      "⏸ Не повторено до B2.",
+      "❌ D2: шторка закрылась, итог313000, кнопка291000: 13–15; выключение API."
+    ],
+    "3в": [
+      "⏸ N1/B1.",
+      "⏸ N1/B1, управляемая потеря запроса/ответа не выполнена."
+    ],
+    "4а": [
+      "⏸ Физический кабинет не пройден до B2; прежний API сохранён.",
+      "⏸ M2: пример загружается, пара добавлена UI; код не введён, суммы/Back пояснения не закрыты."
+    ],
+    "4б": [
+      "⏸ UI N+M 3/6, B2; прежний API сохранён.",
+      "⏸ M2/B2: N+M 3/6 не пройден."
+    ],
+    "5а": [
+      "Сохранён прежний ✅.",
+      "⏸ M2: обычный код в смешанной корзине не введён."
+    ],
+    "5б": [
+      "Сохранён прежний ✅.",
+      "⏸ M2/B2: код на одних акционных товарах не пройден."
+    ],
+    "5в": [
+      "✅ Неизвестный20261127: S07; ⏸ проигрыш автоматике, B2.",
+      "⏸ M2/B2: неверный код/проигрыш автоматике; снимок16 с пустым полем не доказательство."
+    ],
+    "5г": [
+      "Сохранён прежний ✅.",
+      "✅ CLARITYD1 без подписи обычного кода: 10/12."
+    ],
+    "5д": [
+      "✅ Отдельное удаление, сумма171000: S06; прежняя замена сохранена.",
+      "⏸ M2: отдельные замена/удаление не пройдены."
+    ],
+    "6а": [
+      "Сохранён прежний ✅.",
+      "✅ delivery при сброшенном выборе, запрос адреса: 05/06; после своего заказа: 20/21."
+    ],
+    "6б": [
+      "⏸ Восстановление последнего подходящего адреса, B2.",
+      "⏸ M2/B2: восстановление адреса продуктом не проверено; SQL-уборка не PASS."
+    ],
+    "6в": [
+      "Сохранён прежний ✅.",
+      "✅ Явный pickup после Reload Page: 08."
+    ],
+    "6г": [
+      "✅ Обычный Back/возврат: S08. ⏸ Полный перезапуск: после него была серверная уборка, результат не засчитан.",
+      "✅ Назад/повторное открытие Mini App: 34; ⏸ полный перезапуск процесса/смена кода, M2/B2."
+    ],
+    "6д": [
+      "Сохранён прежний ✅.",
+      "✅ Закрыть адрес/Reload → delivery: 06/07."
+    ],
+    "7а": [
+      "Сохранён прежний ✅.",
+      "✅ UI заказ14 pickup → следующий товар delivery: 19/21."
+    ],
+    "7б": [
+      "Сохранён прежний ✅.",
+      "⏸ M2/B2: учебная адресная книга после заказа не проверена."
+    ],
+    "7в": [
+      "⏸ Не повторено до B2.",
+      "✅ Недоступный extra остался, после заказа delivery без адреса: 20."
+    ],
+    "7г": [
+      "⏸ N1/B1.",
+      "⏸ N1/B1: старый checkout/ключ и ответ не перехватывались."
+    ],
+    "7д": [
+      "⏸ Не повторено до B2.",
+      "✅ Намеренная ошибка из-за stock0 сохранила pickup/время: 17/18; после подтверждения создан14."
+    ],
+    "8а": [
+      "Сохранён прежний ✅.",
+      "✅ Очистить/наполнить → pickup бесплатно: 22/23."
+    ],
+    "8б": [
+      "⏸ Повтор при текущем явном выборе, B2.",
+      "✅ При текущем pickup повтор14 добавил товары, сохранил выбор; без кода/времени: 24/25."
+    ],
+    "8в": [
+      "⏸ B3: отдельный учебный Telegram-профиль не доступен.",
+      "⏸ B3: оба направления слияния/равные времена не проверены."
+    ],
+    "8г": [
+      "⏸ L1/B1: изолированная cookie физического клиента недоступна.",
+      "⏸ L1/B1: управляемого отдельного WebView нет."
+    ],
+    "8д": [
+      "Сохранён прежний ✅.",
+      "⏸ B2: настройки отсутствующей доставки не менялись."
+    ],
+    "8е": [
+      "Сохранён прежний ✅.",
+      "⏸ B2: пауза доставки не повторена."
+    ],
+    "8ж": [
+      "Сохранён прежний ✅.",
+      "⏸ B2: отсутствие обоих способов не повторено."
+    ],
+    "8з": [
+      "⏸ Именно adminPaused не переключался, B2; прежние методные паузы сохранены.",
+      "⏸ B2: методные паузы и реальный adminPaused не выполнены."
+    ],
+    "9а": [
+      "✅ Длинное имя/фасовка на данном iPhone: S06; ⏸ самый узкий viewport/полный safe area.",
+      "✅ Длинное имя/переносы на данном iPhone: 05/18; ❌ D2; ⏸ узкий viewport."
+    ],
+    "9б": [
+      "⏸ K1: настоящая полноразмерная iOS-клавиатура не появилась.",
+      "⏸ K1: аппаратная панель/Mac-ввод не засчитаны: 09."
+    ],
+    "9в": [
+      "✅ Пусто/загрузка, ошибка кода/Back; ⏸ B1 сеть/повтор/фокус.",
+      "✅ Пусто/загрузка/ошибка checkout, Back; ⏸ B1 сеть/фокус; пример восстановлен после снятия паузы SKU."
+    ]
+  },
+  "cleanup": {
+    "server": [
+      {
+        "columns": [
+          "revision",
+          "original_lines",
+          "original_receiving",
+          "original_code",
+          "original_alternative",
+          "original_phone",
+          "original_name"
+        ],
+        "rows": [
+          [
+            231,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
+        ],
+        "meta": {
+          "rows_read": 1,
+          "rows_written": 0
+        }
+      },
+      {
+        "columns": [
+          "id",
+          "stock",
+          "stock_revision",
+          "product_paused"
+        ],
+        "rows": [
+          [
+            "cc-d1-berry",
+            99,
+            2,
+            0
+          ],
+          [
+            "cc-d1-extra",
+            99,
+            2,
+            0
+          ],
+          [
+            "cc-d1-milk",
+            99,
+            3,
+            0
+          ]
+        ],
+        "meta": {
+          "rows_read": 30,
+          "rows_written": 0
+        }
+      },
+      {
+        "columns": [
+          "id",
+          "visible",
+          "published"
+        ],
+        "rows": [
+          [
+            "cc-d1-berry",
+            0,
+            1
+          ],
+          [
+            "cc-d1-extra",
+            0,
+            1
+          ],
+          [
+            "cc-d1-milk",
+            0,
+            1
+          ]
+        ],
+        "meta": {
+          "rows_read": 12,
+          "rows_written": 0
+        }
+      },
+      {
+        "columns": [
+          "fulfillment_unchanged"
+        ],
+        "rows": [
+          [
+            1
+          ]
+        ],
+        "meta": {
+          "rows_read": 1,
+          "rows_written": 0
+        }
+      },
+      {
+        "columns": [
+          "revision",
+          "receiving"
+        ],
+        "rows": [
+          [
+            0,
+            "{\"receiving\":{\"mode\":\"pickup\"},\"receivingUpdatedAt\":1}"
+          ]
+        ],
+        "meta": {
+          "rows_read": 1,
+          "rows_written": 0
+        }
+      }
+    ],
+    "order14": "cancelled, refundMinor0",
+    "fixtureOffers": "all3 disabled",
+    "fixtureProducts": "all3 hidden",
+    "stocks": "all99",
+    "temporarySellerSession": "exact hash revoked and token file removed",
+    "originalTelegramRestored": "six comparisons=1 at revision231; physical UI total758550",
+    "macSafariDevelop": "restored to0",
+    "safariOwnTab": "closed after user Touch ID at12:48 MSK; other tabs preserved",
+    "textEdit": "own numeric test document saved and closed",
+    "completedMsk": "2026-11-27T12:49+03:00"
+  },
+  "readingScope": [
+    "AGENTS.md and current PROGRESS",
+    "CART-CLARITY task/spec/checklist/fixtures and original evidence for exact gaps",
+    "seller-order contracts/routes and promo example/group validation to distinguish fixture state from defect",
+    "current handoff and role transition after remote main updated; no CTX work"
+  ]
+}

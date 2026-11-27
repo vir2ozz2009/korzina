@@ -1,0 +1,138 @@
+[
+  {
+    "check": "new guest receiving",
+    "at": "2026-11-27T08:27:33.510978+00:00",
+    "result": {
+      "revision": 0,
+      "effectiveMode": "delivery",
+      "receiving": null
+    }
+  },
+  {
+    "check": "own bundle plus extra",
+    "at": "2026-11-27T08:27:36.398719+00:00",
+    "result": {
+      "revision": 4,
+      "count": 3,
+      "totalMinor": 160000,
+      "deliveryMinor": null,
+      "method": null,
+      "promo": {
+        "code": "CLARITYD1",
+        "reason": "applied",
+        "telegramHint": true,
+        "hint": {
+          "missingMinor": 329000,
+          "label": "Скидка от 500000 · 5%"
+        },
+        "offerType": "bundle",
+        "groupHints": [
+          {
+            "id": "cc-d1-combo",
+            "type": "bundle",
+            "name": "Учебное комбо",
+            "missing": [
+              {
+                "variantId": "cc-d1-berry",
+                "quantity": 1,
+                "name": "Голубика учебная",
+                "unit": "125 г"
+              },
+              {
+                "variantId": "cc-d1-milk",
+                "quantity": 1,
+                "name": "Молоко учебное",
+                "unit": "500 мл"
+              }
+            ],
+            "priceMinor": 60000,
+            "savingsMinor": 11000,
+            "remainingSets": 1
+          }
+        ]
+      },
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "cc-d1-combo",
+          "sourceRevision": 1,
+          "label": "Учебное комбо",
+          "amount": -11000,
+          "code": "CLARITYD1",
+          "allocations": [
+            {
+              "variantId": "cc-d1-berry",
+              "amount": 6197,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 33803
+                }
+              ]
+            },
+            {
+              "variantId": "cc-d1-milk",
+              "amount": 4803,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 26197
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 1,
+            "possible": 1,
+            "limit": 2,
+            "bundle": {
+              "priceMinor": 60000,
+              "totalMinor": 60000,
+              "components": [
+                {
+                  "variantId": "cc-d1-berry",
+                  "quantity": 1,
+                  "name": "Голубика учебная",
+                  "unit": "125 г"
+                },
+                {
+                  "variantId": "cc-d1-milk",
+                  "quantity": 1,
+                  "name": "Молоко учебное",
+                  "unit": "500 мл"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "check": "same cart request replay API only",
+    "at": "2026-11-27T08:27:37.506477+00:00",
+    "result": {
+      "firstRevision": 5,
+      "repeatedRevision": 5,
+      "berryQuantity": 2
+    }
+  },
+  {
+    "check": "explicit pickup persists API only",
+    "at": "2026-11-27T08:27:38.344443+00:00",
+    "result": {
+      "revision": 6,
+      "effectiveMode": "pickup"
+    }
+  },
+  {
+    "check": "cleanup",
+    "at": "2026-11-27T08:27:40.973131+00:00",
+    "result": {
+      "cartEmpty": true,
+      "sessionLoggedOut": true,
+      "ordersCreated": 0
+    }
+  }
+]

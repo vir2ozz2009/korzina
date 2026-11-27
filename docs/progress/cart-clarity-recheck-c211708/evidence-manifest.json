@@ -1,0 +1,227 @@
+[
+  {
+    "file": "safari-01-before-details.png",
+    "msk": "2026-11-27T11:19:03+03:00",
+    "sha256": "110d7065a394d6dbef0a44094022952ebb30c186371b391710ce653ef84a4c22"
+  },
+  {
+    "file": "safari-02-details.png",
+    "msk": "2026-11-27T11:19:15+03:00",
+    "sha256": "c735ad389bb43de62b538c11626a7ffaba745c39cf22eab0061340b4e513695d"
+  },
+  {
+    "file": "safari-03-after-back.png",
+    "msk": "2026-11-27T11:19:31+03:00",
+    "sha256": "2dc1c36b280679b9d7667e0705f0c29961ee018479dde3a7d5c1d5ac05cd6c44"
+  },
+  {
+    "file": "safari-04-after-drag.png",
+    "msk": "2026-11-27T11:20:03+03:00",
+    "sha256": "78f28dfe4e78aa1c0fbc26bcd914f16a013949d2757f11ddd47d0b3826f90631"
+  },
+  {
+    "file": "safari-05-next-back.png",
+    "msk": "2026-11-27T11:20:26+03:00",
+    "sha256": "6e10e61c42faa4006059ed6dd12a38508233814ff9fe550b6bced0115406b6b5"
+  },
+  {
+    "file": "mac-inspector-no-iphone.png",
+    "msk": "2026-11-27T11:24:44+03:00",
+    "sha256": "6cc09a96e48ffeac22567c9444bddc71e7e648aa8298280403041010ca118f4b"
+  },
+  {
+    "file": "safari-06-code-removed.png",
+    "msk": "2026-11-27T11:25:21+03:00",
+    "sha256": "c7c3f8a1780705716c5feb82538870cc68bb8b0ebe1c8d395b15388ad0f593a0"
+  },
+  {
+    "file": "safari-07-unknown-code.png",
+    "msk": "2026-11-27T11:25:56+03:00",
+    "sha256": "2e1fcaae99e8242b2ac1796e8b960090c976a8fade6158db296f367d87a9284e"
+  },
+  {
+    "file": "safari-08-pickup-after-back.png",
+    "msk": "2026-11-27T11:30:41+03:00",
+    "sha256": "d3fbebc974ea7c2ff6730f898c2f2d13fb29841392eae6062a70922e46592ea2"
+  },
+  {
+    "file": "safari-09-js-not-allowed.png",
+    "msk": "2026-11-27T11:45:19+03:00",
+    "sha256": "e0bec2db3971adcc5480ef41765d59bc75faeadb8d39a255c171e5641fcba251"
+  },
+  {
+    "file": "telegram-01-combo.png",
+    "msk": "2026-11-27T11:46:45+03:00",
+    "sha256": "92600f67f24e9afc88625ef196b13e64df419e445a7f6cb037829689c03b6363"
+  },
+  {
+    "file": "telegram-02-after-back.png",
+    "msk": "2026-11-27T11:46:52+03:00",
+    "sha256": "188427dede0218127a8ffb3f3a8ff0a2bc8cb3cdb9bf67665cc9f44d2d705277"
+  },
+  {
+    "file": "telegram-03-after-gesture.png",
+    "msk": "2026-11-27T11:47:16+03:00",
+    "sha256": "3fba5124f451a88b25b4d4df360309b6bbe6c11511b9733ad1678f1c351e32b3"
+  },
+  {
+    "file": "telegram-04-next-back.png",
+    "msk": "2026-11-27T11:47:37+03:00",
+    "sha256": "df4819980e84d510b160ae9440d84f37b7da37ab97f995ed4b361c20fa9de831"
+  },
+  {
+    "file": "telegram-05-default-delivery.png",
+    "msk": "2026-11-27T11:49:22+03:00",
+    "sha256": "8ad54f34c8eea425016c2c3702e3c507011ff634eb6779c0040e67d928387755"
+  },
+  {
+    "file": "telegram-06-address-request.png",
+    "msk": "2026-11-27T11:49:45+03:00",
+    "sha256": "aeb7dd367431dd027dc22942c73ae4755f690c0531800d1dcdc7fca7976ab2c0"
+  },
+  {
+    "file": "telegram-07-delivery-refresh.png",
+    "msk": "2026-11-27T11:50:03+03:00",
+    "sha256": "863e7e493ea5fd64e535cb760aff37efc921d9bf681671901b10f689ea09780b"
+  },
+  {
+    "file": "telegram-08-pickup-refresh.png",
+    "msk": "2026-11-27T11:50:17+03:00",
+    "sha256": "a99606f4ef0a8ace03cd84b32664dd0ee4822043e5cbb149c80466abe063c20b"
+  },
+  {
+    "file": "telegram-09-keyboard-not-shown.png",
+    "msk": "2026-11-27T11:50:58+03:00",
+    "sha256": "048a7ff3bd1c7d3544f88019ee2db2f96ee734c721b9f121be72e46c10a3af16"
+  },
+  {
+    "file": "telegram-10-two-bundles.png",
+    "msk": "2026-11-27T11:51:36+03:00",
+    "sha256": "9ae389e72035ec556408e2812134abd6ec68e2e0168b62c549ca470c215fa87a"
+  },
+  {
+    "file": "telegram-11-extra-component.png",
+    "msk": "2026-11-27T11:51:57+03:00",
+    "sha256": "8b9979f48b1d2c96fb1d287dd33acfd337281953e6de3a948abdd4ca94d30d32"
+  },
+  {
+    "file": "telegram-12-limit-2-of-3.png",
+    "msk": "2026-11-27T11:52:17+03:00",
+    "sha256": "beaf83276d1fc0e75572490cf3b927dc4a0cbe3158ba444082644ee77c662a76"
+  },
+  {
+    "file": "telegram-13-combo-disabled-open.png",
+    "msk": "2026-11-27T11:54:58+03:00",
+    "sha256": "1aae1a1cd98e65ae34e2aea17b07bfea7e59511f09ff273b43834210772c1374"
+  },
+  {
+    "file": "telegram-14-disabled-footer-check.png",
+    "msk": "2026-11-27T11:55:10+03:00",
+    "sha256": "cfce5a696b20af443f6a90d3b69e14c7cd1983bdd3bb81988a81f5c452b47056"
+  },
+  {
+    "file": "telegram-15-total313-footer291.png",
+    "msk": "2026-11-27T11:55:25+03:00",
+    "sha256": "c77915d88c7c1466e14be6440da26fb6721ec9c55cafe6ad43da9048d95cc71e"
+  },
+  {
+    "file": "telegram-17-checkout-error.png",
+    "msk": "2026-11-27T12:05:36+03:00",
+    "sha256": "0f955ecdf948afc3a195455806f99d9c0fd87e7ff786e13a8bbc4132b3e615e7"
+  },
+  {
+    "file": "telegram-18-pickup-retained-unavailable.png",
+    "msk": "2026-11-27T12:05:48+03:00",
+    "sha256": "8fe30d43054b019585b50cf5750979a335acf034c3f5fca97f2491920abc6a8e"
+  },
+  {
+    "file": "telegram-19-order14-created.png",
+    "msk": "2026-11-27T12:06:43+03:00",
+    "sha256": "565fca2dc91ff9686ab03a1987ac8f754427508e887ffce8867aabcc9f4974b0"
+  },
+  {
+    "file": "telegram-20-residual-default-delivery.png",
+    "msk": "2026-11-27T12:07:02+03:00",
+    "sha256": "a4c9e6baea2977618a8afd07222536e98d93318e4614ff4b7c900c9041fb0697"
+  },
+  {
+    "file": "telegram-21-next-item-delivery.png",
+    "msk": "2026-11-27T12:07:44+03:00",
+    "sha256": "9655c8de6b090bf9c9f155e3926976cf351ac351976f53c40c2dd9c6bb543c50"
+  },
+  {
+    "file": "telegram-22-empty-current-cart.png",
+    "msk": "2026-11-27T12:08:23+03:00",
+    "sha256": "514122f85eba8675dd59834f8c5ed647841ff00de7615bafb2d8163687d62bbe"
+  },
+  {
+    "file": "telegram-23-clear-refill-pickup.png",
+    "msk": "2026-11-27T12:09:33+03:00",
+    "sha256": "6572b6d51d534709abcc6c8c551d0de144535093536d173ce40ffdd56719474d"
+  },
+  {
+    "file": "telegram-24-repeat-explicit-pickup.png",
+    "msk": "2026-11-27T12:10:43+03:00",
+    "sha256": "08f643ef75fe08da9c7eeff6a7a8a77fb9cf76306aa486925c9e306540bd53f0"
+  },
+  {
+    "file": "telegram-25-repeat-no-old-time.png",
+    "msk": "2026-11-27T12:10:56+03:00",
+    "sha256": "18deb96853455d6f4c19c3fecf33c067a2baf998563da87fb710c73b3b162f26"
+  },
+  {
+    "file": "telegram-26-seller-demo-url.png",
+    "msk": "2026-11-27T12:12:55+03:00",
+    "sha256": "11a93161692838d754344a4787a2859b1496e85fe61b9e40672381d0f26c11c9"
+  },
+  {
+    "file": "telegram-27-seller-editor-input-blocked.png",
+    "msk": "2026-11-27T12:17:05+03:00",
+    "sha256": "19d288bc801efcec408cbbad17ff3301ec4022ed589c7bfe9c8676585878115e"
+  },
+  {
+    "file": "telegram-28-seller-original-allocations.png",
+    "msk": "2026-11-27T12:19:23+03:00",
+    "sha256": "5cfbb466635f3dfb0d75f8724365002a28f0c6010235a9d45a0900f5ec895f0d"
+  },
+  {
+    "file": "telegram-29-payment.png",
+    "msk": "2026-11-27T12:22:22+03:00",
+    "sha256": "8934c37b29824c6120f43399ac02eb494acd7ffe2d17e5bffb8d1db19ef42f63"
+  },
+  {
+    "file": "telegram-30-old-snapshot-preview.png",
+    "msk": "2026-11-27T12:23:42+03:00",
+    "sha256": "7406749f59511e69101dafd6123c6e5c2089ad617553d6ff837eaf79dcea544c"
+  },
+  {
+    "file": "telegram-31-refund-old-snapshot.png",
+    "msk": "2026-11-27T12:23:57+03:00",
+    "sha256": "3d76d868964c2edd1409b1274b716e84d6837eeb3639fc41fdac761ac4c78202"
+  },
+  {
+    "file": "telegram-32-refund-recorded.png",
+    "msk": "2026-11-27T12:24:40+03:00",
+    "sha256": "855858c5f0c0c746a8033c2002304cd76e3fdf5fceaa6df6c5469af7403c8c51"
+  },
+  {
+    "file": "telegram-33-seller-preview-error.png",
+    "msk": "2026-11-27T12:27:11+03:00",
+    "sha256": "9cc45b91c5fcc01538020e38590431a54bf0826f4e9cfc827d2ccb052c2f7289"
+  },
+  {
+    "file": "telegram-34-reopen-pickup.png",
+    "msk": "2026-11-27T12:34:40+03:00",
+    "sha256": "96e65e770fe93609cd30ffe4ba4e3e60494c92b2a40b5141e6a7bbd88f331f99"
+  },
+  {
+    "file": "telegram-35-three-unlimited.png",
+    "msk": "2026-11-27T12:36:40+03:00",
+    "sha256": "00d899338e673851257ac148a382d14de882e4641086e6938fce67f18b52ce2a"
+  },
+  {
+    "file": "safari-10-private-tab-closed.png",
+    "msk": "2026-11-27T12:48:22+03:00",
+    "sha256": "510eceec3a2c29d1e17977e99d9823a57a0b369e511700d70aee235415d87e4e"
+  }
+]
