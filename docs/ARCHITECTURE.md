@@ -14,18 +14,18 @@
 | Язык | TypeScript strict | Один язык на клиенте и сервере |
 | Сборка | Vite + `@cloudflare/vite-plugin` | Мгновенный HMR, локальные D1, DO и R2 в `npm run dev` |
 | UI | React 19 + Tailwind CSS v4 | Тот же стек, что в шаблоне MagicPath: код с холста переносится без перевода |
-| Примитивы | shadcn/ui (Radix), `vaul` для шторок, `lucide-react` для иконок | Доступность и поведение из коробки, токены совпадают с темой MagicPath |
-| Анимация | `motion` | Единые переходы экранов и жесты |
+| Примитивы | свой UI-кит `src/ui`, `vaul` для шторок, `lucide-react` для иконок (Radix/shadcn не установлены) | Доступность и поведение из коробки, токены совпадают с темой MagicPath |
+| Анимация | CSS/Tailwind и `src/app/shell/Transition.tsx` | Единые переходы; пакета `motion` нет |
 | Роутинг | TanStack Router (файловые маршруты, типизированные параметры) | Типобезопасные ссылки, загрузчики, `staticData` маршрута для типа перехода |
 | Данные | TanStack Query | Кеш, повтор, отмена, оптимистичные изменения корзины |
-| Формы | react-hook-form + zod | Одни и те же схемы на клиенте и сервере |
+| Формы | React + zod | Общие схемы; `react-hook-form` не установлен |
 | API | Hono + `@hono/zod-validator` + Hono RPC | Минимальный, быстрый, родной для Workers |
 | Данные магазина | Durable Object `Shop` со встроенным SQLite + Drizzle ORM (`drizzle-orm/durable-sqlite`) | Транзакции ACID для заказов, остатков и денег; один экземпляр на магазин; масштабируется без настройки |
 | Данные платформы | D1 `platform` + Drizzle | Реестр магазинов, домены, аккаунты продавцов, флаги |
 | Файлы | R2 + Cloudflare Images (`/cdn-cgi/image/`) | Фото и вложения: сжатие на клиенте, очистка EXIF, ресайз на лету, публичные и приватные файлы, уборка, лимит на магазин (PLAN F9) |
 | Фоновые задачи | Алармы DO (ставятся только при наличии работы) + Cloudflare Queues для тяжёлых пакетов | Уведомления Telegram, истечение резервов, расписания; простаивающий магазин не тратит ресурсы |
-| Telegram | `grammY` (webhook), тонкий адаптер `window.Telegram.WebApp` | Бот магазина и Mini App |
-| Качество | Biome (линтер и форматтер), Vitest, `@cloudflare/vitest-pool-workers`, Playwright (только сквозные smoke-тесты) | Быстро и одной командой |
+| Telegram | прямой Telegram Bot API через серверный fetch (webhook), адаптер `window.Telegram.WebApp`; `grammY` не установлен | Бот магазина и Mini App |
+| Качество | Biome (линтер и форматтер), Vitest, `@cloudflare/vitest-plugin`, Playwright (только сквозные smoke-тесты) | Быстро и одной командой |
 | Пакеты | npm (как в Workers Builds) | Деплой уже настроен |
 
 Версии — актуальные стабильные на момент создания каркаса, закреплены в lock-файле. Не добавляй зависимость, если задачу решают 30 строк своего кода.
@@ -53,7 +53,7 @@ server/
   modules/<feature>/   # роуты и сервисы фичи (catalog, cart, checkout, orders, payments...)
   telegram/            # бот, webhook, отправка уведомлений
   jobs/                # обработчики очереди
-tests/e2e/             # 5–10 сквозных сценариев Playwright
+e2e/                   # сквозные сценарии Playwright; regressions/ — ночной набор
 docs/
 ```
 
