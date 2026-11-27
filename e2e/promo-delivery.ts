@@ -3,6 +3,7 @@ import { type Candidate, calculatePromo } from "../server/modules/promo/calculat
 import { cartTotals } from "../src/shared/cart-totals";
 import type { CartLine } from "../src/shared/contracts/cart";
 import type { PromoOffer, PromoTerms } from "../src/shared/contracts/promo";
+import { checkDeliveryLayout } from "./delivery-layout";
 
 const items: CartLine[] = [
   {
@@ -37,7 +38,7 @@ const availability = { mode: "delivery", available: true, payee: "shop", tariff:
 const receiving = { mode: "delivery", address: "Адрес в зоне доставки · пример" };
 const buyer = { confirmed: true, completed: 0, exactUsed: false };
 
-export async function checkDelivery(page: Page) {
+export async function checkDelivery(page: Page, store = "test2") {
   await page.unrouteAll({ behavior: "wait" });
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -45,9 +46,11 @@ export async function checkDelivery(page: Page) {
     if (message.type() === "error") errors.push(message.text());
   });
   await page.route(/\/api\/auth\/(guest|telegram)(?:\?|$)/, (route) => route.fulfill({ json: { kind: "telegram" } }));
+  await page.route(/\/api\/favorites(?:\?|$)/, (route) => route.fulfill({ json: { ids: [], revision: 0 } }));
+  await page.route(/\/api\/auth\/session(?:\?|$)/, (route) => route.fulfill({ json: { subject: null } }));
   const shop = {
     id: "fixture",
-    slug: "test2",
+    slug: store,
     name: "Второй магазин",
     promotions: true,
     timeZone: "Europe/Moscow",
@@ -168,7 +171,7 @@ export async function checkDelivery(page: Page) {
     await expect(page.locator("details")).not.toHaveAttribute("open", "");
     await expect(page.getByText("Томаты", { exact: true })).toBeVisible();
   };
-  await page.goto("/seller/promotions?store=test2");
+  await page.goto(`/seller/promotions?store=${store}`);
   await page.getByRole("button", { name: "Создать акцию" }).click();
   await page.getByRole("button", { name: /Все виды акций/ }).click();
   await page.getByRole("button", { name: /Бесплатная доставка от суммы/ }).click();
@@ -179,7 +182,7 @@ export async function checkDelivery(page: Page) {
   await page.getByRole("button", { name: "Закрыть корзину" }).click();
   await page.getByRole("button", { name: "Опубликовать", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Акция", exact: true })).toBeVisible();
-  await page.goto("/seller/promotions?store=test2");
+  await page.getByRole("button", { name: "Назад", exact: true }).click();
   await page.getByRole("button", { name: "Создать акцию" }).click();
   await page.getByRole("button", { name: /Все виды акций/ }).click();
   await page.getByRole("button", { name: /^Промокод / }).click();
@@ -227,7 +230,7 @@ export async function checkDelivery(page: Page) {
           : cart,
     });
   });
-  await page.goto("/cart?shop=test2");
+  await page.goto(`/cart?shop=${store}`);
   await expect(page.getByText("Доставка бесплатно от суммы заказа", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Удалить Огурцы", exact: true }).click();
   await expect(page.getByText(/До бесплатной доставки ещё/)).toContainText(/50/);
@@ -238,11 +241,6 @@ export async function checkDelivery(page: Page) {
   await codeDialog.getByRole("button", { name: "Применить", exact: true }).click();
   await expect(page.getByText("Доставка бесплатно по промокоду", { exact: true })).toBeVisible();
   await expect(page.getByText(/До бесплатной доставки ещё/)).toHaveCount(0);
-  for (const width of [360, 390, 412]) {
-    await page.setViewportSize({ width, height: 844 });
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  }
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: "test-results/a6/buyer-code-390.png" });
+  await checkDeliveryLayout(page);
   expect(errors).toEqual([]);
 }
