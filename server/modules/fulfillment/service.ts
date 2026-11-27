@@ -15,12 +15,10 @@ import type { TimeChoice } from "../../../src/shared/contracts/receiving-time";
 import { ApiError } from "../../../src/shared/errors";
 import { pauseStatus } from "./pause";
 import { deliveryZone } from "./zones";
-
 export function readFulfillment(storage: DurableObjectStorage, maps = true): FulfillmentSettings {
   const [row] = storage.sql.exec<{ value: string }>("SELECT value FROM settings WHERE key='fulfillment'").toArray();
   return resolveFulfillment(row?.value, maps);
 }
-
 export function resolveFulfillment(value: string | null | undefined, maps: boolean) {
   const settings = fulfillmentSettingsInput.parse(value ? JSON.parse(value) : {});
   if (!maps && settings.delivery?.mode === "map") {
@@ -29,7 +27,6 @@ export function resolveFulfillment(value: string | null | undefined, maps: boole
   }
   return settings;
 }
-
 export function publicFulfillment(settings: FulfillmentSettings, timeZone: string, now = Date.now()) {
   const delivery = settings.delivery;
   return {
@@ -47,15 +44,12 @@ export function publicFulfillment(settings: FulfillmentSettings, timeZone: strin
     ...pauseStatus(settings, timeZone, now),
   };
 }
-
 type UnavailableDelivery = Extract<ReceivingAvailability, { mode: "delivery"; available: false }>;
-
 export function checkFulfillment(settings: FulfillmentSettings, selection: Receiving): ReceivingAvailability {
   if (selection.mode === "pickup")
     return settings.pickup
       ? { mode: "pickup", available: true, pickup: settings.pickup }
       : { mode: "pickup", available: false };
-
   const delivery = settings.delivery;
   const unavailable = (reason: UnavailableDelivery["reason"]): UnavailableDelivery => ({
     mode: "delivery",
@@ -82,7 +76,6 @@ export function checkFulfillment(settings: FulfillmentSettings, selection: Recei
       unverified,
     };
   }
-
   if (delivery.mode === "text") return { ...available(delivery.tariff), inZone: null };
   if (delivery.mode === "districts") {
     const district = delivery.districts.find(({ id }) => id === selection.districtId);
@@ -95,14 +88,12 @@ export function checkFulfillment(settings: FulfillmentSettings, selection: Recei
   const zone = deliveryZone(delivery.zones, selection.point);
   return zone ? available(zone.tariff, zone.id) : unavailable("outside");
 }
-
 const missingDetail: Record<DetailField, string> = {
   apartment: "Укажите квартиру.",
   entrance: "Укажите подъезд.",
   floor: "Укажите этаж.",
   intercom: "Укажите домофон.",
 };
-
 export function requireFulfillment(settings: FulfillmentSettings, receiving: Receiving, complete: boolean) {
   const result = checkFulfillment(settings, receiving);
   if (!result.available) {
@@ -122,9 +113,10 @@ export function requireFulfillment(settings: FulfillmentSettings, receiving: Rec
   }
   return result;
 }
-
 type Selection = {
+  selectionVersion?: 1;
   receiving: Receiving | null;
+  explicitMode?: "delivery" | "pickup";
   savedAddresses: SavedAddress[];
   addressesRevision: number;
   time: TimeChoice | null;
@@ -139,15 +131,19 @@ export const emptySelection = (): Selection => ({
   time: null,
   receivingUpdatedAt: 0,
 });
-
 export function parseSelection(value: string | null | undefined): Selection {
   if (!value) return emptySelection();
   const parsed = JSON.parse(value);
   // An older draft stored just the selection inside the same cart column.
-  if ("mode" in parsed) return { ...emptySelection(), receiving: receivingInput.parse(parsed) };
+  if ("mode" in parsed)
+    return { ...emptySelection(), receiving: parsed.mode === "pickup" ? null : receivingInput.parse(parsed) };
   const current = { ...emptySelection(), ...(parsed as Selection) };
   return {
     ...current,
+    receiving:
+      current.receiving?.mode === "pickup" && current.explicitMode !== "pickup" && current.selectionVersion !== 1
+        ? null
+        : current.receiving,
     savedAddresses: current.savedAddresses.map((address) => ({
       ...address,
       id: address.id ?? `legacy:${addressKey(address)}`,
@@ -177,7 +173,7 @@ export function writeReceiving(
      ON CONFLICT(customer) DO UPDATE SET revision=excluded.revision,receiving=excluded.receiving,updated_at=excluded.updated_at`,
     customer,
     revision,
-    JSON.stringify(selection),
+    JSON.stringify({ ...selection, selectionVersion: 1 }),
     Date.now(),
   );
 }
@@ -203,13 +199,38 @@ export function saveReceiving(storage: DurableObjectStorage, customer: string, i
     if (input.expectedRevision !== current.revision)
       throw new ApiError("VERSION_CONFLICT", "Корзина изменилась. Попробуйте ещё раз.", current);
     const settings = readFulfillment(storage, maps);
+    if ("mode" in input) {
+      if (!settings[input.mode]) throw new ApiError("VALIDATION", "Способ получения недоступен");
+      const receiving =
+        input.mode === "pickup"
+          ? { mode: "pickup" as const }
+          : current.receiving?.mode === "delivery"
+            ? current.receiving
+            : null;
+      const selection = {
+        ...current,
+        explicitMode: input.mode,
+        receiving,
+        time: null,
+        receivingUpdatedAt: Date.now(),
+        deliveryDraft: current.receiving?.mode === "delivery" ? current.receiving : current.deliveryDraft,
+      };
+      writeReceiving(storage, customer, current.revision + 1, selection);
+      return {
+        ...selection,
+        revision: current.revision + 1,
+        availability: receiving ? checkFulfillment(settings, receiving) : null,
+      };
+    }
     const receiving = draftForMode(input.receiving, settings);
     const availability = requireFulfillment(settings, receiving, !!input.complete);
-    if (JSON.stringify(receiving) === JSON.stringify(current.receiving)) return { ...current, availability };
+    if (current.explicitMode === receiving.mode && JSON.stringify(receiving) === JSON.stringify(current.receiving))
+      return { ...current, availability };
     const revision = current.revision + 1;
     const time = current.receiving?.mode === receiving.mode ? current.time : null;
     const selection = {
       receiving,
+      explicitMode: receiving.mode,
       savedAddresses: current.savedAddresses,
       addressesRevision: current.addressesRevision,
       time,

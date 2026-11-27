@@ -3,6 +3,7 @@ import { type Candidate, calculatePromo, promoLabel } from "../server/modules/pr
 import { cartTotals } from "../src/shared/cart-totals";
 import type { CartLine } from "../src/shared/contracts/cart";
 import type { Receiving } from "../src/shared/contracts/receiving";
+import { checkCartClarity } from "./cart-clarity";
 import { checkOptimalBundles } from "./promo-optimal";
 
 const item: CartLine = {
@@ -58,7 +59,7 @@ const fulfillment = {
 async function buyerFixture(page: Page, group: boolean, initialQuantity = item.quantity, discount = false) {
   let quantity = initialQuantity;
   let revision = 1;
-  let receiving: Receiving = { mode: "pickup" };
+  let receiving: Receiving | null = { mode: "pickup" };
   let code: string | undefined;
   const buyer = { confirmed: true, completed: 0, exactUsed: false };
   const offers = group ? [automatic, manual] : [manual];
@@ -77,7 +78,7 @@ async function buyerFixture(page: Page, group: boolean, initialQuantity = item.q
       code,
     );
   const availability = () =>
-    receiving.mode === "pickup"
+    receiving?.mode === "pickup"
       ? { mode: "pickup", available: true, feeMinor: 0 }
       : { mode: "delivery", available: true, inZone: null, payee: "shop", tariff: "fixed", feeMinor: 20_000 };
   await page.route(/\/api\/(cart|checkout\/summary|receiving|auth\/(contact|guest))(\/|\?|$)/, (route) => {
@@ -106,7 +107,7 @@ async function buyerFixture(page: Page, group: boolean, initialQuantity = item.q
       }
       case "/api/receiving":
         if (req.method() === "POST") {
-          receiving = req.postDataJSON().receiving as Receiving;
+          receiving = (req.postDataJSON().receiving as Receiving | undefined) ?? null;
           revision++;
         }
         return route.fulfill({ json: { ...fulfillment, receiving, revision, availability: availability() } });
@@ -233,4 +234,5 @@ for (const width of [360, 390]) {
 
 test("FIX-PROMO-OPT · пересекающиеся комбо, пересчёт и оформление · 390px", async ({ page }) => {
   await checkOptimalBundles(page);
+  await checkCartClarity(page);
 });

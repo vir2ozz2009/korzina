@@ -33,7 +33,7 @@ function mergeCartLines(storage: DurableObjectStorage, guest: string, account: s
 function mergeReceiving(storage: DurableObjectStorage, guest: string, account: string, revision: number) {
   const from = readReceiving(storage, guest);
   const to = readReceiving(storage, account);
-  const useGuest = from.receiving && (!to.receiving || from.receivingUpdatedAt > to.receivingUpdatedAt);
+  const useGuest = from.explicitMode && (!to.explicitMode || from.receivingUpdatedAt > to.receivingUpdatedAt);
   const { revision: _revision, ...selection } = useGuest ? from : to;
   const seenAddresses = new Set<string>();
   const savedAddresses = [...to.savedAddresses, ...from.savedAddresses].filter((address) => {

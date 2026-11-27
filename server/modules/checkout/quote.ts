@@ -6,6 +6,7 @@ import { isTimeAvailable, timeChangedMessage } from "../../../src/shared/receivi
 import { acceptsCheckout, type ShopEnv } from "../../shop/env";
 import { readCart } from "../cart/service";
 import { readAvailability } from "../fulfillment/availability";
+import { currentSelection } from "../fulfillment/current-selection";
 import { pauseStatus } from "../fulfillment/pause";
 import { checkFulfillment, parseSelection, requireFulfillment, resolveFulfillment } from "../fulfillment/service";
 import { checkoutPayments } from "./payment-settings";
@@ -32,11 +33,12 @@ function contextFor(env: Shop, subject: string) {
   const paymentSettings = checkoutPayments(
     paymentSettingsInput.parse(context.payments ? JSON.parse(context.payments) : paymentDefaults),
   );
+  const settings = resolveFulfillment(context.fulfillment, env.features.maps);
   return {
     ...context,
     paymentSettings,
-    selection: parseSelection(context.receiving),
-    settings: resolveFulfillment(context.fulfillment, env.features.maps),
+    selection: currentSelection(parseSelection(context.receiving), settings),
+    settings,
   };
 }
 
@@ -86,7 +88,8 @@ export function purchaseDraft(env: Shop, subject: string, kind: "guest" | "teleg
   const { closedMessage, unavailable } = pauseStatus(settings, env.timeZone ?? defaultShopTimeZone, now);
   if (!acceptsCheckout(env)) throw new ApiError("SHOP_CLOSED", "Магазин временно не принимает заказы");
   if (closedMessage) throw new ApiError("SHOP_CLOSED", closedMessage);
-  const pause = receiving && unavailable[receiving.mode];
+  const intent = parseSelection(context.receiving).explicitMode;
+  const pause = intent ? unavailable[intent] : receiving && unavailable[receiving.mode];
   if (pause) throw new ApiError("SHOP_CLOSED", pause);
   const cart = readCart(storage, subject, {
     id: env.shop.id,

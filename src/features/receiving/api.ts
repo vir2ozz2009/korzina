@@ -93,4 +93,7 @@ export function useSaveTime() {
   });
 }
 
-export type ReceivingState = NonNullable<ReturnType<typeof useReceiving>["data"]>;
+type ServerReceivingState = NonNullable<ReturnType<typeof useReceiving>["data"]>;
+export type ReceivingState = Omit<ServerReceivingState, "effectiveMode"> & {
+  effectiveMode?: ServerReceivingState["effectiveMode"];
+};

@@ -1,4 +1,4 @@
-import { Gift, Package } from "lucide-react";
+import { Gift } from "lucide-react";
 import type { Cart, CartAdjustment } from "../../../shared/contracts/cart";
 import { formatMinor } from "../../../shared/money";
 import { ruPlural } from "../../../shared/ru-plural";
@@ -120,15 +120,49 @@ export function CartGroupDetails({
   currency?: string | null;
   close: () => void;
 }) {
+  const bundle = adjustment?.groups?.type === "bundle";
+  const group = adjustment?.groups;
   return (
     <Sheet
       open={!!adjustment}
-      title="Почему такая сумма"
+      title={bundle ? adjustment.label : "Почему такая сумма"}
       onOpenChange={(open) => {
         if (!open) close();
       }}
     >
-      {adjustment?.groups && (
+      {bundle &&
+        group &&
+        currency &&
+        (group.bundle ? (
+          <>
+            {group.count > 1 && <p className="text-caption">В одном наборе</p>}
+            {group.bundle.components.map((entry) => (
+              <p key={entry.variantId}>
+                {entry.name} · {entry.unit} × {entry.quantity}
+              </p>
+            ))}
+            {group.count === 1 ? (
+              <p className="text-title-3">За набор — {formatMinor(group.bundle.totalMinor, currency)}</p>
+            ) : (
+              <>
+                <p>
+                  {group.count} {ruPlural(group.count, "набор", "набора", "наборов")} ×{" "}
+                  {formatMinor(group.bundle.priceMinor, currency)}
+                </p>
+                <p className="text-title-3">Стоимость наборов — {formatMinor(group.bundle.totalMinor, currency)}</p>
+              </>
+            )}
+            <p>Экономия {formatMinor(-adjustment.amount, currency)}</p>
+            {group.limit && group.count >= group.limit && group.possible > group.count && (
+              <p className="text-caption">
+                По акции {group.count} из {group.possible} наборов
+              </p>
+            )}
+          </>
+        ) : (
+          <p role="status">Проверяем корзину…</p>
+        ))}
+      {!bundle && adjustment?.groups && (
         <>
           <h3 className="flex items-center gap-2 text-title-3">
             {adjustment.groups.type === "gift" ? (
@@ -136,9 +170,7 @@ export function CartGroupDetails({
                 <Gift size={18} aria-hidden /> Количество в подарок
               </>
             ) : (
-              <>
-                <Package size={18} aria-hidden /> {adjustment.label}
-              </>
+              adjustment.label
             )}
           </h3>
           <p className="flex justify-between gap-2">
@@ -148,7 +180,8 @@ export function CartGroupDetails({
           </p>
         </>
       )}
-      {currency &&
+      {!bundle &&
+        currency &&
         adjustment &&
         (part ? [part] : (adjustment.allocations ?? [])).map((entry) => {
           const line = cart?.lines.find(({ variantId }) => variantId === entry.variantId);
@@ -166,12 +199,12 @@ export function CartGroupDetails({
             </div>
           );
         })}
-      {currency && adjustment && (
+      {!bundle && currency && adjustment && (
         <p className="flex justify-between gap-2">
           Экономия <span>{formatMinor(part?.amount ?? -adjustment.amount, currency)}</span>
         </p>
       )}
-      {currency && cart && (
+      {!bundle && currency && cart && (
         <p className="flex justify-between gap-2 text-title-3">
           Итого за товары <span>{formatMinor(cart.totalMinor, currency)}</span>
         </p>

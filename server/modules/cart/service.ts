@@ -51,6 +51,9 @@ export function removeOrderedLines(
       if (next.savedAddresses !== selection.savedAddresses) next.addressesRevision = cart.revision + 1;
     }
   }
+  next.receiving = null;
+  next.explicitMode = undefined;
+  next.receivingUpdatedAt = 0;
   const extras = cartTotals(cart.lines.filter((line) => !line.available));
   storage.sql.exec(
     "UPDATE carts SET revision=?,lines=?,quote=?,receiving=?,updated_at=?,promo_code=NULL,promo_alternative=NULL WHERE customer=?",

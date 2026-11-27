@@ -4,8 +4,10 @@ import { beforeAll, expect, it, vi } from "vitest";
 import { cookieFrom, getAuth, postAuth } from "../../testing/auth";
 import { setupPlatform } from "../../testing/platform";
 import { mergeBuyer } from "../buyer/merge";
+import { removeOrderedLines } from "../cart/service";
 import { catalogSql, catalogStub } from "../catalog/testing";
-import { readReceiving, saveReceiving } from "./service";
+import { currentSelection } from "./current-selection";
+import { parseSelection, readFulfillment, readReceiving, saveReceiving } from "./service";
 
 beforeAll(setupPlatform);
 const shop = "korzina-demo-lavka";
@@ -88,4 +90,33 @@ it("BL-15: режим Куда угодно разрешает геокодин�
     vi.unstubAllGlobals();
     await catalogSql("UPDATE settings SET value=? WHERE key='fulfillment'", settings);
   }
+});
+
+it("CART-CLARITY П5–П8/Q1–Q4: явный выбор текущего заказа, legacy, слияние и сброс после checkout", async () => {
+  await runInDurableObject(catalogStub(), (_instance, { storage }) => {
+    const settings = readFulfillment(storage);
+    const legacy = parseSelection(JSON.stringify({ receiving: { mode: "pickup" }, receivingUpdatedAt: Date.now() }));
+    expect(currentSelection(legacy, settings)).toMatchObject({ effectiveMode: "delivery", receiving: null });
+    const from = "guest:clarity",
+      to = "telegram:clarity";
+    const chosen = saveReceiving(storage, from, { expectedRevision: 0, receiving: { mode: "pickup" } });
+    expect(readReceiving(storage, from)).toMatchObject({ explicitMode: "pickup", receiving: { mode: "pickup" } });
+    // Q1/Q2: replacing/repeating goods does not write the receiving column.
+    storage.sql.exec("UPDATE carts SET lines='[]' WHERE customer=?", from);
+    expect(currentSelection(readReceiving(storage, from), settings).effectiveMode).toBe("pickup");
+    storage.transactionSync(() => mergeBuyer(storage, from, to, { id: shop, mediaOrigin: env.MEDIA_PUBLIC_URL }));
+    expect(readReceiving(storage, to)).toMatchObject({ explicitMode: "pickup" });
+    expect(readReceiving(storage, from).explicitMode).toBeUndefined();
+    const cart = { revision: chosen.revision, currency: "VND", lines: [], count: 0, totalMinor: 0, adjustments: [] };
+    removeOrderedLines(storage, to, cart, JSON.stringify(readReceiving(storage, to)));
+    expect(currentSelection(readReceiving(storage, to), settings)).toMatchObject({
+      effectiveMode: "delivery",
+      receiving: null,
+    });
+    const next = readReceiving(storage, to);
+    saveReceiving(storage, to, { expectedRevision: next.revision, mode: "delivery" });
+    expect(readReceiving(storage, to)).toMatchObject({ explicitMode: "delivery", receiving: null });
+    expect(currentSelection(legacy, { ...settings, delivery: undefined }).effectiveMode).toBe("pickup");
+    expect(currentSelection(legacy, { ...settings, delivery: undefined, pickup: undefined }).effectiveMode).toBeNull();
+  });
 });

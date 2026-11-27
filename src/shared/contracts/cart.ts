@@ -63,6 +63,20 @@ const cartAdjustment = z.object({
   groups: z
     .object({
       type: z.enum(["gift", "bundle"]),
+      bundle: z
+        .object({
+          priceMinor: money,
+          totalMinor: money,
+          components: z.array(
+            z.object({
+              variantId: z.string(),
+              name: z.string(),
+              unit: z.string(),
+              quantity: z.number().int().positive(),
+            }),
+          ),
+        })
+        .optional(),
       count: z.number().int().positive(),
       possible: z.number().int().positive(),
       limit: z.number().int().positive().optional(),
@@ -80,6 +94,7 @@ const cartAdjustment = z.object({
     .optional(),
 });
 const promoResult = z.object({
+  offerType: z.enum(["discount", "gift", "bundle"]).optional(),
   code: z.string().optional(),
   reason: z.enum(promoReasons).optional(),
   missingMinor: money.optional(),

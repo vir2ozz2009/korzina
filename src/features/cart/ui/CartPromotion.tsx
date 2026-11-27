@@ -114,7 +114,13 @@ export function CartPromotion({
         variant="compact"
         title={promo?.code ?? "Промокод"}
         ariaLabel={promo?.code}
-        subtitle={promo?.reason === "applied" ? "Промокод применён" : undefined}
+        subtitle={
+          promo?.reason === "applied"
+            ? promo.offerType === "discount"
+              ? "Применён к товарам без скидки"
+              : "Промокод применён"
+            : undefined
+        }
         icon={<Ticket size={20} />}
         disabled={disabled}
         onClick={() => {

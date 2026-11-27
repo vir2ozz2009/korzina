@@ -15,6 +15,7 @@ import { sessionLimiter } from "../../auth/session-limit";
 import { acceptsCheckout, type ShopEnv } from "../../shop/env";
 import { readCustomer } from "../auth/service";
 import { readAvailability, saveTime } from "./availability";
+import { currentSelection } from "./current-selection";
 import { lookupShopAddress } from "./geocoder";
 import {
   checkFulfillment,
@@ -25,7 +26,6 @@ import {
   requireFulfillment,
   saveReceiving,
 } from "./service";
-
 import { storefrontReceiving } from "./storefront-receiving";
 
 const geocodeLimit = sessionLimiter(20);
@@ -50,7 +50,8 @@ export const receivingRoutes = new Hono<ShopEnv>()
   .get("/", async (c) => {
     const settings = readFulfillment(c.env.storage, c.env.features.maps);
     const session = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);
-    const saved = session ? readReceiving(c.env.storage, session.subject) : { revision: 0, ...emptySelection() };
+    const stored = session ? readReceiving(c.env.storage, session.subject) : { revision: 0, ...emptySelection() };
+    const saved = currentSelection(stored, settings);
     const availability = saved.receiving ? checkFulfillment(settings, saved.receiving) : null;
     return c.json({ ...saved, availability, ...publicFulfillment(settings, c.env.timeZone ?? defaultShopTimeZone) });
   })
@@ -84,5 +85,6 @@ export const receivingRoutes = new Hono<ShopEnv>()
     const session = await readCustomer(c.env.db, c.req.raw, c.env.shop.id);
     if (!session) throw new ApiError("UNAUTHORIZED", "Нужна сессия покупателя");
     if (!acceptsCheckout(c.env)) throw new ApiError("FORBIDDEN", "Магазин временно закрыт");
-    return c.json(saveReceiving(c.env.storage, session.subject, c.req.valid("json"), c.env.features.maps));
+    const saved = saveReceiving(c.env.storage, session.subject, c.req.valid("json"), c.env.features.maps);
+    return c.json({ ...saved, ...currentSelection(saved, readFulfillment(c.env.storage, c.env.features.maps)) });
   });

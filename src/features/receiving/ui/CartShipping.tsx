@@ -9,7 +9,12 @@ import { type ReceivingState, useReceiving, useSaveReceiving } from "../api";
 import { canReuseAddress } from "../reuse-address";
 import { AddressSheet } from "./AddressSheet";
 
-export function activeReceiving(data: Pick<ReceivingState, "receiving" | "delivery" | "pickup" | "unavailable">) {
+export function activeReceiving(
+  data: Pick<ReceivingState, "receiving" | "delivery" | "pickup" | "unavailable"> & {
+    effectiveMode?: "delivery" | "pickup" | null;
+  },
+) {
+  if ("effectiveMode" in data) return data.effectiveMode ?? undefined;
   if (data.receiving && data[data.receiving.mode] && !data.unavailable?.[data.receiving.mode])
     return data.receiving.mode;
   if (data.delivery && !data.unavailable?.delivery) return "delivery";
@@ -68,6 +73,7 @@ export function CartShipping({
       } else if (data?.deliveryDraft && canReuseAddress(data.deliveryDraft, data)) {
         await update(data.deliveryDraft);
       } else {
+        await save.mutateAsync({ mode: "delivery", expectedRevision: Math.max(revision, data?.revision ?? 0) });
         setOpen(true);
       }
     } catch (error) {

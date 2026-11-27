@@ -74,11 +74,14 @@ export const receivingInput = z.discriminatedUnion("mode", [
   }),
   z.object({ mode: z.literal("pickup"), comment }),
 ]);
-export const receiveCommandInput = z.object({
-  receiving: receivingInput,
-  expectedRevision: z.number().int().nonnegative(),
-  complete: z.boolean().optional(),
-});
+export const receiveCommandInput = z.union([
+  z.object({ mode: z.enum(["delivery", "pickup"]), expectedRevision: z.number().int().nonnegative() }),
+  z.object({
+    receiving: receivingInput,
+    expectedRevision: z.number().int().nonnegative(),
+    complete: z.boolean().optional(),
+  }),
+]);
 export type Point = z.infer<typeof pointInput>;
 export type GeocodeInput = z.infer<typeof geocodeInput>;
 export type Receiving = z.infer<typeof receivingInput>;
