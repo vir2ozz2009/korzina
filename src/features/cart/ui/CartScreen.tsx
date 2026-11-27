@@ -44,7 +44,7 @@ export function CartScreen() {
   const checking = opening || query.isFetching || addPromoItems.isPending;
   const currency = cart?.currency;
   const available = cart?.lines.filter((line) => line.available) ?? [];
-  const summary = usePurchaseSummary(available.length > 0 ? cart?.revision : undefined);
+  const summary = usePurchaseSummary(available.length > 0 ? cart?.revision : undefined, query.dataUpdatedAt);
   const total = !checking && !summary.isFetching && !summary.isError ? summary.data : undefined;
   const receiving = useReceiving(!!cart?.lines.length);
   const shipping = total?.availability ?? receiving.data?.availability ?? null;
@@ -60,7 +60,7 @@ export function CartScreen() {
       total={
         total && {
           deliveryMinor: total.deliveryMinor,
-          totalMinor: cart?.promo ? cart.totalMinor + total.deliveryMinor : total.totalMinor,
+          totalMinor: total.totalMinor,
         }
       }
       retry={() => void refetch()}

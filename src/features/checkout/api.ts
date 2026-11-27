@@ -3,9 +3,12 @@ import type { CheckoutCommand } from "../../shared/contracts/checkout";
 import { checkResponse, errorKind } from "../../shared/http-error";
 import { commandHeaders, shopApi, shopKey } from "../../shared/shop-api";
 
-export function usePurchaseSummary(revision: number | undefined) {
+export function usePurchaseSummary(revision: number | undefined, cartUpdatedAt?: number) {
   return useQuery({
-    queryKey: ["shop", shopKey, "purchase-summary", revision],
+    // Promotion eligibility can change on a cart read without changing its command revision.
+    queryKey: ["shop", shopKey, "purchase-summary", revision, cartUpdatedAt],
+    // Cart refresh generations are only useful while the cart is mounted.
+    ...(cartUpdatedAt !== undefined && { gcTime: 0 }),
     enabled: revision !== undefined,
     // Shop minimums and tariffs can change without a new cart revision.
     refetchOnMount: "always",
