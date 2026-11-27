@@ -1,0 +1,24 @@
+{
+  "offers": [
+    {
+      "id": "cc-d1-combo",
+      "status": "disabled",
+      "revision": 8
+    },
+    {
+      "id": "cc-d1-ordinary",
+      "status": "disabled",
+      "revision": 2
+    },
+    {
+      "id": "cc-d1-gift",
+      "status": "disabled",
+      "revision": 2
+    }
+  ],
+  "productsHidden": [
+    "cc-d1-berry",
+    "cc-d1-milk",
+    "cc-d1-extra"
+  ]
+}

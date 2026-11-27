@@ -1,0 +1,16 @@
+{
+  "number": 14,
+  "stage": "cancelled",
+  "revision": 6,
+  "balance": {
+    "paidMinor": 191000,
+    "outstandingMinor": 0,
+    "debtMinor": 0,
+    "refundMinor": 0,
+    "latestPayment": {
+      "method": "cash",
+      "amountMinor": 191000
+    }
+  },
+  "refund": null
+}

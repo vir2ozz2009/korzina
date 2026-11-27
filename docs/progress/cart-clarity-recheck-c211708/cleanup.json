@@ -1,0 +1,130 @@
+{
+  "server": [
+    {
+      "columns": [
+        "revision",
+        "original_lines",
+        "original_receiving",
+        "original_code",
+        "original_alternative",
+        "original_phone",
+        "original_name"
+      ],
+      "rows": [
+        [
+          231,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ],
+      "meta": {
+        "rows_read": 1,
+        "rows_written": 0
+      }
+    },
+    {
+      "columns": [
+        "id",
+        "stock",
+        "stock_revision",
+        "product_paused"
+      ],
+      "rows": [
+        [
+          "cc-d1-berry",
+          99,
+          2,
+          0
+        ],
+        [
+          "cc-d1-extra",
+          99,
+          2,
+          0
+        ],
+        [
+          "cc-d1-milk",
+          99,
+          3,
+          0
+        ]
+      ],
+      "meta": {
+        "rows_read": 30,
+        "rows_written": 0
+      }
+    },
+    {
+      "columns": [
+        "id",
+        "visible",
+        "published"
+      ],
+      "rows": [
+        [
+          "cc-d1-berry",
+          0,
+          1
+        ],
+        [
+          "cc-d1-extra",
+          0,
+          1
+        ],
+        [
+          "cc-d1-milk",
+          0,
+          1
+        ]
+      ],
+      "meta": {
+        "rows_read": 12,
+        "rows_written": 0
+      }
+    },
+    {
+      "columns": [
+        "fulfillment_unchanged"
+      ],
+      "rows": [
+        [
+          1
+        ]
+      ],
+      "meta": {
+        "rows_read": 1,
+        "rows_written": 0
+      }
+    },
+    {
+      "columns": [
+        "revision",
+        "receiving"
+      ],
+      "rows": [
+        [
+          0,
+          "{\"receiving\":{\"mode\":\"pickup\"},\"receivingUpdatedAt\":1}"
+        ]
+      ],
+      "meta": {
+        "rows_read": 1,
+        "rows_written": 0
+      }
+    }
+  ],
+  "order14": "cancelled, refundMinor0",
+  "fixtureOffers": "all3 disabled",
+  "fixtureProducts": "all3 hidden",
+  "stocks": "all99",
+  "temporarySellerSession": "exact hash revoked and token file removed",
+  "originalTelegramRestored": "six comparisons=1 at revision231; physical UI total758550",
+  "macSafariDevelop": "restored to0",
+  "safariOwnTab": "closed after user Touch ID at12:48 MSK; other tabs preserved",
+  "textEdit": "own numeric test document saved and closed",
+  "completedMsk": "2026-11-27T12:49+03:00"
+}
