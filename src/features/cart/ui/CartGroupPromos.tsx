@@ -1,4 +1,6 @@
+import { useBlocker } from "@tanstack/react-router";
 import { Gift } from "lucide-react";
+import { useRef } from "react";
 import type { Cart, CartAdjustment } from "../../../shared/contracts/cart";
 import { formatMinor } from "../../../shared/money";
 import { ruPlural } from "../../../shared/ru-plural";
@@ -120,10 +122,21 @@ export function CartGroupDetails({
   currency?: string | null;
   close: () => void;
 }) {
+  const returnFocus = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null);
+  useBlocker({
+    disabled: !adjustment,
+    enableBeforeUnload: false,
+    shouldBlockFn: ({ action }) => {
+      if (action !== "BACK" && action !== "GO") return false;
+      close();
+      return true;
+    },
+  });
   const bundle = adjustment?.groups?.type === "bundle";
   const group = adjustment?.groups;
   return (
     <Sheet
+      returnFocus={returnFocus}
       open={!!adjustment}
       title={bundle ? adjustment.label : "Почему такая сумма"}
       onOpenChange={(open) => {

@@ -3,7 +3,7 @@ import { type Candidate, calculatePromo } from "../server/modules/promo/calculat
 import { cartTotals } from "../src/shared/cart-totals";
 import type { CartLine } from "../src/shared/contracts/cart";
 
-export async function checkCartClarity(page: Page) {
+export async function checkCartClarity(page: Page, shop = "test2") {
   const lines: CartLine[] = [
     {
       variantId: "berry",
@@ -124,7 +124,8 @@ export async function checkCartClarity(page: Page) {
     mode = "delivery";
     lines[0].quantity = lines[1].quantity = 1;
     await page.setViewportSize({ width, height: 844 });
-    await page.goto("/cart?shop=test2");
+    await page.goto(`/?shop=${shop}`);
+    await page.getByRole("button", { name: /^Корзина/ }).click();
     await expect(page.getByRole("radio", { name: "Доставка", exact: true })).toBeChecked();
     await page.screenshot({ path: test.info().outputPath(`clarity-cart-${width}.png`), fullPage: true });
     await page.getByRole("button", { name: /Комбо тест ·/ }).click();
@@ -136,7 +137,7 @@ export async function checkCartClarity(page: Page) {
     await expect(dialog).toContainText("Молоко · 500 мл × 1");
     await page.screenshot({ path: test.info().outputPath(`clarity-bundle-${width}.png`), fullPage: true });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.keyboard.press("Escape");
+    await checkDetailsBack(page, shop);
     await page.getByRole("radio", { name: "Самовывоз", exact: true }).click();
     await expect(page.getByRole("radio", { name: "Самовывоз", exact: true })).toBeChecked();
     await page.reload();
@@ -156,4 +157,51 @@ export async function checkCartClarity(page: Page) {
     await page.screenshot({ path: test.info().outputPath(`clarity-limit-${width}.png`), fullPage: true });
     await page.keyboard.press("Escape");
   }
+}
+
+async function checkDetailsBack(page: Page, shop: string) {
+  const dialog = page.getByRole("dialog", { name: "Комбо тест" });
+  const trigger = page.getByRole("button", { name: /Комбо тест ·/ });
+  // Capture the real cart position after the trigger has been scrolled into view.
+  await dialog.getByRole("button", { name: "Закрыть", exact: true }).click();
+  await expect(dialog).toBeHidden();
+  await trigger.scrollIntoViewIfNeeded();
+  const before = await page.evaluate(() => ({ index: history.state.__TSR_index, length: history.length, y: scrollY }));
+  const lines = await page.getByRole("listitem").allTextContents();
+  const unchanged = async () => {
+    await expect(dialog).toBeHidden();
+    await expect(page).toHaveURL(new RegExp(`/cart\\?shop=${shop}$`));
+    await expect(trigger).toBeFocused();
+    expect(await page.getByRole("listitem").allTextContents()).toEqual(lines);
+    await expect(page.getByRole("radio", { name: "Доставка", exact: true })).toBeChecked();
+    await expect.poll(() => page.evaluate(() => scrollY)).toBeCloseTo(before.y, 0);
+    expect(await page.evaluate(() => ({ index: history.state.__TSR_index, length: history.length }))).toEqual({
+      index: before.index,
+      length: before.length,
+    });
+    await expect(page.getByText("Посторонний товар", { exact: true })).toBeVisible();
+  };
+  await trigger.click();
+  await expect(dialog).toBeVisible();
+  await page.goBack();
+  await unchanged();
+  await trigger.click();
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Закрыть", exact: true }).click();
+  await unchanged();
+  await trigger.click();
+  await expect(dialog).toBeVisible();
+  // Vaul suppresses dragging during its first 500 ms after opening.
+  await page.waitForTimeout(550);
+  const box = await dialog.boundingBox();
+  if (!box) throw new Error("Missing combo sheet");
+  await page.mouse.move(box.x + box.width / 2, box.y + 12);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height - 10, { steps: 12 });
+  await page.mouse.up();
+  await unchanged();
+  await page.goBack();
+  await expect(page).toHaveURL(new RegExp(`/\\?shop=${shop}$`));
+  await page.getByRole("button", { name: /^Корзина/ }).click();
+  await expect(trigger).toBeVisible();
 }
