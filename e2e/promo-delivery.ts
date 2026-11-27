@@ -4,6 +4,7 @@ import { cartTotals } from "../src/shared/cart-totals";
 import type { CartLine } from "../src/shared/contracts/cart";
 import type { PromoOffer, PromoTerms } from "../src/shared/contracts/promo";
 import { checkDeliveryLayout } from "./delivery-layout";
+import { checkDeliveryOrders } from "./delivery-orders";
 
 const items: CartLine[] = [
   {
@@ -244,5 +245,6 @@ export async function checkDelivery(page: Page, store = "test2") {
   await expect(page.getByText("Доставка бесплатно по промокоду", { exact: true })).toBeVisible();
   await expect(page.getByText(/До бесплатной доставки ещё/)).toHaveCount(0);
   await checkDeliveryLayout(page);
+  await checkDeliveryOrders(page, store);
   expect(errors).toEqual([]);
 }

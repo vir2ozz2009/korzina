@@ -100,7 +100,7 @@ export function PromoExample({
             Вернуться к условиям
           </Button>
           <a
-            href={`/seller/${cart.exampleProblem.includes("Доставка") ? "settings/receiving" : "products"}?store=${encodeURIComponent(store)}`}
+            href={`/seller/${cart.exampleProblem.includes("Доставка") ? "receiving" : "products"}?store=${encodeURIComponent(store)}`}
           >
             Открыть {cart.exampleProblem.includes("Доставка") ? "настройки" : "товары"}
           </a>

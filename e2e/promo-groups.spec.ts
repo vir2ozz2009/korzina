@@ -234,7 +234,7 @@ for (const width of [360, 390]) {
 }
 
 test("FIX-PROMO-OPT · пересекающиеся комбо, пересчёт и оформление · 390px", async ({ page }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(90_000);
   await checkOptimalBundles(page);
   await checkCartClarity(page);
   await checkDelivery(page);

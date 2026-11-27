@@ -1,6 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 
-export async function checkDeliveryLayout(page: Page) {
+export async function checkDeliveryLayout(page: Page, name = "buyer-code-390") {
   await page.evaluate(() => document.fonts.ready);
   for (const width of [360, 390, 412]) {
     await page.setViewportSize({ width, height: 844 });
@@ -16,5 +16,5 @@ export async function checkDeliveryLayout(page: Page) {
     expect(overflow).toEqual({ page: false, text: [] });
   }
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: "test-results/a6/buyer-code-390.png" });
+  await page.screenshot({ path: `test-results/a6/${name}.png` });
 }
