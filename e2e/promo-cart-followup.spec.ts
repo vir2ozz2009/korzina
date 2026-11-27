@@ -11,12 +11,17 @@ for (const width of [360, 390]) {
     await page.getByRole("button", { name: "Открыть черновик" }).click();
     await page.getByRole("button", { name: "Посмотреть, как видит покупатель" }).click();
     await expect(page.getByRole("heading", { name: "Корзина", exact: true })).toBeVisible();
-    const settings = page.locator("details").filter({ hasText: "Тестовые данные · не видны покупателю" });
-    await expect(page.getByText("Корзина пуста")).toBeVisible();
+    const settings = page.locator("details").filter({ hasText: "Изменить пример" });
+    await expect(settings).not.toHaveAttribute("open", "");
+    await expect(page.getByRole("button", { name: /^Продолжить/ })).toHaveText(money(1080));
+    await page.getByRole("button", { name: /^PROBA10/ }).click();
+    await page.getByRole("dialog", { name: "Промокод" }).getByRole("button", { name: "Убрать" }).click();
+    await settings.locator("summary").click();
     for (const id of ["tomato", "berry"]) {
       await settings.getByRole("combobox", { name: "Фасовка" }).selectOption(id);
       await settings.getByRole("button", { name: "Добавить товар" }).click();
     }
+    await settings.getByRole("spinbutton", { name: "Томаты розовые · 500 г" }).fill("1");
     await settings.getByRole("spinbutton", { name: "Клубника · 250 г" }).fill("4");
     if (await settings.evaluate((node: HTMLDetailsElement) => node.open)) await settings.locator("summary").click();
     const checkout = page.getByRole("button", { name: /^Продолжить/ });
@@ -57,12 +62,11 @@ async function openExample(page: Page, confirmed: boolean) {
   await page.goto("/seller/promotions/proba?store=test2");
   await page.getByRole("button", { name: "Открыть черновик" }).click();
   await page.getByRole("button", { name: "Посмотреть, как видит покупатель" }).click();
-  const settings = page.locator("details").filter({ hasText: "Тестовые данные · не видны покупателю" });
-  for (const id of ["tomato", "berry"]) {
-    await settings.getByRole("combobox", { name: "Фасовка" }).selectOption(id);
-    await settings.getByRole("button", { name: "Добавить товар" }).click();
-  }
-  await settings.getByRole("spinbutton", { name: "Клубника · 250 г" }).fill("4");
+  const settings = page.locator("details").filter({ hasText: "Изменить пример" });
+  await expect(page.getByRole("button", { name: /^Продолжить/ })).toHaveText(money(1080));
+  await page.getByRole("button", { name: /^PROBA10/ }).click();
+  await page.getByRole("dialog", { name: "Промокод" }).getByRole("button", { name: "Убрать" }).click();
+  await settings.locator("summary").click();
   if (!confirmed) await settings.getByText("Подтверждённый покупатель").click();
   await settings.locator("summary").click();
   await expect(page.getByRole("heading", { name: "Корзина", exact: true })).toBeVisible();
