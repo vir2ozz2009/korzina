@@ -7,6 +7,7 @@ import type { BotChange } from "../../src/shared/contracts/admin";
 import { launchReadiness } from "../../src/shared/contracts/launch";
 import { ApiError } from "../../src/shared/errors";
 import type { AuthSecrets } from "../auth/config";
+import { snapshotShop } from "../backup/snapshot";
 import { handleError, notFound } from "../middleware/errors";
 import { extendCustomerVisit } from "../modules/auth/service";
 import { confirmBrowserBuyer, shopBuyerExchange } from "../modules/auth/telegram-exchange";
@@ -77,6 +78,9 @@ export class Shop extends DurableObject<Env> {
       this.saleDeadline = expireSalePauses(this.ctx.storage, now);
   }
 
+  backupSnapshot() {
+    return snapshotShop(this.ctx.storage);
+  }
   async launchReadiness(shop: string) {
     if (!this.ctx.exports.Shop.idFromName(shop).equals(this.ctx.id)) throw new ApiError("FORBIDDEN", "Другой магазин");
     this.expireSales();

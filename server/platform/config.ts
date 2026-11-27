@@ -8,7 +8,15 @@ const previewDatabase = {
   name: "korzina-preview-platform",
 };
 
-export function environmentResources(preview: boolean) {
+export function environmentResources(preview: boolean, production = false) {
+  if (preview && production) throw new Error("Preview и prod несовместимы");
+  if (production)
+    return {
+      database: { id: "0746757c-0851-4d21-ba7f-34ae00360062", name: "korzina-prod-platform" },
+      media: "korzina-prod-media",
+      publicMedia: "korzina-prod-media-public",
+      publicOrigin: "https://media.prod.korzina.app",
+    };
   return preview
     ? {
         database: previewDatabase,

@@ -111,6 +111,8 @@ docs/
 | demo — тестовый стенд приёмки Андрея (stage), не для продавцов | `demo.korzina.app` (+ `*.demo.korzina.app` после покупки wildcard) | отдельные ресурсы `korzina-demo` |
 | prod | `korzina.app` — лендинг; `*.korzina.app` — магазины (зарезервированные имена — DECISIONS D14/D15) | отдельно, только по решению Андрея; Lavka выключается при запуске |
 
+Подготовка отдельного prod, фактически созданные пустые ресурсы и СТОП выпуска 27.11.2026 — [runbook L2](runbooks/prod-environment.md). Таблица выше описывает целевую схему адресов, не выполненное переключение Lavka.
+
 Превью ветки: Worker Previews (отдельные Shop DO через `ctx.exports`, D1/R2 `korzina-preview-*`; demo изменяет только `main`). Version URLs для Worker с Durable Objects не выдаются. Привязки (D1, R2, DO, Queue) описываются в `cloudflare.config.ts`; если CLI `cf` ещё не поддерживает нужную привязку, переходим на `wrangler.jsonc` и правим README.
 
 ## 9. Бюджеты производительности (проверяются в фазе L)
