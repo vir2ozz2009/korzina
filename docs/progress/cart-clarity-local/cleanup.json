@@ -1,0 +1,130 @@
+[
+  {
+    "order": 168,
+    "stage": "cancelled",
+    "balance": {
+      "paidMinor": 0,
+      "outstandingMinor": 0,
+      "debtMinor": 0,
+      "refundMinor": 0
+    }
+  },
+  {
+    "order": 169,
+    "stage": "cancelled",
+    "balance": {
+      "paidMinor": 120000,
+      "outstandingMinor": 0,
+      "debtMinor": 0,
+      "refundMinor": 0,
+      "latestPayment": {
+        "method": "cash",
+        "amountMinor": 120000
+      }
+    }
+  },
+  {
+    "restoreReducedMilkUnit": true
+  },
+  {
+    "offer": "02a49fa1-4faa-4ca1-b2d4-5864b4546920",
+    "status": "disabled"
+  },
+  {
+    "offer": "f5da909c-f703-419c-90e9-4915b409faf8",
+    "status": "disabled"
+  },
+  {
+    "offer": "09805ad1-602c-4b14-a5db-f81a34c8714e",
+    "status": "disabled"
+  },
+  {
+    "offer": "d537c218-a773-41a2-b22a-ecae2527bf07",
+    "status": "disabled"
+  },
+  {
+    "offer": "faa92259-bd7c-416a-b6fd-0bda7c043be1",
+    "status": "disabled"
+  },
+  {
+    "offer": "95701eb0-debc-42fa-89b9-86a415227e22",
+    "status": "disabled"
+  },
+  {
+    "deletedOwnProducts": {
+      "applied": [
+        "554470b8-3ff0-40e8-a6c3-74ab9f14e934",
+        "400f02c3-7afb-4c50-9541-ca83cb0093bd",
+        "42c231cd-4cc1-4710-ad69-64224a3d17ec"
+      ],
+      "failed": [],
+      "revision": 696
+    }
+  },
+  {
+    "receivingRestored": true
+  },
+  {
+    "pausesRestored": true
+  },
+  {
+    "product": "product-05",
+    "salePause": null,
+    "variants": [
+      {
+        "id": "sku-05",
+        "stock": 19,
+        "priceMinor": 49000,
+        "oldPriceMinor": 61250
+      },
+      {
+        "id": "sku-06",
+        "stock": 25,
+        "priceMinor": 89000,
+        "oldPriceMinor": 116000
+      },
+      {
+        "id": "sku-07",
+        "stock": 30,
+        "priceMinor": 85000,
+        "oldPriceMinor": null
+      },
+      {
+        "id": "sku-08",
+        "stock": 0,
+        "priceMinor": 45000,
+        "oldPriceMinor": null
+      }
+    ]
+  },
+  {
+    "product": "product-13",
+    "salePause": null,
+    "variants": [
+      {
+        "id": "sku-13",
+        "stock": 17,
+        "priceMinor": 22000,
+        "oldPriceMinor": null
+      },
+      {
+        "id": "sku-14",
+        "stock": 25,
+        "priceMinor": 39000,
+        "oldPriceMinor": 51000
+      },
+      {
+        "id": "sku-15",
+        "stock": 30,
+        "priceMinor": 72000,
+        "oldPriceMinor": null
+      },
+      {
+        "id": "sku-16",
+        "stock": null,
+        "priceMinor": 35000,
+        "oldPriceMinor": null
+      }
+    ]
+  }
+]

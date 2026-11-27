@@ -1,0 +1,279 @@
+{
+  "revision": 1,
+  "currency": "VND",
+  "lines": [
+    {
+      "variantId": "af931d24-b9b6-4dc0-811c-e0c87a44cba8",
+      "productId": "554470b8-3ff0-40e8-a6c3-74ab9f14e934",
+      "name": "CART-CLARITY A",
+      "unit": "1 шт.",
+      "quantity": 2,
+      "priceMinor": 100,
+      "oldPriceMinor": null,
+      "categoryId": "milk",
+      "nextPriceAt": null,
+      "stock": 20,
+      "available": true,
+      "image": null,
+      "totalMinor": 150
+    },
+    {
+      "variantId": "b0edff18-c057-4770-b58e-fb519d27c44c",
+      "productId": "400f02c3-7afb-4c50-9541-ca83cb0093bd",
+      "name": "CART-CLARITY B",
+      "unit": "1 шт.",
+      "quantity": 2,
+      "priceMinor": 100,
+      "oldPriceMinor": null,
+      "categoryId": "milk",
+      "nextPriceAt": null,
+      "stock": 20,
+      "available": true,
+      "image": null,
+      "totalMinor": 150
+    },
+    {
+      "variantId": "f383afdb-3100-4f34-97f6-d87a94d56c99",
+      "productId": "42c231cd-4cc1-4710-ad69-64224a3d17ec",
+      "name": "CART-CLARITY C",
+      "unit": "1 шт.",
+      "quantity": 2,
+      "priceMinor": 100,
+      "oldPriceMinor": null,
+      "categoryId": "milk",
+      "nextPriceAt": null,
+      "stock": 20,
+      "available": true,
+      "image": null,
+      "totalMinor": 150
+    }
+  ],
+  "adjustments": [
+    {
+      "kind": "promotion",
+      "sourceId": "95701eb0-debc-42fa-89b9-86a415227e22",
+      "sourceRevision": 1,
+      "label": "CART-CLARITY BC",
+      "amount": -50,
+      "allocations": [
+        {
+          "variantId": "b0edff18-c057-4770-b58e-fb519d27c44c",
+          "amount": 25,
+          "units": [
+            {
+              "quantity": 1,
+              "paidMinor": 75
+            }
+          ]
+        },
+        {
+          "variantId": "f383afdb-3100-4f34-97f6-d87a94d56c99",
+          "amount": 25,
+          "units": [
+            {
+              "quantity": 1,
+              "paidMinor": 75
+            }
+          ]
+        }
+      ],
+      "groups": {
+        "type": "bundle",
+        "count": 1,
+        "possible": 2,
+        "bundle": {
+          "priceMinor": 150,
+          "totalMinor": 150,
+          "components": [
+            {
+              "variantId": "b0edff18-c057-4770-b58e-fb519d27c44c",
+              "quantity": 1,
+              "name": "CART-CLARITY B",
+              "unit": "1 шт."
+            },
+            {
+              "variantId": "f383afdb-3100-4f34-97f6-d87a94d56c99",
+              "quantity": 1,
+              "name": "CART-CLARITY C",
+              "unit": "1 шт."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "kind": "promotion",
+      "sourceId": "d537c218-a773-41a2-b22a-ecae2527bf07",
+      "sourceRevision": 1,
+      "label": "CART-CLARITY AB",
+      "amount": -50,
+      "allocations": [
+        {
+          "variantId": "af931d24-b9b6-4dc0-811c-e0c87a44cba8",
+          "amount": 25,
+          "units": [
+            {
+              "quantity": 1,
+              "paidMinor": 75
+            }
+          ]
+        },
+        {
+          "variantId": "b0edff18-c057-4770-b58e-fb519d27c44c",
+          "amount": 25,
+          "units": [
+            {
+              "quantity": 1,
+              "paidMinor": 75
+            }
+          ]
+        }
+      ],
+      "groups": {
+        "type": "bundle",
+        "count": 1,
+        "possible": 1,
+        "bundle": {
+          "priceMinor": 150,
+          "totalMinor": 150,
+          "components": [
+            {
+              "variantId": "af931d24-b9b6-4dc0-811c-e0c87a44cba8",
+              "quantity": 1,
+              "name": "CART-CLARITY A",
+              "unit": "1 шт."
+            },
+            {
+              "variantId": "b0edff18-c057-4770-b58e-fb519d27c44c",
+              "quantity": 1,
+              "name": "CART-CLARITY B",
+              "unit": "1 шт."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "kind": "promotion",
+      "sourceId": "faa92259-bd7c-416a-b6fd-0bda7c043be1",
+      "sourceRevision": 1,
+      "label": "CART-CLARITY AC",
+      "amount": -50,
+      "allocations": [
+        {
+          "variantId": "af931d24-b9b6-4dc0-811c-e0c87a44cba8",
+          "amount": 25,
+          "units": [
+            {
+              "quantity": 1,
+              "paidMinor": 75
+            }
+          ]
+        },
+        {
+          "variantId": "f383afdb-3100-4f34-97f6-d87a94d56c99",
+          "amount": 25,
+          "units": [
+            {
+              "quantity": 1,
+              "paidMinor": 75
+            }
+          ]
+        }
+      ],
+      "groups": {
+        "type": "bundle",
+        "count": 1,
+        "possible": 1,
+        "bundle": {
+          "priceMinor": 150,
+          "totalMinor": 150,
+          "components": [
+            {
+              "variantId": "af931d24-b9b6-4dc0-811c-e0c87a44cba8",
+              "quantity": 1,
+              "name": "CART-CLARITY A",
+              "unit": "1 шт."
+            },
+            {
+              "variantId": "f383afdb-3100-4f34-97f6-d87a94d56c99",
+              "quantity": 1,
+              "name": "CART-CLARITY C",
+              "unit": "1 шт."
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "count": 6,
+  "totalMinor": 450,
+  "itemsMinor": 600,
+  "promo": {
+    "groupHints": [
+      {
+        "id": "95701eb0-debc-42fa-89b9-86a415227e22",
+        "type": "bundle",
+        "name": "CART-CLARITY BC",
+        "missing": [
+          {
+            "variantId": "b0edff18-c057-4770-b58e-fb519d27c44c",
+            "quantity": 1,
+            "name": "CART-CLARITY B",
+            "unit": "1 шт."
+          },
+          {
+            "variantId": "f383afdb-3100-4f34-97f6-d87a94d56c99",
+            "quantity": 1,
+            "name": "CART-CLARITY C",
+            "unit": "1 шт."
+          }
+        ],
+        "priceMinor": 150,
+        "savingsMinor": 50
+      },
+      {
+        "id": "faa92259-bd7c-416a-b6fd-0bda7c043be1",
+        "type": "bundle",
+        "name": "CART-CLARITY AC",
+        "missing": [
+          {
+            "variantId": "af931d24-b9b6-4dc0-811c-e0c87a44cba8",
+            "quantity": 1,
+            "name": "CART-CLARITY A",
+            "unit": "1 шт."
+          },
+          {
+            "variantId": "f383afdb-3100-4f34-97f6-d87a94d56c99",
+            "quantity": 1,
+            "name": "CART-CLARITY C",
+            "unit": "1 шт."
+          }
+        ],
+        "priceMinor": 150,
+        "savingsMinor": 50
+      },
+      {
+        "id": "d537c218-a773-41a2-b22a-ecae2527bf07",
+        "type": "bundle",
+        "name": "CART-CLARITY AB",
+        "missing": [
+          {
+            "variantId": "af931d24-b9b6-4dc0-811c-e0c87a44cba8",
+            "quantity": 1,
+            "name": "CART-CLARITY A",
+            "unit": "1 шт."
+          },
+          {
+            "variantId": "b0edff18-c057-4770-b58e-fb519d27c44c",
+            "quantity": 1,
+            "name": "CART-CLARITY B",
+            "unit": "1 шт."
+          }
+        ],
+        "priceMinor": 150,
+        "savingsMinor": 50
+      }
+    ]
+  }
+}

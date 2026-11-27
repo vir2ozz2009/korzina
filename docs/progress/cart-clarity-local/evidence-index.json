@@ -1,0 +1,247 @@
+[
+  {
+    "file": "environment-ios.png",
+    "savedAtMoscow": "2026-11-27T09:44:03.990262+03:00",
+    "sha256": "6cef2ba48a0c8b538925f9950d2e74aa7625d2820162fb0848a43494273733ea",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "environment-mirroring-interrupted.png",
+    "savedAtMoscow": "2026-11-27T09:50:03.641957+03:00",
+    "sha256": "e6bd8e998637916f2960b88811488a9c300754b66ebf9d2a8a0189bd3c856f06",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-01-empty.png",
+    "savedAtMoscow": "2026-11-27T09:35:16.825365+03:00",
+    "sha256": "98e633f96a31968c1285bacecec1d0a236bf010aa55679ade96737bc7301bf4a",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-02-default-delivery.png",
+    "savedAtMoscow": "2026-11-27T09:38:31.714639+03:00",
+    "sha256": "cf3039082b3824c9084000d71c394313c784f4362ff256a2493a266ae175d871",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-03-code-hardware-toolbar.png",
+    "savedAtMoscow": "2026-11-27T09:38:42.915799+03:00",
+    "sha256": "f4209d474750905f94b20919cc5f26d7266bc2417785b62796c1eea38402cfdf",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-04-combo-60000-11000.png",
+    "savedAtMoscow": "2026-11-27T09:39:04.644086+03:00",
+    "sha256": "c58a9799864f6c1ddba30342539388cf70f58316fdcc27a9125b645a977480d3",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-05-after-dismiss.png",
+    "savedAtMoscow": "2026-11-27T09:39:29.793198+03:00",
+    "sha256": "3512e3cbad6af1a6ca88b42b9ad5af2a7daaaede61b2efea634a795341b5fafc",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-06-back-left-cart.png",
+    "savedAtMoscow": "2026-11-27T09:39:39.966846+03:00",
+    "sha256": "32b56ef9a9d9d29132767a29ebe30ea430cfdec300a72950deecd8b9d7d13600",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-07-combo-with-extra.png",
+    "savedAtMoscow": "2026-11-27T09:39:58.163223+03:00",
+    "sha256": "58ae1d1282933c185d8001ad204a5ce7b1457c3c3db18476d2d3c461cf9afff2",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-08-back-reproduced.png",
+    "savedAtMoscow": "2026-11-27T09:40:03.892978+03:00",
+    "sha256": "3e881dd6d3f41e11c7a510d742520076665a8c0d5491486d7267a46c5f1d6ea4",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": "system interruption, not back evidence"
+  },
+  {
+    "file": "safari-09-extra-component.png",
+    "savedAtMoscow": "2026-11-27T09:41:33.641897+03:00",
+    "sha256": "4b5dd0a385f61954b779cd613d5e310adb138ed76ad58cc8aa79ac4ed0c2a84d",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-10-two-bundles.png",
+    "savedAtMoscow": "2026-11-27T09:41:45.244569+03:00",
+    "sha256": "5fd362802da456249760d5ae874100cd8032bea33503d793aac2532b1c76ab75",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-11-limit-2-of-3.png",
+    "savedAtMoscow": "2026-11-27T09:42:00.241120+03:00",
+    "sha256": "48128be0e3a1294a9e7b045b151aedc28611d232af742bc5357b18a8e07858cb",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-12-three-unlimited.png",
+    "savedAtMoscow": "2026-11-27T09:44:52.734568+03:00",
+    "sha256": "ffc5f7549ee0e9ab359fc76e724257d09b0a82e45fe676bf5bbfe8851040a907",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-13-pickup-refresh.png",
+    "savedAtMoscow": "2026-11-27T09:45:17.866205+03:00",
+    "sha256": "284fafaa25ffde32436cc8c3e5970b44eb7b02a3b17ae1f78e15c443eba3d307",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-14-delivery-address-request.png",
+    "savedAtMoscow": "2026-11-27T09:45:31.243252+03:00",
+    "sha256": "e85639c3fea29fdcb7fca56112befd83dd9ea64a2d06fc6eb8d693d4a870eb0a",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-15-delivery-refresh.png",
+    "savedAtMoscow": "2026-11-27T09:45:39.146664+03:00",
+    "sha256": "e12843c0831736978401963a2294332ffff4232ad2d5f12a4d1ec435a270144b",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-16-code-toolbar-only.png",
+    "savedAtMoscow": "2026-11-27T09:51:54.158882+03:00",
+    "sha256": "06e17bc7bb45563a86f605dbe8dc28bafae7d6948c217203b829d4e551e33341",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-17-ordinary-code.png",
+    "savedAtMoscow": "2026-11-27T09:52:07.644802+03:00",
+    "sha256": "82bce1ad4fb815f3b7aacd2a6bc0f28a60d45f2e804b20202eda3a3f60d042a3",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-18-saved-address-tariff.png",
+    "savedAtMoscow": "2026-11-27T09:52:48.948661+03:00",
+    "sha256": "008fe5e25bd709fc633125334f3aafb3f21fdece9c28f135a57482ba2c0630eb",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-19-pickup-checkout.png",
+    "savedAtMoscow": "2026-11-27T09:53:32.183137+03:00",
+    "sha256": "5552708f9eb45e8ad68beabeaf3160d6728ce19cdb39eefc94d6472ef00ce121",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-20-order-168.png",
+    "savedAtMoscow": "2026-11-27T09:53:51.033285+03:00",
+    "sha256": "73f94553a2f6e411b8d07447a48c690d34a07e11f8d289b09b548ae9dd29ceb9",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-21-next-order-delivery.png",
+    "savedAtMoscow": "2026-11-27T09:54:31.598499+03:00",
+    "sha256": "094327e46deafc0427fa08d9911de57ea64b4599b545df8def283338070c07d4",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-22-address-book-retained.png",
+    "savedAtMoscow": "2026-11-27T09:54:39.978331+03:00",
+    "sha256": "7900b8611592f9bda0653bc1061a4cfc47057252abebad206c7be47a6fa305dd",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-23-sale-only-no-success.png",
+    "savedAtMoscow": "2026-11-27T09:55:00.846801+03:00",
+    "sha256": "93722ed9fd7c348ebfce599e73e56331067b074bf16ab368ad4402b9eeed0174",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-24-clear-refill-pickup.png",
+    "savedAtMoscow": "2026-11-27T09:55:52.885875+03:00",
+    "sha256": "89a4554248d7c1472c6a59979d9a0216afff177f0595d333c19c3fe6d89a0d8f",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-25-order-169-combo.png",
+    "savedAtMoscow": "2026-11-27T09:58:48.593407+03:00",
+    "sha256": "b7dccaa8da56446175c3ec42fd1f838d7c4c3dbb151e4c045787356b5c5b9035",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-26-snapshot-order-lines.png",
+    "savedAtMoscow": "2026-11-27T10:00:26.359761+03:00",
+    "sha256": "b726395e009953e6febf9658d646672d3915a3d9eb4c59b3582b71992758f110",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-27-financial-refund-old-snapshot.png",
+    "savedAtMoscow": "2026-11-27T10:00:54.215605+03:00",
+    "sha256": "762beb0a374f7b6901ab5db3277ecf2b4c3f5810afe979dbed1e61d9076a2072",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-28-repeat-only-goods-delivery.png",
+    "savedAtMoscow": "2026-11-27T10:01:30.512414+03:00",
+    "sha256": "e7a8969684ffc032f90e9bfccfaee88ed08a8509dd54d003f4d66008b95579bd",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-29-delivery-paused-pickup.png",
+    "savedAtMoscow": "2026-11-27T10:02:40.807479+03:00",
+    "sha256": "a5344dedfb65ce877de7305dc3e142bcd84b51aecf0a7a11fcb27641aec8749b",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-30-both-paused-no-checkout.png",
+    "savedAtMoscow": "2026-11-27T10:03:13.218863+03:00",
+    "sha256": "809cfc8fcf1387b96eecbd9bdadca702c47d605c7e74153cf3c2bb4445b330e2",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-31-no-delivery-pickup.png",
+    "savedAtMoscow": "2026-11-27T10:03:40.419688+03:00",
+    "sha256": "d0083ddbf9b99ebbf4d41663670999e44791c3d2d24495a8c83e95be53bf19c1",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "safari-32-no-methods.png",
+    "savedAtMoscow": "2026-11-27T10:04:08.155638+03:00",
+    "sha256": "5c41bee2ad6838db13886d63ca43b2d7246765c5ad1a6c3f421c4a1c871c576e",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  },
+  {
+    "file": "telegram-01-not-connected.png",
+    "savedAtMoscow": "2026-11-27T09:50:56.749186+03:00",
+    "sha256": "7c12013de85177404e00907a0e8997db6d366c5c4ba5db52cdc483876482d658",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": ""
+  }
+]

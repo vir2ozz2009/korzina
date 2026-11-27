@@ -1,0 +1,71 @@
+{
+  "lines": [
+    {
+      "id": "sku-13",
+      "kind": "decrease",
+      "status": "applied",
+      "before": {
+        "variantId": "sku-13",
+        "productId": "product-13",
+        "name": "Молоко цельное",
+        "unit": "500 мл",
+        "quantity": 2,
+        "priceMinor": 22000,
+        "image": {
+          "src": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1.png",
+          "edgeColor": "#ffffff",
+          "contentBox": {
+            "x": 0.23980487804878048,
+            "y": 0.0653125,
+            "w": 0.5057560975609756,
+            "h": 0.87328125
+          },
+          "width": 307,
+          "height": 384,
+          "srcSet": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1.png 307w",
+          "original": {
+            "src": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1.png"
+          }
+        },
+        "promoSavingsMinor": 6816,
+        "totalMinor": 37184
+      },
+      "after": {
+        "variantId": "sku-13",
+        "productId": "product-13",
+        "name": "Молоко цельное",
+        "unit": "500 мл",
+        "quantity": 1,
+        "priceMinor": 22000,
+        "image": {
+          "src": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1.png",
+          "edgeColor": "#ffffff",
+          "contentBox": {
+            "x": 0.23980487804878048,
+            "y": 0.0653125,
+            "w": 0.5057560975609756,
+            "h": 0.87328125
+          },
+          "width": 307,
+          "height": 384,
+          "srcSet": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1.png 307w",
+          "original": {
+            "src": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1.png"
+          }
+        },
+        "promoSavingsMinor": 3408,
+        "totalMinor": 18592
+      },
+      "deltaMinor": -18592
+    }
+  ],
+  "totals": {
+    "originalMinor": 120000,
+    "currentMinor": 101408,
+    "currency": "VND",
+    "paidMinor": 120000,
+    "refundMinor": 18592,
+    "topUpMinor": 0
+  },
+  "quote": "{\"number\":169,\"version\":2,\"lines\":[[\"sku-13\",\"decrease\",\"sku-13\",1,18592]],\"total\":101408}"
+}

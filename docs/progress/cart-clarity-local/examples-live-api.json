@@ -1,0 +1,400 @@
+[
+  {
+    "case": "combo",
+    "result": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "sku-05",
+          "productId": "product-05",
+          "categoryId": "fruit",
+          "name": "Голубика свежая",
+          "unit": "125 г",
+          "priceMinor": 49000,
+          "oldPriceMinor": 61250,
+          "stock": 14,
+          "quantity": 1,
+          "available": true,
+          "image": {
+            "src": "https://media.demo.korzina.app/catalog/B2/figma45/berry-f85d5a7f83cc.png",
+            "edgeColor": "#ffffff",
+            "contentBox": {
+              "x": 0.15375,
+              "y": 0.04233918128654971,
+              "w": 0.7003124999999999,
+              "h": 0.9094736842105263
+            },
+            "width": 384,
+            "height": 256,
+            "srcSet": "https://media.demo.korzina.app/catalog/B2/figma45/berry-f85d5a7f83cc.png 384w",
+            "original": {
+              "src": "https://media.demo.korzina.app/catalog/B2/figma45/berry-f85d5a7f83cc.png"
+            }
+          },
+          "totalMinor": 41408
+        },
+        {
+          "key": 1,
+          "variantId": "sku-13",
+          "productId": "product-13",
+          "categoryId": "milk",
+          "name": "Молоко цельное",
+          "unit": "500 мл",
+          "priceMinor": 22000,
+          "oldPriceMinor": null,
+          "stock": 12,
+          "quantity": 1,
+          "available": true,
+          "image": {
+            "src": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1.png",
+            "edgeColor": "#ffffff",
+            "contentBox": {
+              "x": 0.23980487804878048,
+              "y": 0.0653125,
+              "w": 0.5057560975609756,
+              "h": 0.87328125
+            },
+            "width": 307,
+            "height": 384,
+            "srcSet": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1.png 307w",
+            "original": {
+              "src": "https://media.demo.korzina.app/catalog/B2/figma45/milk-f6e8105395b1.png"
+            }
+          },
+          "totalMinor": 18592
+        },
+        {
+          "key": 2,
+          "variantId": "sku-21",
+          "productId": "product-21",
+          "categoryId": "bakery",
+          "name": "Круассан сливочный",
+          "unit": "1 шт.",
+          "priceMinor": 25000,
+          "oldPriceMinor": 31250,
+          "stock": 20,
+          "quantity": 1,
+          "available": true,
+          "image": {
+            "src": "https://media.demo.korzina.app/catalog/B2/figma45/croissant-7e8e89232116.png",
+            "edgeColor": "#ffffff",
+            "contentBox": {
+              "x": 0.04765625,
+              "y": 0.04765625,
+              "w": 0.9281250000000001,
+              "h": 0.9281250000000001
+            },
+            "width": 1200,
+            "height": 1200,
+            "srcSet": "https://media.demo.korzina.app/catalog/B2/figma45/croissant-7e8e89232116.png 1200w",
+            "original": {
+              "src": "https://media.demo.korzina.app/catalog/B2/figma45/croissant-7e8e89232116.png"
+            }
+          },
+          "totalMinor": 25000
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "Комбо тест",
+          "amount": -11000,
+          "code": "CLARITYC",
+          "allocations": [
+            {
+              "variantId": "sku-05",
+              "amount": 7592,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 41408
+                }
+              ]
+            },
+            {
+              "variantId": "sku-13",
+              "amount": 3408,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 18592
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "bundle",
+            "count": 1,
+            "possible": 1,
+            "limit": 2,
+            "bundle": {
+              "priceMinor": 60000,
+              "totalMinor": 60000,
+              "components": [
+                {
+                  "variantId": "sku-05",
+                  "quantity": 1,
+                  "name": "Голубика свежая",
+                  "unit": "125 г"
+                },
+                {
+                  "variantId": "sku-13",
+                  "quantity": 1,
+                  "name": "Молоко цельное",
+                  "unit": "500 мл"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "count": 3,
+      "totalMinor": 85000,
+      "itemsMinor": 96000,
+      "promo": {
+        "code": "CLARITYC",
+        "reason": "applied",
+        "offerType": "bundle",
+        "groupHints": [
+          {
+            "id": "example",
+            "type": "bundle",
+            "name": "Комбо тест",
+            "missing": [
+              {
+                "variantId": "sku-05",
+                "quantity": 1,
+                "name": "Голубика свежая",
+                "unit": "125 г"
+              },
+              {
+                "variantId": "sku-13",
+                "quantity": 1,
+                "name": "Молоко цельное",
+                "unit": "500 мл"
+              }
+            ],
+            "priceMinor": 60000,
+            "savingsMinor": 11000,
+            "remainingSets": 1
+          }
+        ]
+      },
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "text",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 85000
+    }
+  },
+  {
+    "case": "gift3",
+    "result": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "sku-25",
+          "productId": "product-25",
+          "categoryId": "home",
+          "name": "Огурцы хрустящие",
+          "unit": "500 г",
+          "priceMinor": 55000,
+          "oldPriceMinor": null,
+          "stock": 15,
+          "quantity": 3,
+          "available": true,
+          "image": {
+            "src": "/seed/cucumber-400.webp",
+            "edgeColor": "#fcf2e5",
+            "contentBox": {
+              "x": 0.06515625,
+              "y": 0.1928125,
+              "w": 0.8775,
+              "h": 0.5948437499999999
+            },
+            "width": 1200,
+            "height": 1200,
+            "srcSet": "/seed/cucumber-400.webp 400w, /seed/cucumber-1200.webp 1200w",
+            "original": {
+              "src": "/seed/cucumber-1200.webp"
+            }
+          },
+          "totalMinor": 110000
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "3 по цене 2",
+          "amount": -55000,
+          "allocations": [
+            {
+              "variantId": "sku-25",
+              "amount": 55000,
+              "gifts": 1,
+              "units": [
+                {
+                  "quantity": 1,
+                  "paidMinor": 0
+                },
+                {
+                  "quantity": 2,
+                  "paidMinor": 55000
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "gift",
+            "count": 1,
+            "possible": 1
+          }
+        }
+      ],
+      "count": 3,
+      "totalMinor": 110000,
+      "itemsMinor": 165000,
+      "promo": {},
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "text",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 110000
+    }
+  },
+  {
+    "case": "gift6",
+    "result": {
+      "revision": 0,
+      "currency": "VND",
+      "lines": [
+        {
+          "key": 0,
+          "variantId": "sku-25",
+          "productId": "product-25",
+          "categoryId": "home",
+          "name": "Огурцы хрустящие",
+          "unit": "500 г",
+          "priceMinor": 55000,
+          "oldPriceMinor": null,
+          "stock": 15,
+          "quantity": 6,
+          "available": true,
+          "image": {
+            "src": "/seed/cucumber-400.webp",
+            "edgeColor": "#fcf2e5",
+            "contentBox": {
+              "x": 0.06515625,
+              "y": 0.1928125,
+              "w": 0.8775,
+              "h": 0.5948437499999999
+            },
+            "width": 1200,
+            "height": 1200,
+            "srcSet": "/seed/cucumber-400.webp 400w, /seed/cucumber-1200.webp 1200w",
+            "original": {
+              "src": "/seed/cucumber-1200.webp"
+            }
+          },
+          "totalMinor": 220000
+        }
+      ],
+      "adjustments": [
+        {
+          "kind": "promotion",
+          "sourceId": "example",
+          "sourceRevision": 0,
+          "label": "3 по цене 2",
+          "amount": -110000,
+          "allocations": [
+            {
+              "variantId": "sku-25",
+              "amount": 110000,
+              "gifts": 2,
+              "units": [
+                {
+                  "quantity": 2,
+                  "paidMinor": 0
+                },
+                {
+                  "quantity": 4,
+                  "paidMinor": 55000
+                }
+              ]
+            }
+          ],
+          "groups": {
+            "type": "gift",
+            "count": 2,
+            "possible": 2
+          }
+        }
+      ],
+      "count": 6,
+      "totalMinor": 220000,
+      "itemsMinor": 330000,
+      "promo": {},
+      "publicOffers": [],
+      "timeZone": "Asia/Ho_Chi_Minh",
+      "fulfillment": {
+        "delivery": {
+          "mode": "text",
+          "payee": "shop"
+        },
+        "pickup": {
+          "address": "45 Le Loi, Ho Chi Minh City",
+          "hours": "Ежедневно 09:00–20:00"
+        },
+        "requiredDetails": [],
+        "acceptingOrders": true,
+        "closedMessage": null,
+        "unavailable": {},
+        "banner": null,
+        "banners": []
+      },
+      "method": "pickup",
+      "deliveryMinor": 0,
+      "payableMinor": 220000
+    }
+  }
+]
