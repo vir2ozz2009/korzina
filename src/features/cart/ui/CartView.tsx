@@ -1,5 +1,5 @@
 import { ChevronRight, X } from "lucide-react";
-import { type ComponentProps, type ReactNode, useState } from "react";
+import { type ComponentProps, type ReactNode, useEffect, useState } from "react";
 import { Screen } from "../../../app/shell/Screen";
 import type { Cart, CartLine } from "../../../shared/contracts/cart";
 import type { ReceivingAvailability } from "../../../shared/contracts/receiving";
@@ -59,6 +59,9 @@ export function CartView({
 }: Props) {
   const [detail, setDetail] = useState<{ sourceId: string; variantId?: string }>();
   const detailAdjustment = cart?.adjustments.find(({ sourceId }) => sourceId === detail?.sourceId);
+  useEffect(() => {
+    if (!detailAdjustment) setDetail(undefined);
+  }, [detailAdjustment]);
   const currency = cart?.currency;
   const available = cart?.lines.filter((line) => line.available) ?? [];
   const courier =
@@ -237,7 +240,7 @@ export function CartView({
       )}
       {detail && (
         <CartGroupDetails
-          adjustment={detailAdjustment}
+          adjustment={promoBlocked ? undefined : detailAdjustment}
           part={detailAdjustment?.allocations?.find(({ variantId }) => variantId === detail.variantId)}
           {...{ cart, currency }}
           close={() => setDetail(undefined)}

@@ -34,7 +34,7 @@ it("отмена покупателя освобождает остаток од
   expect(await (await get("?tab=completed")).json()).toMatchObject({ orders: [{ number, stage: "cancelled" }] });
 });
 
-it("повтор блокирует изменившуюся цену и добавляет доступное количество поверх корзины один раз", async () => {
+it("CART-CLARITY Q2: повтор сохраняет текущий выбор, блокирует изменившуюся цену и добавляет доступное количество поверх корзины один раз", async () => {
   await catalogSql("UPDATE variants SET stock=5,price_minor=100000 WHERE id='sku-01'");
   const owner = await customer("sku-01");
   const quote = await getQuote(owner);
@@ -50,6 +50,13 @@ it("повтор блокирует изменившуюся цену и доб�
     }>();
   const command = (data: Awaited<ReturnType<typeof preview>>, key?: string) =>
     buy(path, { expectedCartRevision: data.expectedCartRevision, check: data.check }, owner, key);
+  const receiving = async () =>
+    (await getAuth("/api/receiving?shop=lavka", { Cookie: owner })).json<{ revision: number }>();
+  expect(await receiving()).toMatchObject({ effectiveMode: "delivery", receiving: null });
+  const state = await receiving();
+  expect(
+    (await buy("receiving", { expectedRevision: state.revision, receiving: { mode: "pickup" } }, owner)).status,
+  ).toBe(200);
   const before = await preview();
   await catalogSql("UPDATE variants SET price_minor=130000 WHERE id='sku-01'");
   expect((await command(before)).status).toBe(409);
@@ -58,4 +65,5 @@ it("повтор блокирует изменившуюся цену и доб�
   const key = crypto.randomUUID();
   expect(await (await command(after, key)).json()).toMatchObject({ cart: { count: 1 } });
   expect(await (await command(after, key)).json()).toMatchObject({ cart: { count: 1 } });
+  expect(await receiving()).toMatchObject({ effectiveMode: "pickup", explicitMode: "pickup" });
 });

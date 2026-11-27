@@ -198,3 +198,48 @@ it("FIX-PROMO-OPT · §6.1–4 треугольник использует по 
   expect(result.lines.map(({ totalMinor }) => totalMinor)).toEqual([150, 150, 150]);
   expect(result.adjustments.map(({ groups }) => groups?.count)).toEqual([1, 1, 1]);
 });
+
+it("CART-CLARITY П1–П4: проекция только применённых наборов, финансовые доли и тип кода", () => {
+  const bundle = offer(
+    "Комбо тест",
+    {
+      type: "bundle",
+      priceMinor: 60000,
+      limit: 2,
+      components: [
+        { variantId: "a", quantity: 1 },
+        { variantId: "b", quantity: 1 },
+      ],
+    },
+    { kind: "code", code: "COMBO" },
+  );
+  const result = calc([line("a", 40000, 3), line("b", 31000, 3), line("extra", 100000, 1)], [bundle], "COMBO");
+  expect(result.promo).toMatchObject({ reason: "applied", offerType: "bundle" });
+  expect(result.adjustments[0]).toMatchObject({
+    amount: -22000,
+    groups: {
+      count: 2,
+      possible: 3,
+      bundle: {
+        priceMinor: 60000,
+        totalMinor: 120000,
+        components: [
+          { variantId: "a", name: "a", unit: "125 г", quantity: 1 },
+          { variantId: "b", name: "b", unit: "125 г", quantity: 1 },
+        ],
+      },
+    },
+  });
+  expect(
+    result.adjustments[0].allocations
+      ?.flatMap((part) => part.units ?? [])
+      .reduce((sum, unit) => sum + unit.quantity * unit.paidMinor, 0),
+  ).toBe(120000);
+  expect(
+    calc(
+      [line("a", 40000, 1)],
+      [offer("code", undefined, { kind: "code", code: "SALE", discount: { type: "percent", value: 1000 } })],
+      "SALE",
+    ).promo,
+  ).toMatchObject({ reason: "applied", offerType: "discount" });
+});

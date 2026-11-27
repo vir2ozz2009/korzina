@@ -89,7 +89,22 @@ export function priceOffer(
       amount: -addMinor(...allocations.map(({ amount }) => amount)),
       code: terms.code,
       allocations,
-      groups: { type: group.type, count, possible, limit },
+      groups: {
+        type: group.type,
+        count,
+        possible,
+        limit,
+        ...(group.type === "bundle" && {
+          bundle: {
+            priceMinor: group.priceMinor,
+            totalMinor: multiplyMinor(group.priceMinor, count),
+            components: group.components.map(({ variantId, quantity }) => {
+              const line = lines.find((line) => line.variantId === variantId);
+              return { variantId, quantity, name: line?.name ?? "", unit: line?.unit ?? "" };
+            }),
+          },
+        }),
+      },
     },
   };
 }

@@ -143,6 +143,7 @@ export function priceGroups(
   const promo = { ...initial.promo };
   const entered = code && groups.find((offer) => manual(offer) && offer.terms.code === code);
   if (entered) {
+    promo.offerType = entered.terms.group?.type;
     const assessment = assessOffer(entered, source, buyer);
     promo.reason = best.adjustments.some((item) => item.sourceId === entered.id)
       ? "applied"

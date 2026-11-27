@@ -141,6 +141,8 @@ function calculateStandard(
   )[0];
   if (ranked.some(({ offer }) => offer.terms.kind === "code"))
     promo.reason = winner.offer.terms.kind === "code" ? "applied" : "better_automatic";
+  const entered = candidates.find(({ terms }) => terms.kind === "code" && terms.code === code);
+  if (entered) promo.offerType = entered.terms.group?.type ?? "discount";
   // A percentage competitor can also grow as goods are added. Do not promise a speculative win.
   const hint = hints
     .filter(
