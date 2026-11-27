@@ -15,6 +15,7 @@ const items: CartLine[] = [
     priceMinor: 55000,
     available: true,
     stock: 99,
+    image: { src: "/seed/tomato-photo-1200.webp", srcSet: "", original: { src: "/seed/tomato-photo-1200.webp" } },
   },
   {
     variantId: "cucumber",
@@ -25,6 +26,7 @@ const items: CartLine[] = [
     priceMinor: 5000,
     available: true,
     stock: 99,
+    image: { src: "/seed/cucumber-1200.webp", srcSet: "", original: { src: "/seed/cucumber-1200.webp" } },
   },
 ];
 const fulfillment = {

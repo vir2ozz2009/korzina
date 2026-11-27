@@ -6,6 +6,7 @@ import { currentSelection } from "../fulfillment/current-selection";
 import { pauseStatus } from "../fulfillment/pause";
 import { checkFulfillment, parseSelection, resolveFulfillment } from "../fulfillment/service";
 import { type Buyer, type Candidate, calculatePromo, promoLabel } from "./calculate";
+import { type DeliveryContext, deliveryContextFor } from "./delivery-calculation";
 import { bundleComponents } from "./group-catalog";
 import { type OfferRow, offerOf } from "./offers";
 
@@ -24,6 +25,7 @@ export function promoContext(
   now: number,
   publicOnly = false,
   offerId: string | null = null,
+  withDeliveryContext = true,
 ) {
   let buyer: Buyer = { confirmed, completed: 0, exactUsed: false };
   if (confirmed) {
@@ -40,8 +42,7 @@ export function promoContext(
   }
   const rows = storage.sql
     .exec<OfferRow & { delivery_settings: string | null; receiving: string | null }>(
-      `SELECT p.*, CASE WHEN json_extract(p.terms,'$.delivery')=1 THEN (SELECT value FROM settings WHERE key='fulfillment') END AS delivery_settings,
-      CASE WHEN json_extract(p.terms,'$.delivery')=1 THEN (SELECT receiving FROM carts WHERE customer=?) END AS receiving,COUNT(u.order_number) AS used, COUNT(CASE WHEN u.customer=? THEN 1 END) AS personal_used
+      `SELECT p.*, ${withDeliveryContext ? "CASE WHEN json_extract(p.terms,'$.delivery')=1 THEN (SELECT value FROM settings WHERE key='fulfillment') END AS delivery_settings,CASE WHEN json_extract(p.terms,'$.delivery')=1 THEN (SELECT receiving FROM carts WHERE customer=?) END AS receiving," : "NULL AS delivery_settings,NULL AS receiving,"}COUNT(u.order_number) AS used, COUNT(CASE WHEN u.customer=? THEN 1 END) AS personal_used
      FROM promo_offers p LEFT JOIN promo_uses u ON u.offer_id=p.id AND u.released_at IS NULL
      WHERE ${
        publicOnly
@@ -54,7 +55,7 @@ export function promoContext(
      GROUP BY p.id
      ORDER BY (p.state='published' AND COALESCE(p.starts_at,0)<=? AND COALESCE(p.ends_at,9007199254740991)>?) DESC,
       p.updated_at DESC,p.id`,
-      subject,
+      ...(withDeliveryContext ? [subject] : []),
       confirmed ? subject : null,
       ...(publicOnly ? [now, now, offerId, offerId] : [now, codes.code, codes.alternative]),
       now,
@@ -78,13 +79,13 @@ export function pricePromoCart(
   codes: PromoSelection,
   now = Date.now(),
   hasAutomatic = true,
-  source?: { maps?: boolean; timeZone?: string },
+  source?: { maps?: boolean; timeZone?: string; deliveryContext?: DeliveryContext },
 ) {
   if (!cart.currency) return cart;
   // The cart state already checked this shop's indexed automatic offers. Keep the no-offer hot path in budget.
   const { buyer, candidates, nextChangeAt, context } =
     hasAutomatic || codes.code || codes.alternative
-      ? promoContext(storage, subject, confirmed, codes, now)
+      ? promoContext(storage, subject, confirmed, codes, now, false, null, !source?.deliveryContext)
       : {
           buyer: { confirmed, completed: 0, exactUsed: false },
           candidates: [],
@@ -95,15 +96,13 @@ export function pricePromoCart(
   const receiving = settings && currentSelection(parseSelection(context.receiving), settings).receiving;
   const availability = settings && receiving ? checkFulfillment(settings, receiving) : null;
   const delivery =
-    availability?.mode === "delivery" && availability.available
-      ? {
-          feeMinor: availability.feeMinor,
-          applicable:
-            availability.payee === "shop" &&
-            !!settings &&
-            !pauseStatus(settings, source?.timeZone ?? defaultShopTimeZone, now).unavailable.delivery,
-        }
-      : undefined;
+    source?.deliveryContext ??
+    (context
+      ? deliveryContextFor(
+          availability,
+          !!settings && !!pauseStatus(settings, source?.timeZone ?? defaultShopTimeZone, now).unavailable.delivery,
+        )
+      : undefined);
   const label = (terms: Candidate["terms"]) => promoLabel(terms, (value) => formatMinor(value, cart.currency ?? "RUB"));
   const parts = cart.lines.length
     ? bundleComponents(

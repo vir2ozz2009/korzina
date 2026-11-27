@@ -9,6 +9,7 @@ import { readAvailability } from "../fulfillment/availability";
 import { currentSelection } from "../fulfillment/current-selection";
 import { pauseStatus } from "../fulfillment/pause";
 import { checkFulfillment, parseSelection, requireFulfillment, resolveFulfillment } from "../fulfillment/service";
+import { deliveryContextFor } from "../promo/delivery-calculation";
 import { checkoutPayments } from "./payment-settings";
 
 type Shop = ShopEnv["Bindings"];
@@ -49,14 +50,15 @@ export function purchaseSummary(env: Shop, subject: string) {
     env.timeZone ?? defaultShopTimeZone,
     Date.now(),
   );
+  const availability = selection.receiving ? checkFulfillment(settings, selection.receiving) : null;
   const cart = readCart(env.storage, subject, {
     id: env.shop.id,
     mediaOrigin: env.media.MEDIA_PUBLIC_URL,
     promotions: env.features.promotions,
     maps: env.features.maps,
     timeZone: env.timeZone,
+    deliveryContext: deliveryContextFor(availability, !!unavailable.delivery),
   });
-  const availability = selection.receiving ? checkFulfillment(settings, selection.receiving) : null;
   const deliveryMinor =
     availability?.available &&
     availability.mode === "delivery" &&
@@ -99,6 +101,10 @@ export function purchaseDraft(env: Shop, subject: string, kind: "guest" | "teleg
     promotions: env.features.promotions,
     maps: env.features.maps,
     timeZone: env.timeZone,
+    deliveryContext: deliveryContextFor(
+      receiving ? checkFulfillment(settings, receiving) : null,
+      !!unavailable.delivery,
+    ),
     now,
   });
   if (cart.review) throw new ApiError("QUOTE_CHANGED", "Подтвердите изменения в корзине", { cart });

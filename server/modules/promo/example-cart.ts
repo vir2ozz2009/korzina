@@ -9,6 +9,7 @@ import { toLine } from "../cart/quote";
 import { checkFulfillment, publicFulfillment, readFulfillment } from "../fulfillment/service";
 import { type Candidate, calculatePromo, promoLabel } from "./calculate";
 import { effectivePrice } from "./cart";
+import { deliveryContextFor } from "./delivery-calculation";
 import { exampleReceiving, selectExample } from "./example-selection";
 import { bundleComponents } from "./group-catalog";
 import { datesFor, validateTerms } from "./offers";
@@ -27,13 +28,7 @@ export function exampleCart(env: ShopEnv["Bindings"], input: z.infer<typeof prom
       : exampleReceiving(settings);
   const availability = receiving ? checkFulfillment(settings, receiving) : null;
   const fulfillment = publicFulfillment(settings, env.timeZone ?? defaultShopTimeZone, now);
-  const deliveryContext =
-    availability?.mode === "delivery" && availability.available
-      ? {
-          applicable: availability.payee === "shop" && !fulfillment.unavailable.delivery,
-          feeMinor: availability.feeMinor,
-        }
-      : undefined;
+  const deliveryContext = deliveryContextFor(availability, !!fulfillment.unavailable.delivery);
   validateTerms(env.storage, terms, true, true);
   const { start, end } = datesFor(terms, env.timeZone);
   const { currency } = env.storage.sql

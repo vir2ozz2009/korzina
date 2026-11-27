@@ -1,6 +1,14 @@
 import type { Cart } from "../../../src/shared/contracts/cart";
+import type { ReceivingAvailability } from "../../../src/shared/contracts/receiving";
 import { addMinor } from "../../../src/shared/money";
 import type { assess as assessOffer, Buyer, Candidate } from "./calculate";
+
+export type DeliveryContext = { feeMinor: number | null; applicable: boolean };
+export function deliveryContextFor(availability: ReceivingAvailability | null, paused = false): DeliveryContext {
+  return availability?.mode === "delivery" && availability.available
+    ? { feeMinor: availability.feeMinor, applicable: availability.payee === "shop" && !paused }
+    : { feeMinor: 0, applicable: false };
+}
 
 export function priceDelivery(
   cart: Cart,

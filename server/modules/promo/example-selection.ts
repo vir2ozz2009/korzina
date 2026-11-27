@@ -6,25 +6,23 @@ import { effectivePrice } from "./cart";
 // Read-only, bounded selection. Never borrows the seller's personal cart or addresses.
 export function selectExample(storage: DurableObjectStorage, terms: PromoTerms, now: number) {
   const effective = effectivePrice("v.", true, now);
+  const scope =
+    terms.group?.type === "bundle"
+      ? { type: "variants", ids: terms.group.components.map((part) => part.variantId) }
+      : terms.scope;
   const rows = storage.sql
-    .exec<{ id: string; productId: string; categoryId: string | null; price: number; stock: number | null }>(
-      `SELECT v.id,v.product_id AS productId,p.category_id AS categoryId,${effective.price} AS price,v.stock
-     FROM variants v JOIN products p ON p.id=v.product_id
+    .exec<{ id: string; price: number; stock: number | null }>(
+      `SELECT v.id,${effective.price} AS price,v.stock FROM variants v JOIN products p ON p.id=v.product_id
      WHERE v.visible AND v.product_available AND NOT v.product_paused AND v.sale_pause IS NULL
-     AND (v.stock IS NULL OR v.stock>0) ORDER BY v.id LIMIT 250`,
+     AND (v.stock IS NULL OR v.stock>0)
+     AND (?='all' OR CASE ? WHEN 'variants' THEN v.id WHEN 'products' THEN p.id ELSE p.category_id END IN (SELECT value FROM json_each(?)))
+     ${terms.kind === "code" && !terms.delivery && !terms.group ? `AND ${effective.old} IS NULL` : ""}
+     ORDER BY ${terms.delivery ? "price * MIN(999,COALESCE(v.stock,999)) DESC," : ""} v.id LIMIT 250`,
+      scope.type,
+      scope.type,
+      JSON.stringify("ids" in scope ? scope.ids : []),
     )
-    .toArray()
-    .filter(
-      (row) =>
-        terms.scope.type === "all" ||
-        terms.scope.ids.includes(
-          terms.scope.type === "variants"
-            ? row.id
-            : terms.scope.type === "products"
-              ? row.productId
-              : (row.categoryId ?? ""),
-        ),
-    );
+    .toArray();
   const selected: { variantId: string; quantity: number }[] = [];
   let sum = 0;
   let count = 0;
