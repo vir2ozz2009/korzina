@@ -3,8 +3,10 @@
   "before": "84e47718ff94a5c50e5bf588659f33411390a161",
   "after": "84e47718ff94a5c50e5bf588659f33411390a161",
   "method": "GET Mac HTML meta build-revision; not iPhone DOM",
-  "afterUtc": "2026-11-27T07:17:23.355709+00:00",
+  "afterUtc": "2026-11-27T07:33:24.531106+00:00",
   "originMainAfter": "84e47718ff94a5c50e5bf588659f33411390a161",
   "sellerSessionRevoked": true,
-  "nativeCleanupBlocked": "cgWindowNotFound after Safari Touch ID request"
+  "nativeCleanupCompleted": true,
+  "secondSellerSessionRevoked": true,
+  "localTokenFileRemoved": true
 }

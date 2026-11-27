@@ -1,0 +1,91 @@
+[
+  {
+    "offer": "eba50bd1-e814-4470-9388-65758263e90b",
+    "status": "disabled"
+  },
+  {
+    "offer": "20b0cb9e-5d7e-437c-a4c6-f6b7fb36b59a",
+    "status": "disabled"
+  },
+  {
+    "offer": "8afd8f13-0583-47e1-a475-8776bcff86bd",
+    "status": "disabled"
+  },
+  {
+    "deletedOwnProducts": {
+      "applied": [
+        "99884e18-b399-45bb-bbca-07ba43ea2e4d",
+        "e451acea-fb2d-4862-b0f2-887b697cb3f1",
+        "c9b597ea-777f-40d3-bd9f-06bc028541c9"
+      ],
+      "failed": [],
+      "revision": 712
+    }
+  },
+  {
+    "receivingRestored": true
+  },
+  {
+    "pausesRestored": true
+  },
+  {
+    "product": "product-05",
+    "salePause": null,
+    "variants": [
+      {
+        "id": "sku-05",
+        "stock": 19,
+        "priceMinor": 49000,
+        "oldPriceMinor": 61250
+      },
+      {
+        "id": "sku-06",
+        "stock": 25,
+        "priceMinor": 89000,
+        "oldPriceMinor": 116000
+      },
+      {
+        "id": "sku-07",
+        "stock": 30,
+        "priceMinor": 85000,
+        "oldPriceMinor": null
+      },
+      {
+        "id": "sku-08",
+        "stock": 0,
+        "priceMinor": 45000,
+        "oldPriceMinor": null
+      }
+    ]
+  },
+  {
+    "product": "product-13",
+    "salePause": null,
+    "variants": [
+      {
+        "id": "sku-13",
+        "stock": 17,
+        "priceMinor": 22000,
+        "oldPriceMinor": null
+      },
+      {
+        "id": "sku-14",
+        "stock": 25,
+        "priceMinor": 39000,
+        "oldPriceMinor": 51000
+      },
+      {
+        "id": "sku-15",
+        "stock": 30,
+        "priceMinor": 72000,
+        "oldPriceMinor": null
+      },
+      {
+        "id": "sku-16",
+        "stock": null,
+        "priceMinor": 35000,
+        "oldPriceMinor": null
+      }
+    ]
+  }
+]

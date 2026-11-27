@@ -238,6 +238,55 @@
     "note": ""
   },
   {
+    "file": "safari-33-triangle-components.png",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": "",
+    "savedAtMoscow": "2026-11-27T10:27:56.487190+03:00",
+    "sha256": "461e37265cc8004c2ae3a12ebcb24969c30cf8d1e3329b0172d0428628094398"
+  },
+  {
+    "file": "safari-34-triangle-single-details.png",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": "",
+    "savedAtMoscow": "2026-11-27T10:28:08.753067+03:00",
+    "sha256": "991d6e62d171bfb4a01a69ec8a411ded3376d0d9c890f6907f813af43e31f1c4"
+  },
+  {
+    "file": "safari-35-triangle-total450.png",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": "",
+    "savedAtMoscow": "2026-11-27T10:28:40.721981+03:00",
+    "sha256": "4f3f361e305a32553e9d49e8031420220c3b02bd74a9db906d86f08238fddd15"
+  },
+  {
+    "file": "safari-36-keyboard-accessory-only.png",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": "",
+    "savedAtMoscow": "2026-11-27T10:28:59.120531+03:00",
+    "sha256": "c4345bb65ac660d95cee9cf04a7f34dfb81362072d055ceae434f77b5aa98247"
+  },
+  {
+    "file": "safari-37-clean-empty-cart.png",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": "",
+    "savedAtMoscow": "2026-11-27T10:29:38.800618+03:00",
+    "sha256": "c19b794d0002ffbd76a040e07ce0fd280255bbb30fdae0263f824217d47fd2b8"
+  },
+  {
+    "file": "safari-38-clean-no-addresses.png",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": "",
+    "savedAtMoscow": "2026-11-27T10:30:09.254747+03:00",
+    "sha256": "29fc1771f588594832170c1d576ed677e1327e4c2780de747e1777312893f362"
+  },
+  {
+    "file": "safari-39-clean-logged-out.png",
+    "environment": "physical iPhone 18 Pro Max / iOS 27.2.1 / Safari via iPhone Mirroring",
+    "note": "",
+    "savedAtMoscow": "2026-11-27T10:30:25.136284+03:00",
+    "sha256": "a6519ac85b6d0086164cf474e0b52c1de340ed7fccbc3e75e2964493ccab911d"
+  },
+  {
     "file": "telegram-01-not-connected.png",
     "savedAtMoscow": "2026-11-27T09:50:56.749186+03:00",
     "sha256": "7c12013de85177404e00907a0e8997db6d366c5c4ba5db52cdc483876482d658",
