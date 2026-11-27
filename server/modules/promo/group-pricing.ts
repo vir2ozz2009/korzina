@@ -1,99 +1,10 @@
 import { cartTotals } from "../../../src/shared/cart-totals";
 import type { Cart, CartAdjustment, CartLine } from "../../../src/shared/contracts/cart";
-import { addMinor, allocateMinor, multiplyMinor } from "../../../src/shared/money";
 import type { assess, Buyer, Candidate, calculatePromo } from "./calculate";
 import type { BundleComponent } from "./group-catalog";
 import { groupHints } from "./group-hints";
-
-type Allocation = NonNullable<CartAdjustment["allocations"]>[number];
-type PricedGroup = { adjustment: CartAdjustment; consumed: Map<string, number> };
-
-function unitPrices(quantity: number, amount: number) {
-  const low = Math.floor(amount / quantity);
-  const high = amount % quantity;
-  return [
-    ...(quantity > high ? [{ quantity: quantity - high, paidMinor: low }] : []),
-    ...(high ? [{ quantity: high, paidMinor: low + 1 }] : []),
-  ];
-}
-
-function priceOffer(
-  offer: Candidate,
-  lines: CartLine[],
-  label: Parameters<typeof calculatePromo>[3],
-): PricedGroup | undefined {
-  const { terms } = offer;
-  const { group } = terms;
-  if (!group) return;
-  const consumed = new Map<string, number>();
-  let allocations: Allocation[];
-  let count = 0;
-  let possible = 0;
-  let limit: number | undefined;
-  if (group.type === "gift") {
-    const size = group.buy + group.gift;
-    limit = group.limit;
-    allocations = [];
-    for (const line of lines.toSorted(
-      (a, b) => b.priceMinor - a.priceMinor || a.variantId.localeCompare(b.variantId),
-    )) {
-      const full = Math.floor(line.quantity / size);
-      possible += full;
-      const groups = Math.min(full, (limit ?? Infinity) - count);
-      if (!groups || !line.priceMinor) continue;
-      count += groups;
-      const gifts = groups * group.gift;
-      consumed.set(line.variantId, groups * size);
-      allocations.push({
-        variantId: line.variantId,
-        amount: multiplyMinor(line.priceMinor, gifts),
-        gifts,
-        units: [
-          { quantity: gifts, paidMinor: 0 },
-          { quantity: groups * group.buy, paidMinor: line.priceMinor },
-        ],
-      });
-    }
-  } else {
-    limit = group.limit === null ? undefined : (group.limit ?? 1);
-    const components = group.components.toSorted((a, b) => a.variantId.localeCompare(b.variantId));
-    const byId = new Map(lines.map((line) => [line.variantId, line]));
-    possible = components.length
-      ? Math.min(
-          ...components.map(({ quantity, variantId }) => Math.floor((byId.get(variantId)?.quantity ?? 0) / quantity)),
-        )
-      : 0;
-    count = Math.min(possible, limit ?? Infinity);
-    if (!count) return;
-    const weights = components.map(({ variantId, quantity }) =>
-      multiplyMinor(byId.get(variantId)?.priceMinor ?? 0, quantity),
-    );
-    if (addMinor(...weights) <= group.priceMinor) return;
-    const shares = allocateMinor(group.priceMinor, weights);
-    allocations = components.map(({ variantId, quantity }, index) => {
-      consumed.set(variantId, quantity * count);
-      return {
-        variantId,
-        amount: multiplyMinor(weights[index] - shares[index], count),
-        units: unitPrices(quantity, shares[index]).map((unit) => ({ ...unit, quantity: unit.quantity * count })),
-      };
-    });
-  }
-  if (!count) return;
-  return {
-    consumed,
-    adjustment: {
-      kind: "promotion",
-      sourceId: offer.id,
-      sourceRevision: offer.revision,
-      label: label(terms),
-      amount: -addMinor(...allocations.map(({ amount }) => amount)),
-      code: terms.code,
-      allocations,
-      groups: { type: group.type, count, possible, limit },
-    },
-  };
-}
+import { priceOffer, priceOptions } from "./group-offer";
+import { inScope } from "./group-terms";
 
 const manual = (offer: Candidate) => offer.terms.kind === "code";
 const unresolved = (lines: CartLine[], consumed: Map<string, number>) =>
@@ -115,7 +26,8 @@ function resolveGroups(
   const source = cart.lines
     .filter((line) => line.available && line.quantity > 0)
     .map((line) => ({ ...line, quantity: Math.min(line.quantity, line.stock ?? line.quantity) }))
-    .filter((line) => line.quantity > 0);
+    .filter((line) => line.quantity > 0)
+    .sort((a, b) => a.variantId.localeCompare(b.variantId));
   const initial = standard(cart, standardOffers, buyer, label, code);
   const active = groups
     .filter((offer) => !manual(offer) || offer.terms.code === code)
@@ -126,6 +38,7 @@ function resolveGroups(
   function search(lines: CartLine[], offers: Candidate[], applied: CartAdjustment[], savings: number) {
     const signature = JSON.stringify([
       offers.map(({ id }) => id),
+      applied.some((item) => item.code),
       lines.map(({ variantId, quantity }) => [variantId, quantity]),
     ]);
     if ((signatures.get(signature) ?? -1) >= savings) return;
@@ -152,22 +65,42 @@ function resolveGroups(
       })
       .sort((a, b) => a.priced.adjustment.amount - b.priced.adjustment.amount);
     const subtotal = initial.itemsMinor ?? 0;
+    // Each unit can receive at most the largest per-unit saving of any remaining group.
+    // This fractional relaxation is an upper bound, never an approximate checkout price.
+    const unitSavings = new Map<string, number>();
+    for (const { offer, priced } of choices) {
+      const group = offer.terms.group;
+      for (const line of lines) {
+        const allocation = priced.adjustment.allocations?.find((item) => item.variantId === line.variantId);
+        const saving =
+          group?.type === "gift" && inScope(offer.terms, line)
+            ? (line.priceMinor * group.gift) / (group.buy + group.gift)
+            : (allocation?.amount ?? 0) / (priced.consumed.get(line.variantId) || 1);
+        unitSavings.set(line.variantId, Math.max(unitSavings.get(line.variantId) ?? 0, saving));
+      }
+    }
+    const groupUpper = Math.min(
+      -choices.reduce((sum, choice) => sum + choice.priced.adjustment.amount, 0),
+      lines.reduce((sum, line) => sum + Math.ceil(line.quantity * (unitSavings.get(line.variantId) ?? 0)), 0),
+    );
     const upper =
-      savings -
-      choices.reduce((sum, choice) => sum + choice.priced.adjustment.amount, 0) -
-      (legacy ?? initial).adjustments.reduce((sum, adjustment) => sum + adjustment.amount, 0);
+      savings + groupUpper - (legacy ?? initial).adjustments.reduce((sum, adjustment) => sum + adjustment.amount, 0);
     if (
       subtotal - upper > best.total ||
       (subtotal - upper === best.total && !best.adjustments.some((item) => item.code))
     )
       return;
-    for (const { offer, priced } of choices) {
-      search(
-        unresolved(lines, priced.consumed),
-        offers.filter((other) => other !== offer),
-        [...applied, priced.adjustment],
-        savings - priced.adjustment.amount,
-      );
+    for (const { offer } of choices) {
+      const assessment = assessOffer(offer, lines, buyer);
+      for (const priced of priceOptions(offer, assessment.lines ?? [], label)) {
+        if (subtotal - upper === best.total && !best.adjustments.some((item) => item.code)) return;
+        search(
+          unresolved(lines, priced.consumed),
+          offers.filter((other) => other !== offer),
+          [...applied, priced.adjustment],
+          savings - priced.adjustment.amount,
+        );
+      }
     }
   }
   if (active.length) search(source, active, [], 0);
@@ -186,8 +119,26 @@ export function priceGroups(
 ): Cart {
   const standardOffers = candidates.filter(({ terms }) => !terms.group);
   const groups = candidates.filter(({ terms }) => terms.group);
-  const resolve = (lines: CartLine[], availableGroups = groups) =>
-    resolveGroups({ ...cart, lines }, standardOffers, availableGroups, buyer, label, code, standard, assessOffer);
+  // One cache for the real basket, distinct top-ups and identical bundle hint comparisons.
+  const resolved = new Map<string, ReturnType<typeof resolveGroups>>();
+  const resolve = (lines: CartLine[], availableGroups = groups) => {
+    const key = JSON.stringify([lines, availableGroups.map(({ id }) => id)]);
+    let result = resolved.get(key);
+    if (!result) {
+      result = resolveGroups(
+        { ...cart, lines },
+        standardOffers,
+        availableGroups,
+        buyer,
+        label,
+        code,
+        standard,
+        assessOffer,
+      );
+      resolved.set(key, result);
+    }
+    return result;
+  };
   const { source, initial, best } = resolve(cart.lines);
   const promo = { ...initial.promo };
   const entered = code && groups.find((offer) => manual(offer) && offer.terms.code === code);

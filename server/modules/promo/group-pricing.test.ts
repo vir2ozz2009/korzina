@@ -183,3 +183,18 @@ it("§7.5 сохраняет участникам пропорциональны
   ]);
   expect(result.lines.map(({ totalMinor }) => totalMinor)).toEqual([80, 160, 75]);
 });
+
+it("FIX-PROMO-OPT · §6.1–4 треугольник использует по одному AB, AC, BC и даёт 450", () => {
+  const bundles = ["ab", "ac", "bc"].map((id) =>
+    offer(id, {
+      type: "bundle",
+      priceMinor: 150,
+      limit: null,
+      components: [...id].map((variantId) => ({ variantId, quantity: 1 })),
+    }),
+  );
+  const result = calc([line("a", 100, 2), line("b", 100, 2), line("c", 100, 2)], bundles);
+  expect(result.totalMinor).toBe(450);
+  expect(result.lines.map(({ totalMinor }) => totalMinor)).toEqual([150, 150, 150]);
+  expect(result.adjustments.map(({ groups }) => groups?.count)).toEqual([1, 1, 1]);
+});
