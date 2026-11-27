@@ -6,9 +6,9 @@ import type {
   SellerOrdersQuery,
 } from "../../shared/contracts/seller-order";
 import type { SellerOrderCalendar, SellerPackingList, SellerWorkday } from "../../shared/contracts/workday";
-import { checkResponse, HttpError } from "../../shared/http-error";
+import { HttpError } from "../../shared/http-error";
 import { commandHeaders } from "../../shared/shop-api";
-import { sellerSessionHeaders } from "./api";
+import { sellerHttp } from "./http";
 import { sellerMoneyRefresh } from "./money-api";
 
 const root = (store: string) => ["seller-orders", store] as const;
@@ -22,13 +22,7 @@ async function request(store: string, path: string, params: Record<string, unkno
   url.searchParams.set("store", store);
   for (const [key, value] of Object.entries(params))
     if (value !== undefined && value !== "") url.searchParams.set(key, String(value));
-  const answer = await fetch(url, {
-    ...init,
-    headers: { ...sellerSessionHeaders(), ...init.headers },
-    cache: "no-store",
-  });
-  await checkResponse(answer);
-  return answer;
+  return sellerHttp(url, { ...init, cache: "no-store" });
 }
 
 export function useSellerOrderList(store: string, selection: ListSelection, money: boolean) {

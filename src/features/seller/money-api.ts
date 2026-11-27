@@ -6,8 +6,8 @@ import type {
   SellerMoneyTask,
 } from "../../shared/contracts/seller-money";
 import type { SalesPeriod } from "../../shared/contracts/seller-sales";
-import { ConnectionError, checkResponse } from "../../shared/http-error";
-import { sellerSessionHeaders } from "./api";
+import { ConnectionError } from "../../shared/http-error";
+import { sellerHttp } from "./http";
 
 type Session = { store: string; account: string };
 type Selection = Partial<SalesPeriod> & { method?: "cash" | "transfer" | "unknown"; search?: string };
@@ -44,8 +44,7 @@ async function read<T>(
   const query = new URLSearchParams({ store: session.store });
   for (const [name, value] of Object.entries(filters)) if (value) query.set(name, value);
   try {
-    const response = await fetch(`/api/seller/money${path}?${query}`, { signal, headers: sellerSessionHeaders() });
-    await checkResponse(response);
+    const response = await sellerHttp(`/api/seller/money${path}?${query}`, { signal });
     return (await response.json()) as T;
   } catch (error) {
     if (error instanceof TypeError && !signal.aborted) throw new ConnectionError("Нет соединения", { cause: error });
