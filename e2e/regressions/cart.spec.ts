@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { checkOptimalBundles } from "../promo-optimal";
 import {
   address,
   anywhere,
@@ -31,6 +32,14 @@ async function newAddress(page: Page) {
 }
 
 test("BL-14 адрес остаётся после Самовывоз → Доставка", tag, async ({ page }) => {
+  await test.step("FIX-PROMO-OPT: минимум пересекающихся комбо и пересчёт", async () => {
+    const isolated = await page.context().newPage();
+    try {
+      await checkOptimalBundles(isolated);
+    } finally {
+      await isolated.close();
+    }
+  });
   await prepareCart(page);
   await saveDelivery(page);
   await page.goto(cart);

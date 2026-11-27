@@ -3,6 +3,7 @@ import { type Candidate, calculatePromo, promoLabel } from "../server/modules/pr
 import { cartTotals } from "../src/shared/cart-totals";
 import type { CartLine } from "../src/shared/contracts/cart";
 import type { Receiving } from "../src/shared/contracts/receiving";
+import { checkOptimalBundles } from "./promo-optimal";
 
 const item: CartLine = {
   variantId: "berry-125",
@@ -229,3 +230,7 @@ for (const width of [360, 390]) {
     });
   }
 }
+
+test("FIX-PROMO-OPT · пересекающиеся комбо, пересчёт и оформление · 390px", async ({ page }) => {
+  await checkOptimalBundles(page);
+});
