@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { catalogImageContract } from "./catalog";
-import { promoCode, promoReasons } from "./promo";
+import { deliveryBenefitContract, promoCode, promoReasons } from "./promo";
 
 const expectedRevision = z.number().int().nonnegative();
 const cartChangeInput = z.object({
@@ -31,6 +31,7 @@ export const cartCommandInput = z.union([
     code: promoCode,
     publicOfferId: z.string().max(120).optional(),
     comparedTotal: z.number().int().nonnegative().optional(),
+    comparedDeliveryMinor: z.number().int().nonnegative().nullable().optional(),
     expectedRevision,
   }),
 ]);
@@ -94,7 +95,7 @@ const cartAdjustment = z.object({
     .optional(),
 });
 const promoResult = z.object({
-  offerType: z.enum(["discount", "gift", "bundle"]).optional(),
+  offerType: z.enum(["discount", "gift", "bundle", "delivery"]).optional(),
   code: z.string().optional(),
   reason: z.enum(promoReasons).optional(),
   missingMinor: money.optional(),
@@ -128,6 +129,7 @@ const promoResult = z.object({
     .object({
       code: z.string(),
       totalMinor: money,
+      deliveryMinor: money.nullable().optional(),
       reason: z.enum(promoReasons).optional(),
       missingMinor: money.optional(),
       missingQuantity: z.number().optional(),
@@ -150,6 +152,14 @@ export const cartContract = z.object({
   totalMinor: money,
   adjustments: z.array(cartAdjustment),
   itemsMinor: money.optional(),
+  delivery: z
+    .object({
+      baseMinor: money.nullable(),
+      feeMinor: money.nullable(),
+      missingMinor: money.optional(),
+      benefit: deliveryBenefitContract.optional(),
+    })
+    .optional(),
   promo: promoResult.optional(),
   review: cartReview.optional(),
 });

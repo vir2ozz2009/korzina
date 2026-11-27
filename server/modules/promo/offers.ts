@@ -90,9 +90,32 @@ export function listOffers(storage: DurableObjectStorage, input: z.infer<typeof 
   };
 }
 
-export function validateTerms(storage: DurableObjectStorage, terms: PromoTerms, publishing: boolean) {
-  if (publishing && (!terms.name || (!terms.group && !terms.discount.value) || (terms.kind === "code" && !terms.code)))
+export function validateTerms(storage: DurableObjectStorage, terms: PromoTerms, publishing: boolean, preview = false) {
+  if (
+    publishing &&
+    (!terms.name ||
+      (!terms.delivery && !terms.group && !terms.discount.value) ||
+      (terms.kind === "code" && !terms.code))
+  )
     throw new ApiError("VALIDATION", "Укажите название, размер скидки и код, если он нужен");
+  if (terms.delivery) {
+    if (
+      terms.group ||
+      terms.scope.type !== "all" ||
+      terms.purchase ||
+      terms.minimumQuantity ||
+      terms.confirmed ||
+      terms.publicInCart ||
+      (terms.kind === "automatic" && (!terms.minimumMinor || terms.totalLimit || terms.personalLimit))
+    )
+      throw new ApiError("VALIDATION", "Проверьте условия бесплатной доставки");
+    const fulfillment =
+      !preview &&
+      storage.sql.exec<{ value: string }>("SELECT value FROM settings WHERE key='fulfillment'").toArray()[0];
+    if (!preview && (!fulfillment || !JSON.parse(fulfillment.value).delivery))
+      throw new ApiError("VALIDATION", "Сначала настройте доставку в получении заказов");
+    return;
+  }
   validateGroup(storage, terms, publishing);
   if (terms.group?.type === "bundle" || terms.scope.type === "all") return;
   const scope = terms.scope;
@@ -164,8 +187,23 @@ export function writeOffer(
     )
       throw new ApiError("VALIDATION", "Этот код уже занят на выбранный срок");
   }
-  const offerId = action === "repeat" ? crypto.randomUUID() : (id ?? crypto.randomUUID());
-  const revision = action === "repeat" ? 1 : (row?.revision ?? 0) + 1;
+  const automaticDelivery = terms.delivery && terms.kind === "automatic";
+  if (
+    automaticDelivery &&
+    !id &&
+    storage.sql.exec("SELECT 1 FROM promo_offers WHERE id='auto-delivery'").toArray().length
+  )
+    throw new ApiError("VERSION_CONFLICT", "Условие доставки уже существует. Откройте его из списка.");
+  if (id && automaticDelivery && id !== "auto-delivery")
+    throw new ApiError("VALIDATION", "Автоматическая доставка хранится в единственной записи");
+  if (id && id === "auto-delivery" && !automaticDelivery)
+    throw new ApiError("VALIDATION", "Эта запись хранит автоматическую бесплатную доставку");
+  const offerId = automaticDelivery
+    ? "auto-delivery"
+    : action === "repeat"
+      ? crypto.randomUUID()
+      : (id ?? crypto.randomUUID());
+  const revision = action === "repeat" && !automaticDelivery ? 1 : (row?.revision ?? 0) + 1;
   const state =
     action === "disable" || (action === "publish" && previous?.status === "disabled")
       ? "disabled"

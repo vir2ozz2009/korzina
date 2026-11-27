@@ -30,6 +30,37 @@ export function PromoConditions({
   );
   const unit = currencyUnit(currency);
   const money = (value?: number) => (value ? minorInput(value, currency).replace(/,0+$/u, "") : "");
+  if (terms.delivery)
+    return (
+      <Card>
+        <h3 className="text-title-3">Условия</h3>
+        <Input
+          label="Минимальная сумма товаров"
+          hint="После скидок на позиции, до общей скидки"
+          unit={unit}
+          inputMode="decimal"
+          defaultValue={money(terms.minimumMinor)}
+          onChange={(e) => patch({ minimumMinor: parseMinorInput(e.target.value, currency) || undefined })}
+        />
+        {terms.kind === "code" && (
+          <>
+            <Input
+              label="Сколько раз можно применить всего"
+              inputMode="numeric"
+              value={terms.totalLimit ?? ""}
+              onChange={(e) => patch({ totalLimit: Number(e.target.value) || undefined })}
+            />
+            <Input
+              label="Сколько раз одному покупателю"
+              inputMode="numeric"
+              value={terms.personalLimit ?? ""}
+              onChange={(e) => patch({ personalLimit: Number(e.target.value) || undefined })}
+            />
+            {terms.personalLimit && <p className="text-caption">Для личного лимита нужен Telegram.</p>}
+          </>
+        )}
+      </Card>
+    );
   return (
     <Card>
       <h3 className="text-title-3">Условия</h3>

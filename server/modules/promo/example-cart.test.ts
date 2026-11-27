@@ -116,3 +116,43 @@ it("§5.3 пример считает 1200 → 1080 → 1200, применяет
   await catalogSql("UPDATE catalog_state SET currency='VND' WHERE id=1");
   expect(await example("DRAFT10")).toMatchObject({ currency: "VND", totalMinor: 108_000 });
 });
+
+it("PROMO-EXAMPLE-TRANSFER · сервер готовит товары и учебную покупку из условий без записи в личную корзину", async () => {
+  const { headers } = await sellerFixture(shop);
+  const Cookie = await customer("sku-01");
+  const before = await readCart(Cookie);
+  const preview = async (changes: Partial<PromoTerms> = {}) => {
+    const response = await seller(
+      { ...headers, Cookie },
+      {
+        terms: {
+          ...terms,
+          scope: { type: "variants", ids: ["sku-01"] },
+          minimumMinor: 100000,
+          purchase: { mode: "exact", number: 3 },
+          ...changes,
+        },
+        enteredCode: "HOT",
+        automatic: true,
+        lines: [],
+        confirmed: false,
+        completed: 0,
+      },
+      "/example",
+    );
+    expect(response.status).toBe(200);
+    return response.json<Cart & { completed: number; confirmed: boolean; exampleProblem: string | null }>();
+  };
+  const prepared = await preview();
+  expect(prepared).toMatchObject({
+    completed: 2,
+    confirmed: true,
+    exampleProblem: null,
+    promo: { code: "HOT", reason: "applied" },
+    lines: [{ variantId: "sku-01", quantity: 3 }],
+  });
+  expect((await preview({ minimumMinor: 200000 })).lines[0].quantity).toBe(5);
+  expect((await preview({ throughDate: "2020-01-01" })).promo?.reason).toBe("expired");
+  expect(await readCart(Cookie)).toEqual(before);
+  expect(await catalogSql("SELECT COUNT(*) AS n FROM promo_uses")).toEqual([{ n: 0 }]);
+});

@@ -13,7 +13,14 @@ type LiveLine = Omit<CartLine, "image" | "productId" | "available"> & {
   available: 0 | 1;
   photo: { id: string; edgeColor: string | null; cropPosition: CropPosition | null } | null;
 };
-export type CartSource = { id: string; mediaOrigin: string; promotions?: boolean; now?: number };
+export type CartSource = {
+  id: string;
+  mediaOrigin: string;
+  promotions?: boolean;
+  now?: number;
+  maps?: boolean;
+  timeZone?: string;
+};
 
 export function toLine(live: LiveLine, source: CartSource, saved?: SavedLine): CartLine {
   if (!live.productId)

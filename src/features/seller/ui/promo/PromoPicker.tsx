@@ -1,4 +1,4 @@
-import { BadgePercent, Gift, Package, RotateCcw, ShoppingCart, Tag, UserPlus } from "lucide-react";
+import { BadgePercent, Gift, Package, RotateCcw, ShoppingCart, Tag, Truck, UserPlus } from "lucide-react";
 import type { PromoTerms } from "../../../../shared/contracts/promo";
 import { ListItem } from "../../../../ui/ListItem";
 import { Sheet } from "../../../../ui/Sheet";
@@ -105,6 +105,16 @@ export function PromoPicker({
                 }
               />
             </>
+          )}
+          {(step === "all" || step === "larger") && (
+            <ListItem
+              title="Бесплатная доставка от суммы"
+              subtitle="Автоматически"
+              icon={<Truck size={20} />}
+              onClick={() =>
+                create("automatic", { delivery: true, name: "Бесплатная доставка от суммы", minimumMinor: 1 })
+              }
+            />
           )}
           {step === "all" && (
             <ListItem title="Цена по акции на товар" icon={<Package size={20} />} onClick={() => setStep("price")} />

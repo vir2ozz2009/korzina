@@ -1,5 +1,10 @@
 import type { Cart, CartAdjustment } from "../../../src/shared/contracts/cart";
+import type { DeliveryBenefit } from "../../../src/shared/contracts/promo";
+import { defaultShopTimeZone } from "../../../src/shared/datetime";
 import { formatMinor } from "../../../src/shared/money";
+import { currentSelection } from "../fulfillment/current-selection";
+import { pauseStatus } from "../fulfillment/pause";
+import { checkFulfillment, parseSelection, resolveFulfillment } from "../fulfillment/service";
 import { type Buyer, type Candidate, calculatePromo, promoLabel } from "./calculate";
 import { bundleComponents } from "./group-catalog";
 import { type OfferRow, offerOf } from "./offers";
@@ -34,8 +39,9 @@ export function promoContext(
     buyer = { confirmed, completed, exactUsed: !!exact_used };
   }
   const rows = storage.sql
-    .exec<OfferRow>(
-      `SELECT p.*, COUNT(u.order_number) AS used, COUNT(CASE WHEN u.customer=? THEN 1 END) AS personal_used
+    .exec<OfferRow & { delivery_settings: string | null; receiving: string | null }>(
+      `SELECT p.*, CASE WHEN json_extract(p.terms,'$.delivery')=1 THEN (SELECT value FROM settings WHERE key='fulfillment') END AS delivery_settings,
+      CASE WHEN json_extract(p.terms,'$.delivery')=1 THEN (SELECT receiving FROM carts WHERE customer=?) END AS receiving,COUNT(u.order_number) AS used, COUNT(CASE WHEN u.customer=? THEN 1 END) AS personal_used
      FROM promo_offers p LEFT JOIN promo_uses u ON u.offer_id=p.id AND u.released_at IS NULL
      WHERE ${
        publicOnly
@@ -48,6 +54,7 @@ export function promoContext(
      GROUP BY p.id
      ORDER BY (p.state='published' AND COALESCE(p.starts_at,0)<=? AND COALESCE(p.ends_at,9007199254740991)>?) DESC,
       p.updated_at DESC,p.id`,
+      subject,
       confirmed ? subject : null,
       ...(publicOnly ? [now, now, offerId, offerId] : [now, codes.code, codes.alternative]),
       now,
@@ -59,7 +66,8 @@ export function promoContext(
     .flatMap((row) => [row.starts_at, row.ends_at])
     .filter((at): at is number => at !== null && at > now)
     .sort((a, b) => a - b)[0];
-  return { buyer, candidates, nextChangeAt };
+  const context = rows.find((row) => row.delivery_settings);
+  return { buyer, candidates, nextChangeAt, context };
 }
 
 export function pricePromoCart(
@@ -70,13 +78,32 @@ export function pricePromoCart(
   codes: PromoSelection,
   now = Date.now(),
   hasAutomatic = true,
+  source?: { maps?: boolean; timeZone?: string },
 ) {
   if (!cart.currency) return cart;
   // The cart state already checked this shop's indexed automatic offers. Keep the no-offer hot path in budget.
-  const { buyer, candidates, nextChangeAt } =
+  const { buyer, candidates, nextChangeAt, context } =
     hasAutomatic || codes.code || codes.alternative
       ? promoContext(storage, subject, confirmed, codes, now)
-      : { buyer: { confirmed, completed: 0, exactUsed: false }, candidates: [], nextChangeAt: undefined };
+      : {
+          buyer: { confirmed, completed: 0, exactUsed: false },
+          candidates: [],
+          nextChangeAt: undefined,
+          context: undefined,
+        };
+  const settings = context && resolveFulfillment(context.delivery_settings, source?.maps ?? true);
+  const receiving = settings && currentSelection(parseSelection(context.receiving), settings).receiving;
+  const availability = settings && receiving ? checkFulfillment(settings, receiving) : null;
+  const delivery =
+    availability?.mode === "delivery" && availability.available
+      ? {
+          feeMinor: availability.feeMinor,
+          applicable:
+            availability.payee === "shop" &&
+            !!settings &&
+            !pauseStatus(settings, source?.timeZone ?? defaultShopTimeZone, now).unavailable.delivery,
+        }
+      : undefined;
   const label = (terms: Candidate["terms"]) => promoLabel(terms, (value) => formatMinor(value, cart.currency ?? "RUB"));
   const parts = cart.lines.length
     ? bundleComponents(
@@ -92,7 +119,7 @@ export function pricePromoCart(
         now,
       )
     : undefined;
-  const priced = calculatePromo(cart, candidates, buyer, label, codes.code ?? undefined, parts);
+  const priced = calculatePromo(cart, candidates, buyer, label, codes.code ?? undefined, parts, delivery);
   if (priced.promo) {
     const nextPriceAt = Math.min(
       ...cart.lines.flatMap((line) => (line.nextPriceAt ? [line.nextPriceAt] : [])),
@@ -100,10 +127,11 @@ export function pricePromoCart(
     );
     if (Number.isFinite(nextPriceAt)) priced.promo.nextChangeAt = nextPriceAt;
     if (codes.alternative) {
-      const alternate = calculatePromo(cart, candidates, buyer, label, codes.alternative, parts);
+      const alternate = calculatePromo(cart, candidates, buyer, label, codes.alternative, parts, delivery);
       priced.promo.alternative = {
         code: codes.alternative,
         totalMinor: alternate.totalMinor,
+        deliveryMinor: alternate.delivery?.feeMinor,
         reason: alternate.promo?.reason,
         missingMinor: alternate.promo?.missingMinor,
         missingQuantity: alternate.promo?.missingQuantity,
@@ -118,8 +146,12 @@ export function consumePromotion(
   number: number,
   adjustments: CartAdjustment[] | undefined,
   customer: string | null,
+  delivery?: DeliveryBenefit,
 ) {
-  for (const winner of adjustments?.filter((item) => item.kind === "promotion") ?? []) {
+  const awards = [...(adjustments ?? [])];
+  if (delivery && delivery.state !== "released")
+    awards.push({ kind: "promotion", sourceId: delivery.offerId, label: delivery.name, amount: -delivery.amountMinor });
+  for (const winner of awards?.filter((item) => item.kind === "promotion") ?? []) {
     storage.sql.exec(
       "INSERT INTO promo_uses(order_number,offer_id,customer,purchase_number,amount_minor) VALUES(?,?,?,?,?)",
       number,

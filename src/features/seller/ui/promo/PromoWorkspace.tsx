@@ -4,7 +4,6 @@ import { Screen } from "../../../../app/shell/Screen";
 import { SellerTabs } from "../../../../app/shell/SellerTabs";
 import { sellerHistory } from "../../../../app/shell/tab-history";
 import type { PromoOffer, PromoTerms } from "../../../../shared/contracts/promo";
-import { promoTerms } from "../../../../shared/contracts/promo";
 import { HttpError } from "../../../../shared/http-error";
 import { Card } from "../../../../ui/Card";
 import { Header } from "../../../../ui/Header";
@@ -18,6 +17,7 @@ import { PromoList } from "./PromoList";
 import { type Action, type Panel, PromoPanel } from "./PromoPanel";
 import { PromoPicker } from "./PromoPicker";
 import { PromoResults } from "./PromoResults";
+import { validatedPromo } from "./validate";
 
 export function PromoWorkspace({
   store,
@@ -109,7 +109,7 @@ export function PromoWorkspace({
     setError("");
     mutation.mutate({ path: id ? `/${id}` : "", key, body });
   }
-  function start(kind: PromoTerms["kind"], preset?: Partial<PromoTerms>) {
+  function begin(kind: PromoTerms["kind"], preset?: Partial<PromoTerms>) {
     setTerms({
       kind,
       name: "",
@@ -124,27 +124,33 @@ export function PromoWorkspace({
     setChooser(undefined);
     setPanel("form");
   }
+  function start(kind: PromoTerms["kind"], preset?: Partial<PromoTerms>) {
+    if (kind === "automatic" && preset?.delivery) {
+      void promoRequest<{ offer: PromoOffer | null }>(store, "/delivery-policy")
+        .then(({ offer }) => {
+          if (offer) {
+            setChooser(undefined);
+            nav.open(`/seller/promotions/${offer.id}`, { back: nav.location.href });
+          } else begin(kind, preset);
+        })
+        .catch((failure) => setError(failure.message));
+    } else begin(kind, preset);
+  }
+  const deliveryOpened = useRef(false);
+  useEffect(() => {
+    if (nav.params.get("delivery") && !deliveryOpened.current) {
+      deliveryOpened.current = true;
+      start("automatic", { delivery: true, name: "Бесплатная доставка от суммы", minimumMinor: 1 });
+    }
+  });
   function review(next: "summary" | "example", candidate = terms) {
-    const parsed = promoTerms.safeParse(candidate);
-    if (
-      !parsed.success ||
-      !candidate?.name ||
-      (!candidate.group && !candidate.discount.value) ||
-      (candidate.group?.type === "gift" && candidate.scope.type === "all") ||
-      (candidate.group?.type === "bundle" &&
-        (!candidate.group.priceMinor ||
-          !candidate.group.components.length ||
-          new Set(candidate.group.components.map(({ variantId }) => variantId)).size !==
-            candidate.group.components.length)) ||
-      (candidate.kind === "code" && !candidate.code) ||
-      (candidate.scope.type !== "all" && !candidate.scope.ids.length) ||
-      (candidate.fromDate && candidate.throughDate && candidate.fromDate > candidate.throughDate)
-    ) {
+    const parsed = validatedPromo(candidate);
+    if (!parsed) {
       setError("Проверьте название, код, скидку, товары и срок.");
       setPanel("form");
       return;
     }
-    setTerms(parsed.data);
+    setTerms(parsed);
     setError("");
     setPanel(next);
   }
@@ -187,9 +193,9 @@ export function PromoWorkspace({
       )}
       {current && (
         <>
-          <PromoCard key={current.id} current={current} currency={currency} catalog={catalog.data} />
+          <PromoCard key={`card:${current.id}`} current={current} currency={currency} catalog={catalog.data} />
           <PromoResults
-            key={current.id}
+            key={`results:${current.id}`}
             offer={current}
             store={store}
             account={account}

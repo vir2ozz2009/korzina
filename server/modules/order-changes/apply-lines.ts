@@ -75,7 +75,12 @@ export function applyLines(
           : []
         : [item],
     );
-    storage.sql.exec("UPDATE promo_uses SET amount_minor=? WHERE order_number=?", savings, row.number);
+    storage.sql.exec(
+      "UPDATE promo_uses SET amount_minor=? WHERE order_number=? AND offer_id=?",
+      savings,
+      row.number,
+      promotion.sourceId,
+    );
   }
   snapshot.reservedStock = [...stock];
   snapshot.itemsMinor = addMinor(...lines.map(({ totalMinor }) => totalMinor));

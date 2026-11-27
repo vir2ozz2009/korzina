@@ -15,14 +15,17 @@ const descriptions: Partial<Record<PromoReason, string>> = {
   purchase_passed: "Скидка действует на другой номер заказа",
   purchase_used: "Скидка на эту покупку уже использована",
   scope: "Добавьте подходящие товары",
+  delivery: "Скидка на доставку недоступна при этом получении",
   regular_price: "Промокод действует на товары без скидки",
 };
 export function promoMessage(
-  promo: Pick<NonNullable<Cart["promo"]>, "reason" | "missingMinor" | "missingQuantity"> | undefined,
+  promo: Pick<NonNullable<Cart["promo"]>, "reason" | "missingMinor" | "missingQuantity" | "offerType"> | undefined,
   currency: string,
 ) {
   if (promo?.reason === "minimum" && promo.missingMinor)
-    return `Добавьте подходящих товаров ещё на ${formatMinor(promo.missingMinor, currency)}`;
+    return promo.offerType === "delivery"
+      ? `До бесплатной доставки по коду ещё ${formatMinor(promo.missingMinor, currency)}`
+      : `Добавьте подходящих товаров ещё на ${formatMinor(promo.missingMinor, currency)}`;
   if (promo?.reason === "quantity" && !promo.missingQuantity) return "Проверьте состав набора и условия акции";
   if (promo?.reason === "quantity") return `Добавьте подходящие товары · ещё ${promo.missingQuantity} шт.`;
   return promo?.reason && descriptions[promo.reason];

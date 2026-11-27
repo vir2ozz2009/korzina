@@ -143,7 +143,13 @@ export function placeOrder(env: Shop, actor: Actor, input: CheckoutCommand, comm
         }),
       )
       .one();
-    consumePromotion(storage, number, order.adjustments, actor.kind === "telegram" ? subject : null);
+    consumePromotion(
+      storage,
+      number,
+      order.adjustments,
+      actor.kind === "telegram" ? subject : null,
+      order.deliveryBenefit,
+    );
     storage.sql.exec("INSERT INTO order_outbox(order_number,event,created_at) VALUES(?,'order.placed',?)", number, now);
     removeOrderedLines(storage, subject, cart, storedReceiving);
     env.changes.orderPlaced(number);

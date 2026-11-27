@@ -99,3 +99,67 @@ it("§7.1 §13.21 ограничивает период местной полу�
   expect(typeof result.start === "number" && new Date(result.start).toISOString()).toBe("2026-11-25T21:00:00.000Z");
   expect(typeof result.end === "number" && new Date(result.end).toISOString()).toBe("2026-11-28T21:00:00.000Z");
 });
+
+it("A6 §9.2 §12A/B/D · порог в обе стороны, пустой код, минимум кода и исходный ноль", () => {
+  const automatic = offer("auto-delivery", { delivery: true, minimumMinor: 60000 });
+  const manual = offer("delivery-code", { delivery: true, kind: "code", code: "SHIP", minimumMinor: 50000 });
+  const price = (amount: number, code?: string, feeMinor: number | null = 12000, minimum = 60000) =>
+    calculatePromo(
+      cart([line("a", amount)]),
+      [{ ...automatic, terms: { ...automatic.terms, minimumMinor: minimum } }, manual],
+      buyer,
+      ({ name }) => name,
+      code,
+      undefined,
+      { applicable: true, feeMinor },
+    );
+  expect(price(55000)).toMatchObject({ totalMinor: 55000, delivery: { feeMinor: 12000, missingMinor: 5000 } });
+  expect(price(60000)).toMatchObject({
+    delivery: { feeMinor: 0, benefit: { offerId: "auto-delivery", amountMinor: 12000 } },
+  });
+  expect(price(60100)).toMatchObject({ delivery: { feeMinor: 0 } });
+  expect(price(59900)).toMatchObject({ delivery: { feeMinor: 12000, missingMinor: 100 } });
+  expect(price(55000, "")).toMatchObject({ delivery: { feeMinor: 12000 } });
+  expect(price(55000, "SHIP")).toMatchObject({ delivery: { feeMinor: 0, benefit: { code: "SHIP" } } });
+  expect(price(49900, "SHIP")).toMatchObject({
+    promo: { reason: "minimum", missingMinor: 100 },
+    delivery: { feeMinor: 12000 },
+  });
+  expect(price(80000, "SHIP", 12000, 150000).delivery?.missingMinor).toBeUndefined();
+  expect(price(80000, undefined, 12000, 150000).delivery?.missingMinor).toBe(70000);
+  for (const amount of [55000, 60000, 60100])
+    for (const code of [undefined, "SHIP"]) {
+      const result = price(amount, code, 0);
+      expect(result.delivery).toEqual({ feeMinor: 0, baseMinor: 0 });
+    }
+});
+
+it("A6 §6.1–3 §9.3 · оптимум с тарифом, позиционные скидки, поздний тариф и исключения", () => {
+  const delivery = offer("ship", { delivery: true, kind: "code", code: "SHIP", minimumMinor: 50000 });
+  const goods = offer("auto-goods", { discount: { type: "fixed", value: 3000 } });
+  const manualGoods = offer("goods", { kind: "code", code: "GOODS", discount: { type: "fixed", value: 7000 } });
+  const source = cart([line("a", 55000, { oldPriceMinor: 60000 })]);
+  const price = (feeMinor: number | null, applicable = true) =>
+    calculatePromo(source, [delivery, goods, manualGoods], buyer, ({ name }) => name, "SHIP", undefined, {
+      feeMinor,
+      applicable,
+    });
+  expect(price(12000)).toMatchObject({
+    totalMinor: 52000,
+    adjustments: [{ sourceId: "auto-goods" }],
+    delivery: { feeMinor: 0 },
+  });
+  expect(price(null)).toMatchObject({
+    delivery: { baseMinor: null, feeMinor: 0, benefit: { state: "reserved", amountMinor: 0 } },
+  });
+  expect(price(12000, false).delivery).toBeUndefined();
+  expect(price(null, false)).toMatchObject({ promo: { reason: "delivery" } });
+  expect(calculatePromo(source, [delivery], buyer, ({ name }) => name).delivery).toBeUndefined();
+  const invalid = { ...delivery, status: "ended" as const };
+  expect(
+    calculatePromo(source, [invalid], buyer, ({ name }) => name, "SHIP", undefined, {
+      applicable: true,
+      feeMinor: 12000,
+    }),
+  ).toMatchObject({ delivery: { feeMinor: 12000 }, promo: { reason: "expired" } });
+});

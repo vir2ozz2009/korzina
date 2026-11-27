@@ -16,6 +16,7 @@ export function quoteTerms(quote: PurchaseQuote) {
     adjustments: quote.adjustments ?? [],
     itemsMinor: quote.itemsMinor,
     deliveryMinor: quote.deliveryMinor,
+    deliveryBenefit: quote.deliveryBenefit,
     totalMinor: quote.totalMinor,
     receiving:
       receiving.mode === "pickup"

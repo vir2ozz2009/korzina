@@ -162,7 +162,7 @@ for (const width of [360, 390]) {
     await click("Создать акцию");
     await page.getByRole("button", { name: /Все виды акций/ }).click();
     await page.getByRole("button", { name: /Промокод/ }).click();
-    await expect(choice).toHaveValue("code");
+    await expect(form.getByLabel("Выгода", { exact: true })).toBeVisible();
     await form.getByRole("button", { name: "Назад" }).click();
     await page.getByRole("button", { name: /^Скидка Автоматически$/ }).click();
     await expect(form.getByLabel("Название")).toHaveValue("");

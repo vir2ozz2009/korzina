@@ -1,4 +1,4 @@
-import { ImageOff, Percent, Tag } from "lucide-react";
+import { ImageOff, Percent, Tag, Truck } from "lucide-react";
 import type { ComponentProps } from "react";
 import type { PromoOffer, PromoPrice, PromoStatus, PromoTerms } from "../../../../shared/contracts/promo";
 import { formatMinor, fromBasisPoints } from "../../../../shared/money";
@@ -48,6 +48,7 @@ export function personalLimit(terms: PromoTerms) {
 }
 
 export function promoBenefit(terms: PromoTerms, currency: string) {
+  if (terms.delivery) return "Бесплатная доставка";
   if (terms.group?.type === "gift") return `${terms.group.buy + terms.group.gift} по цене ${terms.group.buy}`;
   if (terms.group?.type === "bundle") return formatMinor(terms.group.priceMinor, currency);
   const discount = terms.discount;
@@ -89,7 +90,7 @@ export function promoConditions(terms: PromoTerms, currency: string, scope?: str
 const promoTile = `${interactive} block w-full rounded-xl bg-card p-4 text-left`;
 export function OfferTile({ offer, currency, onClick }: { offer: PromoOffer; currency: string; onClick: () => void }) {
   const { terms } = offer;
-  const Icon = terms.kind === "code" ? Tag : Percent;
+  const Icon = terms.delivery ? Truck : terms.kind === "code" ? Tag : Percent;
   return (
     <button type="button" className={promoTile} onClick={onClick}>
       <span className="flex items-start gap-2">

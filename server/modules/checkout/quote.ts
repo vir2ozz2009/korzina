@@ -53,6 +53,8 @@ export function purchaseSummary(env: Shop, subject: string) {
     id: env.shop.id,
     mediaOrigin: env.media.MEDIA_PUBLIC_URL,
     promotions: env.features.promotions,
+    maps: env.features.maps,
+    timeZone: env.timeZone,
   });
   const availability = selection.receiving ? checkFulfillment(settings, selection.receiving) : null;
   const deliveryMinor =
@@ -60,7 +62,7 @@ export function purchaseSummary(env: Shop, subject: string) {
     availability.mode === "delivery" &&
     availability.payee === "shop" &&
     !unavailable.delivery
-      ? (availability.feeMinor ?? 0)
+      ? (cart.delivery?.feeMinor ?? availability.feeMinor ?? 0)
       : 0;
   return {
     currency: cart.currency,
@@ -95,6 +97,8 @@ export function purchaseDraft(env: Shop, subject: string, kind: "guest" | "teleg
     id: env.shop.id,
     mediaOrigin: env.media.MEDIA_PUBLIC_URL,
     promotions: env.features.promotions,
+    maps: env.features.maps,
+    timeZone: env.timeZone,
     now,
   });
   if (cart.review) throw new ApiError("QUOTE_CHANGED", "Подтвердите изменения в корзине", { cart });
@@ -135,7 +139,9 @@ export function purchaseDraft(env: Shop, subject: string, kind: "guest" | "teleg
       minimumMinor: paymentSettings.minimumMinor,
     });
   const deliveryMinor =
-    fulfillment.mode === "delivery" && fulfillment.payee === "shop" ? (fulfillment.feeMinor ?? 0) : 0;
+    fulfillment.mode === "delivery" && fulfillment.payee === "shop"
+      ? (cart.delivery?.feeMinor ?? fulfillment.feeMinor ?? 0)
+      : 0;
   const totalMinor = addMinor(itemsMinor, deliveryMinor);
   const free = totalMinor === 0 && cart.adjustments.some((item) => item.kind === "promotion");
   if (!free && !paymentSettings.methods.length)
@@ -148,6 +154,7 @@ export function purchaseDraft(env: Shop, subject: string, kind: "guest" | "teleg
     itemsMinor,
     ...(cart.adjustments.length ? { itemsBeforeDiscountMinor: beforeDiscount } : {}),
     deliveryMinor,
+    ...(cart.delivery?.benefit && { deliveryBenefit: cart.delivery.benefit }),
     totalMinor,
     receiving,
     fulfillment,

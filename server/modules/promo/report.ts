@@ -16,8 +16,10 @@ type Filter = readonly [string, number, number];
 const thirtyDays = 30 * 86_400_000;
 const adjustment = (
   path: string,
-) => `(SELECT json_extract(value,'${path}') FROM json_each(json_extract(o.snapshot,'$.adjustments'))
-  WHERE json_extract(value,'$.sourceId')=u.offer_id LIMIT 1)`;
+) => `COALESCE((SELECT json_extract(value,'${path}') FROM json_each(json_extract(o.snapshot,'$.adjustments'))
+  WHERE json_extract(value,'$.sourceId')=u.offer_id LIMIT 1),
+  CASE WHEN json_extract(o.snapshot,'$.deliveryBenefit.offerId')=u.offer_id
+  THEN json_extract(o.snapshot,'$.deliveryBenefit.terms${path.slice(1)}') END)`;
 type PurchaseStats = {
   mode: "exact" | "from";
   target: number;

@@ -54,6 +54,10 @@ export const sellerPromoRoutes = new Hono<PromoEnv>()
         .toArray(),
     });
   })
+  .get("/delivery-policy", (c) => {
+    const exists = c.env.storage.sql.exec("SELECT 1 FROM promo_offers WHERE id='auto-delivery'").toArray().length;
+    return c.json({ offer: exists ? readOffer(c.env.storage, "auto-delivery") : null });
+  })
   .get("/:id", id, (c) => {
     const { storage } = c.env;
     const offer = readOffer(storage, c.req.valid("param").id);

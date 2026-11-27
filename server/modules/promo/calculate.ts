@@ -9,7 +9,7 @@ import {
   percentageMinor,
   roundMinor,
 } from "../../../src/shared/money";
-
+import { priceDelivery } from "./delivery-calculation";
 import type { BundleComponent } from "./group-catalog";
 import { priceGroups } from "./group-pricing";
 import { inScope } from "./group-terms";
@@ -24,6 +24,27 @@ export type Candidate = {
 };
 export type Buyer = { confirmed: boolean; completed: number; exactUsed: boolean };
 
+export function calculatePromo(
+  cart: Cart,
+  candidates: Candidate[],
+  buyer: Buyer,
+  label: (terms: PromoTerms) => string,
+  code?: string,
+  components?: ReadonlyMap<string, BundleComponent>,
+  delivery?: { feeMinor: number | null; applicable: boolean },
+): Cart {
+  const goods = candidates.filter(({ terms }) => !terms.delivery);
+  return priceDelivery(
+    cart,
+    candidates,
+    buyer,
+    code,
+    delivery,
+    (entered) => calculateGoods(cart, goods, buyer, label, entered, components),
+    assess,
+  );
+}
+
 function discountAmount(terms: PromoTerms, base: number, currency: string) {
   const unit = 10 ** currencyDigits(currency);
   const discount = terms.discount;
@@ -36,6 +57,8 @@ function discountAmount(terms: PromoTerms, base: number, currency: string) {
 }
 
 export function promoLabel(terms: PromoTerms, money: (amount: number) => string) {
+  if (terms.delivery)
+    return terms.kind === "code" ? `Бесплатная доставка по коду ${terms.code}` : "Бесплатная доставка от суммы";
   if (terms.group?.type === "gift") return `${terms.group.buy + terms.group.gift} по цене ${terms.group.buy}`;
   if (terms.group?.type === "bundle") return terms.name;
   if (terms.kind === "code") return `По промокоду ${terms.code}`;
@@ -60,7 +83,9 @@ export function assess(candidate: Candidate, lines: CartLine[], buyer: Buyer) {
     return { reason: status === "ended" ? "expired" : status === "scheduled" ? "scheduled" : "disabled" } as const;
   if (terms.totalLimit && used >= terms.totalLimit) return { reason: "limit" } as const;
   const scoped = lines.filter((line) => inScope(terms, line));
-  const eligibleLines = scoped.filter((line) => terms.group || terms.kind !== "code" || !line.oldPriceMinor);
+  const eligibleLines = scoped.filter(
+    (line) => terms.delivery || terms.group || terms.kind !== "code" || !line.oldPriceMinor,
+  );
   if (!eligibleLines.length) return { reason: scoped.length ? "regular_price" : "scope" } as const;
   if (!buyer.confirmed && (terms.confirmed || terms.purchase || terms.personalLimit))
     return { reason: "telegram" } as const;
@@ -81,7 +106,7 @@ export function assess(candidate: Candidate, lines: CartLine[], buyer: Buyer) {
   return { base, lines: eligibleLines } as const;
 }
 
-export function calculatePromo(
+function calculateGoods(
   cart: Cart,
   candidates: Candidate[],
   buyer: Buyer,

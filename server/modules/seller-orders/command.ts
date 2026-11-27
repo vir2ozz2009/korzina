@@ -90,6 +90,17 @@ export function changeSellerOrder(
       finance = reviewTopUp(storage, number, work, finance, input);
     } else {
       ({ finance, status, details } = changePayment(row, snapshot, finance, input));
+      if (input.action === "setDeliveryFee" && snapshot.deliveryBenefit) {
+        const benefit = snapshot.deliveryBenefit;
+        storage.sql.exec(
+          "UPDATE promo_uses SET amount_minor=?,released_at=? WHERE order_number=? AND offer_id=? AND released_at IS NULL",
+          benefit.amountMinor,
+          benefit.state === "released" ? Date.now() : null,
+          number,
+          benefit.offerId,
+        );
+        details = { baseMinor: input.amountMinor, deliveryBenefit: benefit, deliveryMinor: snapshot.deliveryMinor };
+      }
     }
     const balance = orderBalance(finance, snapshot.totalMinor, stage);
     if (!balance.debtMinor && (work.topUp || work.topUpPayment)) closeTopUp(storage, number, work);

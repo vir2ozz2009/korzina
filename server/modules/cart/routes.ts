@@ -18,6 +18,8 @@ export const cartRoutes = new Hono<ShopEnv>()
         id: c.env.shop.id,
         mediaOrigin: c.env.media.MEDIA_PUBLIC_URL,
         promotions: c.env.features.promotions,
+        maps: c.env.features.maps,
+        timeZone: c.env.timeZone,
       }),
     );
   })
@@ -42,7 +44,13 @@ export const cartRoutes = new Hono<ShopEnv>()
     const result = changeCart(
       c.env.storage,
       session.subject,
-      { id: c.env.shop.id, mediaOrigin: c.env.media.MEDIA_PUBLIC_URL, promotions: c.env.features.promotions },
+      {
+        id: c.env.shop.id,
+        mediaOrigin: c.env.media.MEDIA_PUBLIC_URL,
+        promotions: c.env.features.promotions,
+        maps: c.env.features.maps,
+        timeZone: c.env.timeZone,
+      },
       c.req.valid("json"),
       c.get("command"),
     );

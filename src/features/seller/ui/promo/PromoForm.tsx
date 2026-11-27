@@ -49,21 +49,23 @@ export function PromoForm({
               value={terms.name}
               onChange={(e) => patch({ name: e.target.value })}
             />
-            <PromoSelect
-              label="Способ применения"
-              value={terms.kind}
-              onChange={(event) => {
-                const kind = event.target.value === "code" ? "code" : "automatic";
-                patch({
-                  kind,
-                  code: kind === "automatic" ? undefined : terms.code,
-                  personalLimit: kind === "code" ? (terms.personalLimit ?? 1) : undefined,
-                });
-              }}
-            >
-              <option value="automatic">Автоматически</option>
-              <option value="code">По промокоду</option>
-            </PromoSelect>
+            {terms.kind !== "code" && !terms.delivery && (
+              <PromoSelect
+                label="Способ применения"
+                value={terms.kind}
+                onChange={(event) => {
+                  const kind = event.target.value === "code" ? "code" : "automatic";
+                  patch({
+                    kind,
+                    code: kind === "automatic" ? undefined : terms.code,
+                    personalLimit: kind === "code" ? (terms.personalLimit ?? 1) : undefined,
+                  });
+                }}
+              >
+                <option value="automatic">Автоматически</option>
+                <option value="code">По промокоду</option>
+              </PromoSelect>
+            )}
             {terms.kind === "code" && (
               <Input
                 label="Код"
@@ -72,88 +74,110 @@ export function PromoForm({
                 onChange={(e) => patch({ code: e.target.value || undefined })}
               />
             )}
-            <PromoSelect
-              label="Размер скидки"
-              value={terms.discount.type}
-              onChange={(e) =>
-                patch({
-                  discount: e.target.value === "fixed" ? { type: "fixed", value: 0 } : { type: "percent", value: 0 },
-                })
-              }
-            >
-              <option value="percent">Процент</option>
-              <option value="fixed">Сумма</option>
-            </PromoSelect>
-            <Input
-              key={terms.discount.type}
-              label={terms.discount.type === "percent" ? promoLabels.percent : promoLabels.fixed}
-              unit={terms.discount.type === "percent" ? "%" : unit}
-              inputMode="decimal"
-              defaultValue={
-                terms.discount.type === "percent"
-                  ? fromBasisPoints(terms.discount.value) || ""
-                  : money(terms.discount.value)
-              }
-              onChange={(e) =>
-                patch({
-                  discount: {
-                    ...terms.discount,
-                    value:
-                      terms.discount.type === "percent"
-                        ? toBasisPoints(e.target.value)
-                        : (parseMinorInput(e.target.value, currency) ?? 0),
-                  },
-                })
-              }
-            />
-          </Card>
-          <Card>
-            <PromoSelect
-              label="На какие товары"
-              inline
-              value={terms.scope.type}
-              onChange={(e) => {
-                const type = e.target.value as Scope;
-                patch({ scope: type === "all" ? { type } : { type, ids: [] } });
-              }}
-            >
-              <option value="all">Все товары</option>
-              <option value="variants">Фасовки</option>
-              <option value="products">Товары</option>
-              <option value="categories">Категории</option>
-            </PromoSelect>
-            {terms.scope.type !== "all" && (
-              <fieldset className="max-h-48 space-y-2 overflow-auto">
-                <legend>Подходящие позиции</legend>
-                {choices?.map((item) => (
-                  <label key={item.id} className="flex min-h-11 items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={terms.scope.type !== "all" && terms.scope.ids.includes(item.id)}
-                      onChange={(e) => {
-                        if (terms.scope.type === "all") return;
-                        const ids = terms.scope.ids.filter((id) => id !== item.id);
-                        if (e.target.checked) ids.push(item.id);
-                        patch({ scope: { ...terms.scope, ids } });
-                      }}
-                    />
-                    {item.name}
-                  </label>
-                ))}
-              </fieldset>
+            {terms.delivery && terms.kind === "automatic" ? (
+              <div className="flex min-h-11 items-center justify-between gap-2">
+                <span>Выгода</span>
+                <strong>Бесплатная доставка</strong>
+              </div>
+            ) : (
+              <PromoSelect
+                label={terms.kind === "code" ? "Выгода" : "Размер скидки"}
+                value={terms.delivery ? "delivery" : terms.discount.type}
+                onChange={(e) =>
+                  patch({
+                    delivery: e.target.value === "delivery" || undefined,
+                    discount: e.target.value === "fixed" ? { type: "fixed", value: 0 } : { type: "percent", value: 0 },
+                    ...(e.target.value === "delivery" && {
+                      scope: { type: "all" },
+                      purchase: undefined,
+                      confirmed: false,
+                      minimumQuantity: undefined,
+                      publicInCart: false,
+                    }),
+                  })
+                }
+              >
+                <option value="percent">Процент</option>
+                <option value="fixed">Сумма</option>
+                {(terms.kind === "code" || terms.delivery) && <option value="delivery">Бесплатная доставка</option>}
+              </PromoSelect>
+            )}
+            {!terms.delivery && (
+              <Input
+                key={terms.discount.type}
+                label={terms.discount.type === "percent" ? promoLabels.percent : promoLabels.fixed}
+                unit={terms.discount.type === "percent" ? "%" : unit}
+                inputMode="decimal"
+                defaultValue={
+                  terms.discount.type === "percent"
+                    ? fromBasisPoints(terms.discount.value) || ""
+                    : money(terms.discount.value)
+                }
+                onChange={(e) =>
+                  patch({
+                    discount: {
+                      ...terms.discount,
+                      value:
+                        terms.discount.type === "percent"
+                          ? toBasisPoints(e.target.value)
+                          : (parseMinorInput(e.target.value, currency) ?? 0),
+                    },
+                  })
+                }
+              />
             )}
           </Card>
+          {!terms.delivery && (
+            <Card>
+              <PromoSelect
+                label="На какие товары"
+                inline
+                value={terms.scope.type}
+                onChange={(e) => {
+                  const type = e.target.value as Scope;
+                  patch({ scope: type === "all" ? { type } : { type, ids: [] } });
+                }}
+              >
+                <option value="all">Все товары</option>
+                <option value="variants">Фасовки</option>
+                <option value="products">Товары</option>
+                <option value="categories">Категории</option>
+              </PromoSelect>
+              {terms.scope.type !== "all" && (
+                <fieldset className="max-h-48 space-y-2 overflow-auto">
+                  <legend>Подходящие позиции</legend>
+                  {choices?.map((item) => (
+                    <label key={item.id} className="flex min-h-11 items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={terms.scope.type !== "all" && terms.scope.ids.includes(item.id)}
+                        onChange={(e) => {
+                          if (terms.scope.type === "all") return;
+                          const ids = terms.scope.ids.filter((id) => id !== item.id);
+                          if (e.target.checked) ids.push(item.id);
+                          patch({ scope: { ...terms.scope, ids } });
+                        }}
+                      />
+                      {item.name}
+                    </label>
+                  ))}
+                </fieldset>
+              )}
+            </Card>
+          )}
           <PromoConditions {...{ terms, patch, currency }} />
-          <Card>
-            <Switch
-              label="Показывать в корзине покупателя"
-              checked={!!terms.publicInCart}
-              onChange={(event) => patch({ publicInCart: event.target.checked })}
-            />
-            <p className="text-caption text-muted-foreground">
-              Покупатели увидят условия предложения и смогут применить публичный промокод прямо из корзины.
-            </p>
-          </Card>
+          {!terms.delivery && (
+            <Card>
+              <Switch
+                label="Показывать в корзине покупателя"
+                checked={!!terms.publicInCart}
+                onChange={(event) => patch({ publicInCart: event.target.checked })}
+              />
+              <p className="text-caption text-muted-foreground">
+                Покупатели увидят условия предложения и смогут применить публичный промокод прямо из корзины.
+              </p>
+            </Card>
+          )}
         </>
       )}
       <Card>
