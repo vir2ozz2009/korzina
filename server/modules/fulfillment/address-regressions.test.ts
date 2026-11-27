@@ -114,6 +114,7 @@ it("CART-CLARITY П5–П8/Q1–Q4: явный выбор текущего за�
       receiving: null,
     });
     const next = readReceiving(storage, to);
+    expect(next.revision).toBe(cart.revision + 1);
     saveReceiving(storage, to, { expectedRevision: next.revision, mode: "delivery" });
     expect(readReceiving(storage, to)).toMatchObject({
       explicitMode: "delivery",

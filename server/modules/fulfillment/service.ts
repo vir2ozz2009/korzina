@@ -159,7 +159,7 @@ export function readReceiving(storage: DurableObjectStorage, customer: string) {
       customer,
     )
     .toArray();
-  return { revision: row?.revision ?? 0, ...parseSelection(row?.receiving) };
+  return { ...parseSelection(row?.receiving), revision: row?.revision ?? 0 };
 }
 
 export function writeReceiving(
