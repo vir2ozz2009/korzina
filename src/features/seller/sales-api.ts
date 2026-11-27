@@ -8,8 +8,8 @@ import {
   salesReport,
   salesSummary,
 } from "../../shared/contracts/seller-sales";
-import { checkResponse, HttpError } from "../../shared/http-error";
-import { sellerSessionHeaders } from "./api";
+import { HttpError } from "../../shared/http-error";
+import { sellerHttp } from "./http";
 
 export type SalesSession = { store: string; account: string; timeZone?: string; orders?: boolean };
 const sellerSalesKey = ["seller-sales"] as const;
@@ -25,11 +25,7 @@ async function read<T>(
 ) {
   const search = new URLSearchParams({ store });
   for (const [name, value] of Object.entries(params)) if (value !== undefined) search.set(name, value);
-  const response = await fetch(`/api/seller/statistics/${path}?${search}`, {
-    headers: sellerSessionHeaders(),
-    signal,
-  });
-  await checkResponse(response);
+  const response = await sellerHttp(`/api/seller/statistics/${path}?${search}`, { signal });
   return schema.parse(await response.json());
 }
 
