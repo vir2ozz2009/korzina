@@ -3,9 +3,11 @@ import { expect, it } from "vitest";
 import type { Cart } from "../../../src/shared/contracts/cart";
 import type { OrderResult } from "../../../src/shared/contracts/checkout";
 import type { PromoOffer, PromoTerms } from "../../../src/shared/contracts/promo";
+import { shopContexts } from "../../platform/shop-context";
 import { sellerFixture } from "../../testing/auth";
 import { catalogSql } from "../catalog/testing";
 import { buy, customer, getQuote } from "../checkout/testing";
+import { retainedPromos } from "../order-changes/promo-lines";
 import { readCart, seller, shop } from "./cart-followup-fixture";
 
 const common = {
@@ -76,10 +78,12 @@ it("FIX-PROMO-OPT · треугольник 450, пример 150, снимок 
   await env.PLATFORM.prepare("UPDATE feature_overrides SET enabled=0 WHERE shop_id=? AND key='promotions'")
     .bind(shop)
     .run();
+  shopContexts.invalidate(shop);
   expect(await readCart(Cookie)).toMatchObject({ totalMinor: 600, adjustments: [] });
   await env.PLATFORM.prepare("UPDATE feature_overrides SET enabled=1 WHERE shop_id=? AND key='promotions'")
     .bind(shop)
     .run();
+  shopContexts.invalidate(shop);
   const enabled = await readCart(Cookie);
   const applied = await buy("cart", { promoAction: "apply", code: "LOSE", expectedRevision: enabled.revision }, Cookie);
   expect(await applied.json()).toMatchObject({ totalMinor: 450, promo: { reason: "better_automatic" } });
@@ -107,5 +111,10 @@ it("FIX-PROMO-OPT · треугольник 450, пример 150, снимок 
   const stored = await catalogSql("SELECT snapshot FROM orders WHERE number=?", order.number);
   const snapshot = JSON.parse(String(stored[0].snapshot));
   expect(snapshot.itemsMinor).toBe(450);
+  for (const line of snapshot.lines) {
+    const retained = [...retainedPromos(snapshot, line, 1).values()];
+    expect(100 - retained.reduce((sum, part) => sum + part.amount, 0)).toBe(75);
+    expect([...retainedPromos(snapshot, line, 0).values()].reduce((sum, part) => sum + part.amount, 0)).toBe(0);
+  }
   expect(snapshot.adjustments.reduce((sum: number, a: { amount: number }) => sum - a.amount, 0)).toBe(150);
 });
