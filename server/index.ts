@@ -1,6 +1,8 @@
+import { exports } from "cloudflare:workers";
 import { Hono } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { AuthSecrets } from "./auth/config";
+import { scheduledBackup } from "./backup/service";
 import { isDevelopmentHost } from "./development";
 import { serveHtml } from "./html";
 import { handleError, notFound } from "./middleware/errors";
@@ -24,6 +26,7 @@ import { teamRoutes } from "./platform/team/routes";
 import { forwardToShop } from "./shop/forward";
 import { shopRoutes } from "./shop/routes";
 
+export { RestoreShop } from "./backup/RestoreShop";
 export { Shop } from "./shop/Shop";
 
 const forwarding = createMiddleware<{ Bindings: Env }>(async (c) => {
@@ -92,6 +95,9 @@ export const app = new Hono<{ Bindings: Env & AuthSecrets }>()
 
 export type AppType = typeof app;
 export default {
+  scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(scheduledBackup(env, exports, event.scheduledTime));
+  },
   fetch(request: Request, env: Env & AuthSecrets, ctx: ExecutionContext) {
     return new URL(request.url).pathname.startsWith("/api/") || new URL(request.url).pathname === "/api"
       ? app.fetch(request, env, ctx)

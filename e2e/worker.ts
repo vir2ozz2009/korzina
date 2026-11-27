@@ -116,6 +116,7 @@ export class Shop extends Store {
 }
 
 export default {
+  scheduled: worker.scheduled,
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(request.url);
     if (
@@ -204,3 +205,5 @@ export default {
     return new Response(null, { status: 204 });
   },
 };
+
+export { RestoreShop } from "../server/backup/RestoreShop";
