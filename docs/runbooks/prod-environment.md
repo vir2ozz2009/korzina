@@ -12,7 +12,7 @@
 | Копии | Существующий `korzina-backups`, префикс `korzina-prod/v1/` | ENAM; r2.dev выключен, custom domains отсутствуют; старые объекты не менялись |
 | Проверка восстановления | `korzina-prod-restore-platform`, `d2d162e4-a77d-4ab0-b264-d0d8bb1a7d18`; `korzina-prod-restore-media`; DO `RestoreShop` | D1/R2 созданы пустыми, WEUR; DO пока только в коде |
 
-Для demo/preview конфигурация использует отдельные backup/restore bindings с собственными именами; production backup bucket к ним не подключён. В подготовленной конфигурации новые адреса — `prod.korzina.app` и `media.prod.korzina.app`; их привязка **не выполнена**. `korzina.app`, `app.korzina.app`, `admin.korzina.app`, `lavka.korzina.app` и Lavka не переключались.
+Для demo/preview созданы отдельные backup/restore ресурсы: `korzina-demo-restore-platform` (`41294749-81f0-428e-adf3-2a6ff215c73b`), `korzina-preview-restore-platform` (`787c4ed6-f036-48f4-b1fc-af633b8365dd`), `korzina-{demo,preview}-backups` (ENAM) и `korzina-{demo,preview}-restore-media` (WEUR). Конфигурация использует их bindings; production backup bucket к ним не подключён. В подготовленной конфигурации новые адреса — `prod.korzina.app` и `media.prod.korzina.app`; их привязка **не выполнена**. `korzina.app`, `app.korzina.app`, `admin.korzina.app`, `lavka.korzina.app` и Lavka не переключались.
 
 ## Кандидат и будущий выпуск
 

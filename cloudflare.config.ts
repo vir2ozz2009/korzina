@@ -25,11 +25,13 @@ export default defineConfig(({ mode, isPreview }) => {
         BACKUPS: bindings.r2({
           name: production ? "korzina-backups" : `korzina-${isPreview ? "preview" : "demo"}-backups`,
         }),
-        RESTORE_PLATFORM: bindings.d1(
-          production
-            ? { id: "d2d162e4-a77d-4ab0-b264-d0d8bb1a7d18" }
-            : { name: `korzina-${isPreview ? "preview" : "demo"}-restore-platform` },
-        ),
+        RESTORE_PLATFORM: bindings.d1({
+          id: production
+            ? "d2d162e4-a77d-4ab0-b264-d0d8bb1a7d18"
+            : isPreview
+              ? "787c4ed6-f036-48f4-b1fc-af633b8365dd"
+              : "41294749-81f0-428e-adf3-2a6ff215c73b",
+        }),
         RESTORE_MEDIA: bindings.r2({
           name: `korzina-${production ? "prod" : isPreview ? "preview" : "demo"}-restore-media`,
         }),
