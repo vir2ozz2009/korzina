@@ -38,7 +38,7 @@ test("BL-14 адрес остаётся после Самовывоз → Дос
     const isolated = await page.context().newPage();
     try {
       await checkOptimalBundles(isolated);
-      await checkCartClarity(isolated, "e2e");
+      await checkCartClarity(isolated, new URLSearchParams(storefront).get("shop") ?? "test2");
     } finally {
       await isolated.close();
     }
