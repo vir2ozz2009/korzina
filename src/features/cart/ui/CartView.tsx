@@ -1,5 +1,5 @@
 import { ChevronRight, X } from "lucide-react";
-import { type ComponentProps, type ReactNode, useEffect, useState } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Screen } from "../../../app/shell/Screen";
 import type { Cart, CartLine } from "../../../shared/contracts/cart";
 import type { ReceivingAvailability } from "../../../shared/contracts/receiving";
@@ -14,6 +14,7 @@ import { CartGiftHints, CartGroupDetails, CartGroupPromos } from "./CartGroupPro
 import { CartNotice } from "./CartNotice";
 import { CartPromotion } from "./CartPromotion";
 import type { PublicOffers } from "./PublicCartPromos";
+import { useCartDetails } from "./useCartDetails";
 
 type Props = {
   cart?: Cart;
@@ -57,11 +58,7 @@ export function CartView({
   after,
   footer,
 }: Props) {
-  const [detail, setDetail] = useState<{ sourceId: string; variantId?: string }>();
-  const detailAdjustment = cart?.adjustments.find(({ sourceId }) => sourceId === detail?.sourceId);
-  useEffect(() => {
-    if (!detailAdjustment) setDetail(undefined);
-  }, [detailAdjustment]);
+  const details = useCartDetails(cart);
   const currency = cart?.currency;
   const available = cart?.lines.filter((line) => line.available) ?? [];
   const courier =
@@ -127,7 +124,7 @@ export function CartView({
           <button
             type="button"
             className="mt-2 inline-flex min-h-11 items-center gap-1 rounded-pill bg-status-success px-3 text-small font-semibold text-status-success-foreground"
-            onClick={() => setDetail({ sourceId: gift[0].item.sourceId, variantId: line.variantId })}
+            onClick={(event) => details.open(gift[0].item.sourceId, event.currentTarget, line.variantId)}
           >
             {giftCount} в подарок <ChevronRight size={14} aria-hidden />
           </button>
@@ -184,7 +181,7 @@ export function CartView({
               currency={currency}
               blocked={promoBlocked}
               add={addPromoItems}
-              open={(item) => setDetail({ sourceId: item.sourceId })}
+              open={(item, trigger) => details.open(item.sourceId, trigger)}
             />
             {cart.promo && (
               <CartPromotion
@@ -236,12 +233,13 @@ export function CartView({
           )}
         </>
       )}
-      {detail && (
+      {details.detail && (
         <CartGroupDetails
-          adjustment={promoBlocked ? undefined : detailAdjustment}
-          part={detailAdjustment?.allocations?.find(({ variantId }) => variantId === detail.variantId)}
+          adjustment={promoBlocked ? undefined : details.adjustment}
+          part={details.adjustment?.allocations?.find(({ variantId }) => variantId === details.detail?.variantId)}
           {...{ cart, currency }}
-          close={() => setDetail(undefined)}
+          close={details.close}
+          returnFocus={details.returnFocus}
         />
       )}
       {available.length > 0 && cart && !cart.review && !checking && footer}
