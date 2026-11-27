@@ -4,6 +4,7 @@ import { cartTotals } from "../src/shared/cart-totals";
 import type { CartLine } from "../src/shared/contracts/cart";
 import type { Receiving } from "../src/shared/contracts/receiving";
 import { checkCartClarity } from "./cart-clarity";
+import { checkDelivery } from "./promo-delivery";
 import { checkOptimalBundles } from "./promo-optimal";
 
 const item: CartLine = {
@@ -233,7 +234,8 @@ for (const width of [360, 390]) {
 }
 
 test("FIX-PROMO-OPT · пересекающиеся комбо, пересчёт и оформление · 390px", async ({ page }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(90_000);
   await checkOptimalBundles(page);
   await checkCartClarity(page);
+  await checkDelivery(page);
 });

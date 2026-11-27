@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import type { OrderStage } from "../../src/shared/contracts/buyer-order";
+import { checkDelivery } from "../promo-delivery";
 import { checkPromoReportRevocation } from "../promo-report-revocation";
 import {
   anywhere,
@@ -139,3 +140,8 @@ test("Блок 7 · пауза приёма видна на витрине и с
 test("12.1 §11 · K4c: 403 закрывает отчёт, суммы и детализацию", { tag: "@regression" }, ({ page }) =>
   checkPromoReportRevocation(page),
 );
+
+test("12.3 · готовый пример и порог доставки не требуют ручной подготовки", tag, async ({ page }) => {
+  test.setTimeout(90_000);
+  await checkDelivery(page, "e2e");
+});

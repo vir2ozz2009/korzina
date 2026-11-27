@@ -17,6 +17,7 @@ export const promoTerms = z.object({
   name: z.string().trim().max(120),
   kind: z.enum(promoKinds),
   code: promoCode.optional(),
+  delivery: z.boolean().optional(),
   discount: z.discriminatedUnion("type", [
     z.object({ type: z.literal("percent"), value: z.number().int().min(0).max(10_000), capMinor: minor.optional() }),
     z.object({ type: z.literal("fixed"), value: minor.or(z.literal(0)) }),
@@ -61,6 +62,7 @@ export const promoExampleInput = z.object({
   enteredCode: promoCode.nullable().optional(),
   publicOfferId: id.optional(),
   receiving: z.enum(["pickup", "delivery"]).optional(),
+  automatic: z.boolean().optional(),
   lines: z.array(z.object({ variantId: id, quantity: count.max(999) })).max(50),
   confirmed: z.boolean(),
   completed: z.number().int().min(0).max(1_000_000),
@@ -82,6 +84,7 @@ export const promoReasons = [
   "quantity",
   "scope",
   "regular_price",
+  "delivery",
 ] as const;
 export type PromoReason = (typeof promoReasons)[number];
 export type PromoTerms = z.infer<typeof promoTerms>;
@@ -130,3 +133,16 @@ export type PublicPromo = Pick<
   missingMinor?: number;
   missingQuantity?: number;
 };
+
+export const deliveryBenefitContract = z.object({
+  offerId: z.string(),
+  revision: z.number().int(),
+  code: z.string().optional(),
+  name: z.string(),
+  baseMinor: z.number().int().nonnegative().nullable(),
+  quotedBaseMinor: z.number().int().nonnegative().nullable().optional(),
+  terms: promoTerms.optional(),
+  amountMinor: z.number().int().nonnegative(),
+  state: z.enum(["reserved", "applied", "released"]),
+});
+export type DeliveryBenefit = z.infer<typeof deliveryBenefitContract>;

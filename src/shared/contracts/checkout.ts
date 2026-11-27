@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { CartAdjustment, CartLine } from "./cart";
+import type { DeliveryBenefit } from "./promo";
 import type { Receiving, ReceivingAvailability } from "./receiving";
 import type { TimeChoice } from "./receiving-time";
 import { type PaymentOption, paymentOptionId, paymentOptionInput } from "./seller-payments";
@@ -49,6 +50,7 @@ export type PurchaseQuote = {
   itemsMinor: number;
   itemsBeforeDiscountMinor?: number;
   deliveryMinor: number;
+  deliveryBenefit?: DeliveryBenefit;
   totalMinor: number;
   receiving: Receiving;
   fulfillment: Extract<ReceivingAvailability, { available: true }>;

@@ -29,7 +29,14 @@ export function ComparePromoCodes({
         {code} · {formatMinor(addMinor(totalMinor, deliveryMinor), currency)}
       </p>
       <p>
-        {alternative.code} · {formatMinor(addMinor(alternative.totalMinor, deliveryMinor), currency)}
+        {alternative.code} ·{" "}
+        {formatMinor(
+          addMinor(
+            alternative.totalMinor,
+            alternative.deliveryMinor === undefined ? deliveryMinor : (alternative.deliveryMinor ?? 0),
+          ),
+          currency,
+        )}
       </p>
       {note && <p>{note}</p>}
       <Button full disabled={alternative.reason === "unknown"} loading={pending} onClick={replace}>

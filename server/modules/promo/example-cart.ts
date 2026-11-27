@@ -6,16 +6,30 @@ import { ApiError } from "../../../src/shared/errors";
 import { addMinor, formatMinor } from "../../../src/shared/money";
 import type { ShopEnv } from "../../shop/env";
 import { toLine } from "../cart/quote";
-import { publicFulfillment, readFulfillment } from "../fulfillment/service";
+import { checkFulfillment, publicFulfillment, readFulfillment } from "../fulfillment/service";
 import { type Candidate, calculatePromo, promoLabel } from "./calculate";
 import { effectivePrice } from "./cart";
+import { deliveryContextFor } from "./delivery-calculation";
+import { exampleReceiving, selectExample } from "./example-selection";
 import { bundleComponents } from "./group-catalog";
 import { datesFor, validateTerms } from "./offers";
 import { assessPublicCandidates, describePublicPromos } from "./public-cart";
 
 export function exampleCart(env: ShopEnv["Bindings"], input: z.infer<typeof promoExampleInput>, now = Date.now()) {
-  const { terms, lines, completed, confirmed, enteredCode } = input;
-  validateTerms(env.storage, terms, true);
+  const { terms, enteredCode } = input;
+  const settings = readFulfillment(env.storage, env.features.maps);
+  const selected = input.automatic ? selectExample(env.storage, terms, now) : { lines: input.lines, problem: null };
+  const lines = selected.lines;
+  const completed = input.automatic ? Math.max(0, (terms.purchase?.number ?? 1) - 1) : input.completed;
+  const confirmed = input.automatic ? true : input.confirmed;
+  const receiving =
+    input.receiving === "pickup" || (!input.receiving && !terms.delivery && settings.pickup)
+      ? { mode: "pickup" as const }
+      : exampleReceiving(settings);
+  const availability = receiving ? checkFulfillment(settings, receiving) : null;
+  const fulfillment = publicFulfillment(settings, env.timeZone ?? defaultShopTimeZone, now);
+  const deliveryContext = deliveryContextFor(availability, !!fulfillment.unavailable.delivery);
+  validateTerms(env.storage, terms, true, true);
   const { start, end } = datesFor(terms, env.timeZone);
   const { currency } = env.storage.sql
     .exec<{ currency: string }>("SELECT currency FROM catalog_state WHERE id=1")
@@ -62,23 +76,30 @@ export function exampleCart(env: ShopEnv["Bindings"], input: z.infer<typeof prom
     (value) => promoLabel(value, (amount) => formatMinor(amount, currency)),
     enteredCode ?? undefined,
     bundleComponents(env.storage, [candidate], now),
+    deliveryContext,
   );
-  const fulfillment = publicFulfillment(
-    readFulfillment(env.storage, env.features.maps),
-    env.timeZone ?? defaultShopTimeZone,
-    now,
-  );
-  const method =
-    input.receiving && fulfillment[input.receiving] && !fulfillment.unavailable[input.receiving]
-      ? input.receiving
-      : fulfillment.pickup && !fulfillment.unavailable.pickup
-        ? "pickup"
-        : fulfillment.delivery && !fulfillment.unavailable.delivery
-          ? "delivery"
-          : null;
-  const deliveryMinor = method === "pickup" ? 0 : null;
+  const method = receiving?.mode ?? null;
+  const deliveryMinor =
+    method === "pickup"
+      ? 0
+      : (priced.delivery?.feeMinor ??
+        (availability?.mode === "delivery" && availability.available && availability.payee === "shop"
+          ? availability.feeMinor
+          : null));
+  const problem =
+    selected.problem ??
+    (terms.delivery && !settings.delivery
+      ? "Доставка не настроена. Откройте настройки получения."
+      : terms.delivery && fulfillment.unavailable.delivery
+        ? "Доставка сейчас недоступна. Проверьте настройки получения."
+        : null);
   return {
     ...priced,
+    exampleProblem: problem,
+    receiving,
+    availability,
+    confirmed,
+    completed,
     publicOffers: describePublicPromos(env.storage, publicOffers),
     timeZone: env.timeZone ?? defaultShopTimeZone,
     fulfillment,

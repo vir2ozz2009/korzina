@@ -9,9 +9,9 @@ import {
   percentageMinor,
   roundMinor,
 } from "../../../src/shared/money";
-
+import { priceDelivery } from "./delivery-calculation";
 import type { BundleComponent } from "./group-catalog";
-import { priceGroups } from "./group-pricing";
+import { type PriceScorer, priceGroups } from "./group-pricing";
 import { inScope } from "./group-terms";
 
 export type Candidate = {
@@ -23,6 +23,48 @@ export type Candidate = {
   personalUsed: number;
 };
 export type Buyer = { confirmed: boolean; completed: number; exactUsed: boolean };
+
+export function calculatePromo(
+  cart: Cart,
+  candidates: Candidate[],
+  buyer: Buyer,
+  label: (terms: PromoTerms) => string,
+  code?: string,
+  components?: ReadonlyMap<string, BundleComponent>,
+  delivery?: { feeMinor: number | null; applicable: boolean },
+): Cart {
+  const goods = candidates.filter(({ terms }) => !terms.delivery);
+  const score: PriceScorer | undefined =
+    delivery?.applicable &&
+    candidates.some(
+      (candidate) =>
+        candidate.terms.delivery &&
+        (candidate.terms.kind === "automatic" || candidate.terms.code === code) &&
+        "base" in
+          assess(
+            candidate,
+            cart.lines.filter((line) => line.available && line.quantity > 0),
+            buyer,
+            cart.itemsMinor ?? cart.totalMinor,
+          ),
+    )
+      ? (value) => {
+          const result = priceDelivery(value, candidates, buyer, code, delivery, assess);
+          return {
+            total: addMinor(result.totalMinor, result.delivery?.feeMinor ?? 0),
+            usesCode: result.adjustments.some((item) => !!item.code) || !!result.delivery?.benefit?.code,
+          };
+        }
+      : undefined;
+  return priceDelivery(
+    calculateGoods(cart, goods, buyer, label, code, components, score),
+    candidates,
+    buyer,
+    code,
+    delivery,
+    assess,
+  );
+}
 
 function discountAmount(terms: PromoTerms, base: number, currency: string) {
   const unit = 10 ** currencyDigits(currency);
@@ -36,6 +78,8 @@ function discountAmount(terms: PromoTerms, base: number, currency: string) {
 }
 
 export function promoLabel(terms: PromoTerms, money: (amount: number) => string) {
+  if (terms.delivery)
+    return terms.kind === "code" ? `Бесплатная доставка по коду ${terms.code}` : "Бесплатная доставка от суммы";
   if (terms.group?.type === "gift") return `${terms.group.buy + terms.group.gift} по цене ${terms.group.buy}`;
   if (terms.group?.type === "bundle") return terms.name;
   if (terms.kind === "code") return `По промокоду ${terms.code}`;
@@ -54,13 +98,15 @@ export function promoLabel(terms: PromoTerms, money: (amount: number) => string)
     : `${label} · ${discount.value / 100}%${discount.capMinor ? `, до ${money(discount.capMinor)}` : ""}`;
 }
 
-export function assess(candidate: Candidate, lines: CartLine[], buyer: Buyer) {
+export function assess(candidate: Candidate, lines: CartLine[], buyer: Buyer, baseMinor?: number) {
   const { terms, status, used, personalUsed } = candidate;
   if (status !== "active")
     return { reason: status === "ended" ? "expired" : status === "scheduled" ? "scheduled" : "disabled" } as const;
   if (terms.totalLimit && used >= terms.totalLimit) return { reason: "limit" } as const;
   const scoped = lines.filter((line) => inScope(terms, line));
-  const eligibleLines = scoped.filter((line) => terms.group || terms.kind !== "code" || !line.oldPriceMinor);
+  const eligibleLines = scoped.filter(
+    (line) => terms.delivery || terms.group || terms.kind !== "code" || !line.oldPriceMinor,
+  );
   if (!eligibleLines.length) return { reason: scoped.length ? "regular_price" : "scope" } as const;
   if (!buyer.confirmed && (terms.confirmed || terms.purchase || terms.personalLimit))
     return { reason: "telegram" } as const;
@@ -72,7 +118,7 @@ export function assess(candidate: Candidate, lines: CartLine[], buyer: Buyer) {
       if (buyer.exactUsed) return { reason: "purchase_used" } as const;
     }
   }
-  const base = addMinor(...eligibleLines.map((line) => multiplyMinor(line.priceMinor, line.quantity)));
+  const base = baseMinor ?? addMinor(...eligibleLines.map((line) => multiplyMinor(line.priceMinor, line.quantity)));
   const quantity = eligibleLines.reduce((sum, line) => sum + line.quantity, 0);
   if (quantity < (terms.minimumQuantity ?? 0))
     return { reason: "quantity", missingQuantity: (terms.minimumQuantity ?? 0) - quantity } as const;
@@ -81,17 +127,18 @@ export function assess(candidate: Candidate, lines: CartLine[], buyer: Buyer) {
   return { base, lines: eligibleLines } as const;
 }
 
-export function calculatePromo(
+function calculateGoods(
   cart: Cart,
   candidates: Candidate[],
   buyer: Buyer,
   label: (terms: PromoTerms) => string,
   code?: string,
   components?: ReadonlyMap<string, BundleComponent>,
+  score?: PriceScorer,
 ): Cart {
   if (!cart.currency || !candidates.some(({ terms }) => terms.group))
     return calculateStandard(cart, candidates, buyer, label, code);
-  return priceGroups(cart, candidates, buyer, label, code, calculateStandard, assess, components);
+  return priceGroups(cart, candidates, buyer, label, code, calculateStandard, assess, components, score);
 }
 
 function calculateStandard(

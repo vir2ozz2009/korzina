@@ -2,6 +2,7 @@ import { cartTotals } from "../../../src/shared/cart-totals";
 import type { Cart, CartIssue, CartLine, CartReview } from "../../../src/shared/contracts/cart";
 import type { CropPosition } from "../../../src/shared/contracts/media";
 import { catalogImage } from "../catalog/images";
+import type { DeliveryContext } from "../promo/delivery-calculation";
 
 export type SavedLine = Pick<
   CartLine,
@@ -13,7 +14,15 @@ type LiveLine = Omit<CartLine, "image" | "productId" | "available"> & {
   available: 0 | 1;
   photo: { id: string; edgeColor: string | null; cropPosition: CropPosition | null } | null;
 };
-export type CartSource = { id: string; mediaOrigin: string; promotions?: boolean; now?: number };
+export type CartSource = {
+  id: string;
+  mediaOrigin: string;
+  promotions?: boolean;
+  now?: number;
+  maps?: boolean;
+  timeZone?: string;
+  deliveryContext?: DeliveryContext;
+};
 
 export function toLine(live: LiveLine, source: CartSource, saved?: SavedLine): CartLine {
   if (!live.productId)

@@ -59,6 +59,7 @@ export function CartPromotion({
     code = input,
     comparedTotal?: number,
     publicOfferId?: string,
+    comparedDeliveryMinor?: number | null,
   ) => {
     if (mutation.isPending) return;
     setError("");
@@ -66,7 +67,7 @@ export function CartPromotion({
     const request =
       action === "remove" || action === "keep"
         ? ({ promoAction: action, expectedRevision } as const)
-        : { promoAction: action, code, expectedRevision, comparedTotal, publicOfferId };
+        : { promoAction: action, code, expectedRevision, comparedTotal, comparedDeliveryMinor, publicOfferId };
     const value = JSON.stringify(request);
     if (key.current?.value !== value) key.current = { value, key: crypto.randomUUID() };
     try {
@@ -222,7 +223,9 @@ export function CartPromotion({
               {...{ alternative, deliveryMinor, currency }}
               note={promoMessage(alternative, currency)}
               pending={mutation.isPending}
-              replace={() => void submit("apply", alternative.code, alternative.totalMinor, comparedOffer)}
+              replace={() =>
+                void submit("apply", alternative.code, alternative.totalMinor, comparedOffer, alternative.deliveryMinor)
+              }
               keep={() => {
                 if (promo?.alternative) void submit("keep");
                 else close();

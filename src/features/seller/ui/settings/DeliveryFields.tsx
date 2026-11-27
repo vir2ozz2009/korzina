@@ -8,6 +8,7 @@ import { Input } from "../../../../ui/Input";
 import { ListItem } from "../../../../ui/ListItem";
 import { Select } from "../../../../ui/Select";
 import { type ReceivingSettingsData, sellerSettingRequest } from "../../settings-api";
+import { useCatalogNav } from "../catalog/navigation";
 import { BuyerPreview } from "./BuyerPreview";
 import { CitySheet } from "./CitySheet";
 import { TariffFields } from "./TariffFields";
@@ -15,7 +16,6 @@ import { TariffFields } from "./TariffFields";
 const pointDefault = { lat: 10.7769, lon: 106.7009 };
 const MapEditor = lazy(() => import("./ZoneEditor").then(({ ZoneEditor }) => ({ default: ZoneEditor })));
 type Delivery = NonNullable<ReceivingSettingsData["delivery"]>;
-
 export function DeliveryFields({
   store,
   value,
@@ -31,6 +31,7 @@ export function DeliveryFields({
   disabled: boolean;
   change: (value: Delivery) => void;
 }) {
+  const nav = useCatalogNav(store);
   const [edit, setEdit] = useState<DeliveryZone>();
   const [cityOpen, setCityOpen] = useState(false);
   const [address, setAddress] = useState("");
@@ -139,6 +140,11 @@ export function DeliveryFields({
         onChange={(payee) => change({ ...value, payee: payee === "courier" ? "courier" : "shop" })}
       />
       <BuyerPreview>{`Доставка · ${tariff.kind === "free" ? "Бесплатно" : tariff.kind === "after_order" ? "Посчитаем после заказа" : Number.isSafeInteger(tariff.feeMinor) && tariff.feeMinor > 0 ? formatMinor(tariff.feeMinor, currency) : "Укажите цену"}`}</BuyerPreview>
+      <ListItem
+        title="Бесплатная доставка от суммы"
+        subtitle="Условия акции в Продвижении"
+        onClick={() => nav.open("/seller/promotions", { delivery: "1", back: nav.location.href })}
+      />
       {value.mode === "map" && (
         <>
           {value.city && <p className="text-small">{value.city}</p>}

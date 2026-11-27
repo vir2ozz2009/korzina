@@ -29,7 +29,16 @@ export function readCart(storage: DurableObjectStorage, customer: string, source
     const { cart, changed, initial, codes, hasAutomatic } = readCartState(storage, customer, source);
     if (changed || initial) persistCart(storage, customer, cart);
     return source.promotions
-      ? pricePromoCart(storage, customer, customer.startsWith("telegram:"), cart, codes, source.now, hasAutomatic)
+      ? pricePromoCart(
+          storage,
+          customer,
+          customer.startsWith("telegram:"),
+          cart,
+          codes,
+          source.now,
+          hasAutomatic,
+          source,
+        )
       : cart;
   });
 }
@@ -103,6 +112,7 @@ export function changeCart(
             codes,
             source.now,
             current.hasAutomatic,
+            source,
           )
         : value;
     if (cart.revision !== input.expectedRevision) {
@@ -130,8 +140,10 @@ export function changeCart(
           customer,
           customer.startsWith("telegram:"),
           cart,
-          { code: input.code, alternative: null },
+          { code: input.code, alternative: codes.code },
           source.now,
+          current.hasAutomatic,
+          source,
         );
         const reason = candidate.promo?.reason;
         if (
@@ -149,13 +161,18 @@ export function changeCart(
               alternative: {
                 code: input.code,
                 totalMinor: candidate.totalMinor,
+                deliveryMinor: candidate.delivery?.feeMinor,
                 reason,
                 missingMinor: candidate.promo?.missingMinor,
                 missingQuantity: candidate.promo?.missingQuantity,
               },
             },
           };
-        if (codes.code && codes.code !== input.code && input.comparedTotal !== candidate.totalMinor)
+        if (
+          codes.code &&
+          codes.code !== input.code &&
+          (input.comparedTotal !== candidate.totalMinor || input.comparedDeliveryMinor !== candidate.delivery?.feeMinor)
+        )
           throw new ApiError("VERSION_CONFLICT", "Пересчитайте замену кода", { cart: prior });
       }
       if (input.promoAction === "remove") codes.code = null;

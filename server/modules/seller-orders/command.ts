@@ -65,7 +65,10 @@ export function changeSellerOrder(
         const late = work.handedOff || (mode === "pickup" && (row.status === "ready" || work.readyForPickup));
         if (late && input.returnStock === undefined) throw new ApiError("VALIDATION", "Выберите, вернуть ли товар");
         releaseOrderReservation(storage, snapshot, !late || input.returnStock === true);
-        if (!work.handedOff) releasePromotion(storage, number);
+        if (!work.handedOff) {
+          releasePromotion(storage, number);
+          if (snapshot.deliveryBenefit) snapshot.deliveryBenefit.state = "released";
+        }
       }
       finance = paymentForTransition(finance, snapshot, stage, input);
       if ("payment" in input && input.payment && input.payment.method !== "debt")
@@ -90,6 +93,17 @@ export function changeSellerOrder(
       finance = reviewTopUp(storage, number, work, finance, input);
     } else {
       ({ finance, status, details } = changePayment(row, snapshot, finance, input));
+      if (input.action === "setDeliveryFee" && snapshot.deliveryBenefit) {
+        const benefit = snapshot.deliveryBenefit;
+        storage.sql.exec(
+          "UPDATE promo_uses SET amount_minor=?,released_at=? WHERE order_number=? AND offer_id=? AND released_at IS NULL",
+          benefit.amountMinor,
+          benefit.state === "released" ? Date.now() : null,
+          number,
+          benefit.offerId,
+        );
+        details = { baseMinor: input.amountMinor, deliveryBenefit: benefit, deliveryMinor: snapshot.deliveryMinor };
+      }
     }
     const balance = orderBalance(finance, snapshot.totalMinor, stage);
     if (!balance.debtMinor && (work.topUp || work.topUpPayment)) closeTopUp(storage, number, work);

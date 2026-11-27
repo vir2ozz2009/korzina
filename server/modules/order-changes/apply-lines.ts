@@ -42,6 +42,7 @@ export function applyLines(
   if (!lines.length) {
     releaseOrderReservation(storage, snapshot, false);
     releasePromotion(storage, row.number);
+    if (snapshot.deliveryBenefit) snapshot.deliveryBenefit.state = "released";
     snapshot.seatReserved = false;
   }
   const grouped = snapshot.adjustments?.some(({ allocations }) => allocations?.some(({ units }) => units));
@@ -75,7 +76,12 @@ export function applyLines(
           : []
         : [item],
     );
-    storage.sql.exec("UPDATE promo_uses SET amount_minor=? WHERE order_number=?", savings, row.number);
+    storage.sql.exec(
+      "UPDATE promo_uses SET amount_minor=? WHERE order_number=? AND offer_id=?",
+      savings,
+      row.number,
+      promotion.sourceId,
+    );
   }
   snapshot.reservedStock = [...stock];
   snapshot.itemsMinor = addMinor(...lines.map(({ totalMinor }) => totalMinor));

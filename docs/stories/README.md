@@ -113,4 +113,4 @@ CART-CLARITY · US-A11 / US-A01 / US-K01 / US-K05: [реализация PR #321
 
 CART-CLARITY D1: [PR #323](https://github.com/vir2ozz2009/korzina/pull/323), код `d6d980c`, исправлен Back шторки; [полный допрогон всех ⏸](../progress/CART-CLARITY-recheck.md). Подтверждённые результаты [156f56b](../progress/CART-CLARITY-local-result.md) сохранены; физическая перепроверка и приёмка ожидаются, прежняя приёмка историй не изменена.
 
-US-A06 / A6: в работе · [обновлённый холст 12.3](../progress/A6-delivery-bases.md), ревизия `477098167704367104`; СТОП до одобрения Андрея. Реализация и проверка на demo не начаты.
+US-A06 / A6: в работе · холст `477098167704367104` одобрен; [реализация и передача в Work](../progress/A6-implementation.md), [остаток физической проверки](../progress/A6-local-check.md). Приёмка не объявлена.

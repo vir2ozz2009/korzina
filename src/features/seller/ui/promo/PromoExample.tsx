@@ -3,12 +3,11 @@ import type { PromoTerms } from "../../../../shared/contracts/promo";
 import { HttpError } from "../../../../shared/http-error";
 import { formatMinor } from "../../../../shared/money";
 import { Button } from "../../../../ui/Button";
-import { Input } from "../../../../ui/Input";
-import { Switch } from "../../../../ui/Switch";
 import { CartSignIn, CartView } from "../../../cart";
 import { CartContinueButton } from "../../../checkout";
 import { CartShippingView } from "../../../receiving";
 import { example, type PromoCatalog } from "./api";
+import { PromoExampleControls } from "./PromoExampleControls";
 
 export function PromoExample({
   terms,
@@ -23,12 +22,11 @@ export function PromoExample({
   back: () => void;
   revoke: () => void;
 }) {
-  const [lines, setLines] = useState<Record<string, number>>({});
+  const [lines, setLines] = useState<Record<string, number>>();
   const [confirmed, setConfirmed] = useState(true);
   const [completed, setCompleted] = useState(0);
-  const [variant, setVariant] = useState("");
   const [receiving, setReceiving] = useState<"pickup" | "delivery">();
-  const enteredCode = useRef<string | null>(null);
+  const enteredCode = useRef<string | null>(terms.kind === "code" ? (terms.code ?? null) : null);
   const [cart, setCart] = useState<Awaited<ReturnType<typeof example>>>();
   const [checking, setChecking] = useState(true);
   const [pending, setPending] = useState(false);
@@ -41,12 +39,15 @@ export function PromoExample({
         store,
         {
           terms,
+          automatic: lines === undefined,
           confirmed,
           completed,
           enteredCode: code,
           publicOfferId,
           receiving,
-          lines: Object.entries(lines).flatMap(([variantId, quantity]) => (quantity ? [{ variantId, quantity }] : [])),
+          lines: Object.entries(lines ?? {}).flatMap(([variantId, quantity]) =>
+            quantity ? [{ variantId, quantity }] : [],
+          ),
         },
         signal,
       ),
@@ -59,7 +60,14 @@ export function PromoExample({
     setError(false);
     void request(enteredCode.current, controller.signal)
       .then((result) => {
-        if (!controller.signal.aborted) setCart(result);
+        if (!controller.signal.aborted) {
+          setCart(result);
+          if (lines === undefined && result.lines.length && !result.exampleProblem) {
+            setLines(Object.fromEntries(result.lines.map((line) => [line.variantId, line.quantity])));
+            setConfirmed(result.confirmed);
+            setCompleted(result.completed);
+          }
+        }
       })
       .catch((failure) => {
         if (controller.signal.aborted) return;
@@ -82,66 +90,22 @@ export function PromoExample({
   const currency = cart?.currency;
   return (
     <>
-      <details className="mx-3 my-3 space-y-3 rounded-xl bg-card p-3" open>
-        <summary className="min-h-8 cursor-pointer text-label">Тестовые данные · не видны покупателю</summary>
-        <label className="block">
-          Фасовка
-          <select
-            className="min-h-12 w-full rounded-lg border border-border bg-card px-3"
-            value={variant}
-            disabled={pending}
-            onChange={(event) => setVariant(event.target.value)}
+      <PromoExampleControls
+        {...{ terms, catalog, lines, pending, confirmed, setConfirmed, completed, setCompleted, setQuantity }}
+      />
+      {cart?.exampleProblem && (
+        <div className="m-3 rounded-xl bg-card p-4" role="status">
+          <p>{cart.exampleProblem}</p>
+          <Button variant="secondary" onClick={back}>
+            Вернуться к условиям
+          </Button>
+          <a
+            href={`/seller/${cart.exampleProblem.includes("Доставка") ? "receiving" : "products"}?store=${encodeURIComponent(store)}`}
           >
-            <option value="">Выберите товар</option>
-            {catalog?.variants.map((item) => (
-              <option value={item.id} key={item.id}>
-                {item.productName} · {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <Button
-          variant="secondary"
-          disabled={
-            !variant || pending || (!lines[variant] && Object.keys(lines).filter((id) => lines[id]).length >= 50)
-          }
-          onClick={() => setQuantity(variant, (lines[variant] ?? 0) + 1)}
-        >
-          Добавить товар
-        </Button>
-        {Object.entries(lines).map(([id, quantity]) => {
-          const item = catalog?.variants.find((row) => row.id === id);
-          return (
-            <Input
-              key={id}
-              label={item ? `${item.productName} · ${item.name}` : id}
-              type="number"
-              min={0}
-              max={999}
-              value={quantity}
-              disabled={pending}
-              onChange={(event) => setQuantity(id, Number(event.target.value))}
-            />
-          );
-        })}
-        <Switch
-          label="Подтверждённый покупатель"
-          checked={confirmed}
-          disabled={pending}
-          onChange={(event) => setConfirmed(event.target.checked)}
-        />
-        <Input
-          label="Выполнено заказов"
-          type="number"
-          min={0}
-          max={1_000_000}
-          value={completed}
-          disabled={pending}
-          onChange={(event) =>
-            setCompleted(Math.max(0, Math.min(1_000_000, Math.trunc(Number(event.target.value)) || 0)))
-          }
-        />
-      </details>
+            Открыть {cart.exampleProblem.includes("Доставка") ? "настройки" : "товары"}
+          </a>
+        </div>
+      )}
       <CartView
         cart={cart}
         checking={checking}
@@ -157,7 +121,7 @@ export function PromoExample({
         }
         change={(line, quantity) => setQuantity(line.variantId, quantity)}
         back={back}
-        shipping={null}
+        shipping={cart?.availability ?? null}
         method={cart?.method}
         total={cart && { totalMinor: cart.payableMinor, deliveryMinor: cart.deliveryMinor }}
         publicOffers={cart && { offers: cart.publicOffers, zone: cart.timeZone, failed: false, refresh: refetch }}
@@ -167,8 +131,8 @@ export function PromoExample({
               <CartShippingView
                 data={{
                   ...cart.fulfillment,
-                  receiving: cart.method === "pickup" ? { mode: "pickup" } : null,
-                  availability: null,
+                  receiving: cart.receiving,
+                  availability: cart.availability,
                 }}
                 blocked={blocked}
                 choose={setReceiving}
@@ -208,6 +172,7 @@ export function PromoExample({
                     alternative: {
                       code,
                       totalMinor: result.totalMinor,
+                      deliveryMinor: result.delivery?.feeMinor,
                       reason,
                       missingMinor: result.promo?.missingMinor,
                       missingQuantity: result.promo?.missingQuantity,

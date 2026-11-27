@@ -121,12 +121,21 @@ export async function exampleFixture(page: Page, shown: boolean) {
       });
     if (pathname.endsWith("/report")) return route.fulfill({ status: 503 });
     if (!pathname.endsWith("/example")) return route.fulfill({ json: { offers: [], prices: [], currency: "RUB" } });
-    const { terms, enteredCode, lines } = route.request().postDataJSON() as {
+    const { terms, enteredCode, lines, automatic, confirmed, completed } = route.request().postDataJSON() as {
       terms: { publicInCart?: boolean };
       enteredCode: string | null;
       lines: Line[];
+      automatic?: boolean;
+      confirmed: boolean;
+      completed: number;
     };
-    return route.fulfill({ json: quote(lines, enteredCode, !!terms.publicInCart) });
+    return route.fulfill({
+      json: {
+        ...quote(automatic ? fixedLines : lines, enteredCode, !!terms.publicInCart),
+        confirmed: automatic ? true : confirmed,
+        completed: automatic ? 0 : completed,
+      },
+    });
   });
   return buyerRequests;
 }

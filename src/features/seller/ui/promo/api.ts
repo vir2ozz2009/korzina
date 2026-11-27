@@ -62,6 +62,11 @@ export async function promoRequest<T>(
   return response.json() as Promise<T>;
 }
 type ExampleQuote = Cart & {
+  exampleProblem: string | null;
+  receiving: ReceivingState["receiving"];
+  availability: ReceivingState["availability"];
+  confirmed: boolean;
+  completed: number;
   publicOffers: PublicPromo[];
   timeZone: string;
   fulfillment: Pick<ReceivingState, "delivery" | "pickup" | "unavailable" | "acceptingOrders" | "closedMessage">;

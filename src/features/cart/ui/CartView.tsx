@@ -9,7 +9,7 @@ import { Divider } from "../../../ui/Divider";
 import { Header } from "../../../ui/Header";
 import { IconButton } from "../../../ui/IconButton";
 import { ProductRow } from "../../../ui/ProductRow";
-import { deliveryLabel } from "../../receiving";
+import { CartDeliveryTotals } from "./CartDeliveryTotals";
 import { CartGiftHints, CartGroupDetails, CartGroupPromos } from "./CartGroupPromos";
 import { CartNotice } from "./CartNotice";
 import { CartPromotion } from "./CartPromotion";
@@ -61,12 +61,6 @@ export function CartView({
   const details = useCartDetails(cart);
   const currency = cart?.currency;
   const available = cart?.lines.filter((line) => line.available) ?? [];
-  const courier =
-    shipping?.mode === "delivery" && shipping.available && shipping.payee === "courier" && shipping.tariff !== "free";
-  const late =
-    method === "delivery" &&
-    (total?.deliveryMinor === null ||
-      (shipping?.mode === "delivery" && shipping.available && shipping.feeMinor === null));
   const unavailable = cart?.lines.filter((line) => !line.available) ?? [];
   const issues = new Map(cart?.review?.changes.map((issue) => [issue.variantId, issue]));
   const promoBlocked = checking || !!cart?.review || query.isError || !!pendingProducts?.size;
@@ -205,25 +199,7 @@ export function CartView({
                 <strong className="text-status-success-foreground">−{formatMinor(-item.amount, currency)}</strong>
               </div>
             ))}
-            {method && (
-              <div className="flex justify-between gap-3">
-                <span>{method === "pickup" ? "Самовывоз" : "Доставка"}</span>
-                <span className="text-right">
-                  {method === "pickup" ? "Бесплатно" : deliveryLabel(shipping, currency)}
-                </span>
-              </div>
-            )}
-            {total && (
-              <>
-                <Divider />
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-label">
-                    {courier ? "К оплате магазину" : late ? "Итого за товары" : "Итого"}
-                  </span>
-                  <strong className="text-title-3">{formatMinor(total.totalMinor, currency)}</strong>
-                </div>
-              </>
-            )}
+            <CartDeliveryTotals {...{ cart, currency, method, shipping, total }} />
           </Card>
           {unavailable.length > 0 && (
             <Card size="lg">

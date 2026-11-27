@@ -77,8 +77,14 @@ export function changePayment(row: OrderRow, snapshot: ReservedOrder, finance: F
         throw new ApiError("INVALID_TRANSITION", "Стоимость доставки уже зафиксирована");
       snapshot.fulfillment = { ...fulfillment, feeMinor: input.amountMinor };
       if (fulfillment.payee === "shop") {
-        snapshot.deliveryMinor = input.amountMinor;
-        snapshot.totalMinor = addMinor(snapshot.itemsMinor, input.amountMinor);
+        const benefit = snapshot.deliveryBenefit;
+        if (benefit && benefit.state !== "released") {
+          benefit.baseMinor = input.amountMinor;
+          benefit.amountMinor = input.amountMinor;
+          benefit.state = input.amountMinor > 0 ? "applied" : "released";
+        }
+        snapshot.deliveryMinor = benefit?.state === "applied" ? 0 : input.amountMinor;
+        snapshot.totalMinor = addMinor(snapshot.itemsMinor, snapshot.deliveryMinor);
       }
       changed = {
         ...finance,

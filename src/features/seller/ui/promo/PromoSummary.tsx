@@ -45,14 +45,14 @@ export function Summary({
 }) {
   const money = (value: number) => formatMinor(value, currency);
   const discount = terms.discount;
-  const maximum = discount.type === "fixed" ? discount.value : discount.capMinor;
+  const maximum = terms.delivery ? undefined : discount.type === "fixed" ? discount.value : discount.capMinor;
   const names = promoScope(terms, catalog);
   return (
     <dl className="space-y-2 text-caption">
       <div>
         <dt className="text-label">{terms.name || "Без названия"}</dt>
         <dd>
-          {terms.group ? (
+          {terms.delivery || terms.group ? (
             promoBenefit(terms, currency)
           ) : (
             <>

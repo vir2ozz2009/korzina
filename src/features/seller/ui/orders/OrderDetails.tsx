@@ -1,6 +1,7 @@
 import { Copy, Phone } from "lucide-react";
 import type { ReactNode } from "react";
 import type { SellerOrder } from "../../../../shared/contracts/seller-order";
+import { deliveryBenefitLabel } from "../../../../shared/delivery-benefit";
 import { formatMinor } from "../../../../shared/money";
 import { Button } from "../../../../ui/Button";
 import { Card } from "../../../../ui/Card";
@@ -111,6 +112,18 @@ export function OrderDetails({
               <dd>{amount(order.totalMinor)}</dd>
             </div>
           </dl>
+          {order.stage !== "cancelled" && order.deliveryBenefit && (
+            <p>
+              {deliveryBenefitLabel(order.deliveryBenefit)}
+              {order.deliveryBenefit.state === "applied" && (
+                <>
+                  {" "}
+                  · Исходная доставка {amount(order.deliveryBenefit.baseMinor ?? 0)} · скидка{" "}
+                  {amount(order.deliveryBenefit.amountMinor)} · К доплате за доставку 0 ₽
+                </>
+              )}
+            </p>
+          )}
           {fulfillment.mode === "delivery" && fulfillment.payee === "courier" && (
             <p>Доставку оплачивают курьеру{fulfillment.feeMinor !== null && ` · ${amount(fulfillment.feeMinor)}`}</p>
           )}
