@@ -195,7 +195,8 @@ export function rememberOrderedAddress(saved: SavedAddress[], receiving: Deliver
 
 export function saveReceiving(storage: DurableObjectStorage, customer: string, input: ReceiveCommand, maps = true) {
   return storage.transactionSync(() => {
-    const current = readReceiving(storage, customer);
+    const { revision: storedRevision, ...storedSelection } = readReceiving(storage, customer);
+    const current = { ...storedSelection, revision: storedRevision };
     if (input.expectedRevision !== current.revision)
       throw new ApiError("VERSION_CONFLICT", "Корзина изменилась. Попробуйте ещё раз.", current);
     const settings = readFulfillment(storage, maps);
@@ -208,7 +209,7 @@ export function saveReceiving(storage: DurableObjectStorage, customer: string, i
             ? current.receiving
             : null;
       const selection = {
-        ...current,
+        ...storedSelection,
         explicitMode: input.mode,
         receiving,
         time: null,
