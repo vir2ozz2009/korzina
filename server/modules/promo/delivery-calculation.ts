@@ -27,15 +27,20 @@ export function priceDelivery(
   assess: typeof assessOffer,
 ): Cart {
   const entered = code ? candidates.find(({ terms }) => terms.kind === "code" && terms.code === code) : undefined;
-  if (!delivery?.applicable) {
-    return entered?.terms.delivery
-      ? { ...cart, promo: { ...cart.promo, code, reason: "delivery", offerType: "delivery" } }
-      : cart;
-  }
   const source = cart.lines.filter((line) => line.available && line.quantity > 0);
   const base = deliveryBase(cart);
+  if (!delivery?.applicable) {
+    const result = entered?.terms.delivery ? assess(entered, source, buyer, base) : undefined;
+    const reason =
+      result &&
+      "reason" in result &&
+      ["expired", "disabled", "scheduled", "limit", "personal_limit", "purchase_used"].includes(result.reason ?? "")
+        ? result.reason
+        : "delivery";
+    return entered?.terms.delivery ? { ...cart, promo: { ...cart.promo, code, reason, offerType: "delivery" } } : cart;
+  }
   const eligible = candidates.filter(
-    ({ terms }) => terms.delivery && (terms.kind === "automatic" || (code && terms.code === code)),
+    (offer) => offer.terms.delivery && (offer.terms.kind === "automatic" || offer === entered),
   );
   const applicable: Candidate[] = [];
   const missing: number[] = [];

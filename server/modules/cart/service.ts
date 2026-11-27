@@ -140,7 +140,7 @@ export function changeCart(
           customer,
           customer.startsWith("telegram:"),
           cart,
-          { code: input.code, alternative: null },
+          { code: input.code, alternative: codes.code },
           source.now,
           current.hasAutomatic,
           source,

@@ -4,6 +4,7 @@ import { checkDeliveryLayout } from "./delivery-layout";
 // The same deployed screens with controlled API data; server transitions are covered by API tests.
 export async function checkDeliveryOrders(page: Page, store: string) {
   await page.unrouteAll({ behavior: "wait" });
+  await page.routeWebSocket(/\/api\/seller\/orders\/live(?:\?|$)/, () => {});
   const shop = {
     id: "fixture",
     slug: store,
@@ -99,6 +100,9 @@ export async function checkDeliveryOrders(page: Page, store: string) {
       latestPayment: { method: "cash", amountMinor: 60000 },
     },
   });
+  await page.route(/\/api\/seller\/profile\/theme(?:\?|$)/, (route) =>
+    route.fulfill({ json: { revision: 1, canWrite: true, theme: { preset: "raspberry" } } }),
+  );
   await page.route(/\/api\/seller\/cabinet(?:\?|$)/, (route) =>
     route.fulfill({ json: { current: shop, shops: [shop], telegramId: "fixture" } }),
   );
@@ -111,6 +115,7 @@ export async function checkDeliveryOrders(page: Page, store: string) {
   );
   await page.route(/\/api\/seller\/orders(?:\/[^?]+)?(?:\?|$)/, (route) => {
     const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/live-ticket")) return route.fulfill({ json: { ticket: "fixture" } });
     if (path.endsWith("/badge")) return route.fulfill({ json: { rev: 0, count: 0 } });
     if (path.endsWith("/transition")) {
       expect(route.request().postDataJSON()).toMatchObject({
@@ -173,7 +178,8 @@ export async function checkDeliveryOrders(page: Page, store: string) {
   });
   await page.goto(`/orders/41?shop=${store}`);
   await expect(page.getByText("Доставка будет бесплатной по промокоду", { exact: true })).toBeVisible();
-  await page.screenshot({ path: "test-results/a6/buyer-late-reserved-390.png", fullPage: true });
+  await page.getByText("Доставка будет бесплатной по промокоду", { exact: true }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "test-results/a6/buyer-late-reserved-390.png" });
   await page.goto(`/seller/orders/41?store=${store}`);
   await expect(page.getByText("Доставка будет бесплатной по промокоду", { exact: false })).toBeVisible();
   await page.getByRole("button", { name: "Назначить стоимость доставки", exact: true }).click();
@@ -183,17 +189,23 @@ export async function checkDeliveryOrders(page: Page, store: string) {
   await expect(dialog).toBeHidden();
   await expect(page.getByText(/К доплате за доставку 0 ₽/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Назначить стоимость доставки", exact: true })).toHaveCount(0);
-  await page.screenshot({ path: "test-results/a6/seller-late-assigned-390.png", fullPage: true });
+  await page.getByText(/К доплате за доставку 0 ₽/).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "test-results/a6/seller-late-assigned-390.png" });
   await page.goto(`/orders/41?shop=${store}`);
   await expect(page.getByText("Доставка бесплатно по промокоду", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /Доплат/ })).toHaveCount(0);
+  await page.getByText("Доставка бесплатно по промокоду", { exact: true }).scrollIntoViewIfNeeded();
   await checkDeliveryLayout(page, "buyer-late-assigned-390");
   await page.goto(`/seller/receiving?store=${store}`);
   const entry = page.getByRole("button", { name: /Бесплатная доставка от суммы/ });
   await expect(entry).toBeVisible();
-  await page.screenshot({ path: "test-results/a6/settings-base-and-link-390.png", fullPage: true });
+  await entry.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "test-results/a6/settings-base-and-link-390.png" });
   await entry.click();
   await expect(page).toHaveURL(/\/seller\/promotions\/auto-delivery/);
   await expect(page.getByText(terms.name, { exact: true }).first()).toBeVisible();
-  await page.screenshot({ path: "test-results/a6/same-policy-from-settings-390.png", fullPage: true });
+  await page.screenshot({ path: "test-results/a6/same-policy-from-settings-390.png" });
+  await page.getByRole("button", { name: "Назад", exact: true }).click();
+  await expect(page).toHaveURL(/\/seller\/receiving/);
+  await expect(entry).toBeVisible();
 }

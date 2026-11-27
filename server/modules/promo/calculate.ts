@@ -35,7 +35,19 @@ export function calculatePromo(
 ): Cart {
   const goods = candidates.filter(({ terms }) => !terms.delivery);
   const score: PriceScorer | undefined =
-    delivery?.applicable && candidates.some(({ terms }) => terms.delivery)
+    delivery?.applicable &&
+    candidates.some(
+      (candidate) =>
+        candidate.terms.delivery &&
+        (candidate.terms.kind === "automatic" || candidate.terms.code === code) &&
+        "base" in
+          assess(
+            candidate,
+            cart.lines.filter((line) => line.available && line.quantity > 0),
+            buyer,
+            cart.itemsMinor ?? cart.totalMinor,
+          ),
+    )
       ? (value) => {
           const result = priceDelivery(value, candidates, buyer, code, delivery, assess);
           return {

@@ -130,7 +130,12 @@ export function PromoWorkspace({
         .then(({ offer }) => {
           if (offer) {
             setChooser(undefined);
-            nav.open(`/seller/promotions/${offer.id}`, { back: nav.location.href });
+            const target = nav.params.get("back");
+            const back =
+              nav.params.get("delivery") && target && /^\/seller\/receiving(?:\?|$)/u.test(target)
+                ? target
+                : nav.location.href;
+            nav.open(`/seller/promotions/${offer.id}`, { back });
           } else begin(kind, preset);
         })
         .catch((failure) => setError(failure.message));

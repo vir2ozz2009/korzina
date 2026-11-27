@@ -57,6 +57,7 @@ export function useSaveReceiving() {
       client.setQueryData<Cart>(cartKey, (current) =>
         current && current.revision < selection.revision ? { ...current, revision: selection.revision } : current,
       );
+      await client.invalidateQueries({ queryKey: cartKey, exact: true });
     },
     onError: (error) => {
       if (error instanceof HttpError && error.code === "VERSION_CONFLICT") {

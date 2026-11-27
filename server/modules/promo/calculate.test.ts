@@ -184,3 +184,39 @@ it("A6 §7.5 · итог 500 с подарком и доставкой выго�
     promo: { code: "SET", reason: "better_automatic" },
   });
 });
+
+it("A6 · повторный текст кода использует причину и право выбранной действующей акции", () => {
+  const active = offer("new", { kind: "code", code: "SHIP", delivery: true });
+  const ended = { ...active, id: "old", status: "ended" as const };
+  const result = calculatePromo(cart([line("a", 60000)]), [active, ended], buyer, () => "", "SHIP", undefined, {
+    applicable: true,
+    feeMinor: 12000,
+  });
+  expect(result).toMatchObject({
+    promo: { reason: "applied" },
+    delivery: { feeMinor: 0, benefit: { offerId: "new" } },
+  });
+});
+
+it("A6 · недостижимый порог доставки не расширяет поиск подарков по 18 фасовкам", () => {
+  const source = cart(Array.from({ length: 18 }, (_, i) => line(String(i), 10000, { quantity: 2 })));
+  const gift = offer("gift", { group: { type: "gift", buy: 1, gift: 1 } });
+  const shipping = offer("shipping", { delivery: true, minimumMinor: 999999 });
+  const start = performance.now();
+  const result = calculatePromo(source, [gift, shipping], buyer, () => "", undefined, undefined, {
+    applicable: true,
+    feeMinor: 12000,
+  });
+  expect(result).toMatchObject({ totalMinor: 180000, delivery: { feeMinor: 12000 } });
+  expect(performance.now() - start).toBeLessThan(500);
+});
+
+it("A6 · просроченный код сохраняет причину при недоступной доставке", () => {
+  const expired = { ...offer("old", { kind: "code", code: "SHIP", delivery: true }), status: "ended" as const };
+  expect(
+    calculatePromo(cart([line("a", 60000)]), [expired], buyer, () => "", "SHIP", undefined, {
+      applicable: false,
+      feeMinor: 0,
+    }).promo?.reason,
+  ).toBe("expired");
+});
