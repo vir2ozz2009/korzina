@@ -73,7 +73,6 @@ export function CartView({
   const unavailable = cart?.lines.filter((line) => !line.available) ?? [];
   const issues = new Map(cart?.review?.changes.map((issue) => [issue.variantId, issue]));
   const promoBlocked = checking || !!cart?.review || query.isError || !!pendingProducts?.size;
-
   function row(line: CartLine, currency: string) {
     const issue = issues.get(line.variantId);
     const pending = pendingProducts?.has(line.productId) ?? false;
@@ -142,7 +141,6 @@ export function CartView({
       </li>
     );
   }
-
   return (
     <Screen
       template="checkout"

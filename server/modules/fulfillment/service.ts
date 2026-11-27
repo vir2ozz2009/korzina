@@ -116,6 +116,7 @@ export function requireFulfillment(settings: FulfillmentSettings, receiving: Rec
 }
 
 type Selection = {
+  selectionVersion?: 1;
   receiving: Receiving | null;
   explicitMode?: "delivery" | "pickup";
   savedAddresses: SavedAddress[];
@@ -142,7 +143,10 @@ export function parseSelection(value: string | null | undefined): Selection {
   const current = { ...emptySelection(), ...(parsed as Selection) };
   return {
     ...current,
-    receiving: current.receiving?.mode === "pickup" && current.explicitMode !== "pickup" ? null : current.receiving,
+    receiving:
+      current.receiving?.mode === "pickup" && current.explicitMode !== "pickup" && current.selectionVersion !== 1
+        ? null
+        : current.receiving,
     savedAddresses: current.savedAddresses.map((address) => ({
       ...address,
       id: address.id ?? `legacy:${addressKey(address)}`,
@@ -172,7 +176,7 @@ export function writeReceiving(
      ON CONFLICT(customer) DO UPDATE SET revision=excluded.revision,receiving=excluded.receiving,updated_at=excluded.updated_at`,
     customer,
     revision,
-    JSON.stringify(selection),
+    JSON.stringify({ ...selection, selectionVersion: 1 }),
     Date.now(),
   );
 }

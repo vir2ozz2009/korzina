@@ -82,6 +82,7 @@ export async function checkCartClarity(page: Page) {
     const path = new URL(request.url()).pathname;
     if (path === "/api/cart/promotions") return route.fulfill({ json: [] });
     if (path.startsWith("/api/auth/")) return route.fulfill({ json: { phone: null, telegramLinked: true } });
+    if (path === "/api/receiving/availability") return route.fulfill({ json: { mode: "after_order", days: [] } });
     if (path === "/api/receiving") {
       if (request.method() === "POST") {
         mode = request.postDataJSON().receiving?.mode ?? request.postDataJSON().mode;
@@ -136,7 +137,8 @@ export async function checkCartClarity(page: Page) {
     await page.screenshot({ path: test.info().outputPath(`clarity-bundle-${width}.png`), fullPage: true });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.keyboard.press("Escape");
-    await page.getByRole("radio", { name: "Самовывоз", exact: true }).check();
+    await page.getByRole("radio", { name: "Самовывоз", exact: true }).click();
+    await expect(page.getByRole("radio", { name: "Самовывоз", exact: true })).toBeChecked();
     await page.reload();
     await expect(page.getByRole("radio", { name: "Самовывоз", exact: true })).toBeChecked();
     await page.getByRole("button", { name: "Промокод", exact: true }).click();

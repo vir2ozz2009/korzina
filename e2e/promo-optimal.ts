@@ -74,6 +74,7 @@ export async function checkOptimalBundles(page: Page) {
     const path = new URL(request.url()).pathname;
     if (path === "/api/cart/promotions") return route.fulfill({ json: [] });
     if (path === "/api/auth/contact") return route.fulfill({ json: { phone: null, telegramLinked: true } });
+    if (path === "/api/receiving/availability") return route.fulfill({ json: { mode: "after_order", days: [] } });
     if (path === "/api/receiving")
       return route.fulfill({
         json: {

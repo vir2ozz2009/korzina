@@ -8,6 +8,7 @@ import {
 import { calendarDate } from "../../../src/shared/datetime";
 import { ApiError } from "../../../src/shared/errors";
 import { isTimeAvailable, timeChangedMessage } from "../../../src/shared/receiving-hours";
+import { currentSelection } from "./current-selection";
 import { availableDays, scheduleClock, scheduledPeriods } from "./schedule";
 import { readFulfillment, readReceiving, writeReceiving } from "./service";
 
@@ -68,7 +69,11 @@ function unavailableTime() {
 
 export function saveTime(storage: DurableObjectStorage, subject: string, input: TimeCommand, maps: boolean) {
   return storage.transactionSync(() => {
-    const { revision, ...current } = readReceiving(storage, subject);
+    const {
+      revision,
+      effectiveMode: _mode,
+      ...current
+    } = currentSelection(readReceiving(storage, subject), readFulfillment(storage, maps));
     if (revision !== input.expectedRevision)
       throw new ApiError("VERSION_CONFLICT", "Корзина изменилась. Попробуйте ещё раз.", { revision, ...current });
     if (!current.receiving) throw new ApiError("VALIDATION", "Выберите способ получения");
