@@ -11,7 +11,7 @@ export function deliveryContextFor(availability: ReceivingAvailability | null, p
 }
 
 // Groups change the price of positions; an order-wide discount does not change this threshold.
-export function deliveryBase(cart: Cart) {
+function deliveryBase(cart: Cart) {
   return subtractMinor(
     cart.itemsMinor ?? cart.totalMinor,
     addMinor(...cart.adjustments.filter((item) => item.groups).map((item) => -item.amount)),
@@ -51,26 +51,24 @@ export function priceDelivery(
   const winner = applicable.sort(
     (a, b) => Number(a.terms.kind === "code") - Number(b.terms.kind === "code") || a.id.localeCompare(b.id),
   )[0];
-  const result: Cart = {
-    ...cart,
-    delivery: { baseMinor: delivery.feeMinor, feeMinor: winner ? 0 : delivery.feeMinor },
+  const pricedDelivery: NonNullable<Cart["delivery"]> = {
+    baseMinor: delivery.feeMinor,
+    feeMinor: winner ? 0 : delivery.feeMinor,
   };
+  const result: Cart = { ...cart, delivery: pricedDelivery };
   if (winner)
-    result.delivery = {
-      ...result.delivery!,
-      benefit: {
-        offerId: winner.id,
-        revision: winner.revision,
-        name: winner.terms.name,
-        code: winner.terms.code,
-        baseMinor: delivery.feeMinor,
-        quotedBaseMinor: delivery.feeMinor,
-        terms: winner.terms,
-        amountMinor: delivery.feeMinor ?? 0,
-        state: delivery.feeMinor === null ? "reserved" : "applied",
-      },
+    pricedDelivery.benefit = {
+      offerId: winner.id,
+      revision: winner.revision,
+      name: winner.terms.name,
+      code: winner.terms.code,
+      baseMinor: delivery.feeMinor,
+      quotedBaseMinor: delivery.feeMinor,
+      terms: winner.terms,
+      amountMinor: delivery.feeMinor ?? 0,
+      state: delivery.feeMinor === null ? "reserved" : "applied",
     };
-  else if (missing.length && delivery.feeMinor !== 0) result.delivery!.missingMinor = Math.min(...missing);
+  else if (missing.length && delivery.feeMinor !== 0) pricedDelivery.missingMinor = Math.min(...missing);
   if (entered?.terms.delivery)
     result.promo = {
       ...result.promo,
