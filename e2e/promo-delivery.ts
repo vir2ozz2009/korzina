@@ -179,7 +179,7 @@ export async function checkDelivery(page: Page, store = "test2") {
   await page.getByRole("button", { name: /Все виды акций/ }).click();
   await page.getByRole("button", { name: /Бесплатная доставка от суммы/ }).click();
   await form.getByLabel("Минимальная сумма товаров").fill("600");
-  await page.screenshot({ path: "test-results/a6/automatic-form-390.png" });
+  await form.screenshot({ animations: "disabled", path: "test-results/a6/automatic-form-390.png" });
   await preview();
   await expect(page.getByText("Доставка бесплатно от суммы заказа", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Закрыть корзину" }).click();
@@ -195,9 +195,9 @@ export async function checkDelivery(page: Page, store = "test2") {
   await form.getByLabel("Минимальная сумма товаров").fill("500");
   await form.getByLabel("Сколько раз одному покупателю").fill("");
   await preview();
-  await expect(page.getByRole("button", { name: "SHIP", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "SHIP", exact: true })).toBeEnabled();
   await expect(page.getByText("Доставка бесплатно по промокоду", { exact: true })).toBeVisible();
-  await page.screenshot({ path: "test-results/a6/code-example-390.png" });
+  await page.screenshot({ animations: "disabled", path: "test-results/a6/code-example-390.png" });
   await page.getByRole("button", { name: "Закрыть корзину" }).click();
   await page.getByRole("button", { name: "Опубликовать", exact: true }).click();
   expect(offers.map((offer) => offer.terms.delivery)).toEqual([true, true]);

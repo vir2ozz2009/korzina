@@ -16,5 +16,5 @@ export async function checkDeliveryLayout(page: Page, name = "buyer-code-390") {
     expect(overflow).toEqual({ page: false, text: [] });
   }
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: `test-results/a6/${name}.png` });
+  await page.screenshot({ animations: "disabled", path: `test-results/a6/${name}.png` });
 }

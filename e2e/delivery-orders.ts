@@ -179,7 +179,7 @@ export async function checkDeliveryOrders(page: Page, store: string) {
   await page.goto(`/orders/41?shop=${store}`);
   await expect(page.getByText("Доставка будет бесплатной по промокоду", { exact: true })).toBeVisible();
   await page.getByText("Доставка будет бесплатной по промокоду", { exact: true }).scrollIntoViewIfNeeded();
-  await page.screenshot({ path: "test-results/a6/buyer-late-reserved-390.png" });
+  await page.screenshot({ animations: "disabled", path: "test-results/a6/buyer-late-reserved-390.png" });
   await page.goto(`/seller/orders/41?store=${store}`);
   await expect(page.getByText("Доставка будет бесплатной по промокоду", { exact: false })).toBeVisible();
   await page.getByRole("button", { name: "Назначить стоимость доставки", exact: true }).click();
@@ -190,7 +190,7 @@ export async function checkDeliveryOrders(page: Page, store: string) {
   await expect(page.getByText(/К доплате за доставку 0 ₽/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Назначить стоимость доставки", exact: true })).toHaveCount(0);
   await page.getByText(/К доплате за доставку 0 ₽/).scrollIntoViewIfNeeded();
-  await page.screenshot({ path: "test-results/a6/seller-late-assigned-390.png" });
+  await page.screenshot({ animations: "disabled", path: "test-results/a6/seller-late-assigned-390.png" });
   await page.goto(`/orders/41?shop=${store}`);
   await expect(page.getByText("Доставка бесплатно по промокоду", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /Доплат/ })).toHaveCount(0);
@@ -200,11 +200,11 @@ export async function checkDeliveryOrders(page: Page, store: string) {
   const entry = page.getByRole("button", { name: /Бесплатная доставка от суммы/ });
   await expect(entry).toBeVisible();
   await entry.scrollIntoViewIfNeeded();
-  await page.screenshot({ path: "test-results/a6/settings-base-and-link-390.png" });
+  await page.screenshot({ animations: "disabled", path: "test-results/a6/settings-base-and-link-390.png" });
   await entry.click();
   await expect(page).toHaveURL(/\/seller\/promotions\/auto-delivery/);
   await expect(page.getByText(terms.name, { exact: true }).first()).toBeVisible();
-  await page.screenshot({ path: "test-results/a6/same-policy-from-settings-390.png" });
+  await page.screenshot({ animations: "disabled", path: "test-results/a6/same-policy-from-settings-390.png" });
   await page.getByRole("button", { name: "Назад", exact: true }).click();
   await expect(page).toHaveURL(/\/seller\/receiving/);
   await expect(entry).toBeVisible();
