@@ -65,7 +65,10 @@ export function changeSellerOrder(
         const late = work.handedOff || (mode === "pickup" && (row.status === "ready" || work.readyForPickup));
         if (late && input.returnStock === undefined) throw new ApiError("VALIDATION", "Выберите, вернуть ли товар");
         releaseOrderReservation(storage, snapshot, !late || input.returnStock === true);
-        if (!work.handedOff) releasePromotion(storage, number);
+        if (!work.handedOff) {
+          releasePromotion(storage, number);
+          if (snapshot.deliveryBenefit) snapshot.deliveryBenefit.state = "released";
+        }
       }
       finance = paymentForTransition(finance, snapshot, stage, input);
       if ("payment" in input && input.payment && input.payment.method !== "debt")

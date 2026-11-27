@@ -39,10 +39,12 @@ export function cancelBuyerOrder(
     const { refundMinor } = orderBalance(finance, snapshot.totalMinor, "cancelled");
     releaseOrderReservation(storage, snapshot, true);
     releasePromotion(storage, number);
+    if (snapshot.deliveryBenefit) snapshot.deliveryBenefit.state = "released";
     const fulfillment_state = JSON.stringify({ ...work, finance, refundMinor, debtMinor: 0 });
     storage.sql.exec(
-      "UPDATE orders SET status='cancelled',version=version+1,fulfillment_state=? WHERE number=?",
+      "UPDATE orders SET status='cancelled',version=version+1,fulfillment_state=?,snapshot=? WHERE number=?",
       fulfillment_state,
+      JSON.stringify(snapshot),
       number,
     );
     storage.sql.exec(
@@ -65,7 +67,13 @@ export function cancelBuyerOrder(
     env.changes.order(number);
     return {
       status: 200,
-      body: buyerOrder({ ...row, fulfillment_state, status: "cancelled", version: row.version + 1 }),
+      body: buyerOrder({
+        ...row,
+        snapshot: JSON.stringify(snapshot),
+        fulfillment_state,
+        status: "cancelled",
+        version: row.version + 1,
+      }),
     };
   }).body;
 }

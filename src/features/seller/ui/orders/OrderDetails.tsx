@@ -112,7 +112,7 @@ export function OrderDetails({
               <dd>{amount(order.totalMinor)}</dd>
             </div>
           </dl>
-          {order.deliveryBenefit && (
+          {order.stage !== "cancelled" && order.deliveryBenefit && (
             <p>
               {deliveryBenefitLabel(order.deliveryBenefit)}
               {order.deliveryBenefit.state === "applied" && (

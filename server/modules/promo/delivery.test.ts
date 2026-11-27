@@ -59,6 +59,8 @@ it("A6 §7.6–7/13 · последнее применение, повтор, п
   expect(order).toMatchObject({ deliveryMinor: 0, deliveryBenefit: { offerId: offer.id, state: "reserved" } });
   expect(await (await place(win)).json()).toEqual(order);
   await seller(headers, { action: "disable", revision: offer.revision }, `/${offer.id}`);
+  await catalogSql("UPDATE promo_offers SET state='published',ends_at=0 WHERE id=?", offer.id);
+  expect((await readCart(cookies[1 - win])).promo?.reason).toBe("expired");
   const change = (amountMinor: number, expectedRevision: number, key = crypto.randomUUID()) =>
     postAuth(
       `/api/seller/orders/${order.number}/transition?store=lavka`,
@@ -84,6 +86,10 @@ it("A6 §7.6–7/13 · последнее применение, повтор, п
   expect((await catalogSql("SELECT released_at FROM promo_uses"))[0].released_at).not.toBeNull();
   const cancelled = await buy(`orders/${order.number}/cancel`, { expectedVersion: 2 }, cookies[win]);
   expect(cancelled.status).toBe(200);
+  expect(await cancelled.json()).toMatchObject({ deliveryBenefit: { state: "released" } });
+  expect(await (await getAuth(`/api/seller/orders/${order.number}?store=lavka`, headers)).json()).toMatchObject({
+    deliveryBenefit: { state: "released" },
+  });
   expect((await change(12000, 3)).status).toBe(409);
 });
 

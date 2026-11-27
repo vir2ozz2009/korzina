@@ -42,6 +42,7 @@ export function applyLines(
   if (!lines.length) {
     releaseOrderReservation(storage, snapshot, false);
     releasePromotion(storage, row.number);
+    if (snapshot.deliveryBenefit) snapshot.deliveryBenefit.state = "released";
     snapshot.seatReserved = false;
   }
   const grouped = snapshot.adjustments?.some(({ allocations }) => allocations?.some(({ units }) => units));

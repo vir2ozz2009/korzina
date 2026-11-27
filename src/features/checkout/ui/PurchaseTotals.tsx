@@ -1,3 +1,4 @@
+import type { OrderStage } from "../../../shared/contracts/buyer-order";
 import type { CartAdjustment } from "../../../shared/contracts/cart";
 import type { DeliveryBenefit } from "../../../shared/contracts/promo";
 import type { ReceivingAvailability } from "../../../shared/contracts/receiving";
@@ -13,6 +14,7 @@ export function PurchaseTotals({
   totalMinor,
   deliveryMinor,
   deliveryBenefit,
+  stage,
   currency,
   fulfillment,
   done = false,
@@ -23,13 +25,14 @@ export function PurchaseTotals({
   totalMinor: number;
   deliveryMinor: number;
   deliveryBenefit?: DeliveryBenefit;
+  stage?: OrderStage;
   currency: string;
   fulfillment: Extract<ReceivingAvailability, { available: true }>;
   done?: boolean;
 }) {
   const amount = (minor: number) => formatMinor(minor, currency);
   const courier = fulfillment.mode === "delivery" && fulfillment.payee === "courier";
-  const benefit = deliveryBenefitLabel(deliveryBenefit);
+  const benefit = stage === "cancelled" ? undefined : deliveryBenefitLabel(deliveryBenefit);
   const lateCost = !benefit && fulfillment.mode === "delivery" && fulfillment.feeMinor === null;
   const deliveryTitle =
     benefit ?? (lateCost ? "Согласуем после заказа" : deliveryMinor ? amount(deliveryMinor) : "Бесплатно");
@@ -53,7 +56,7 @@ export function PurchaseTotals({
           <span>{deliveryTitle}</span>
         </div>
       )}
-      {deliveryBenefit?.state === "applied" && (
+      {stage !== "cancelled" && deliveryBenefit?.state === "applied" && (
         <p className="text-caption">
           Исходная доставка {amount(deliveryBenefit.baseMinor ?? 0)} · скидка {amount(deliveryBenefit.amountMinor)} · К
           доплате за доставку 0 ₽

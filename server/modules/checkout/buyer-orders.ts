@@ -60,8 +60,6 @@ export function buyerOrder(row: OrderRow): BuyerOrder {
   const payment = snapshot.payment;
   return {
     ...snapshot,
-    ...(row.status === "cancelled" &&
-      snapshot.deliveryBenefit && { deliveryBenefit: { ...snapshot.deliveryBenefit, state: "released" as const } }),
     payment,
     number: row.number,
     createdAt: row.created_at,
