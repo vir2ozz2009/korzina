@@ -1,6 +1,6 @@
 import { useBlocker } from "@tanstack/react-router";
 import { Gift } from "lucide-react";
-import { useRef } from "react";
+import type { RefObject } from "react";
 import type { Cart, CartAdjustment } from "../../../shared/contracts/cart";
 import { formatMinor } from "../../../shared/money";
 import { ruPlural } from "../../../shared/ru-plural";
@@ -50,7 +50,7 @@ export function CartGroupPromos({
   currency: string;
   blocked: boolean;
   add?: (items: Hint["missing"]) => void;
-  open: (adjustment: CartAdjustment) => void;
+  open: (adjustment: CartAdjustment, trigger: HTMLButtonElement) => void;
 }) {
   const bundles = cart.adjustments.filter(({ groups }) => groups?.type === "bundle");
   const hints = cart.promo?.groupHints?.filter((hint) => hint.type === "bundle");
@@ -72,7 +72,7 @@ export function CartGroupPromos({
             key={item.sourceId}
             type="button"
             className="block min-h-11 text-left text-caption text-primary-text underline"
-            onClick={() => open(item)}
+            onClick={(event) => open(item, event.currentTarget)}
           >
             {item.label} · {sets} · экономия {money(-item.amount)}
           </button>
@@ -115,14 +115,15 @@ export function CartGroupDetails({
   cart,
   currency,
   close,
+  returnFocus,
 }: {
   adjustment?: CartAdjustment;
   part?: Allocation;
   cart?: Cart;
   currency?: string | null;
   close: () => void;
+  returnFocus: RefObject<HTMLElement | null>;
 }) {
-  const returnFocus = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null);
   useBlocker({
     disabled: !adjustment,
     enableBeforeUnload: false,

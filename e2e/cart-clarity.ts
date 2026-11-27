@@ -181,6 +181,8 @@ async function checkDetailsBack(page: Page, shop: string) {
     });
     await expect(page.getByText("Посторонний товар", { exact: true })).toBeVisible();
   };
+  // Safari does not focus a button on pointer activation.
+  await trigger.evaluate((button) => button.addEventListener("click", () => button.blur(), { once: true }));
   await trigger.click();
   await expect(dialog).toBeVisible();
   await page.goBack();

@@ -1,5 +1,5 @@
 import { ChevronRight, X } from "lucide-react";
-import { type ComponentProps, type ReactNode, useEffect, useState } from "react";
+import { type ComponentProps, type ReactNode, useEffect, useRef, useState } from "react";
 import { Screen } from "../../../app/shell/Screen";
 import type { Cart, CartLine } from "../../../shared/contracts/cart";
 import type { ReceivingAvailability } from "../../../shared/contracts/receiving";
@@ -57,6 +57,7 @@ export function CartView({
   after,
   footer,
 }: Props) {
+  const detailTrigger = useRef<HTMLElement | null>(null);
   const [detail, setDetail] = useState<{ sourceId: string; variantId?: string }>();
   const detailAdjustment = cart?.adjustments.find(({ sourceId }) => sourceId === detail?.sourceId);
   useEffect(() => {
@@ -127,7 +128,10 @@ export function CartView({
           <button
             type="button"
             className="mt-2 inline-flex min-h-11 items-center gap-1 rounded-pill bg-status-success px-3 text-small font-semibold text-status-success-foreground"
-            onClick={() => setDetail({ sourceId: gift[0].item.sourceId, variantId: line.variantId })}
+            onClick={(event) => {
+              detailTrigger.current = event.currentTarget;
+              setDetail({ sourceId: gift[0].item.sourceId, variantId: line.variantId });
+            }}
           >
             {giftCount} в подарок <ChevronRight size={14} aria-hidden />
           </button>
@@ -184,7 +188,10 @@ export function CartView({
               currency={currency}
               blocked={promoBlocked}
               add={addPromoItems}
-              open={(item) => setDetail({ sourceId: item.sourceId })}
+              open={(item, trigger) => {
+                detailTrigger.current = trigger;
+                setDetail({ sourceId: item.sourceId });
+              }}
             />
             {cart.promo && (
               <CartPromotion
@@ -242,6 +249,7 @@ export function CartView({
           part={detailAdjustment?.allocations?.find(({ variantId }) => variantId === detail.variantId)}
           {...{ cart, currency }}
           close={() => setDetail(undefined)}
+          returnFocus={detailTrigger}
         />
       )}
       {available.length > 0 && cart && !cart.review && !checking && footer}
