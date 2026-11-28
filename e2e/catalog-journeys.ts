@@ -72,7 +72,7 @@ export async function browseCatalog(page: Page) {
     const photos = page.locator("[data-category-photo]");
     for (const photo of await photos.all()) {
       await photo.scrollIntoViewIfNeeded();
-      await expect(photo).toHaveJSProperty("complete", true);
+      await photo.evaluate((image: HTMLImageElement) => image.decode());
       expect(
         await photo.evaluate((image) => {
           const box = image.getBoundingClientRect();
@@ -81,6 +81,14 @@ export async function browseCatalog(page: Page) {
       ).toEqual({ square: true, fit: "contain" });
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+    await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
+    await expect.poll(() => page.evaluate(() => scrollY)).toBe(0);
+    const tabs = page.getByRole("navigation", { name: "Разделы каталога" });
+    await expect(tabs).toBeInViewport({ ratio: 1 });
+    expect(await tabs.evaluate((element) => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(
+      await page.locator("header").evaluate((element) => element.getBoundingClientRect().bottom),
+    );
+    await page.screenshot({ path: `test-results/categories-top-${width}.png`, animations: "disabled" });
     await page.screenshot({ path: `test-results/categories-${width}.png`, fullPage: true, animations: "disabled" });
   }
   await page.setViewportSize({ width: 390, height: 844 });

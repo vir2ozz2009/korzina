@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { expectCategoryFrames } from "./photo-frames";
 
 export async function checkCategorySettings(page: Page, buyer: Page) {
@@ -18,7 +18,13 @@ export async function checkCategorySettings(page: Page, buyer: Page) {
     for (const width of [360, 390, 412]) {
       await page.setViewportSize({ width, height: 844 });
       await expectCategoryFrames(page.getByRole("navigation", { name: "Категории", exact: true }), [size]);
-      await page.screenshot({ path: `test-results/category-settings-${size}-${width}.png`, animations: "disabled" });
+      await captureTiles(
+        page,
+        page.locator("[data-mosaic-id]"),
+        "data-mosaic-id",
+        [id, "milk"],
+        `settings-${size}-${width}`,
+      );
     }
     await page.getByRole("button", { name: "Сохранить", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Ещё", exact: true })).toBeVisible();
@@ -29,9 +35,30 @@ export async function checkCategorySettings(page: Page, buyer: Page) {
     for (const width of [360, 390, 412]) {
       await buyer.setViewportSize({ width, height: 844 });
       await expectCategoryFrames(buyer.getByRole("navigation", { name: "Категории", exact: true }), [size]);
-      await buyer.screenshot({ path: `test-results/category-saved-${size}-${width}.png`, animations: "disabled" });
+      await captureTiles(
+        buyer,
+        buyer.locator("a[data-size]"),
+        "href",
+        [`/c/${id}`, "/c/milk"],
+        `saved-${size}-${width}`,
+      );
     }
     await page.getByRole("button", { name: "Витрина", exact: true }).click();
   }
   await buyer.close();
+}
+
+async function captureTiles(page: Page, tiles: Locator, attribute: string, ids: (string | null)[], name: string) {
+  for (const [index, id] of ids.entries()) {
+    const tile = tiles.and(page.locator(`[${attribute}="${id}"]`));
+    await tile.scrollIntoViewIfNeeded();
+    await tile
+      .locator("img")
+      .evaluateAll((images) => Promise.all(images.map((image) => (image as HTMLImageElement).decode())));
+    await expect(tile).toBeInViewport({ ratio: 1 });
+    await tile.screenshot({
+      path: `test-results/category-${name}-${index === 1 ? "milk" : "bakery"}.png`,
+      animations: "disabled",
+    });
+  }
 }
