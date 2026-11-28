@@ -13,6 +13,8 @@ export async function checkCategorySettings(page: Page, buyer: Page) {
   for (const [size, label] of sizes) {
     await first.getByRole("button").click();
     await page.getByRole("button", { name: label, exact: true }).click();
+    await page.locator('[data-mosaic-id="milk"]').getByRole("button").click();
+    await page.getByRole("button", { name: label, exact: true }).click();
     for (const width of [360, 390, 412]) {
       await page.setViewportSize({ width, height: 844 });
       await expectCategoryFrames(page.getByRole("navigation", { name: "Категории", exact: true }), [size]);
@@ -23,6 +25,7 @@ export async function checkCategorySettings(page: Page, buyer: Page) {
     await buyer.goto("/?shop=test2");
     await expect(buyer.locator(`a[href="/c/${id}"]`)).toHaveAttribute("data-size", size);
     await buyer.reload();
+    await expect(buyer.locator('a[href="/c/milk"]')).toHaveAttribute("data-size", size);
     for (const width of [360, 390, 412]) {
       await buyer.setViewportSize({ width, height: 844 });
       await expectCategoryFrames(buyer.getByRole("navigation", { name: "Категории", exact: true }), [size]);
