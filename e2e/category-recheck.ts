@@ -57,7 +57,17 @@ async function captureTiles(page: Page, tiles: Locator, attribute: string, ids: 
     await tile
       .locator("img")
       .evaluateAll((images) => Promise.all(images.map((image) => (image as HTMLImageElement).decode())));
-    await expect(tile).toBeInViewport({ ratio: 1 });
+    // Scroll offsets are integral while mosaic cells have fractional CSS widths.
+    // Allow less than one CSS pixel at the rail edge, never a cropped photo.
+    await expect(tile).toBeInViewport({ ratio: 0.99 });
+    expect(
+      await tile.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        const rail = element.closest("nav")?.getBoundingClientRect();
+        if (!rail) throw new Error("Category rail missing");
+        return Math.max(rail.left - box.left, box.right - rail.right, -box.top, box.bottom - innerHeight, 0);
+      }),
+    ).toBeLessThan(1);
     await tile.screenshot({
       path: `test-results/category-${name}-${index === 1 ? "milk" : "bakery"}.png`,
       animations: "disabled",
