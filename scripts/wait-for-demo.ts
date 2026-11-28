@@ -4,7 +4,8 @@ import { publishedAssetsReady } from "./published-assets.ts";
 const expected = process.env.GITHUB_SHA;
 if (!expected) throw new Error("Нужен GITHUB_SHA для проверки опубликованной версии");
 const documentUrl = "https://demo.korzina.app/?shop=test2";
-for (let attempt = 0; ; attempt++) {
+const deadline = Date.now() + 240_000;
+for (;;) {
   try {
     const response = await fetch(documentUrl, {
       cache: "no-store",
@@ -30,6 +31,6 @@ for (let attempt = 0; ; attempt++) {
   } catch (error) {
     console.log(error instanceof Error ? error.message : "Demo ещё недоступно");
   }
-  if (attempt >= 35) throw new Error(`Demo не опубликовало ${expected} за 3 минуты`);
+  if (Date.now() >= deadline) throw new Error(`Demo не опубликовало ${expected} за 4 минуты`);
   await setTimeout(5000);
 }

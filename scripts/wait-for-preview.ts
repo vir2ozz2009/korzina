@@ -40,6 +40,7 @@ while (true) {
         continue;
       }
       appendFileSync(GITHUB_ENV, `E2E_BASE_URL=${url}\n`);
+      if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `url=${url}\n`);
       console.log(`Preview ready for ${PR_HEAD_SHA}: ${url}`);
       process.exit(0);
     } catch (error) {

@@ -11,67 +11,143 @@ concurrency:
   group: check-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 jobs:
-  check:
+  scope:
     if: github.event.pull_request.draft == false && startsWith(github.head_ref, 'task/')
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 2
+    outputs:
+      mode: ${{ steps.scope.outputs.mode }}
+      matrix: ${{ steps.scope.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Classify pull request changes
-        id: scope
-        shell: bash
-        env:
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          changed_files="$RUNNER_TEMP/check-changed-files"
-          git diff --no-renames --name-only -z "$PR_BASE_SHA...$PR_HEAD_SHA" > "$changed_files"
-          full_check=false
-          if [[ ! -s "$changed_files" ]]; then
-            full_check=true
-          fi
-          while IFS= read -r -d '' path; do
-            case "$path" in
-              docs/*|AGENTS.md) ;;
-              *) full_check=true; break ;;
-            esac
-          done < "$changed_files"
-          printf 'full_check=%s\n' "$full_check" >> "$GITHUB_OUTPUT"
-          if [[ "$full_check" == false ]]; then
-            echo 'Documentation-only pull request. Check completed without tests.'
-          fi
       - uses: actions/setup-node@v4
-        if: steps.scope.outputs.full_check == 'true'
+        with:
+          node-version-file: .node-version
+      - id: scope
+        run: node scripts/ci-scope.ts
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CI_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+  code:
+    needs: scope
+    if: needs.scope.outputs.mode != 'docs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
           cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium
       - run: node scripts/check-pr-size.ts
-        if: steps.scope.outputs.full_check == 'true'
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-      - run: npm ci
-        if: steps.scope.outputs.full_check == 'true'
       - run: npm run check
-        if: steps.scope.outputs.full_check == 'true'
-      - run: npx playwright install chromium
-        if: steps.scope.outputs.full_check == 'true'
       - run: npm run platform:setup -- --local --seed
-        if: steps.scope.outputs.full_check == 'true'
       - run: node scripts/built-demo-smoke.ts
-        if: steps.scope.outputs.full_check == 'true'
-      - run: node scripts/wait-for-preview.ts
-        if: steps.scope.outputs.full_check == 'true'
+  preview:
+    needs: scope
+    if: needs.scope.outputs.mode != 'docs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      url: ${{ steps.preview.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - id: preview
+        run: node scripts/wait-for-preview.ts
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      - run: npm run test:e2e -- --grep-invert @home-cart
-        if: steps.scope.outputs.full_check == 'true'
-      - uses: actions/upload-artifact@v4
-        if: always() && steps.scope.outputs.full_check == 'true'
+  browser:
+    needs: [scope, preview]
+    if: needs.scope.outputs.mode != 'docs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: ${{ fromJSON(needs.scope.outputs.matrix) }}
+    env:
+      E2E_BASE_URL: ${{ needs.preview.outputs.url }}
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      CI_BROWSER_REPORT: '1'
+      CI_REQUIRED_IMAGES: ${{ (matrix.suite.name == 'core' || matrix.suite.name == 'affected') && 'home-390.png,product-390.png,category-kit-360-0.png,category-kit-360-1.png,category-kit-360-2.png,category-kit-360-3.png,category-kit-390-0.png,category-kit-390-1.png,category-kit-390-2.png,category-kit-390-3.png,category-kit-412-0.png,category-kit-412-1.png,category-kit-412-2.png,category-kit-412-3.png' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          name: pr-browser-result
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium
+      - run: |
+          npm run test:e2e -- "$SMOKE_FILES" --grep-invert '@home-cart|Блок 6: товар с новой категорией|Блок 9 · ближайшее получение'
+        timeout-minutes: 6
+        env:
+          SMOKE_FILES: ${{ matrix.suite.files }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-browser-result-${{ matrix.suite.name }}
           path: test-results/
           retention-days: 7
+          if-no-files-found: error
+  local:
+    needs: scope
+    if: needs.scope.outputs.mode != 'docs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      CI_BROWSER_REPORT: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium
+      # These scenarios need the isolated local Worker; never count remote skips as PASS.
+      - run: |
+          npm run test:e2e -- --grep '@home-cart|Блок 6: товар с новой категорией|Блок 9 · ближайшее получение'
+        timeout-minutes: 4
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-browser-result-local
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: error
+  check:
+    if: always()
+    needs: [scope, code, preview, browser, local]
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Require every selected job
+        env:
+          MODE: ${{ needs.scope.outputs.mode }}
+          SCOPE: ${{ needs.scope.result }}
+          CODE: ${{ needs.code.result }}
+          PREVIEW: ${{ needs.preview.result }}
+          BROWSER: ${{ needs.browser.result }}
+          LOCAL: ${{ needs.local.result }}
+        run: |
+          test "$SCOPE" = success
+          if [ "$MODE" != docs ]; then
+            test "$CODE" = success
+            test "$PREVIEW" = success
+            test "$BROWSER" = success
+            test "$LOCAL" = success
+          fi
