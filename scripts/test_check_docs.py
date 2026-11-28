@@ -45,6 +45,10 @@ class DocsCheck(unittest.TestCase):
         self.assertIsNone(m.target('docs/a.md', 'https://example.com/a'))
         self.assertEqual(m.target('docs/a.md', '#part'), ('docs/a.md', 'part'))
 
+    def test_code_formatted_link_label_is_checked(self):
+        files = Memory({'a.md': '[`go`](b.md#missing)', 'b.md': '# present'})
+        self.assertEqual(m.diagnostics(files, {'a.md'}), {('a.md', 'b.md#missing', 'missing anchor')})
+
     def test_removed_anchor_checks_unchanged_incoming_link(self):
         old = Memory({'a.md': '[go](b.md#old)', 'b.md': '# old'})
         new = Memory({'a.md': '[go](b.md#old)', 'b.md': '# new'})

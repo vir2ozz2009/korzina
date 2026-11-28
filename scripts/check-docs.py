@@ -47,7 +47,7 @@ def links(text):
     # Reference definitions and inline links; balanced parentheses in destinations.
     refs = dict(re.findall(r'^\s*\[([^]]+)\]:\s*<?([^\s>]+)>?', clean, re.M))
     for line in clean.splitlines():
-        line = re.sub(r'`+[^`]*`+', '', line)
+        line = re.sub(r'`+([^`]*)`+', lambda m: '' if '](' in m[1] or '][' in m[1] else m[1], line)
         pattern = r'\[[^]\n]+\]\((<[^>]+>|(?:[^\s()]|\([^()]*\))+)(?:\s+["\'][^\n]*["\'])?\)'
         for match in re.finditer(pattern, line):
             yield match[1].strip('<>')
