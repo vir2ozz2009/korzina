@@ -48,7 +48,7 @@ export async function checkCatalogBack(page: Page) {
       },
     };
   });
-  await telegram.goto("/?shop=test2");
+  await telegram.goto("/?shop=test2&telegram=1");
   await telegram.locator('a[href="/categories"]').click();
   const telegramTabs = telegram.getByRole("navigation", { name: "Разделы каталога" });
   for (const name of ["Бренды", "Все товары", "Категории"]) {

@@ -13,6 +13,12 @@ test("Блок 6: товар с новой категорией сохраняе
     viewport,
     extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.83" },
   });
+  // Fixture IP belongs to local API requests, not the external image host.
+  await seller.route("https://media.demo.korzina.app/**", async (route) => {
+    const headers = await route.request().allHeaders();
+    delete headers["cf-connecting-ip"];
+    await route.continue({ headers });
+  });
   const buyer = await browser.newContext({ baseURL });
   try {
     expect((await seller.request.post("/__e2e/test2/seller")).status()).toBe(204);
