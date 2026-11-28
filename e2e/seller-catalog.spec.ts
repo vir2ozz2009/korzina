@@ -86,7 +86,7 @@ test("Блок 6: товар с новой категорией сохраняе
     const editor = await browser.newContext({
       baseURL,
       viewport,
-      storageState: await seller.storageState(),
+      storageState: { cookies: await seller.cookies(), origins: [] },
       extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.84" },
     });
     try {
