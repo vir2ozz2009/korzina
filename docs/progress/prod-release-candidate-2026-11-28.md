@@ -4,10 +4,17 @@
 
 ## Кандидат и доказательства
 
-- На чистом checkout `main` после fetch `origin/main` равен `61558a5e58d69679c6845401f89bb803c8afc480`. `npm run release:prepare -- --sha 61558a5e58d69679c6845401f89bb803c8afc480` завершилась успешно: production build, bundle и проверка целевых bindings. Манифест `.cloudflare/release/candidate.json` записан локально, `published: false`; HTML содержит тот же build-revision. При изменении main или артефакта кандидат надо подготовить заново.
+- На чистом checkout `main` после fetch `origin/main` равен `c91616cc596be1b8153ee778ed2867b90991f1b9`. `npm run release:prepare -- --sha c91616cc596be1b8153ee778ed2867b90991f1b9` завершилась успешно: production build, bundle и проверка целевых bindings. Манифест `.cloudflare/release/candidate.json` записан локально, `published: false`; HTML содержит тот же build-revision. При изменении main или артефакта кандидат надо подготовить заново.
 - Первый экран 152,45 КБ gzip при цели 135 КБ: предупреждение, ниже порога отказа 160 КБ. Предыдущий замер L2 — 152,15 КБ; точная причина роста не установлена.
-- [Check #357](https://github.com/vir2ozz2009/korzina/actions/runs/46122382079) успешен для последнего кодового изменения; после merge `24b2341` до кандидата изменялись только документы. [Check #360](https://github.com/vir2ozz2009/korzina/actions/runs/46128005262) успешен для docs-only PR; его пропущенные runtime-задачи не являются новым полным Check на SHA кандидата. [Demo smoke](https://github.com/vir2ozz2009/korzina/actions/runs/46124592284) успешен на `24b2341`, не на новом SHA.
+- [Check #357](https://github.com/vir2ozz2009/korzina/actions/runs/46122382079) успешен для последнего кодового изменения; после merge `24b2341` до кандидата изменялись только документы; [Check #362](https://github.com/vir2ozz2009/korzina/actions/runs/46129209865) успешен для docs-only PR. [Check #360](https://github.com/vir2ozz2009/korzina/actions/runs/46128005262) успешен для docs-only PR; его пропущенные runtime-задачи не являются новым полным Check на SHA кандидата. [Demo smoke](https://github.com/vir2ozz2009/korzina/actions/runs/46124592284) успешен на `24b2341`, не на новом SHA.
 - 12.3 полностью принят решением Андрея; физический остаток не превращён в PASS и остановленный прогон не возобновляется. D1 принят; CART-CLARITY принят в ограниченном объёме. Детали и ранее принятые проверки — [PROGRESS](../PROGRESS.md). FIX-PROMO-OPT F0–F8 остаётся открытым: автоматическое покрытие не заменяет физическую приёмку.
+
+## Продолжение подготовки · 28.11
+
+- `npm run check` локально на runtime, идентичном `61558a5` и `c91616c`: 122 файла и 472 теста PASS, включая сборки prod/demo; локальная среда выдавала предупреждения о ненастроенном MEDIA_SIGNING_KEY. Это не облачная нагрузка и не L1 PASS. Кандидат пересобран на `c91616c` после документального #362; старый `61558a5` устарел.
+- Полный E2E на изолированной локальной среде CI запущен на `61558a5`: [run 46129248494](https://github.com/vir2ozz2009/korzina/actions/runs/46129248494); между этим SHA и кандидатом только документы.
+- Облачный drill не выполнен: штатный scheduledBackup запрещён вне production и использует restore-ресурсы, которые перезаписывает; безопасный отдельный облачный исполнитель и изолированные тестовые данные не подготовлены. Cloudflare connector доступен, но локальный `cf` не авторизован. Не направлять расписание или drill на prod.
+- Физические FIX-PROMO-OPT и проверки Telegram/iPhone/Android в этой облачной среде недоступны. Принятые вручную проверки не повторялись.
 
 ## Остаток до решения о выпуске
 
