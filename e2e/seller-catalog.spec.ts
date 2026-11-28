@@ -1,9 +1,11 @@
 import { type BrowserContext, expect, test } from "@playwright/test";
+import { checkCategorySettings } from "./category-recheck";
 
 test("Блок 6: товар с новой категорией сохраняется, витрина обновляется, пауза сохраняет остаток", async ({
   browser,
   baseURL,
 }) => {
+  test.setTimeout(90_000);
   test.skip(!baseURL?.startsWith("http://127.0.0.1"), "Тест использует локальную сессию продавца");
   const viewport = { width: 390, height: 844 };
   const seller = await browser.newContext({
@@ -67,6 +69,7 @@ test("Блок 6: товар с новой категорией сохраняе
     await page.locator("[data-mosaic-id]").first().getByRole("button").click();
     await expect(page.getByRole("button", { name: "Большая" })).toBeVisible();
     await page.screenshot({ path: "test-results/seller-catalog-mosaic-390.png", animations: "disabled" });
+    await checkCategorySettings(page, await buyer.newPage());
     const tile = page.locator("[data-mosaic-id]").first().locator("[data-size]");
     const wasLarge = (await tile.getAttribute("data-size")) === "2x2";
     await page.getByRole("button", { name: wasLarge ? "Маленькая" : "Большая" }).click();
@@ -93,7 +96,11 @@ async function checkProductEditor(seller: BrowserContext, product: { id: string;
   const page = await seller.newPage();
   const search = new URLSearchParams({ shop: "test2", store: "test2", q: product.name });
   await page.goto(`/seller/products?${search}`);
-  const productRow = page.getByRole("button", { name: new RegExp(product.name) });
+  const productRow = page
+    .locator("[data-product-status]")
+    .filter({ hasText: product.name })
+    .getByRole("button")
+    .first();
   const save = page.getByRole("button", { name: "Сохранить", exact: true });
   await test.step("06 · повторное открытие берёт сохранённый режим и ревизию", async () => {
     await productRow.click();

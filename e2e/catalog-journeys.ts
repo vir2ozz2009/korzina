@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import { catalogDocumentContract } from "../src/shared/contracts/catalog";
+import { checkCatalogBack } from "./catalog-back";
 import { checkContent } from "./content";
 
 export async function browseCatalog(page: Page) {
@@ -57,14 +58,31 @@ export async function browseCatalog(page: Page) {
   await expect(page.getByRole("button", { name: "Томаты", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect.poll(() => page.evaluate(() => scrollY)).toBeCloseTo(scroll, 0);
   await page.goBack();
-  await expect(page).toHaveURL(/\/?\?shop=test2$/);
+  await expect(page).toHaveURL((url) => url.pathname === "/" && url.searchParams.get("shop") === "test2");
   await expect.poll(() => page.evaluate(() => scrollY)).toBeCloseTo(homeScroll, 0);
   await page.setViewportSize({ width: 390, height: 844 });
+  await checkCatalogBack(page);
   await page.goto("/categories?shop=test2");
   await expect(category).toBeVisible();
   await expect(page.getByRole("button", { name: "Все товары ›" })).toBeVisible();
   await expect(page.locator('a[href="/c/empty"],a[href^="/c/home-"]')).toHaveCount(0);
-  await page.screenshot({ path: "test-results/categories-390.png", animations: "disabled" });
+  for (const width of [360, 390, 412]) {
+    await page.setViewportSize({ width, height: 844 });
+    const photos = page.locator("[data-category-photo]");
+    for (const photo of await photos.all()) {
+      await photo.scrollIntoViewIfNeeded();
+      await expect(photo).toHaveJSProperty("complete", true);
+      expect(
+        await photo.evaluate((image) => {
+          const box = image.getBoundingClientRect();
+          return { square: Math.abs(box.width - box.height) < 1, fit: getComputedStyle(image).objectFit };
+        }),
+      ).toEqual({ square: true, fit: "contain" });
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+    await page.screenshot({ path: `test-results/categories-${width}.png`, fullPage: true, animations: "disabled" });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Все бренды ›" }).click();
   await page.locator('a[href="/b/brand-1"]').click();
   await expect(page.locator("article").first()).toBeVisible();
