@@ -53,12 +53,16 @@ for db in "$src" "$dst"; do
   jq -n --arg sql "SELECT identity FROM l2_drill_identity; SELECT id FROM shops ORDER BY id; SELECT name,sql FROM sqlite_schema WHERE type = 'table' AND name NOT LIKE '_cf_%' AND name NOT LIKE 'sqlite_%' ORDER BY name;" '{sql:$sql}' |
     curl -fsS -H "Authorization: Bearer $CF_API_TOKEN" -H 'Content-Type: application/json' --data-binary @- \
       "$api/d1/database/$db/query" > "$workdir/$db-query.json"
-  jq -e '.success and all(.result[]; .success)' "$workdir/$db-query.json" >/dev/null
+  jq -e '.success and all(.result[]; .success) and
+    (.result[0].results == [{"identity":"8e9a1210-1d84-4861-be7d-d051c81564d6"}]) and
+    (.result[1].results == [{"id":"l2-training-a"},{"id":"l2-training-b"}]) and
+    ([.result[2].results[].name] == ["l2_drill_identity","shops"]) and
+    ([.result[2].results[] | select(.name == "shops") | .sql] == ["CREATE TABLE shops (id TEXT PRIMARY KEY)"])' "$workdir/$db-query.json" >/dev/null
   jq '.result[].results' "$workdir/$db-query.json"
 done
 ```
 
-Обе базы должны содержать только таблицы `l2_drill_identity` и `shops`, shops — ровно `l2-training-a/b`; дополнительно проверить `sqlite_schema`. После прежнего восстановления метка **обеих** баз — source UUID. Это ожидаемо, но не доказывает раздельность: до записи обязательны сверка двух ID и settings выше. Бакеты также должны быть различны по фактическим bindings. Никакие другие данные или ресурсы не очищать.
+До любой записи в каждой базе должна быть ровно одна строка identity со значением source UUID. Обе базы должны содержать только таблицы `l2_drill_identity` и `shops`, shops — ровно `l2-training-a/b`; дополнительно проверить `sqlite_schema`. После прежнего восстановления метка **обеих** баз — source UUID. Это ожидаемо, но не доказывает раздельность: до записи обязательны сверка двух ID и settings выше. Бакеты также должны быть различны по фактическим bindings. Никакие другие данные или ресурсы не очищать.
 
 ## 2. Сборка и выпуск только учебного Worker
 
