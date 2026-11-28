@@ -39,7 +39,14 @@ export async function expectCategoryFrames(rail: Locator, shapes: readonly strin
         width,
         height,
         cell,
-        photo: frame && { width: frame.width, height: frame.height, fit: photo && getComputedStyle(photo).objectFit },
+        photo: frame && {
+          width: frame.width,
+          height: frame.height,
+          fit: photo && getComputedStyle(photo).objectFit,
+          area: photo?.parentElement?.parentElement?.getBoundingClientRect().toJSON(),
+          titleBottom: tile.querySelector("span")?.getBoundingClientRect().bottom,
+          top: frame.top,
+        },
       };
     });
   });
@@ -50,10 +57,10 @@ export async function expectCategoryFrames(rail: Locator, shapes: readonly strin
     expect(Math.abs(width - (wide ? 2 * cell + 8 : cell)), `Ширина плитки категории ${size}`).toBeLessThan(1);
     expect(Math.abs(height - (tall ? 2 * cell + 8 : cell)), `Высота плитки категории ${size}`).toBeLessThan(1);
     if (!photo) continue;
-    expect(photo.fit).toBe("cover");
-    expect(Math.abs(photo.width - ((wide ? width * 0.7 : width) - 16)), `Ширина фото категории ${size}`).toBeLessThan(
-      1,
-    );
-    expect(Math.abs(photo.height - (height - (wide ? 16 : 54))), `Высота фото категории ${size}`).toBeLessThan(1);
+    expect(photo.fit).toBe("contain");
+    const scale = size === "1x1" ? 0.7 : 1;
+    expect(Math.abs(photo.width - photo.area.width * scale)).toBeLessThan(1);
+    expect(Math.abs(photo.height - photo.area.height * scale)).toBeLessThan(1);
+    expect(photo.top).toBeGreaterThanOrEqual(photo.titleBottom ?? 0);
   }
 }

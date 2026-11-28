@@ -12,6 +12,7 @@ export function CatalogTabs({ active }: { active: (typeof tabs)[number][0] }) {
         <Link
           key={to}
           to={to}
+          replace
           aria-current={to === active ? "page" : undefined}
           className={`flex min-h-11 shrink-0 items-center rounded-pill px-3 text-label ${to === active ? "bg-primary-soft text-primary-text" : "bg-card"}`}
         >

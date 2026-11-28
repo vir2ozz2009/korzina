@@ -26,7 +26,7 @@ export function NavigationScreen({ brands = false }: { brands?: boolean }) {
       }}
     >
       {!brands && (
-        <Button full onClick={() => void navigate({ to: "/catalog" })}>
+        <Button full onClick={() => void navigate({ to: "/catalog", replace: true })}>
           Все товары ›
         </Button>
       )}
@@ -42,8 +42,9 @@ export function NavigationScreen({ brands = false }: { brands?: boolean }) {
               </div>
             ))
           : categories.map((item) => (
-              <div key={item.id} className="h-32">
+              <div key={item.id} className="min-w-0">
                 <CategoryTile
+                  list
                   name={item.name}
                   image={item.image ?? undefined}
                   href={`/c/${encodeURIComponent(item.id)}`}
@@ -52,7 +53,7 @@ export function NavigationScreen({ brands = false }: { brands?: boolean }) {
             ))}
       </div>
       {!brands && !!items.length && (
-        <Button full variant="secondary" onClick={() => void navigate({ to: "/brands" })}>
+        <Button full variant="secondary" onClick={() => void navigate({ to: "/brands", replace: true })}>
           Все бренды ›
         </Button>
       )}
