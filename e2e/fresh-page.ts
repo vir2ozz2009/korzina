@@ -9,6 +9,12 @@ export async function freshPage(browser: Browser, baseURL: string | undefined, r
     viewport: { width: 390, height: 844 },
     ...(local ? { extraHTTPHeaders: { "CF-Connecting-IP": `e2e-${crypto.randomUUID()}` } } : {}),
   });
+  if (local)
+    await context.route(/^https?:\/\/(?!127\.0\.0\.1(?::|\/))/, async (route) => {
+      const headers = await route.request().allHeaders();
+      delete headers["cf-connecting-ip"];
+      await route.continue({ headers });
+    });
   try {
     await run(await context.newPage());
   } finally {

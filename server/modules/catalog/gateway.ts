@@ -13,8 +13,7 @@ import { pageGateway } from "./page-gateway";
 export const catalogGateway = createMiddleware<{ Bindings: Env }>(async (c) => {
   const shop = await resolveShop(c.req.raw, c.env.PLATFORM, c.env.APP_ENV);
   if (!shop) throw new ApiError("SHOP_NOT_FOUND", "Магазин не найден");
-  if (c.env.APP_ENV === "demo" || c.env.APP_ENV === "preview")
-    await applyDemoSeed(c.env.PLATFORM, c.env.APP_ENV, shop.id);
+  if (c.env.APP_ENV === "demo") await applyDemoSeed(c.env.PLATFORM, c.env.APP_ENV, shop.id);
   const teamPreview = await authorizeBuyerShop(c.req.raw, c.env.PLATFORM, shop);
   if (c.req.method === "GET" && c.req.path === "/api/catalog/page") {
     const parsed = catalogListInput.safeParse(c.req.query());
