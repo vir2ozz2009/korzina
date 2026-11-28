@@ -1,15 +1,23 @@
 import { type BrowserContext, expect, test } from "@playwright/test";
+import { checkCategorySettings } from "./category-recheck";
 
 test("Блок 6: товар с новой категорией сохраняется, витрина обновляется, пауза сохраняет остаток", async ({
   browser,
   baseURL,
 }) => {
+  test.setTimeout(90_000);
   test.skip(!baseURL?.startsWith("http://127.0.0.1"), "Тест использует локальную сессию продавца");
   const viewport = { width: 390, height: 844 };
   const seller = await browser.newContext({
     baseURL,
     viewport,
     extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.83" },
+  });
+  // Fixture IP belongs to local API requests, not the external image host.
+  await seller.route("https://media.demo.korzina.app/**", async (route) => {
+    const headers = await route.request().allHeaders();
+    delete headers["cf-connecting-ip"];
+    await route.continue({ headers });
   });
   const buyer = await browser.newContext({ baseURL });
   try {
@@ -67,6 +75,8 @@ test("Блок 6: товар с новой категорией сохраняе
     await page.locator("[data-mosaic-id]").first().getByRole("button").click();
     await expect(page.getByRole("button", { name: "Большая" })).toBeVisible();
     await page.screenshot({ path: "test-results/seller-catalog-mosaic-390.png", animations: "disabled" });
+    await checkCategorySettings(page, await buyer.newPage());
+    await page.locator("[data-mosaic-id]").first().getByRole("button").click();
     const tile = page.locator("[data-mosaic-id]").first().locator("[data-size]");
     const wasLarge = (await tile.getAttribute("data-size")) === "2x2";
     await page.getByRole("button", { name: wasLarge ? "Маленькая" : "Большая" }).click();
@@ -76,7 +86,7 @@ test("Блок 6: товар с новой категорией сохраняе
     const editor = await browser.newContext({
       baseURL,
       viewport,
-      storageState: await seller.storageState(),
+      storageState: { cookies: await seller.cookies(), origins: [] },
       extraHTTPHeaders: { "CF-Connecting-IP": "192.0.2.84" },
     });
     try {
@@ -93,7 +103,11 @@ async function checkProductEditor(seller: BrowserContext, product: { id: string;
   const page = await seller.newPage();
   const search = new URLSearchParams({ shop: "test2", store: "test2", q: product.name });
   await page.goto(`/seller/products?${search}`);
-  const productRow = page.getByRole("button", { name: new RegExp(product.name) });
+  const productRow = page
+    .locator("[data-product-status]")
+    .filter({ hasText: product.name })
+    .getByRole("button")
+    .first();
   const save = page.getByRole("button", { name: "Сохранить", exact: true });
   await test.step("06 · повторное открытие берёт сохранённый режим и ревизию", async () => {
     await productRow.click();
@@ -131,22 +145,21 @@ async function checkProductEditor(seller: BrowserContext, product: { id: string;
     await expect(page.getByRole("textbox", { name: "Цена", exact: true })).toBeVisible();
     await expect(variantName).toHaveCount(0);
     await page.getByRole("button", { name: "Фасовка", exact: true }).click();
-    await page.getByLabel("Цена", { exact: true }).fill("30000");
+    await page.getByLabel("Обычная цена", { exact: true }).fill("30000");
+    await page.getByLabel("Цена по акции", { exact: true }).fill("25000");
     await page.getByRole("switch", { name: "Без лимита" }).check();
-    const done = page.getByRole("button", { name: "Готово", exact: true });
-    await done.click();
     await save.click();
     await expect(variantName).toHaveAttribute("aria-invalid", "true", { timeout: 2000 });
     await variantName.fill("Бутылка");
-    await done.click();
-    await page.getByRole("button", { name: /Название фасовки/ }).click();
+    await save.click();
+    // The other unnamed variant must also be named before the product can save.
+    await expect(variantName).toHaveValue("");
+    await expect(variantName).toHaveAttribute("aria-invalid", "true");
     await variantName.fill(" бутылка ");
-    await done.click();
     await save.click();
     await expect(variantName).toHaveAttribute("aria-invalid", "true");
     await expect(variantName).toHaveValue(" бутылка ");
     await variantName.fill("Большая");
-    await done.click();
     await save.click();
     await expect(productRow).toBeVisible();
     const saved = await seller.request.get(`/api/seller/catalog/products/${product.id}?store=test2`);

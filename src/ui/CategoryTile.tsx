@@ -11,6 +11,7 @@ export function CategoryTile({
   icon,
   column,
   row,
+  list = false,
 }: {
   name: string;
   image?: ProductImageValue;
@@ -19,6 +20,7 @@ export function CategoryTile({
   icon?: ReactNode;
   column?: number;
   row?: number;
+  list?: boolean;
 }) {
   const Tile = href ? "a" : "div";
   const wide = size.startsWith("2");
@@ -28,7 +30,7 @@ export function CategoryTile({
     <Tile
       href={href}
       data-size={size}
-      className={`relative isolate min-w-0 h-full overflow-hidden rounded-lg bg-card ${wide ? "col-span-2 block" : "flex flex-col"} ${size.endsWith("2") ? "row-span-2" : ""}`}
+      className={`relative isolate min-w-0 flex flex-col overflow-hidden rounded-lg bg-card ${list ? "" : "h-full"} ${wide ? "col-span-2" : ""} ${size.endsWith("2") ? "row-span-2" : ""}`}
       style={
         column
           ? {
@@ -38,17 +40,17 @@ export function CategoryTile({
           : undefined
       }
     >
-      <span
-        className={`z-2 line-clamp-2 shrink-0 self-stretch wrap-anywhere text-small font-semibold ${wide ? "absolute top-2.5 left-2.5 w-[calc(30%-var(--spacing)/2)]" : "relative mx-2.5 mt-2.5 mb-1 h-8 pr-1"}`}
-      >
+      <span className="relative mx-2.5 mt-2.5 mb-1 line-clamp-2 h-8 shrink-0 wrap-anywhere pr-1 text-small font-semibold">
         {name}
       </span>
       <span
-        className={`z-0 flex min-h-0 min-w-0 items-end overflow-hidden ${wide ? "absolute inset-y-0 right-0 left-[30%] justify-end p-2" : "relative flex-1 justify-center px-2 pb-2"}`}
+        className={`relative mx-2 mb-2 flex min-h-0 min-w-0 items-center justify-center ${list ? "aspect-square" : "flex-1"}`}
         aria-hidden
       >
         {source.src && source.src !== failed ? (
-          <CategoryPhoto source={source} onError={() => setFailed(source.src)} />
+          <span className={size === "1x1" && !list ? "block h-[70%] w-[70%]" : "block size-full"}>
+            <CategoryPhoto source={source} onError={() => setFailed(source.src)} />
+          </span>
         ) : (
           <span
             aria-hidden

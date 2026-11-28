@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import { catalogDocumentContract } from "../src/shared/contracts/catalog";
+import { checkCatalogBack } from "./catalog-back";
 import { checkContent } from "./content";
 
 export async function browseCatalog(page: Page) {
@@ -9,13 +10,14 @@ export async function browseCatalog(page: Page) {
     if (new URL(response.url()).pathname.startsWith("/api/") && response.status() >= 400)
       errors.push(`${response.status()} ${response.url()}`);
   });
-  const [catalogResponse, home] = await Promise.all([
-    page.waitForResponse((response) => new URL(response.url()).pathname === "/api/catalog/document"),
+  const [catalog, home] = await Promise.all([
+    page.request.get("/api/catalog/document?shop=test2").then(async (response) => {
+      expect(response.ok(), `Каталог test2: HTTP ${response.status()}`).toBe(true);
+      return catalogDocumentContract.parse(await response.json());
+    }),
     page.goto("/?shop=test2"),
   ]);
   expect(home?.ok(), "Главная магазина test2 должна открываться").toBe(true);
-  expect(catalogResponse.ok(), `Каталог test2: HTTP ${catalogResponse.status()}`).toBe(true);
-  const catalog = catalogDocumentContract.parse(await catalogResponse.json());
   const root = catalog.categories.find(({ id }) => id === "home");
   if (!root || root.parentId !== null || !root.hasProducts)
     throw new Error("В каталоге test2 нужна видимая корневая категория home с товарами");
@@ -57,14 +59,39 @@ export async function browseCatalog(page: Page) {
   await expect(page.getByRole("button", { name: "Томаты", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect.poll(() => page.evaluate(() => scrollY)).toBeCloseTo(scroll, 0);
   await page.goBack();
-  await expect(page).toHaveURL(/\/?\?shop=test2$/);
+  await expect(page).toHaveURL((url) => url.pathname === "/" && url.searchParams.get("shop") === "test2");
   await expect.poll(() => page.evaluate(() => scrollY)).toBeCloseTo(homeScroll, 0);
   await page.setViewportSize({ width: 390, height: 844 });
+  await checkCatalogBack(page);
   await page.goto("/categories?shop=test2");
   await expect(category).toBeVisible();
   await expect(page.getByRole("button", { name: "Все товары ›" })).toBeVisible();
   await expect(page.locator('a[href="/c/empty"],a[href^="/c/home-"]')).toHaveCount(0);
-  await page.screenshot({ path: "test-results/categories-390.png", animations: "disabled" });
+  for (const width of [360, 390, 412]) {
+    await page.setViewportSize({ width, height: 844 });
+    const photos = page.locator("[data-category-photo]");
+    for (const photo of await photos.all()) {
+      await photo.scrollIntoViewIfNeeded();
+      await photo.evaluate((image: HTMLImageElement) => image.decode());
+      expect(
+        await photo.evaluate((image) => {
+          const box = image.getBoundingClientRect();
+          return { square: Math.abs(box.width - box.height) < 1, fit: getComputedStyle(image).objectFit };
+        }),
+      ).toEqual({ square: true, fit: "contain" });
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+    await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
+    await expect.poll(() => page.evaluate(() => scrollY)).toBe(0);
+    const tabs = page.getByRole("navigation", { name: "Разделы каталога" });
+    await expect(tabs).toBeInViewport({ ratio: 1 });
+    expect(await tabs.evaluate((element) => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(
+      await page.locator("header").evaluate((element) => element.getBoundingClientRect().bottom),
+    );
+    await page.screenshot({ path: `test-results/categories-top-${width}.png`, animations: "disabled" });
+    await page.screenshot({ path: `test-results/categories-${width}.png`, fullPage: true, animations: "disabled" });
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Все бренды ›" }).click();
   await page.locator('a[href="/b/brand-1"]').click();
   await expect(page.locator("article").first()).toBeVisible();
