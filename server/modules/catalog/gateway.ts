@@ -2,6 +2,7 @@ import { createMiddleware } from "hono/factory";
 import { catalogPageInput } from "../../../src/shared/contracts/catalog";
 import { catalogListInput } from "../../../src/shared/contracts/catalog-list";
 import { ApiError } from "../../../src/shared/errors";
+import { applyDemoSeed } from "../../platform/demo-seed";
 import { readFeatures } from "../../platform/features";
 import { resolveShop } from "../../platform/resolve-shop";
 import { authorizeBuyerShop } from "../../platform/shop-preview";
@@ -12,6 +13,7 @@ import { pageGateway } from "./page-gateway";
 export const catalogGateway = createMiddleware<{ Bindings: Env }>(async (c) => {
   const shop = await resolveShop(c.req.raw, c.env.PLATFORM, c.env.APP_ENV);
   if (!shop) throw new ApiError("SHOP_NOT_FOUND", "Магазин не найден");
+  if (c.env.APP_ENV === "demo") await applyDemoSeed(c.env.PLATFORM, c.env.APP_ENV, shop.id);
   const teamPreview = await authorizeBuyerShop(c.req.raw, c.env.PLATFORM, shop);
   if (c.req.method === "GET" && c.req.path === "/api/catalog/page") {
     const parsed = catalogListInput.safeParse(c.req.query());
