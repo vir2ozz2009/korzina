@@ -51,7 +51,9 @@ export async function checkCategorySettings(page: Page, buyer: Page) {
 async function captureTiles(page: Page, tiles: Locator, attribute: string, ids: (string | null)[], name: string) {
   for (const [index, id] of ids.entries()) {
     const tile = tiles.and(page.locator(`[${attribute}="${id}"]`));
-    await tile.scrollIntoViewIfNeeded();
+    await tile.evaluate((element) =>
+      element.scrollIntoView({ block: "center", inline: "center", behavior: "instant" }),
+    );
     await tile
       .locator("img")
       .evaluateAll((images) => Promise.all(images.map((image) => (image as HTMLImageElement).decode())));
