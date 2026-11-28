@@ -24,6 +24,10 @@ export function useBack(fallback = "/") {
       });
       return;
     }
+    if (["/categories", "/brands", "/catalog"].includes(router.state.location.pathname)) {
+      void router.navigate({ to: "/", search: (previous) => ({ shop: previous.shop }), replace: true });
+      return;
+    }
     if (canGoBack(index)) router.history.back();
     else void router.navigate({ to: fallback, search: (previous) => ({ shop: previous.shop }), replace: true });
   };

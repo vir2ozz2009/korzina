@@ -1,4 +1,0 @@
-interface:
-  display_name: "Korzina: перепроверка demo"
-  short_description: "Проверка исправленного дефекта по SHA и сценарию"
-  default_prompt: "Используй $korzina-demo-recheck для перепроверки исправления по актуальной передаче Korzina."
