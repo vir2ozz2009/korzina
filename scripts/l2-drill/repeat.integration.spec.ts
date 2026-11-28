@@ -85,8 +85,14 @@ it("repeats the full drill while preserving the old backup and isolating the sou
       currency: "VND",
       totalMinor: 45000,
     });
-  // A mistaken D1 binding must be rejected before deleting markers or changing either store.
+  // Extra identity rows are unexpected state and must not be silently accepted.
   await mark();
+  await env.PLATFORM.prepare("INSERT INTO l2_drill_identity VALUES ('unexpected')").run();
+  await expect(repeat.fetch(request(), training)).rejects.toThrow("Training database identity mismatch");
+  expect(await source.backupSnapshot()).toEqual(sourceAfter);
+  expect(await env.MEDIA.get(".l2-drill-identity")).not.toBeNull();
+  await env.PLATFORM.prepare("DELETE FROM l2_drill_identity WHERE identity='unexpected'").run();
+  // A mistaken D1 binding must be rejected before deleting markers or changing either store.
   const backupKeys = (await env.BACKUPS.list()).objects.map((item) => item.key).sort();
   await expect(repeat.fetch(request(), { ...training, RESTORE_PLATFORM: env.PLATFORM })).rejects.toThrow(
     "database identity mismatch",

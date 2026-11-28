@@ -89,8 +89,9 @@ export function createRepeatWorker(preserved: { key: string; etag: string }[]) {
           JSON.stringify(["l2_drill_identity", "shops"])
         )
           throw new Error("Training database schema mismatch");
-        const row = await db.prepare("SELECT identity FROM l2_drill_identity").first<{ identity: string }>();
-        databaseMarkers.push(row?.identity ?? "");
+        const rows = await db.prepare("SELECT identity FROM l2_drill_identity").all<{ identity: string }>();
+        if (rows.results.length !== 1) throw new Error("Training database identity mismatch");
+        databaseMarkers.push(rows.results[0].identity);
         const schema = await db
           .prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name='shops'")
           .first<{ sql: string }>();
