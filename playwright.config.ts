@@ -6,6 +6,9 @@ export default defineConfig({
   testDir: "./e2e",
   ...(regressions ? { testMatch: "regressions/*.spec.ts", timeout: 30_000 } : { testIgnore: "**/regressions/**" }),
   workers: 1,
+  ...(process.env.CI_BROWSER_REPORT === "1"
+    ? { reporter: [["line"], ["./scripts/ci-browser-report.ts"]] as [string][] }
+    : {}),
   retries: 0,
   use: {
     baseURL,

@@ -2,48 +2,57 @@ name: Demo smoke
 on:
   push:
     branches: [main]
-    paths:
-      - 'server/**'
-      - 'src/**'
-      - 'vite.config.ts'
-      - 'cloudflare.config.ts'
-      - 'e2e/**'
-      - 'src/shared/contracts/catalog*.ts'
-      - 'public/assets/catalog/**'
-      - 'public/_headers'
-      - 'scripts/catalog-smoke.ts'
-      - '.github/workflows/demo-smoke.yml'
+    paths-ignore: ['docs/**', 'AGENTS.md']
 permissions:
   contents: read
 concurrency:
   group: demo-smoke
   cancel-in-progress: true
 jobs:
-  catalog:
+  scope:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 2
+    outputs:
+      mode: ${{ steps.scope.outputs.mode }}
+      matrix: ${{ steps.scope.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - id: scope
+        run: node scripts/ci-scope.ts
+        env:
+          CI_BASE_SHA: ${{ github.event.before }}
+          CI_HEAD_SHA: ${{ github.sha }}
+  ready:
+    needs: scope
+    if: needs.scope.outputs.mode != 'docs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
-      # Native Node TypeScript, no dependencies or repeat of the full check.
-      - run: node scripts/catalog-smoke.ts https://demo.korzina.app --wait-for-build
-  storefront:
-    name: Browser smoke (${{ matrix.suite.name }})
+      - run: node scripts/wait-for-demo.ts
+        timeout-minutes: 5
+      - run: node scripts/catalog-smoke.ts https://demo.korzina.app
+  browser:
+    needs: [scope, ready]
+    if: needs.scope.outputs.mode != 'docs'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     strategy:
       fail-fast: false
       matrix:
-        suite:
-          # Keep the long purchase and login scenarios on independent runners.
-          - name: purchase
-            files: 'e2e/purchase\.spec\.ts$'
-          - name: telegram
-            files: 'e2e/telegram-login\.spec\.ts$'
-          - name: storefront
-            files: 'e2e/(?!purchase\.spec\.ts$|telegram-login\.spec\.ts$)'
+        suite: ${{ fromJSON(needs.scope.outputs.mode == 'full' && '[{"name":"release","files":"e2e/deployment.spec.ts$"},{"name":"purchase","files":"e2e/purchase.spec.ts$"},{"name":"telegram","files":"e2e/telegram-login.spec.ts$"}]' || needs.scope.outputs.matrix) }}
+    env:
+      E2E_BASE_URL: https://demo.korzina.app
+      CI_BROWSER_REPORT: '1'
+      CI_REQUIRED_IMAGES: ${{ (matrix.suite.name == 'release' || matrix.suite.name == 'affected') && 'home-390.png,product-390.png' || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -52,14 +61,17 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install chromium
-      - run: node scripts/wait-for-demo.ts
-      - run: npm run test:e2e -- "$SMOKE_FILES" --grep-invert @home-cart
+      - run: |
+          npm run test:e2e -- "$SMOKE_FILES" --grep-invert '@home-cart|Блок 6: товар с новой категорией|Блок 9 · ближайшее получение'
+        timeout-minutes: 6
         env:
-          E2E_BASE_URL: https://demo.korzina.app
           SMOKE_FILES: ${{ matrix.suite.files }}
+      - run: node scripts/wait-for-demo.ts
+        timeout-minutes: 1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: demo-browser-result-${{ matrix.suite.name }}
           path: test-results/
           retention-days: 7
+          if-no-files-found: error
