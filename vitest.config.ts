@@ -51,6 +51,17 @@ export default defineConfig({
           },
         },
       },
+      {
+        plugins: [
+          cloudflareTest({
+            config: true,
+            main: "./scripts/l2-drill/repeat-worker.ts",
+            remoteBindings: false,
+            miniflare: { bindings: { APP_ENV: "l2-drill" } },
+          }),
+        ],
+        test: { name: "l2-drill", include: ["scripts/l2-drill/repeat.integration.spec.ts"], testTimeout: 30_000 },
+      },
     ],
   },
 });
