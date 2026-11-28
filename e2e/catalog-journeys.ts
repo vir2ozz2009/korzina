@@ -10,13 +10,14 @@ export async function browseCatalog(page: Page) {
     if (new URL(response.url()).pathname.startsWith("/api/") && response.status() >= 400)
       errors.push(`${response.status()} ${response.url()}`);
   });
-  const [catalogResponse, home] = await Promise.all([
-    page.waitForResponse((response) => new URL(response.url()).pathname === "/api/catalog/document"),
+  const [catalog, home] = await Promise.all([
+    page.request.get("/api/catalog/document?shop=test2").then(async (response) => {
+      expect(response.ok(), `Каталог test2: HTTP ${response.status()}`).toBe(true);
+      return catalogDocumentContract.parse(await response.json());
+    }),
     page.goto("/?shop=test2"),
   ]);
   expect(home?.ok(), "Главная магазина test2 должна открываться").toBe(true);
-  expect(catalogResponse.ok(), `Каталог test2: HTTP ${catalogResponse.status()}`).toBe(true);
-  const catalog = catalogDocumentContract.parse(await catalogResponse.json());
   const root = catalog.categories.find(({ id }) => id === "home");
   if (!root || root.parentId !== null || !root.hasProducts)
     throw new Error("В каталоге test2 нужна видимая корневая категория home с товарами");
