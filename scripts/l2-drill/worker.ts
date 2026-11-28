@@ -25,10 +25,10 @@ export default {
     if (difference !== 0) return new Response(null, { status: 404 });
     const marker = ".l2-drill-identity";
     const buckets = [
-      [env.MEDIA, "korzina-l2-drill-20261128-private"],
-      [env.MEDIA_PUBLIC, "korzina-l2-drill-20261128-public"],
-      [env.BACKUPS, "korzina-l2-drill-20261128-backups"],
-      [env.RESTORE_MEDIA, "korzina-l2-drill-20261128-restore"],
+      [env.MEDIA, "korzina-l2-drill-b-private"],
+      [env.MEDIA_PUBLIC, "korzina-l2-drill-b-public"],
+      [env.BACKUPS, "korzina-l2-drill-b-backups"],
+      [env.RESTORE_MEDIA, "korzina-l2-drill-b-restore"],
     ] as const;
     for (const [bucket, identity] of buckets) {
       const objects = (await bucket.list({ limit: 2 })).objects;
@@ -46,16 +46,22 @@ export default {
           "SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE '_cf_%' AND name NOT LIKE 'sqlite_%'",
         )
         .all();
-      if (tables.results.length !== 1 || tables.results[0].name !== "l2_drill_identity")
+      const names = tables.results.map((table) => table.name).sort();
+      if (JSON.stringify(names) !== JSON.stringify(["l2_drill_identity", "shops"]))
         throw new Error("Training database identity mismatch");
       const row = await db.prepare("SELECT identity FROM l2_drill_identity").first<{ identity: string }>();
       if (row?.identity !== identity) throw new Error("Training database identity mismatch");
+      const schema = await db
+        .prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name='shops'")
+        .first<{ sql: string }>();
+      const shops = await db.prepare("SELECT id FROM shops ORDER BY id").all<{ id: string }>();
+      if (
+        schema?.sql !== "CREATE TABLE shops (id TEXT PRIMARY KEY)" ||
+        JSON.stringify(shops.results.map((shop) => shop.id)) !== JSON.stringify(ids)
+      )
+        throw new Error("Training database contents mismatch");
     }
     for (const [bucket] of buckets) await bucket.delete(marker);
-    await env.PLATFORM.batch([
-      env.PLATFORM.prepare("CREATE TABLE shops (id TEXT PRIMARY KEY)"),
-      ...ids.map((id) => env.PLATFORM.prepare("INSERT INTO shops (id) VALUES (?)").bind(id)),
-    ]);
     for (const id of ids) await exports.Shop.get(exports.Shop.idFromName(id)).seedDemoCatalog(id);
     await env.MEDIA.put("l2-training-a/receipt", "training-private");
     await env.MEDIA_PUBLIC.put("l2-training-a/photo", "training-public");
