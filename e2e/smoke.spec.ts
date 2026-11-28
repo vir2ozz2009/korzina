@@ -167,7 +167,17 @@ test("витрина своего магазина → фасовка/корзи
   await checkWidths(page);
   const mosaic = page.getByRole("region", { name: "Мозаика категорий" });
   await mosaic.getByRole("button", { name: "Мозаика: 1×2, 2×2" }).click();
-  await expectCategoryFrames(mosaic.getByRole("navigation", { name: "Категории" }), ["1x1", "2x1", "1x2", "2x2"]);
+  await mosaic
+    .locator("[data-size] > span")
+    .first()
+    .evaluate((title) => {
+      title.textContent = "Очень длинное название категории со свежей выпечкой и молочными продуктами";
+    });
+  for (const width of [360, 390, 412]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expectCategoryFrames(mosaic.getByRole("navigation", { name: "Категории" }), ["1x1", "2x1", "1x2", "2x2"]);
+    await mosaic.screenshot({ path: `test-results/category-four-sizes-${width}.png`, animations: "disabled" });
+  }
   await expectSquarePhotos(page.locator("#kit-product-rows [data-product-photo]"));
   await page.getByRole("button", { name: "Шаблоны", exact: true }).click();
   await page.getByRole("button", { name: "form", exact: true }).click();
