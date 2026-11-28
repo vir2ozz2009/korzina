@@ -16,6 +16,13 @@ export async function checkCatalogBack(page: Page) {
     await expect(page).toHaveURL((url) => url.pathname === "/c/home");
     await page.goBack();
     await expect(page).toHaveURL((url) => url.pathname === "/categories");
+    await tabs.getByRole("link", { name: "Бренды", exact: true }).click();
+    await page.locator('a[href="/b/brand-1"]').click();
+    await page.locator("article a").first().click();
+    await page.goBack();
+    await expect(page).toHaveURL((url) => url.pathname === "/b/brand-1");
+    await page.goBack();
+    await expect(page).toHaveURL((url) => url.pathname === "/brands");
     await back();
     await home();
   }
