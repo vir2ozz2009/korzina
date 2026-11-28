@@ -56,6 +56,8 @@ it("не удаляет source, если restore D1 ошибочно совпа�
   await env.PLATFORM.batch([
     env.PLATFORM.prepare("CREATE TABLE l2_drill_identity (identity TEXT)"),
     env.PLATFORM.prepare("INSERT INTO l2_drill_identity VALUES (?)").bind("8e9a1210-1d84-4861-be7d-d051c81564d6"),
+    env.PLATFORM.prepare("CREATE TABLE shops (id TEXT PRIMARY KEY)"),
+    env.PLATFORM.prepare("INSERT INTO shops VALUES ('l2-training-a'),('l2-training-b')"),
   ]);
   const request = new Request("https://training.invalid/", {
     method: "POST",
@@ -72,7 +74,12 @@ it("не удаляет source, если restore D1 ошибочно совпа�
     identity: "8e9a1210-1d84-4861-be7d-d051c81564d6",
   });
   expect(await env.MEDIA.get(".l2-drill-identity")).not.toBeNull();
+  expect((await env.PLATFORM.prepare("SELECT id FROM shops ORDER BY id").all()).results).toEqual([
+    { id: "l2-training-a" },
+    { id: "l2-training-b" },
+  ]);
   await env.PLATFORM.prepare("DROP TABLE l2_drill_identity").run();
+  await env.PLATFORM.prepare("DROP TABLE shops").run();
 });
 
 it("восстанавливает только две ранее подготовленные учебные базы с сохранённым набором магазинов", async () => {
